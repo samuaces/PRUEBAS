@@ -1,10 +1,23 @@
 {
   "id": "orchestrator-0",
   "status": "active",
-  "currentTask": "monitoring",
-  "lastCheckpoint": "2026-04-17T05:59:44Z",
+  "currentTask": "phase5_monitoring",
+  "lastCheckpoint": "2026-04-17T06:30:00Z",
   "phase": 5,
   "completedPhases": [0, 1, 2, 3, 4],
   "simulationMode": true,
-  "nextSelfImprovementCheck": "2026-04-17T06:29:44Z"
+  "stripeStatus": "KEYS_MISSING_SAFE_SIM",
+  "metrics": {
+    "revenue_simulated": 98,
+    "signups_simulated": 2,
+    "landing_visits": 3,
+    "top_channel": "organic"
+  },
+  "growthBudget": {
+    "reddit_daily_usd": 5,
+    "twitter_daily_usd": 3,
+    "status": "ALLOCATED_SIM"
+  },
+  "nextSelfImprovementCheck": "2026-04-17T06:50:00Z",
+  "deadLetterQueue": []
 }

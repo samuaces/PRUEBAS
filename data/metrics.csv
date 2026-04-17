@@ -2,3 +2,10 @@ timestamp,event,value,metadata
 2026-04-17T05:59:27Z,landing_page_visit,1,{"referrer":"simulated","source":"agent_init"}
 2026-04-17T05:59:27Z,payment_simulated,49,{"plan":"pro","mode":"simulation"}
 2026-04-17T05:59:27Z,trial_started,1,{"plan":"free","mode":"simulation"}
+2026-04-17T06:13:27Z,landing_page_visit,1,{"referrer":"organic","source":"phase5_cycle"}
+2026-04-17T06:13:27Z,landing_page_visit,1,{"referrer":"linkedin_comment","source":"organic_growth"}
+2026-04-17T06:13:27Z,trial_started,1,{"plan":"free","mode":"simulation"}
+2026-04-17T06:13:27Z,icebreaker_generated,3,{"plan":"free","mode":"simulation"}
+2026-04-17T06:13:27Z,checkout_started,1,{"plan":"pro","mode":"simulation"}
+2026-04-17T06:13:27Z,payment_simulated,49,{"plan":"pro","mode":"simulation"}
+2026-04-17T06:13:27Z,icebreaker_generated,3,{"plan":"pro","mode":"simulation"}
