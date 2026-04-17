@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EmailPilot – Stop Generic Cold Emails</title>
+  <meta name="description" content="Generate 3 AI-powered LinkedIn icebreakers from any public profile in seconds. Get 3x more replies on your cold outreach." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand: #0ea5e9;
+      --accent: #6366f1;
+      --dark: #0f172a;
+      --muted: #64748b;
+      --bg: #f8fafc;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--dark); }
+
+    /* NAV */
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 48px; background: white; border-bottom: 1px solid #e2e8f0; }
+    .logo { font-weight: 800; font-size: 20px; background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-cta { background: var(--accent); color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; transition: opacity 0.15s; }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero { text-align: center; padding: 80px 24px 60px; max-width: 720px; margin: 0 auto; }
+    .badge { display: inline-block; background: #ede9fe; color: var(--accent); font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 0.5px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.15; margin-bottom: 20px; }
+    h1 span { background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { font-size: 18px; color: var(--muted); line-height: 1.6; margin-bottom: 36px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+    /* CTA BUTTONS */
+    .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      color: white; padding: 14px 32px; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.1s, opacity 0.15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); opacity: 0.92; }
+    .btn-secondary { background: white; color: var(--dark); padding: 14px 32px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; transition: border-color 0.15s; }
+    .btn-secondary:hover { border-color: var(--brand); }
+    .hero-note { font-size: 12px; color: var(--muted); }
+
+    /* DEMO CARD */
+    .demo { max-width: 600px; margin: 48px auto; background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .demo h3 { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .icebreaker { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; font-size: 14px; line-height: 1.6; position: relative; }
+    .icebreaker::before { content: attr(data-num); position: absolute; top: 12px; right: 14px; font-size: 11px; font-weight: 700; color: var(--accent); }
+
+    /* SOCIAL PROOF */
+    .proof { display: flex; justify-content: center; gap: 48px; padding: 48px 24px; background: white; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, var(--brand), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    /* PRICING */
+    .pricing { max-width: 900px; margin: 72px auto; padding: 0 24px; text-align: center; }
+    .pricing h2 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+    .pricing .sub { color: var(--muted); margin-bottom: 40px; }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .plan { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 28px 24px; }
+    .plan.featured { border-color: var(--accent); position: relative; }
+    .plan.featured::before { content: 'Most Popular'; position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
+    .plan-name { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .plan-price { font-size: 40px; font-weight: 800; margin: 8px 0; }
+    .plan-price span { font-size: 16px; font-weight: 400; color: var(--muted); }
+    .plan-features { list-style: none; margin: 16px 0 24px; text-align: left; }
+    .plan-features li { font-size: 14px; padding: 5px 0; color: #475569; }
+    .plan-features li::before { content: '✓ '; color: #22c55e; font-weight: 700; }
+    .btn-plan { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-plan.primary { background: linear-gradient(135deg, var(--brand), var(--accent)); color: white; }
+    .btn-plan.outline { background: white; border: 2px solid #e2e8f0; color: var(--dark); }
+
+    /* FOOTER */
+    footer { text-align: center; padding: 32px 24px; color: var(--muted); font-size: 13px; border-top: 1px solid #e2e8f0; }
+    .sim-banner { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; font-size: 12px; padding: 8px 16px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="sim-banner">
+    ⚠️ SIMULATED MODE ACTIVE — Powered by: <span id="today-date"></span> | Add <code>.env.local</code> with <code>STRIPE_SECRET_KEY</code> to activate real payments
+  </div>
+
+  <nav>
+    <div class="logo">EmailPilot</div>
+    <a class="nav-cta" href="#pricing" onclick="handleTrialClick(event)">Start Free Trial</a>
+  </nav>
+
+  <section class="hero">
+    <div class="badge">AI-Powered LinkedIn Personalization</div>
+    <h1>Stop generic cold emails.<br /><span>Get 3x more replies.</span></h1>
+    <p class="subtitle">
+      Paste any public LinkedIn profile URL and get 3 AI-crafted icebreakers in seconds.
+      Built for B2B SaaS founders who want real conversations, not spam.
+    </p>
+    <div class="cta-group">
+      <button class="btn-primary" onclick="handleTrialClick(event)">Start Free Trial — 5 Free Icebreakers</button>
+      <a class="btn-secondary" href="#demo">See Demo</a>
+    </div>
+    <p class="hero-note">No credit card required · Public LinkedIn data only · Cancel anytime</p>
+  </section>
+
+  <section class="demo" id="demo">
+    <h3>Example Output — Sarah Chen, VP Sales @ TechCorp</h3>
+    <div class="icebreaker" data-num="1">
+      Hi Sarah, saw your recent post about navigating enterprise sales cycles in Q1 — the insight about champion mapping resonated. Curious how that's evolved your team's approach to multi-threaded deals?
+    </div>
+    <div class="icebreaker" data-num="2">
+      Hi Sarah, your career progression from SDR to VP in 4 years is genuinely impressive. Would love to learn how you built your first outbound motion at TechCorp — are you open to a quick chat?
+    </div>
+    <div class="icebreaker" data-num="3">
+      Hi Sarah, noticed TechCorp just announced the Series B — congratulations! With rapid scaling ahead, how are you thinking about maintaining outbound quality as the team grows?
+    </div>
+  </section>
+
+  <section class="proof">
+    <div class="stat"><div class="stat-num">3x</div><div class="stat-label">Higher reply rate</div></div>
+    <div class="stat"><div class="stat-num">10s</div><div class="stat-label">To generate icebreakers</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Public data only</div></div>
+    <div class="stat"><div class="stat-num">$0</div><div class="stat-label">To start (5 free)</div></div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <h2>Simple, transparent pricing</h2>
+    <p class="sub">Start free, upgrade when you need more</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <span>forever</span></div>
+        <ul class="plan-features">
+          <li>5 icebreakers (lifetime)</li>
+          <li>Chrome extension</li>
+          <li>Public LinkedIn data</li>
+          <li>Copy to clipboard</li>
+        </ul>
+        <button class="btn-plan outline" onclick="handleTrialClick(event)">Get Started Free</button>
+      </div>
+      <div class="plan featured">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$9 <span>/mo</span></div>
+        <ul class="plan-features">
+          <li>100 icebreakers/month</li>
+          <li>All Free features</li>
+          <li>Priority generation</li>
+          <li>Email support</li>
+        </ul>
+        <button class="btn-plan primary" onclick="handlePaymentClick(event, 9)">Start Free Trial</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$49 <span>/mo</span></div>
+        <ul class="plan-features">
+          <li>Unlimited icebreakers</li>
+          <li>All Starter features</li>
+          <li>Team sharing (up to 5)</li>
+          <li>CRM export (CSV)</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn-plan primary" onclick="handlePaymentClick(event, 49)">Start Free Trial</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 EmailPilot · <a href="#" style="color:inherit">Privacy</a> · <a href="#" style="color:inherit">Terms</a> · Public LinkedIn data only · No login scraping</p>
+    <p style="margin-top:8px; font-size:11px; color:#94a3b8">SIMULATED MODE — Configure Stripe keys in .env.local to enable real payments</p>
+  </footer>
+
+  <script>
+    document.getElementById("today-date").textContent = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    function handleTrialClick(e) {
+      e.preventDefault();
+      trackEvent("cta_click", { plan: "free" });
+      alert("SIMULATED: Free trial started! Install the Chrome extension to begin.\n\n[In production: redirect to Chrome Web Store]");
+    }
+
+    function handlePaymentClick(e, amount) {
+      e.preventDefault();
+      trackEvent("payment_intent", { amount, currency: "usd" });
+      alert(`SIMULATED: Payment of $${amount}/mo received! Thank you!\n\nStripe checkout would open here in production.\nAdd STRIPE_SECRET_KEY to .env.local to enable real payments.`);
+    }
+
+    function trackEvent(event, meta) {
+      const row = { timestamp: new Date().toISOString(), event, ...meta };
+      console.log("[EmailPilot Analytics]", row);
+      // In production: POST to /api/events
+    }
+
+    // Track page view on load
+    trackEvent("landing_page_visit", { referrer: document.referrer || "direct" });
+  </script>
+</body>
+</html>
