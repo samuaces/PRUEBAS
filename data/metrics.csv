@@ -1,0 +1,4 @@
+timestamp,event,value,metadata
+2026-04-17T05:59:27Z,landing_page_visit,1,{"referrer":"simulated","source":"agent_init"}
+2026-04-17T05:59:27Z,payment_simulated,49,{"plan":"pro","mode":"simulation"}
+2026-04-17T05:59:27Z,trial_started,1,{"plan":"free","mode":"simulation"}
