@@ -1,587 +1,1322 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pizarra Táctica de Fútbol</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { display: flex; height: 100vh; background: #0d1117; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    >
 
-  /* SIDEBAR */
-  #sidebar {
-    width: 200px;
-    min-width: 200px;
-    background: #161b22;
-    border-right: 1px solid #30363d;
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    gap: 8px;
-    z-index: 10;
-  }
-  #sidebar h1 {
-    font-size: 13px;
-    color: #58a6ff;
-    text-align: center;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #30363d;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  .section-label {
-    font-size: 10px;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 4px;
-  }
-  .tool-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #c9d1d9;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .tool-btn:hover { background: #2d333b; border-color: #58a6ff; }
-  .tool-btn.active { background: #1f4e7a; border-color: #58a6ff; color: #fff; }
-  .tool-icon { font-size: 16px; width: 20px; text-align: center; }
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AF Elite 5.0">
 
-  .add-btn {
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.15s;
-  }
-  .add-home { background: #c0392b; color: #fff; }
-  .add-home:hover { background: #e74c3c; }
-  .add-away { background: #1a5276; color: #fff; }
-  .add-away:hover { background: #2980b9; }
-  .action-btn {
-    padding: 7px 10px;
-    border-radius: 6px;
-    border: 1px solid #30363d;
-    background: #21262d;
-    color: #c9d1d9;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.15s;
-  }
-  .action-btn:hover { background: #2d333b; }
-  .clear-btn:hover { border-color: #f85149; color: #f85149; }
+    <link rel="apple-touch-icon" href="icon.png">
 
-  /* COLOR PICKERS */
-  .color-row { display: flex; gap: 4px; flex-wrap: wrap; }
-  .color-dot {
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.15s;
-  }
-  .color-dot.active, .color-dot:hover { border-color: #fff; transform: scale(1.2); }
+    <title>AnalyticsFutbol Elite v5.0</title>
 
-  .stroke-row { display: flex; gap: 4px; }
-  .stroke-btn {
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 1px solid #30363d;
-    background: #21262d;
-    color: #c9d1d9;
-    cursor: pointer;
-    font-size: 10px;
-    transition: all 0.15s;
-  }
-  .stroke-btn.active { border-color: #58a6ff; color: #58a6ff; }
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  /* FIELD AREA */
-  #field-area {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0d1117;
-    position: relative;
-    overflow: hidden;
-  }
+    <style>
+        /* ========================================================================
+           BLOQUE 1: VARIABLES DE DISEÑO Y TEMATIZACIÓN (CSS CUSTOM PROPERTIES)
+           ========================================================================
+        */
+        :root {
+            /* PALETA DE COLORES PROFESIONAL */
+            --af-bg-main: #0c0c0c;
+            --af-surface-panel: #111111;
+            --af-card-inner: #161616;
+            --af-border-stroke: #232323;
+            --af-accent-glow: #00d68f;
+            --af-local-team: #f43f5e;
+            --af-visit-team: #3b9eff;
+            --af-ball-event: #f5a623;
 
-  #field-container {
-    position: relative;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 0 40px rgba(0,0,0,0.8);
-  }
+            /* TIPOGRAFÍAS */
+            --af-font-main: 'Manrope', sans-serif;
+            --af-font-numerical: 'Roboto Mono', monospace;
 
-  #field-svg {
-    display: block;
-  }
+            /* ESTADOS DE TEXTO Y CONTRASTE */
+            --af-text-high: #ebebeb;
+            --af-text-low: #7a7a7a;
+            --af-text-muted: #404040;
 
-  #draw-canvas {
-    position: absolute;
-    top: 0; left: 0;
-    pointer-events: none;
-  }
-  #draw-canvas.active {
-    pointer-events: all;
-    cursor: crosshair;
-  }
+            /* COMPONENTES DEL CAMPO */
+            --af-grass-deep: #0a1b07;
+            --af-pitch-lines: rgba(255, 255, 255, 0.4);
+        }
 
-  /* PLAYERS */
-  .player {
-    position: absolute;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 13px;
-    color: #fff;
-    cursor: grab;
-    user-select: none;
-    border: 2px solid rgba(255,255,255,0.6);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    transform: translate(-50%, -50%);
-    transition: box-shadow 0.1s;
-    z-index: 5;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-  }
-  .player:hover { box-shadow: 0 0 0 3px rgba(255,255,255,0.4), 0 2px 8px rgba(0,0,0,0.5); }
-  .player.dragging { cursor: grabbing; box-shadow: 0 0 0 3px #fff, 0 4px 16px rgba(0,0,0,0.6); z-index: 100; }
-  .player.home { background: radial-gradient(circle at 35% 35%, #e74c3c, #922b21); }
-  .player.away { background: radial-gradient(circle at 35% 35%, #2980b9, #1a5276); }
+        /* ========================================================================
+           BLOQUE 2: RESET GENERAL Y NORMALIZACIÓN DE DISPOSITIVOS
+           ========================================================================
+        */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin-top: 0px;
+            margin-right: 0px;
+            margin-bottom: 0px;
+            margin-left: 0px;
+            padding-top: 0px;
+            padding-right: 0px;
+            padding-bottom: 0px;
+            padding-left: 0px;
+        }
 
-  /* CONES */
-  .cone {
-    position: absolute;
-    font-size: 20px;
-    transform: translate(-50%, -50%);
-    cursor: grab;
-    user-select: none;
-    z-index: 5;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-  }
-  .cone.dragging { cursor: grabbing; z-index: 100; }
-</style>
+        body {
+            background-color: var(--af-bg-main);
+            color: var(--af-text-high);
+            font-family: var(--af-font-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Simula comportamiento de aplicación nativa */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========================================================================
+           BLOQUE 3: ARQUITECTURA DE CABECERA (HEADER)
+           ========================================================================
+        */
+        header.app-main-header {
+            padding-top: 55px; /* Espacio para iPhone Notch / Dynamic Island */
+            padding-right: 25px;
+            padding-bottom: 18px;
+            padding-left: 25px;
+            background-color: var(--af-surface-panel);
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-bottom-color: var(--af-border-stroke);
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 1000;
+        }
+
+        .header-brand-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-brand-container h1 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            color: var(--af-accent-glow);
+            line-height: 1.0;
+        }
+
+        .header-brand-container p {
+            font-family: var(--af-font-numerical);
+            font-size: 10px;
+            color: var(--af-text-muted);
+            font-weight: 700;
+            margin-top: 5px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* RELOJ TÉCNICO INTEGRADO */
+        .match-chrono-display {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            background-color: #1a1a1a;
+            padding-top: 8px;
+            padding-right: 15px;
+            padding-bottom: 8px;
+            padding-left: 15px;
+            border-radius: 10px;
+            border-width: 1px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+        }
+
+        #chrono-timer-text {
+            font-family: var(--af-font-numerical);
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            min-width: 65px;
+            text-align: center;
+        }
+
+        .chrono-control-btn {
+            background-color: transparent;
+            border-top-style: none;
+            border-right-style: none;
+            border-bottom-style: none;
+            border-left-style: none;
+            color: var(--af-text-low);
+            font-size: 22px;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: var(--af-font-main);
+        }
+
+        /* FIX #12: Expandido — border shorthand eliminado */
+        .chrono-trigger-label {
+            background-color: transparent;
+            border-top-style: none;
+            border-right-style: none;
+            border-bottom-style: none;
+            border-left-style: none;
+            color: var(--af-accent-glow);
+            font-weight: 900;
+            font-size: 11px;
+            margin-left: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: var(--af-font-main);
+        }
+
+        /* ========================================================================
+           BLOQUE 4: SISTEMA DE NAVEGACIÓN (TABS)
+           ========================================================================
+        */
+        nav.system-navigation-scroller {
+            display: flex;
+            flex-direction: row;
+            background-color: var(--af-surface-panel);
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-bottom-color: var(--af-border-stroke);
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex-shrink: 0;
+        }
+
+        nav.system-navigation-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tab-item {
+            padding-top: 20px;
+            padding-right: 25px;
+            padding-bottom: 20px;
+            padding-left: 25px;
+            border-top-style: none;
+            border-right-style: none;
+            border-left-style: none;
+            background-color: transparent;
+            color: var(--af-text-low);
+            font-size: 11px;
+            font-weight: 800;
+            font-family: var(--af-font-main);
+            text-transform: uppercase;
+            white-space: nowrap;
+            border-bottom-width: 4px;
+            border-bottom-style: solid;
+            border-bottom-color: transparent;
+            cursor: pointer;
+            transition-property: all;
+            transition-duration: 0.3s;
+        }
+
+        .nav-tab-item.active {
+            color: #ffffff;
+            border-bottom-color: var(--af-accent-glow);
+            background-color: rgba(0, 214, 143, 0.1);
+        }
+
+        /* ========================================================================
+           BLOQUE 5: MAIN VIEWPORT (CONTENEDOR DE VISTAS DINÁMICAS)
+           ========================================================================
+        */
+        main.app-viewport-container {
+            flex-grow: 1;
+            flex-shrink: 1;
+            flex-basis: 0%;
+            overflow-y: auto;
+            padding-top: 25px;
+            padding-right: 20px;
+            padding-bottom: 40px;
+            padding-left: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .view-section-panel {
+            display: none;
+        }
+
+        .view-section-panel.active {
+            display: block;
+            animation-name: viewFadeInEffect;
+            animation-duration: 0.4s;
+            animation-timing-function: ease-out;
+        }
+
+        @keyframes viewFadeInEffect {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0px); }
+        }
+
+        /* ESTILO DE TARJETAS DE DATOS IA */
+        .af-ui-card {
+            background-color: var(--af-card-inner);
+            border-width: 1px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+            border-radius: 16px;
+            padding-top: 30px;
+            padding-right: 30px;
+            padding-bottom: 30px;
+            padding-left: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        .af-card-header-label {
+            font-family: var(--af-font-numerical);
+            font-size: 11px;
+            color: var(--af-text-low);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 25px;
+            display: block;
+            border-left-width: 5px;
+            border-left-style: solid;
+            border-left-color: var(--af-accent-glow);
+            padding-left: 15px;
+        }
+
+        /* ========================================================================
+           BLOQUE 6: SCOREBOARD Y POSESIÓN (UI DASHBOARD)
+           ========================================================================
+        */
+        .live-scoreboard-group {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .score-value-large {
+            font-family: var(--af-font-numerical);
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .possession-track-bg {
+            height: 16px;
+            background-color: #222222;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 18px;
+        }
+
+        .possession-bar-fill {
+            height: 100%;
+            transition-property: width;
+            transition-duration: 0.9s;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .possession-value-labels {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            font-family: var(--af-font-numerical);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        /* ========================================================================
+           BLOQUE 7: RADAR TÁCTICO (ESTADIO VIRTUAL)
+           ========================================================================
+        */
+        .tactical-pitch-engine {
+            width: 100%;
+            aspect-ratio: 105/68;
+            background-color: var(--af-grass-deep);
+            border-width: 3px;
+            border-style: solid;
+            border-color: #1a2e16;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 120px rgba(0,0,0,0.9);
+        }
+
+        .pitch-svg-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* FIX #2: Capa de jugadores posicionada absolutamente sobre el SVG del campo */
+        #ui-radar-render-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 20;
+        }
+
+        .ia-player-node {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 800;
+            border-width: 3px;
+            border-style: solid;
+            border-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            z-index: 50;
+            transition-property: all;
+            transition-duration: 0.4s;
+            transition-timing-function: cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+
+        /* ========================================================================
+           BLOQUE 8: CONTROL DE ETIQUETADO (TAGGING PANEL)
+           ========================================================================
+        */
+        .team-selection-switcher {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn-match-context {
+            flex-grow: 1;
+            padding-top: 22px;
+            padding-bottom: 22px;
+            border-radius: 12px;
+            border-width: 2.5px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+            background-color: transparent;
+            color: var(--af-text-low);
+            font-weight: 800;
+            font-size: 13px;
+            font-family: var(--af-font-main);
+            text-transform: uppercase;
+            cursor: pointer;
+            transition-duration: 0.3s;
+        }
+
+        .btn-match-context.active-local {
+            border-color: var(--af-local-team);
+            color: var(--af-local-team);
+            background-color: rgba(244,63,94,0.15);
+        }
+
+        .btn-match-context.active-visit {
+            border-color: var(--af-visit-team);
+            color: var(--af-visit-team);
+            background-color: rgba(59,158,255,0.15);
+        }
+
+        .tactical-events-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            column-gap: 15px;
+            row-gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn-event-tag {
+            background-color: var(--af-surface-panel);
+            border-width: 1px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+            color: #ffffff;
+            padding-top: 25px;
+            padding-right: 20px;
+            padding-bottom: 25px;
+            padding-left: 20px;
+            font-size: 13px;
+            font-weight: 800;
+            font-family: var(--af-font-main);
+            border-radius: 14px;
+            text-align: left;
+            border-left-width: 7px;
+            border-left-style: solid;
+            border-left-color: var(--af-text-muted);
+            cursor: pointer;
+            transition-duration: 0.2s;
+        }
+
+        /* RECORTE DE CLIPS INTEGRADO */
+        .clip-system-controls {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top-width: 1px;
+            border-top-style: solid;
+            border-top-color: var(--af-border-stroke);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-clip-marker {
+            background-color: #222;
+            border-width: 1px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+            color: #ffffff;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            font-family: var(--af-font-main);
+            border-radius: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        /* ========================================================================
+           BLOQUE 9: ANALIZADOR DE VIDEO Y PIZARRA TÁCTICA
+           ========================================================================
+        */
+        .pro-video-wrapper {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-color: #000000;
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            border-width: 2.5px;
+            border-style: solid;
+            border-color: var(--af-border-stroke);
+            margin-bottom: 30px;
+            box-shadow: 0 15px 60px rgba(0,0,0,0.7);
+        }
+
+        video#ui-html5-engine-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas#af-tactical-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 500;
+        }
+
+        canvas#af-tactical-overlay.drawing-active {
+            pointer-events: all;
+        }
+
+        /* ========================================================================
+           BLOQUE 10: TABLAS DE RENDIMIENTO Y RENDERING GLOBAL
+           ========================================================================
+        */
+        .performance-data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .performance-data-table th {
+            text-align: left;
+            color: var(--af-text-low);
+            font-size: 10px;
+            padding-bottom: 20px;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-bottom-color: var(--af-border-stroke);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .performance-data-table td {
+            padding-top: 24px;
+            padding-bottom: 24px;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-bottom-color: #1a1a1a;
+            font-family: var(--af-font-numerical);
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        /* FIX #12: Expandido — border shorthand eliminado */
+        .btn-system-wide {
+            width: 100%;
+            padding-top: 26px;
+            padding-right: 20px;
+            padding-bottom: 26px;
+            padding-left: 20px;
+            border-radius: 14px;
+            border-top-style: none;
+            border-right-style: none;
+            border-bottom-style: none;
+            border-left-style: none;
+            font-weight: 800;
+            font-family: var(--af-font-main);
+            text-transform: uppercase;
+            font-size: 15px;
+            background-color: var(--af-accent-glow);
+            color: #000000;
+            margin-bottom: 20px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 8px 25px rgba(0, 214, 143, 0.4);
+        }
+
+        .timeline-log-item {
+            padding-top: 22px;
+            padding-bottom: 22px;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+            border-bottom-color: #222222;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+    </style>
 </head>
+<!-- FIX #1: Eliminado atributo onload duplicado del body. Bootstrap se invoca exclusivamente desde window.onload -->
 <body>
 
-<div id="sidebar">
-  <h1>⚽ PIZARRA TÁCTICA</h1>
+    <header class="app-main-header">
+        <div class="header-brand-container">
+            <h1>AnalyticsFutbol</h1>
+            <p>ELITE SYSTEM v5.0 FINAL</p>
+        </div>
+        <div class="match-chrono-display">
+            <button class="chrono-control-btn" onclick="App.adjustGameTime(-1)">-</button>
+            <span id="chrono-timer-text">00:00</span>
+            <button class="chrono-control-btn" onclick="App.adjustGameTime(1)">+</button>
+            <button id="ui-btn-timer-trigger" class="chrono-trigger-label" onclick="App.toggleChronoMotor()">START</button>
+        </div>
+    </header>
 
-  <span class="section-label">Herramientas</span>
-  <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
-    <span class="tool-icon">↖</span> Seleccionar
-  </div>
-  <div class="tool-btn" data-tool="arrow" onclick="setTool('arrow')">
-    <span class="tool-icon">→</span> Flecha sólida
-  </div>
-  <div class="tool-btn" data-tool="dash-arrow" onclick="setTool('dash-arrow')">
-    <span class="tool-icon">⇢</span> Flecha carrera
-  </div>
-  <div class="tool-btn" data-tool="line" onclick="setTool('line')">
-    <span class="tool-icon">╱</span> Línea libre
-  </div>
-  <div class="tool-btn" data-tool="cone" onclick="setTool('cone')">
-    <span class="tool-icon">📍</span> Cono
-  </div>
-  <div class="tool-btn" data-tool="eraser" onclick="setTool('eraser')">
-    <span class="tool-icon">✕</span> Borrar trazo
-  </div>
+    <nav class="system-navigation-scroller">
+        <button class="nav-tab-item active" onclick="App.switchPanelView('live', this)">Dashboard</button>
+        <button class="nav-tab-item" onclick="App.switchPanelView('tactical', this)">Táctico</button>
+        <button class="nav-tab-item" onclick="App.switchPanelView('physic', this)">Físico</button>
+        <!-- FIX #16: ID añadido para selección programática fiable en jumpToVideoSeconds -->
+        <button id="nav-btn-clips" class="nav-tab-item" onclick="App.switchPanelView('clips', this)">Clips</button>
+        <button class="nav-tab-item" onclick="App.switchPanelView('events', this)">Eventos</button>
+        <button class="nav-tab-item" onclick="App.switchPanelView('report', this)">Informe</button>
+    </nav>
 
-  <span class="section-label">Color trazo</span>
-  <div class="color-row" id="color-row">
-    <div class="color-dot active" data-color="#ffffff" style="background:#ffffff" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#f1c40f" style="background:#f1c40f" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#e74c3c" style="background:#e74c3c" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#2ecc71" style="background:#2ecc71" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#3498db" style="background:#3498db" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#e67e22" style="background:#e67e22" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#9b59b6" style="background:#9b59b6" onclick="setColor(this)"></div>
-    <div class="color-dot" data-color="#1abc9c" style="background:#1abc9c" onclick="setColor(this)"></div>
-  </div>
+    <main class="app-viewport-container" id="app-root-viewport">
 
-  <span class="section-label">Grosor</span>
-  <div class="stroke-row">
-    <div class="stroke-btn active" data-size="2" onclick="setSize(this)">Fino</div>
-    <div class="stroke-btn" data-size="4" onclick="setSize(this)">Medio</div>
-    <div class="stroke-btn" data-size="6" onclick="setSize(this)">Grueso</div>
-  </div>
+        <section id="view-live" class="view-section-panel active">
+            <div class="af-ui-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                    <span class="af-card-header-label">Transmisión Cloud Realtime</span>
+                    <!-- FIX #12: Inline border shorthand expandido -->
+                    <button id="ui-btn-demo-toggle" onclick="App.toggleSimulationEngine()" style="background-color:transparent; border-width:1px; border-style:solid; border-color:var(--af-text-low); color:var(--af-text-low); padding-top:10px; padding-right:20px; padding-bottom:10px; padding-left:20px; font-size:10px; border-radius:30px; font-weight:800; cursor:pointer; font-family:var(--af-font-main);">SIMULADOR: OFF</button>
+                </div>
 
-  <span class="section-label">Jugadores</span>
-  <button class="add-btn add-home" onclick="addPlayer('home')">+ Local (Rojo)</button>
-  <button class="add-btn add-away" onclick="addPlayer('away')">+ Visitante (Azul)</button>
+                <div class="live-scoreboard-group">
+                    <div style="text-align:center">
+                        <div class="score-value-large" style="color:var(--af-local-team)" id="ui-val-score-local">0</div>
+                        <div style="font-size:11px; color:var(--af-text-low); letter-spacing:2px; margin-top:10px;">LOCAL</div>
+                    </div>
+                    <div style="font-size:42px; font-weight:900; opacity:0.15; font-family:var(--af-font-numerical)">VS</div>
+                    <div style="text-align:center">
+                        <div class="score-value-large" style="color:var(--af-visit-team)" id="ui-val-score-visit">0</div>
+                        <div style="font-size:11px; color:var(--af-text-low); letter-spacing:2px; margin-top:10px;">VISITANTE</div>
+                    </div>
+                </div>
 
-  <span class="section-label">Acciones</span>
-  <button class="action-btn" onclick="undoLast()">↩ Deshacer</button>
-  <button class="action-btn clear-btn" onclick="clearAll()">🗑 Limpiar todo</button>
-</div>
+                <div class="possession-track-bg">
+                    <div id="ui-fill-poss-local" style="width:50%; background-color:var(--af-local-team);" class="possession-bar-fill"></div>
+                    <div id="ui-fill-poss-visit" style="width:50%; background-color:var(--af-visit-team);" class="possession-bar-fill"></div>
+                </div>
+                <div class="possession-value-labels">
+                    <span id="ui-txt-poss-local" style="color:var(--af-local-team)">50%</span>
+                    <span style="color:var(--af-text-muted); letter-spacing:6px">POSESIÓN ABSOLUTA</span>
+                    <span id="ui-txt-poss-visit" style="color:var(--af-visit-team)">50%</span>
+                </div>
+            </div>
 
-<div id="field-area">
-  <div id="field-container">
-    <!-- SVG FIELD -->
-    <svg id="field-svg" viewBox="0 0 1050 680" xmlns="http://www.w3.org/2000/svg">
-      <!-- Grass stripes -->
-      <defs>
-        <pattern id="stripes" x="0" y="0" width="60" height="680" patternUnits="userSpaceOnUse">
-          <rect width="60" height="680" fill="#2d8a4e"/>
-          <rect width="30" height="680" fill="#278046"/>
-        </pattern>
-      </defs>
-      <!-- Field background -->
-      <rect width="1050" height="680" fill="url(#stripes)"/>
-      <!-- Field border -->
-      <rect x="25" y="25" width="1000" height="630" fill="none" stroke="white" stroke-width="3"/>
-      <!-- Halfway line -->
-      <line x1="525" y1="25" x2="525" y2="655" stroke="white" stroke-width="3"/>
-      <!-- Center circle -->
-      <circle cx="525" cy="340" r="91.5" fill="none" stroke="white" stroke-width="3"/>
-      <!-- Center spot -->
-      <circle cx="525" cy="340" r="4" fill="white"/>
-      <!-- Halfway spot (decorative) -->
+            <div class="tactical-pitch-engine">
+                <svg class="pitch-svg-layer" viewBox="0 0 105 68" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="105" height="68" fill="none" stroke="var(--af-pitch-lines)" stroke-width="0.6"/>
+                    <line x1="52.5" y1="0" x2="52.5" y2="68" stroke="var(--af-pitch-lines)" stroke-width="0.6"/>
+                    <circle cx="52.5" cy="34" r="9.15" fill="none" stroke="var(--af-pitch-lines)" stroke-width="0.6"/>
+                    <rect x="0" y="13.84" width="16.5" height="40.32" fill="none" stroke="var(--af-pitch-lines)" stroke-width="0.6"/>
+                    <rect x="88.5" y="13.84" width="16.5" height="40.32" fill="none" stroke="var(--af-pitch-lines)" stroke-width="0.6"/>
+                </svg>
+                <!-- FIX #2: Capa de nodos IA — ver CSS #ui-radar-render-layer con position:absolute -->
+                <div id="ui-radar-render-layer"></div>
+            </div>
+        </section>
 
-      <!-- LEFT PENALTY AREA -->
-      <rect x="25" y="172.5" width="165" height="335" fill="none" stroke="white" stroke-width="3"/>
-      <!-- LEFT GOAL AREA -->
-      <rect x="25" y="254" width="55" height="172" fill="none" stroke="white" stroke-width="3"/>
-      <!-- LEFT PENALTY SPOT -->
-      <circle cx="136" cy="340" r="4" fill="white"/>
-      <!-- LEFT PENALTY ARC -->
-      <path d="M 165 265 A 91.5 91.5 0 0 1 165 415" fill="none" stroke="white" stroke-width="3"/>
-      <!-- LEFT CORNER ARCS -->
-      <path d="M 25 50 A 25 25 0 0 1 50 25" fill="none" stroke="white" stroke-width="3"/>
-      <path d="M 25 630 A 25 25 0 0 0 50 655" fill="none" stroke="white" stroke-width="3"/>
+        <section id="view-tactical" class="view-section-panel">
+            <div class="af-ui-card">
+                <span class="af-card-header-label">Análisis Estructural Colectivo</span>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px">
+                    <div style="background:#0a0a0a; padding:45px; border-radius:24px; text-align:center; border: 1px solid #222;">
+                        <div id="ui-val-tactical-compacity" style="font-family:var(--af-font-numerical); font-size:54px; font-weight:800">--</div>
+                        <div style="font-size:12px; color:var(--af-text-low); margin-top:15px; letter-spacing:2.5px; font-weight:800;">COMPACIDAD BLOQUE (m)</div>
+                    </div>
+                    <div style="background:#0a0a0a; padding:45px; border-radius:24px; text-align:center; border: 1px solid #222;">
+                        <div id="ui-val-tactical-height" style="font-family:var(--af-font-numerical); font-size:54px; font-weight:800; color:var(--af-accent-glow)">--</div>
+                        <div style="font-size:12px; color:var(--af-text-low); margin-top:15px; letter-spacing:2.5px; font-weight:800;">ALTURA MEDIA PRESIÓN (m)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-      <!-- RIGHT PENALTY AREA -->
-      <rect x="860" y="172.5" width="165" height="335" fill="none" stroke="white" stroke-width="3"/>
-      <!-- RIGHT GOAL AREA -->
-      <rect x="970" y="254" width="55" height="172" fill="none" stroke="white" stroke-width="3"/>
-      <!-- RIGHT PENALTY SPOT -->
-      <circle cx="914" cy="340" r="4" fill="white"/>
-      <!-- RIGHT PENALTY ARC -->
-      <path d="M 885 265 A 91.5 91.5 0 0 0 885 415" fill="none" stroke="white" stroke-width="3"/>
-      <!-- RIGHT CORNER ARCS -->
-      <path d="M 1025 50 A 25 25 0 0 0 1000 25" fill="none" stroke="white" stroke-width="3"/>
-      <path d="M 1025 630 A 25 25 0 0 1 1000 655" fill="none" stroke="white" stroke-width="3"/>
+        <section id="view-physic" class="view-section-panel">
+            <div class="af-ui-card">
+                <span class="af-card-header-label">Monitorización Física (1 Decimal Máx.)</span>
+                <table class="performance-data-table">
+                    <thead>
+                        <tr>
+                            <th>DORSAL</th>
+                            <th>POSICIÓN</th>
+                            <th>DISTANCIA (km)</th>
+                            <th>VEL. MÁX (km/h)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ui-physic-payload-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-      <!-- LEFT GOAL -->
-      <rect x="0" y="289" width="25" height="102" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="3"/>
-      <!-- RIGHT GOAL -->
-      <rect x="1025" y="289" width="25" height="102" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="3"/>
-    </svg>
+        <section id="view-clips" class="view-section-panel">
+            <div class="af-ui-card">
+                <span class="af-card-header-label">Video Analyzer y Pizarra Digital</span>
+                <!-- FIX #14: Eliminada dependencia externa de via.placeholder.com como poster -->
+                <div class="pro-video-wrapper">
+                    <video id="ui-html5-engine-player" controls></video>
+                    <canvas id="af-tactical-overlay"></canvas>
+                </div>
+                <div style="display:flex; flex-direction:row; gap:15px; margin-top:10px">
+                    <button class="btn-system-wide" style="flex:2; margin-bottom:0px;" onclick="App.toggleCanvasDrawing()">Lápiz Táctico Pro</button>
+                    <button class="btn-system-wide" style="flex:1; background-color:#333; color:#fff; margin-bottom:0px;" onclick="App.clearCanvasDrawing()">Limpiar</button>
+                </div>
+            </div>
+        </section>
 
-    <!-- Drawing canvas -->
-    <canvas id="draw-canvas"></canvas>
-  </div>
-</div>
+        <section id="view-events" class="view-section-panel">
+            <div class="af-ui-card">
+                <span class="af-card-header-label">Centro de Tagging Realtime v5.0</span>
+                <div class="team-selection-switcher">
+                    <button id="ui-btn-ctx-local" class="btn-match-context active-local" onclick="App.setGlobalMatchContext('A')">EQUIPO LOCAL</button>
+                    <button id="ui-btn-ctx-visit" class="btn-match-context" onclick="App.setGlobalMatchContext('B')">EQUIPO VISITANTE</button>
+                </div>
+                <div class="tactical-events-grid">
+                    <button class="btn-event-tag" style="border-left-color:var(--af-ball-event)" onclick="App.executeTechnicalEvent('GOL')">GOL</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-accent-glow)" onclick="App.executeTechnicalEvent('RECUPERACIÓN')">RECUPERACIÓN</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-local-team)" onclick="App.executeTechnicalEvent('PÉRDIDA')">PÉRDIDA</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-accent-glow)" onclick="App.executeTechnicalEvent('TIRO')">TIRO</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-local-team)" onclick="App.executeTechnicalEvent('FALTA')">FALTA</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-ball-event)" onclick="App.executeTechnicalEvent('OFFSIDE')">OFFSIDE</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-visit-team)" onclick="App.executeTechnicalEvent('CÓRNER')">CÓRNER</button>
+                    <button class="btn-event-tag" style="border-left-color:var(--af-text-muted)" onclick="App.executeTechnicalEvent('PARADA')">PARADA</button>
+                </div>
+                <div class="clip-system-controls">
+                    <button id="ui-btn-rec-in" class="btn-clip-marker" onclick="App.handleClipMarking('in')">Inicio de Jugada</button>
+                    <button id="ui-btn-rec-out" class="btn-clip-marker" onclick="App.handleClipMarking('out')">Fin de Jugada</button>
+                </div>
+            </div>
 
-<script>
-// ─── STATE ──────────────────────────────────────────────────────────────────
-let currentTool = 'select';
-let currentColor = '#ffffff';
-let currentSize = 2;
-let isDrawing = false;
-let startX, startY;
-let homeCount = 0, awayCount = 0;
-let strokes = []; // { type, x1,y1,x2,y2, color, size, dash }
-let liveStroke = null;
-let players = []; // DOM elements
-let cones = [];   // DOM elements
+            <div class="af-ui-card">
+                <span class="af-card-header-label">Historial Cronológico de Sucesos</span>
+                <div id="ui-timeline-log-container">
+                </div>
+            </div>
+        </section>
 
-const canvas = document.getElementById('draw-canvas');
-const ctx = canvas.getContext('2d');
-const fieldContainer = document.getElementById('field-container');
-const fieldSvg = document.getElementById('field-svg');
+        <section id="view-report" class="view-section-panel">
+            <div class="af-ui-card" style="text-align:center; padding-top:100px; padding-bottom:100px;">
+                <div style="font-size:90px; margin-bottom:40px; filter: drop-shadow(0 0 25px var(--af-accent-glow));">📊</div>
+                <h2 style="margin-bottom:20px; letter-spacing:2px; font-size:36px; font-weight:800;">Finalizar Sesión v5.0</h2>
+                <p style="font-size:16px; color:var(--af-text-low); margin-bottom:60px; line-height:1.8; max-width:600px; margin-left:auto; margin-right:auto;">Consolidación de toda la inteligencia táctica recolectada. El reporte PDF incluirá métricas físicas (1 decimal) y marcador sincronizado bidireccionalmente.</p>
+                <button class="btn-system-wide" onclick="App.generateFinalTechnicalReport()">Descargar Informe Técnico PDF Oficial</button>
+            </div>
+        </section>
+    </main>
 
-// ─── RESIZE ─────────────────────────────────────────────────────────────────
-function resizeField() {
-  const area = document.getElementById('field-area');
-  const areaW = area.clientWidth - 20;
-  const areaH = area.clientHeight - 20;
-  const ratio = 1050 / 680;
-  let w = areaW, h = areaW / ratio;
-  if (h > areaH) { h = areaH; w = h * ratio; }
-  fieldSvg.setAttribute('width', w);
-  fieldSvg.setAttribute('height', h);
-  canvas.width = w;
-  canvas.height = h;
-  redrawCanvas();
-}
-window.addEventListener('resize', resizeField);
-resizeField();
+    <script>
+        const App = {
+            /* ESTADOS GLOBALES DE LA MAQUINARIA */
+            supabase: null,
+            activeContextCode: 'A',
+            historicalEventLog: [],
+            matchTimerSeconds: 0,
+            chronoTimerId: null,
+            isPizarraSystemEnabled: false,
+            isSimulationEngineActive: false,
+            simulationLoopInterval: null,
+            /* FIX #13: Intervalo de sincronización almacenado para gestión de ciclo de vida */
+            syncIntervalId: null,
+            /* FIX #3: Bandera de inicialización del canvas — diferida hasta que la pestaña sea visible */
+            canvasInitialized: false,
 
-// ─── TOOLS ──────────────────────────────────────────────────────────────────
-function setTool(tool) {
-  currentTool = tool;
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
-  const isDrawTool = ['arrow','dash-arrow','line'].includes(tool);
-  canvas.classList.toggle('active', isDrawTool);
-}
+            /* PROTECCIÓN DE SINCRONIZACIÓN (ESCUDO ANTI-FALLOS) */
+            writeShieldActive: false,
 
-function setColor(el) {
-  currentColor = el.dataset.color;
-  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-  el.classList.add('active');
-}
+            /* ESTADO MAESTRO DE DATOS */
+            matchState: {
+                id: null,
+                scoreL: 0,
+                scoreV: 0,
+                possessionL: 50,
+                iaDataPayload: {
+                    players: [],
+                    positions: []
+                }
+            },
 
-function setSize(el) {
-  currentSize = parseInt(el.dataset.size);
-  document.querySelectorAll('.stroke-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
+            /* BUFFER DE CLIPS RECORTADOS */
+            videoClipMarkers: {
+                pointIn: null,
+                pointOut: null
+            },
 
-// ─── CANVAS COORDS ──────────────────────────────────────────────────────────
-function getCanvasPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: clientX - rect.left, y: clientY - rect.top };
-}
+            /* 1. INITIALIZE: ARRANQUE DE LA MAQUINARIA Y CONEXIÓN CLOUD */
+            bootstrap: async function() {
+                console.log("[MOTOR] Arrancando AnalyticsFutbol Elite Engine v5.0...");
 
-// ─── DRAWING ────────────────────────────────────────────────────────────────
-canvas.addEventListener('pointerdown', e => {
-  if (!['arrow','dash-arrow','line'].includes(currentTool)) return;
-  e.preventDefault();
-  const pos = getCanvasPos(e);
-  isDrawing = true;
-  startX = pos.x; startY = pos.y;
-});
+                /* Inicialización de Conector Supabase v2.0 SDK */
+                this.supabase = window.supabase.createClient(
+                    "https://zdckdlrgtoglmvgdrvcn.supabase.co",
+                    "sb_publishable_bGfCRIXGSuGb5XK_SJ0tdw_XYNIHW14"
+                );
 
-canvas.addEventListener('pointermove', e => {
-  if (!isDrawing) return;
-  e.preventDefault();
-  const pos = getCanvasPos(e);
-  liveStroke = { x1: startX, y1: startY, x2: pos.x, y2: pos.y };
-  redrawCanvas();
-  drawStroke(liveStroke, currentTool, currentColor, currentSize, true);
-});
+                /* FIX #3: Setup del canvas registra listeners sin tocar dimensiones (pestaña oculta) */
+                this.setupTacticalCanvasSystem();
+                this.syncCloudEngineData();
 
-canvas.addEventListener('pointerup', e => {
-  if (!isDrawing) return;
-  isDrawing = false;
-  const pos = getCanvasPos(e);
-  const dx = pos.x - startX, dy = pos.y - startY;
-  if (Math.hypot(dx, dy) > 5) {
-    strokes.push({ type: currentTool, x1: startX, y1: startY, x2: pos.x, y2: pos.y, color: currentColor, size: currentSize });
-  }
-  liveStroke = null;
-  redrawCanvas();
-});
+                /* FIX #13: Referencia al intervalo almacenada para poder cancelarlo */
+                this.syncIntervalId = setInterval(function() {
+                    App.syncCloudEngineData();
+                }, 5000);
+            },
 
-function drawStroke(s, type, color, size, preview = false) {
-  const t = type || s.type;
-  const c = color || s.color;
-  const sz = size || s.size;
+            /* 2. NAVIGATION: NAVEGADOR SPA (SINGLE PAGE APPLICATION) */
+            switchPanelView: function(viewId, anchorBtn) {
+                var allSections = document.querySelectorAll('.view-section-panel');
+                var allTabLinks = document.querySelectorAll('.nav-tab-item');
 
-  ctx.save();
-  ctx.strokeStyle = c;
-  ctx.lineWidth = sz;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+                /* Reset de estados visuales */
+                allSections.forEach(function(s) { s.classList.remove('active'); });
+                allTabLinks.forEach(function(t) { t.classList.remove('active'); });
 
-  if (t === 'dash-arrow') {
-    ctx.setLineDash([10, 7]);
-  } else {
-    ctx.setLineDash([]);
-  }
+                /* Activación de destino */
+                var activePanel = document.getElementById('view-' + viewId);
+                if (activePanel) {
+                    activePanel.classList.add('active');
+                }
 
-  const x1 = s.x1, y1 = s.y1, x2 = s.x2, y2 = s.y2;
+                if (anchorBtn) {
+                    anchorBtn.classList.add('active');
+                }
 
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
+                /* FIX #3: Inicialización diferida del canvas — sólo cuando la pestaña Clips se muestra por primera vez */
+                if (viewId === 'clips') {
+                    App.initCanvasDimensions();
+                }
+            },
 
-  // Arrowhead for arrow tools
-  if (t === 'arrow' || t === 'dash-arrow') {
-    ctx.setLineDash([]);
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const headLen = Math.min(18 + sz * 2, 30);
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
-    ctx.closePath();
-    ctx.fill();
-  }
+            /* 3. CLOCK: CONTROL DE CRONOMETRAJE TÉCNICO */
+            adjustGameTime: function(minModifier) {
+                this.matchTimerSeconds = Math.max(0, this.matchTimerSeconds + (minModifier * 60));
+                this.refreshUIChrono();
+            },
 
-  ctx.restore();
-}
+            toggleChronoMotor: function() {
+                var btnLabel = document.getElementById('ui-btn-timer-trigger');
+                if (this.chronoTimerId) {
+                    /* Acción: Detener */
+                    clearInterval(this.chronoTimerId);
+                    this.chronoTimerId = null;
+                    btnLabel.innerText = 'START';
+                    btnLabel.style.color = 'var(--af-accent-glow)';
+                } else {
+                    /* Acción: Iniciar */
+                    this.chronoTimerId = setInterval(function() {
+                        App.matchTimerSeconds++;
+                        App.refreshUIChrono();
+                    }, 1000);
+                    btnLabel.innerText = 'PAUSE';
+                    btnLabel.style.color = '#ff4444';
+                }
+            },
 
-function redrawCanvas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  strokes.forEach(s => drawStroke(s));
-}
+            refreshUIChrono: function() {
+                var m = Math.floor(this.matchTimerSeconds / 60).toString().padStart(2, '0');
+                var s = (this.matchTimerSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('chrono-timer-text').innerText = m + ":" + s;
+            },
 
-// ─── UNDO / CLEAR ───────────────────────────────────────────────────────────
-function undoLast() {
-  if (strokes.length > 0) {
-    strokes.pop();
-    redrawCanvas();
-  } else if (players.length > 0) {
-    const p = players.pop();
-    p.remove();
-  } else if (cones.length > 0) {
-    const c = cones.pop();
-    c.remove();
-  }
-}
+            /* 4. EVENTS: LÓGICA DE TAGGING Y GESTIÓN DE MARCADOR */
+            setGlobalMatchContext: function(code) {
+                this.activeContextCode = code;
+                var bLocal = document.getElementById('ui-btn-ctx-local');
+                var bVisit = document.getElementById('ui-btn-ctx-visit');
 
-function clearAll() {
-  if (!confirm('¿Limpiar todo el campo?')) return;
-  strokes = [];
-  redrawCanvas();
-  players.forEach(p => p.remove());
-  players = [];
-  cones.forEach(c => c.remove());
-  cones = [];
-  homeCount = 0;
-  awayCount = 0;
-}
+                if (code === 'A') {
+                    bLocal.classList.add('active-local');
+                    bVisit.classList.remove('active-visit');
+                } else {
+                    bVisit.classList.add('active-visit');
+                    bLocal.classList.remove('active-local');
+                }
+            },
 
-// ─── PLAYERS ────────────────────────────────────────────────────────────────
-function addPlayer(team) {
-  const isHome = team === 'home';
-  if (isHome) homeCount++; else awayCount++;
-  const num = isHome ? homeCount : awayCount;
+            executeTechnicalEvent: async function(eventType) {
+                var video = document.getElementById('ui-html5-engine-player');
+                var timestamp = document.getElementById('chrono-timer-text').innerText;
+                var videoSeconds = video.currentTime || 0;
 
-  const el = document.createElement('div');
-  el.className = `player ${team}`;
-  el.textContent = num;
-  el.style.left = (canvas.width / 2 + (Math.random() - 0.5) * 200) + 'px';
-  el.style.top = (canvas.height / 2 + (Math.random() - 0.5) * 100) + 'px';
+                /* Crear objeto de evento táctico */
+                var eventEntry = {
+                    id: Date.now(),
+                    type: eventType,
+                    team: this.activeContextCode,
+                    time: timestamp,
+                    vSec: videoSeconds
+                };
 
-  // Right-click to delete
-  el.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    el.remove();
-    players = players.filter(p => p !== el);
-  });
+                this.historicalEventLog.unshift(eventEntry);
+                this.renderEventLogUI();
 
-  makeDraggable(el, true);
-  fieldContainer.appendChild(el);
-  players.push(el);
-}
+                /* LÓGICA CRÍTICA: GOL Y PERSISTENCIA DE DATOS */
+                if (eventType === 'GOL') {
+                    this.writeShieldActive = true; /* Blindaje contra sobrescritura asíncrona */
 
-// ─── CONES ──────────────────────────────────────────────────────────────────
-function placeCone(x, y) {
-  const el = document.createElement('div');
-  el.className = 'cone';
-  el.textContent = '🟠';
-  el.style.left = x + 'px';
-  el.style.top = y + 'px';
+                    if (this.activeContextCode === 'A') {
+                        this.matchState.scoreL++;
+                        document.getElementById('ui-val-score-local').innerText = this.matchState.scoreL;
+                    } else {
+                        this.matchState.scoreV++;
+                        document.getElementById('ui-val-score-visit').innerText = this.matchState.scoreV;
+                    }
 
-  el.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    el.remove();
-    cones = cones.filter(c => c !== el);
-  });
+                    /* Actualización masiva en Supabase */
+                    if (this.supabase && this.matchState.id) {
+                        await this.supabase.from('matches').update({
+                            team_a_goals: this.matchState.scoreL,
+                            team_b_goals: this.matchState.scoreV
+                        }).eq('id', this.matchState.id);
+                    }
 
-  makeDraggable(el, false);
-  fieldContainer.appendChild(el);
-  cones.push(el);
-}
+                    /* El escudo se libera tras 5 segundos */
+                    setTimeout(function() { App.writeShieldActive = false; }, 5000);
+                }
 
-// Click on field to place cone
-fieldContainer.addEventListener('click', e => {
-  if (currentTool !== 'cone') return;
-  if (e.target.classList.contains('player') || e.target.classList.contains('cone')) return;
-  const rect = fieldContainer.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  placeCone(x, y);
-});
+                /* Inserción en tabla histórica 'tactical_events' */
+                if (this.supabase) {
+                    var mId = this.matchState.id || 'LIVE_v5.0';
+                    await this.supabase.from('tactical_events').insert([{
+                        match_id: mId,
+                        team: this.activeContextCode,
+                        event_type: eventType,
+                        match_time: timestamp,
+                        video_second: videoSeconds
+                    }]);
+                }
+            },
 
-// Eraser: click on stroke area (approximate)
-canvas.addEventListener('click', e => {
-  if (currentTool !== 'eraser') return;
-  const pos = getCanvasPos(e);
-  // Remove closest stroke within threshold
-  let closestIdx = -1, closestDist = 15;
-  strokes.forEach((s, i) => {
-    const d = distToSegment(pos.x, pos.y, s.x1, s.y1, s.x2, s.y2);
-    if (d < closestDist) { closestDist = d; closestIdx = i; }
-  });
-  if (closestIdx >= 0) {
-    strokes.splice(closestIdx, 1);
-    redrawCanvas();
-  }
-});
+            renderEventLogUI: function() {
+                var container = document.getElementById('ui-timeline-log-container');
+                container.innerHTML = this.historicalEventLog.map(function(ev) {
+                    /* Number() garantiza que vSec sea un literal numérico seguro en el handler inline */
+                    return '<div class="timeline-log-item" onclick="App.jumpToVideoSeconds(' + Number(ev.vSec) + ')">' +
+                        '<div><b>' + ev.type + '</b> (Equipo ' + ev.team + ')</div>' +
+                        '<div style="font-family:var(--af-font-numerical); font-size:11px; color:var(--af-text-low)">' + ev.time + ' ➡</div>' +
+                        '</div>';
+                }).join('');
+            },
 
-function distToSegment(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1, dy = y2 - y1;
-  const len2 = dx * dx + dy * dy;
-  if (len2 === 0) return Math.hypot(px - x1, py - y1);
-  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
-}
+            jumpToVideoSeconds: function(sec) {
+                var player = document.getElementById('ui-html5-engine-player');
+                /* FIX #16: Selección fiable mediante ID explícito en lugar de selector de atributo frágil */
+                this.switchPanelView('clips', document.getElementById('nav-btn-clips'));
+                player.currentTime = sec;
+                /* FIX #10: Captura de Promise para gestionar política de autoplay en móvil */
+                player.play().catch(function(err) {
+                    console.warn('[VIDEO] Reproducción automática bloqueada por política del navegador:', err.message);
+                });
+            },
 
-// Enable eraser canvas click
-canvas.addEventListener('click', e => {
-  if (currentTool === 'eraser') {
-    canvas.classList.add('active');
-  }
-});
+            /* 5. VIDEO: GESTIÓN DE RECORTE DE CLIPS PROFESIONAL */
+            handleClipMarking: function(type) {
+                var player = document.getElementById('ui-html5-engine-player');
+                var time = player.currentTime > 0 ? player.currentTime : this.matchTimerSeconds;
+                var inBtn = document.getElementById('ui-btn-rec-in');
+                var outBtn = document.getElementById('ui-btn-rec-out');
 
-// Sync canvas active state with eraser tool
-const origSetTool = setTool;
-window.setTool = function(tool) {
-  origSetTool(tool);
-  if (tool === 'eraser') canvas.classList.add('active');
-  else if (!['arrow','dash-arrow','line'].includes(tool)) canvas.classList.remove('active');
-};
+                if (type === 'in') {
+                    this.videoClipMarkers.pointIn = time;
+                    inBtn.style.backgroundColor = 'var(--af-ball-event)';
+                    inBtn.style.color = '#000';
+                } else {
+                    if (this.videoClipMarkers.pointIn === null) return;
+                    this.videoClipMarkers.pointOut = time;
+                    outBtn.style.backgroundColor = 'var(--af-ball-event)';
+                    outBtn.style.color = '#000';
 
-// ─── DRAG & DROP ────────────────────────────────────────────────────────────
-function makeDraggable(el, isPlayer) {
-  let offsetX, offsetY, active = false;
+                    if (this.supabase) {
+                        this.supabase.from('clips_requests').insert([{
+                            match_id: this.matchState.id || 'LIVE_v5.0',
+                            start_time: this.videoClipMarkers.pointIn,
+                            end_time: this.videoClipMarkers.pointOut
+                        }]);
+                    }
 
-  el.addEventListener('pointerdown', e => {
-    if (currentTool !== 'select') return;
-    e.preventDefault();
-    e.stopPropagation();
-    active = true;
-    const rect = fieldContainer.getBoundingClientRect();
-    const elX = parseFloat(el.style.left);
-    const elY = parseFloat(el.style.top);
-    offsetX = e.clientX - rect.left - elX;
-    offsetY = e.clientY - rect.top - elY;
-    el.classList.add('dragging');
-    el.setPointerCapture(e.pointerId);
-  });
+                    setTimeout(function() {
+                        App.videoClipMarkers = { pointIn: null, pointOut: null };
+                        /* FIX #9: backgroundColor usado de forma consistente (no shorthand background) */
+                        inBtn.style.backgroundColor = '#222';
+                        outBtn.style.backgroundColor = '#222';
+                        inBtn.style.color = '#fff';
+                        outBtn.style.color = '#fff';
+                    }, 2500);
+                }
+            },
 
-  el.addEventListener('pointermove', e => {
-    if (!active) return;
-    e.preventDefault();
-    const rect = fieldContainer.getBoundingClientRect();
-    let x = e.clientX - rect.left - offsetX;
-    let y = e.clientY - rect.top - offsetY;
-    // Clamp within field
-    const half = isPlayer ? 18 : 14;
-    x = Math.max(half, Math.min(canvas.width - half, x));
-    y = Math.max(half, Math.min(canvas.height - half, y));
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-  });
+            /* 6. SYNC: RECEPCIÓN DE DATOS DEL MOTOR IA (PC) */
+            syncCloudEngineData: async function() {
+                /* FIX #5: Guardia doble — supabase nulo o modo simulación activo */
+                if (!this.supabase) return;
+                if (this.isSimulationEngineActive) return;
 
-  el.addEventListener('pointerup', e => {
-    active = false;
-    el.classList.remove('dragging');
-  });
-}
-</script>
+                var result = await this.supabase
+                    .from('matches')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                var data = result.data;
+                var error = result.error;
+
+                /* FIX #6: Error de Supabase gestionado explícitamente */
+                if (error) {
+                    console.error('[SYNC] Error de base de datos:', error.message);
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    console.warn('[SYNC] Sin datos de partido activo en la base de datos.');
+                    return;
+                }
+
+                var row = data[0];
+                this.matchState.id = row.id;
+
+                /* Escudo: Evita que la nube pise el marcador manual reciente */
+                if (this.writeShieldActive === false) {
+                    this.matchState.scoreL = row.team_a_goals;
+                    this.matchState.scoreV = row.team_b_goals;
+                }
+
+                this.matchState.possessionL = row.possession_a;
+                this.matchState.iaDataPayload = row.full_data || { players: [], positions: [] };
+                this.renderUIMetrics(row);
+            },
+
+            renderUIMetrics: function(data) {
+                /* Sincronizar Marcador */
+                document.getElementById('ui-val-score-local').innerText = this.matchState.scoreL;
+                document.getElementById('ui-val-score-visit').innerText = this.matchState.scoreV;
+
+                /* REGLA: POSESIÓN VALOR ABSOLUTO (Entero sin decimales) */
+                var pLInt = Math.round(this.matchState.possessionL || 50);
+                var pVInt = 100 - pLInt;
+
+                document.getElementById('ui-fill-poss-local').style.width = pLInt + '%';
+                document.getElementById('ui-fill-poss-visit').style.width = pVInt + '%';
+                document.getElementById('ui-txt-poss-local').innerText = pLInt + '%';
+                document.getElementById('ui-txt-poss-visit').innerText = pVInt + '%';
+
+                /* RENDERIZADO DEL RADAR (JUGADORES IA) */
+                if (data.full_data && data.full_data.positions) {
+                    var layer = document.getElementById('ui-radar-render-layer');
+                    layer.innerHTML = data.full_data.positions.map(function(p) {
+                        var col = p.team === 'A' ? 'var(--af-local-team)' : 'var(--af-visit-team)';
+                        /* Sanitización de valores de posición para evitar inyección */
+                        var safeX = parseFloat(p.x) || 0;
+                        var safeY = parseFloat(p.y) || 0;
+                        var safeId = parseInt(p.id, 10) || 0;
+                        return '<div class="ia-player-node" style="left:' + safeX + '%; top:' + safeY + '%; background-color:' + col + '">' + safeId + '</div>';
+                    }).join('');
+
+                    /* MOTOR TÁCTICO: CÁLCULO DE COMPACIDAD Y ALTURA
+                     * FIX #7: Conversión de porcentaje a metros reales del campo (105m ancho × 68m alto)
+                     * REGLA: Métricas físicas con máximo 1 decimal — toFixed(1) */
+                    var playersA = data.full_data.positions.filter(function(p) { return p.team === 'A'; });
+                    if (playersA.length > 3) {
+                        var xValues = playersA.map(function(p) { return parseFloat(p.x) || 0; });
+                        var minX = Math.min.apply(null, xValues);
+                        var maxX = Math.max.apply(null, xValues);
+                        var sumX = xValues.reduce(function(acc, v) { return acc + v; }, 0);
+                        var avgX = sumX / xValues.length;
+
+                        /* Campo FIFA: 105m de largo — eje X representa la longitud */
+                        var compacityMeters = ((maxX - minX) / 100 * 105).toFixed(1);
+                        var heightMeters = (avgX / 100 * 105).toFixed(1);
+
+                        document.getElementById('ui-val-tactical-compacity').innerText = compacityMeters + "m";
+                        document.getElementById('ui-val-tactical-height').innerText = heightMeters + "m";
+                    }
+                }
+
+                /* REGLA: TABLA FÍSICA CON PRECISIÓN DE 1 DECIMAL MÁXIMO */
+                if (data.full_data && data.full_data.players) {
+                    var tbody = document.getElementById('ui-physic-payload-tbody');
+                    tbody.innerHTML = data.full_data.players.slice(0, 22).map(function(p) {
+                        var distClean = parseFloat(p.dist || 0).toFixed(1);
+                        var spdClean = parseFloat(p.maxSpd || 0).toFixed(1);
+                        var teamCol = p.team === 'A' ? 'var(--af-local-team)' : 'var(--af-visit-team)';
+                        return '<tr>' +
+                            '<td style="font-weight:800; color:' + teamCol + '">#' + (parseInt(p.id, 10) || p.id) + '</td>' +
+                            '<td>' + (p.pos || 'MID') + '</td>' +
+                            '<td>' + distClean + ' km</td>' +
+                            '<td style="color:var(--af-accent-glow)">' + spdClean + ' km/h</td>' +
+                            '</tr>';
+                    }).join('');
+                }
+            },
+
+            /* 7. PIZARRA TÁCTICA: MOTOR DE DIBUJO MANUAL */
+            setupTacticalCanvasSystem: function() {
+                var can = document.getElementById('af-tactical-overlay');
+                var ctx = can.getContext('2d');
+                var painting = false;
+
+                /* FIX #3: Las dimensiones del canvas se asignan en initCanvasDimensions(),
+                 * llamado cuando la pestaña Clips se activa por primera vez */
+
+                var getCoords = function(e) {
+                    var rect = can.getBoundingClientRect();
+                    var src = e.touches ? e.touches[0] : e;
+                    return {
+                        x: src.clientX - rect.left,
+                        y: src.clientY - rect.top
+                    };
+                };
+
+                var startStroke = function(e) {
+                    if (!App.isPizarraSystemEnabled) return;
+                    painting = true;
+                    ctx.beginPath();
+                    var p = getCoords(e);
+                    ctx.moveTo(p.x, p.y);
+                };
+
+                var executeStroke = function(e) {
+                    if (!painting) return;
+                    var p = getCoords(e);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.strokeStyle = '#00d68f';
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                };
+
+                var stopStroke = function() { painting = false; };
+
+                can.addEventListener('mousedown', startStroke);
+                can.addEventListener('mousemove', executeStroke);
+                can.addEventListener('mouseup', stopStroke);
+
+                /* FIX #11: passive:false obligatorio para poder llamar preventDefault()
+                 * y bloquear el scroll de página durante el trazo táctil */
+                can.addEventListener('touchstart', function(e) {
+                    if (App.isPizarraSystemEnabled) {
+                        e.preventDefault();
+                    }
+                    startStroke(e);
+                }, { passive: false });
+
+                can.addEventListener('touchmove', function(e) {
+                    if (App.isPizarraSystemEnabled) {
+                        e.preventDefault();
+                    }
+                    executeStroke(e);
+                }, { passive: false });
+
+                can.addEventListener('touchend', stopStroke);
+            },
+
+            /* FIX #3: Inicialización diferida del canvas — sólo posible cuando el contenedor es visible */
+            initCanvasDimensions: function() {
+                if (this.canvasInitialized) return;
+                var can = document.getElementById('af-tactical-overlay');
+                var wrapper = can.parentElement;
+                can.width = wrapper.offsetWidth;
+                can.height = wrapper.offsetHeight;
+                this.canvasInitialized = true;
+                console.log('[CANVAS] Pizarra táctica inicializada: ' + can.width + 'x' + can.height + 'px');
+            },
+
+            toggleCanvasDrawing: function() {
+                this.isPizarraSystemEnabled = !this.isPizarraSystemEnabled;
+                document.getElementById('af-tactical-overlay').classList.toggle('drawing-active', this.isPizarraSystemEnabled);
+            },
+
+            clearCanvasDrawing: function() {
+                var can = document.getElementById('af-tactical-overlay');
+                can.getContext('2d').clearRect(0, 0, can.width, can.height);
+            },
+
+            /* 8. SIMULADOR (DEMO ENGINE v5.0) */
+            toggleSimulationEngine: function() {
+                this.isSimulationEngineActive = !this.isSimulationEngineActive;
+                var btn = document.getElementById('ui-btn-demo-toggle');
+                btn.innerText = this.isSimulationEngineActive ? "SIMULADOR: ON" : "SIMULADOR: OFF";
+
+                if (this.isSimulationEngineActive) {
+                    this.simulationLoopInterval = setInterval(function() {
+                        var now = Date.now() / 1000;
+                        var posArray = [];
+                        /* FIX #15: Distribución Y corregida — 11 jugadores × 10 = 115% desbordaba el campo */
+                        var yStep = 90 / 11;
+                        for (var i = 1; i <= 11; i++) {
+                            posArray.push({ id: i, team: 'A', x: 25 + Math.sin(now + i) * 12, y: 5 + i * yStep });
+                            posArray.push({ id: i, team: 'B', x: 75 + Math.cos(now + i) * 12, y: 5 + i * yStep });
+                        }
+                        var playerStats = posArray.map(function(p) {
+                            return {
+                                id: p.id,
+                                team: p.team,
+                                pos: 'MID',
+                                dist: (now / 500 % 10).toFixed(1),
+                                maxSpd: (24 + Math.random() * 9).toFixed(1)
+                            };
+                        });
+
+                        /* FIX #8: matchState.possessionL actualizado en el loop del simulador
+                         * para que renderUIMetrics muestre la posesión simulada correctamente */
+                        App.matchState.possessionL = 54 + Math.sin(now) * 7;
+
+                        App.renderUIMetrics({
+                            full_data: { positions: posArray, players: playerStats }
+                        });
+                    }, 150);
+                } else {
+                    clearInterval(this.simulationLoopInterval);
+                    this.syncCloudEngineData();
+                }
+            },
+
+            /* 9. INFORME PDF: GENERACIÓN PROFESIONAL v5.0 (EXPANDIDO) */
+            generateFinalTechnicalReport: function() {
+                var s = this.matchState;
+                var win = window.open('', '_blank');
+
+                /* Guardia contra bloqueadores de pop-ups del navegador */
+                if (!win) {
+                    console.error('[REPORT] El navegador bloqueó la apertura de la ventana. Verifique el bloqueador de pop-ups.');
+                    return;
+                }
+
+                var physHtml = '';
+                if (s.iaDataPayload && s.iaDataPayload.players && s.iaDataPayload.players.length > 0) {
+                    var physRows = s.iaDataPayload.players.map(function(p) {
+                        return '<tr>' +
+                            '<td style="padding:15px; border-bottom:1px solid #eee; text-align:center;"><b>#' + p.id + '</b></td>' +
+                            '<td style="padding:15px; border-bottom:1px solid #eee; text-align:center;">' + (p.pos || 'MID') + '</td>' +
+                            '<td style="padding:15px; border-bottom:1px solid #eee; text-align:center;">' + parseFloat(p.dist || 0).toFixed(1) + '</td>' +
+                            '<td style="padding:15px; border-bottom:1px solid #eee; text-align:center; color:#00d68f; font-weight:bold;">' + parseFloat(p.maxSpd || 0).toFixed(1) + '</td>' +
+                            '</tr>';
+                    }).join('');
+
+                    physHtml = '<h2 style="margin-top:40px; color:#111; border-left:6px solid #00d68f; padding-left:15px; font-size:20px;">RENDIMIENTO FÍSICO INDIVIDUAL</h2>' +
+                        '<table style="width:100%; border-collapse:collapse; margin-top:20px;">' +
+                        '<thead><tr style="background:#222; color:#fff;">' +
+                        '<th style="padding:15px; text-align:center;">DORSAL</th>' +
+                        '<th style="padding:15px; text-align:center;">POSICIÓN</th>' +
+                        '<th style="padding:15px; text-align:center;">DISTANCIA (KM)</th>' +
+                        '<th style="padding:15px; text-align:center;">VEL. MÁX (KM/H)</th>' +
+                        '</tr></thead>' +
+                        '<tbody>' + physRows + '</tbody>' +
+                        '</table>';
+                }
+
+                /* FIX #4: Corregido possessionLocal (undefined) → possessionL
+                 * REGLA: Posesión siempre valor absoluto entero en el informe */
+                var pLReportInt = Math.round(s.possessionL || 50);
+                var pVReportInt = 100 - pLReportInt;
+
+                var eventRows = this.historicalEventLog.map(function(ev) {
+                    return '<tr>' +
+                        '<td style="padding:15px; border-bottom:1px solid #eee;">' + ev.time + '</td>' +
+                        '<td style="padding:15px; border-bottom:1px solid #eee;">Eq. ' + ev.team + '</td>' +
+                        '<td style="padding:15px; border-bottom:1px solid #eee;"><b style="color:#111;">' + ev.type + '</b></td>' +
+                        '</tr>';
+                }).join('');
+
+                var docBody = '<!DOCTYPE html><html><head>' +
+                    '<title>Informe Oficial AnalyticsFutbol v5.0</title>' +
+                    '<style>' +
+                    'body { font-family: Helvetica, sans-serif; padding: 50px; color: #222; line-height: 1.6; }' +
+                    '.header-banner { border-bottom: 6px solid #00d68f; padding-bottom: 25px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; }' +
+                    '.summary-card { display: flex; justify-content: space-between; background: #f9f9f8; padding: 40px; border-radius: 15px; border: 1px solid #e0e0e0; }' +
+                    '</style></head><body>' +
+                    '<div class="header-banner">' +
+                    '<div>' +
+                    '<h1 style="margin:0; font-size:32px; text-transform:uppercase;">ANALYTICSFUTBOL</h1>' +
+                    '<p style="margin:5px 0; color:#666; font-weight:800;">INFORME TÉCNICO OFICIAL | GENERADO: ' + new Date().toLocaleString() + '</p>' +
+                    '</div>' +
+                    '<div style="font-size:42px; font-weight:900; color:#00d68f;">AF</div>' +
+                    '</div>' +
+                    '<div class="summary-card">' +
+                    '<div>' +
+                    '<span style="font-size:12px; font-weight:800; color:#aaa; text-transform:uppercase;">Marcador Final Sincronizado</span>' +
+                    '<div style="font-size:42px; font-weight:bold; margin-top:10px;">LOCAL ' + s.scoreL + ' - ' + s.scoreV + ' VISITANTE</div>' +
+                    '</div>' +
+                    '<div style="text-align:right;">' +
+                    '<span style="font-size:12px; font-weight:800; color:#aaa; text-transform:uppercase;">Posesión Absoluta</span>' +
+                    '<div style="font-size:42px; font-weight:bold; color:#00d68f; margin-top:10px;">' + pLReportInt + '% / ' + pVReportInt + '%</div>' +
+                    '</div>' +
+                    '</div>' +
+                    physHtml +
+                    '<h2 style="margin-top:50px; color:#111; font-size:20px; border-left:6px solid #00d68f; padding-left:15px;">CRONOLOGÍA TÁCTICA</h2>' +
+                    '<table style="width:100%; border-collapse:collapse; margin-top:20px;">' +
+                    '<thead><tr style="border-bottom:3px solid #222;">' +
+                    '<th style="text-align:left; padding:15px;">MINUTO</th>' +
+                    '<th style="text-align:left; padding:15px;">EQUIPO</th>' +
+                    '<th style="text-align:left; padding:15px;">ACCIÓN REGISTRADA</th>' +
+                    '</tr></thead>' +
+                    '<tbody>' + eventRows + '</tbody>' +
+                    '</table>' +
+                    '</body></html>';
+
+                win.document.write(docBody);
+                win.document.close();
+                setTimeout(function() { win.print(); }, 1200);
+            }
+        };
+
+        /* FIX #1: Único punto de entrada del bootstrap.
+         * El atributo onload del body ha sido eliminado — sólo este handler ejecuta App.bootstrap() */
+        window.onload = function() {
+            App.bootstrap();
+        };
+    </script>
 </body>
 </html>
