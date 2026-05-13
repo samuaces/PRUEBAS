@@ -902,15 +902,25 @@
                     </div>
                 </div>
 
+                <!-- Team name inputs -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                    <input type="text" id="input-team-local" class="af-input" placeholder="Nombre equipo local"
+                           style="text-align:center; color:var(--af-local); border-color:rgba(244,63,94,0.3);"
+                           oninput="App.updateTeamNames()" maxlength="24">
+                    <input type="text" id="input-team-visit" class="af-input" placeholder="Nombre eq. visitante"
+                           style="text-align:center; color:var(--af-visit); border-color:rgba(59,158,255,0.3);"
+                           oninput="App.updateTeamNames()" maxlength="24">
+                </div>
+
                 <div class="af-scoreboard">
                     <div>
                         <div class="af-score-digit" style="color:var(--af-local)" id="ui-score-local">0</div>
-                        <div class="af-score-label">Local</div>
+                        <div class="af-score-label" id="ui-label-local">Local</div>
                     </div>
                     <div class="af-vs">VS</div>
                     <div>
                         <div class="af-score-digit" style="color:var(--af-visit)" id="ui-score-visit">0</div>
-                        <div class="af-score-label">Visitante</div>
+                        <div class="af-score-label" id="ui-label-visit">Visitante</div>
                     </div>
                 </div>
 
@@ -960,9 +970,10 @@
                 <div class="af-panel-head" style="margin-top: 24px;">
                     <span class="af-card-label">Mapas avanzados (Motor 2D)</span>
                 </div>
-                <div class="af-actions-row" style="margin-bottom: 14px;">
-                    <button id="btn-tact-heat" class="af-btn-secondary" onclick="App.toggleTacticalMode('heat')">Mapa de Calor (L)</button>
-                    <button id="btn-tact-pass" class="af-btn-secondary" onclick="App.toggleTacticalMode('pass')">Red de Pases (L)</button>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+                    <button id="btn-tact-heat" class="af-btn-secondary" onclick="App.toggleTacticalMode('heat')">Calor (L)</button>
+                    <button id="btn-tact-pass" class="af-btn-secondary" onclick="App.toggleTacticalMode('pass')">Pases (L)</button>
+                    <button id="btn-tact-draw" class="af-btn-secondary" onclick="App.toggleTacticalDraw()">Lápiz libre</button>
                 </div>
                 <div class="af-pitch">
                     <svg class="af-pitch-svg" viewBox="0 0 105 68" xmlns="http://www.w3.org/2000/svg">
@@ -976,6 +987,11 @@
                         <rect x="99.5" y="24.84" width="5.5" height="18.32" fill="none" stroke="var(--af-lines)" stroke-width="0.65"/>
                     </svg>
                     <canvas id="tactical-canvas-overlay" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                    <canvas id="tactical-draw-canvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                </div>
+                <div class="af-actions-row" style="margin-top:10px;">
+                    <button class="af-btn-secondary" onclick="App.clearTacticalDraw()" style="font-size:11px; min-height:40px;">Borrar dibujo</button>
+                    <button class="af-btn-secondary" style="font-size:11px; min-height:40px; color:var(--af-text-low);" disabled>Selector formación (próx.)</button>
                 </div>
 
                 <div class="af-panel-head" style="margin-top: 24px;">
@@ -1004,12 +1020,20 @@
                 <div class="af-panel-head">
                     <span class="af-card-label">Gestión de Plantillas</span>
                 </div>
-                <div style="display:flex; gap:10px; margin-bottom: 14px; flex-wrap:wrap;">
+                <div style="display:flex; gap:10px; margin-bottom: 10px; flex-wrap:wrap;">
                     <select id="roster-team-sel" class="af-input" style="flex:1; min-width:120px;">
                         <option value="A">Equipo Local</option>
                         <option value="B">Equipo Visitante</option>
                     </select>
-                    <input type="number" id="roster-dorsal-in" class="af-input" placeholder="Dorsal" style="width:90px;">
+                    <input type="number" id="roster-dorsal-in" class="af-input" placeholder="Dorsal" style="width:80px;">
+                    <select id="roster-pos-sel" class="af-input" style="width:100px;">
+                        <option value="">Pos.</option>
+                        <option value="POR">POR</option>
+                        <option value="DEF">DEF</option>
+                        <option value="CEN">CEN</option>
+                        <option value="MED">MED</option>
+                        <option value="DEL">DEL</option>
+                    </select>
                     <input type="text" id="roster-name-in" class="af-input" placeholder="Nombre del jugador" style="flex:2; min-width:160px;">
                 </div>
                 <button class="af-btn-primary" onclick="App.assignPlayerName()">Guardar / Actualizar Jugador</button>
@@ -1128,6 +1152,18 @@
                         <span class="evt-code" style="color:var(--af-text-low)">PAR</span>
                         <span class="evt-label">Parada del portero</span>
                     </button>
+                    <button class="af-btn-event" style="border-left-color:#f5a623" onclick="App.triggerEvent('TARJETA AMARILLA')">
+                        <span class="evt-code" style="color:#f5a623">T.AM</span>
+                        <span class="evt-label">Tarjeta amarilla</span>
+                    </button>
+                    <button class="af-btn-event" style="border-left-color:var(--af-local)" onclick="App.triggerEvent('TARJETA ROJA')">
+                        <span class="evt-code" style="color:var(--af-local)">T.RJ</span>
+                        <span class="evt-label">Tarjeta roja</span>
+                    </button>
+                    <button class="af-btn-event" style="border-left-color:var(--af-visit)" onclick="App.triggerEvent('SUSTITUCIÓN')">
+                        <span class="evt-code" style="color:var(--af-visit)">SUS</span>
+                        <span class="evt-label">Sustitución</span>
+                    </button>
                 </div>
 
                 <div class="af-actions-row" style="margin-top:14px;">
@@ -1219,6 +1255,10 @@
             },
 
             clipBuffer: { pointIn: null, pointOut: null },
+            teamNameLocal: 'Local',
+            teamNameVisit: 'Visitante',
+            rosterPositions: { 'A': {}, 'B': {} },
+            isTacticalDrawing: false,
 
             /* ── EVENT COLOR HELPER ─────────────────────────────────────── */
             getEventColor: function(rawType) {
@@ -1230,9 +1270,26 @@
                     'PÉRDIDA':      'var(--af-local)',
                     'OFFSIDE':      'var(--af-warning)',
                     'CÓRNER':       'var(--af-visit)',
-                    'PARADA':       'var(--af-text-low)',
+                    'PARADA':            'var(--af-text-low)',
+                    'TARJETA AMARILLA':  '#f5a623',
+                    'TARJETA ROJA':      'var(--af-local)',
+                    'SUSTITUCIÓN':       'var(--af-visit)',
+                    'VÍDEO MANUAL':      'var(--af-text-mute)',
                 };
                 return map[rawType] || 'var(--af-text-mute)';
+            },
+
+            /* ── TEAM NAMES ─────────────────────────────────────────────── */
+            updateTeamNames: function() {
+                const localVal = document.getElementById('input-team-local').value.trim();
+                const visitVal = document.getElementById('input-team-visit').value.trim();
+                this.teamNameLocal = localVal || 'Local';
+                this.teamNameVisit = visitVal || 'Visitante';
+                const lblL = document.getElementById('ui-label-local');
+                const lblV = document.getElementById('ui-label-visit');
+                if (lblL) lblL.innerText = this.teamNameLocal;
+                if (lblV) lblV.innerText = this.teamNameVisit;
+                this.refreshReportPreview();
             },
 
             /* ── INIT ───────────────────────────────────────────────────── */
@@ -1523,8 +1580,8 @@
                         ? 'rgba(244,63,94,0.025)'
                         : 'rgba(59,158,255,0.025)';
                     const teamLabel    = ev.team === 'A'
-                        ? `<span style="color:var(--af-local); font-size:9px; font-weight:800;">LOCAL</span>`
-                        : `<span style="color:var(--af-visit); font-size:9px; font-weight:800;">VISIT</span>`;
+                        ? `<span style="color:var(--af-local); font-size:9px; font-weight:800;">${this.teamNameLocal.toUpperCase().substring(0,6)}</span>`
+                        : `<span style="color:var(--af-visit); font-size:9px; font-weight:800;">${this.teamNameVisit.toUpperCase().substring(0,6)}</span>`;
                     const pendingBadge = ev.syncStatus === 'pending'
                         ? `<span style="color:var(--af-warning); font-size:9px; margin-left:6px; font-family:var(--af-font-data);">PENDIENTE</span>`
                         : '';
@@ -1752,9 +1809,10 @@
                         const name = (App.rosterData[player.team] && App.rosterData[player.team][player.id])
                             ? App.rosterData[player.team][player.id]
                             : `#${player.id}`;
+                        const rosterPos = (App.rosterPositions[player.team] && App.rosterPositions[player.team][player.id]) ? App.rosterPositions[player.team][player.id] : '';
                         return `<tr>
                             <td style="font-weight:800; color:${col}">${name}</td>
-                            <td style="color:var(--af-text-low)">${player.pos || 'MID'}</td>
+                            <td style="color:var(--af-text-low)">${player.pos || rosterPos || '—'}</td>
                             <td class="numeric">${d} km</td>
                             <td class="numeric" style="color:var(--af-accent)">${v} km/h</td>
                         </tr>`;
@@ -1975,6 +2033,68 @@
                 }
             },
 
+            /* ── TACTICAL FREE DRAW ─────────────────────────────────────── */
+            toggleTacticalDraw: function() {
+                this.isTacticalDrawing = !this.isTacticalDrawing;
+                const can = document.getElementById('tactical-draw-canvas');
+                const btn = document.getElementById('btn-tact-draw');
+
+                if (this.isTacticalDrawing) {
+                    can.style.pointerEvents = 'all';
+                    can.style.cursor = 'crosshair';
+                    if (can.width !== can.offsetWidth) {
+                        can.width  = can.offsetWidth;
+                        can.height = can.offsetHeight;
+                    }
+                    const ctx = can.getContext('2d');
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth   = 2.5;
+                    ctx.lineCap     = 'round';
+                    ctx.lineJoin    = 'round';
+                    if (btn) { btn.style.borderColor = 'var(--af-accent)'; btn.style.color = 'var(--af-accent)'; }
+
+                    let drawing = false;
+                    const getP = e => {
+                        const r = can.getBoundingClientRect();
+                        const sx = can.width  / r.width;
+                        const sy = can.height / r.height;
+                        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                        return { x: (cx - r.left) * sx, y: (cy - r.top) * sy };
+                    };
+                    const onStart = e => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getP(e); ctx.moveTo(p.x, p.y); };
+                    const onMove  = e => { if (!drawing) return; e.preventDefault(); const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+                    const onEnd   = () => { drawing = false; };
+
+                    can._onStart = onStart; can._onMove = onMove; can._onEnd = onEnd;
+                    can.addEventListener('mousedown',  onStart);
+                    can.addEventListener('mousemove',  onMove);
+                    can.addEventListener('mouseup',    onEnd);
+                    can.addEventListener('mouseleave', onEnd);
+                    can.addEventListener('touchstart', onStart, { passive: false });
+                    can.addEventListener('touchmove',  onMove,  { passive: false });
+                    can.addEventListener('touchend',   onEnd);
+                } else {
+                    can.style.pointerEvents = 'none';
+                    can.style.cursor = 'default';
+                    if (btn) { btn.style.borderColor = ''; btn.style.color = ''; }
+                    if (can._onStart) {
+                        can.removeEventListener('mousedown',  can._onStart);
+                        can.removeEventListener('mousemove',  can._onMove);
+                        can.removeEventListener('mouseup',    can._onEnd);
+                        can.removeEventListener('mouseleave', can._onEnd);
+                        can.removeEventListener('touchstart', can._onStart);
+                        can.removeEventListener('touchmove',  can._onMove);
+                        can.removeEventListener('touchend',   can._onEnd);
+                    }
+                }
+            },
+
+            clearTacticalDraw: function() {
+                const can = document.getElementById('tactical-draw-canvas');
+                if (can) can.getContext('2d').clearRect(0, 0, can.width, can.height);
+            },
+
             toggleTacticalMode: function(mode) {
                 this.tacticalMode = this.tacticalMode === mode ? 'none' : mode;
                 const heatBtn = document.getElementById('btn-tact-heat');
@@ -2029,7 +2149,7 @@
                 const events = document.getElementById('report-events-preview');
                 const poss   = document.getElementById('report-poss-preview');
                 if (!score || !events || !poss) return;
-                score.innerText  = `${this.matchState.localScore}-${this.matchState.visitScore}`;
+                score.innerText  = `${this.teamNameLocal} ${this.matchState.localScore} – ${this.matchState.visitScore} ${this.teamNameVisit}`;
                 events.innerText = this.eventCache.length;
                 poss.innerText   = `${Math.round(this.matchState.localPossession || 50)}%`;
             },
@@ -2084,11 +2204,14 @@
                 </style></head><body>
                 <div class="pdf-actions"><button class="btn-close" onclick="window.close()">Cerrar</button></div>
                 <div class="header-banner">
-                    <div><h1>AnalyticsFutbol Elite</h1><div class="subtitle">Informe técnico · ${new Date().toLocaleString()}</div></div>
+                    <div>
+                        <h1>AnalyticsFutbol Elite</h1>
+                        <div class="subtitle">${App.teamNameLocal} vs ${App.teamNameVisit} · ${new Date().toLocaleString()}</div>
+                    </div>
                     <div class="brand-mark">AF</div>
                 </div>
                 <div class="stat-card">
-                    <div><span class="stat-label">Marcador final</span><span class="stat-value">Local ${state.localScore} – ${state.visitScore} Visit.</span></div>
+                    <div><span class="stat-label">Marcador final</span><span class="stat-value">${App.teamNameLocal} ${state.localScore} – ${state.visitScore} ${App.teamNameVisit}</span></div>
                     <div><span class="stat-label">Posesión</span><span class="stat-value" style="color:#008f62;">${Math.round(state.localPossession||50)}% / ${100-Math.round(state.localPossession||50)}%</span></div>
                 </div>
                 <h2>Tendencia espacial (Local)</h2>
@@ -2101,7 +2224,7 @@
                 ${physHtml}
                 <h2>Acciones tácticas</h2>
                 <table><thead><tr><th>Tiempo</th><th>Equipo</th><th>Acción</th></tr></thead>
-                <tbody>${events.length > 0 ? events.map(ev => `<tr><td style="font-family:monospace;">${ev.time}</td><td>Eq. ${ev.team}</td><td><b>${ev.type}</b></td></tr>`).join('') : '<tr><td colspan="3">Sin acciones registradas.</td></tr>'}</tbody>
+                <tbody>${events.length > 0 ? events.map(ev => `<tr><td style="font-family:monospace;">${ev.time}</td><td>${ev.team === 'A' ? App.teamNameLocal : App.teamNameVisit}</td><td><b>${ev.type}</b></td></tr>`).join('') : '<tr><td colspan="3">Sin acciones registradas.</td></tr>'}</tbody>
                 </table>
                 <div class="footer-note">Generado por AnalyticsFutbol Elite System v5.1</div>
                 <script>
@@ -2134,10 +2257,13 @@
                 const team   = document.getElementById('roster-team-sel').value;
                 const dorsal = document.getElementById('roster-dorsal-in').value;
                 const name   = document.getElementById('roster-name-in').value;
+                const pos    = document.getElementById('roster-pos-sel').value;
                 if (dorsal && name) {
                     this.rosterData[team][dorsal] = name;
-                    document.getElementById('roster-name-in').value  = '';
-                    document.getElementById('roster-dorsal-in').value = '';
+                    if (pos) this.rosterPositions[team][dorsal] = pos;
+                    document.getElementById('roster-name-in').value   = '';
+                    document.getElementById('roster-dorsal-in').value  = '';
+                    document.getElementById('roster-pos-sel').value    = '';
                     this.updateRosterUI();
                     if (this.matchState.fullIAData && this.matchState.fullIAData.players) this.renderEngineData({ full_data: this.matchState.fullIAData });
                 }
@@ -2151,13 +2277,14 @@
                     container.innerHTML = '<div class="af-empty">No se han registrado nombres. Los informes mostrarán los IDs crudos.</div>';
                     return;
                 }
+                const makeRow = (d, team) => {
+                    const pos = (this.rosterPositions[team] && this.rosterPositions[team][d]) ? this.rosterPositions[team][d] : '';
+                    const posBadge = pos ? `<span style="font-family:var(--af-font-data); font-size:9px; color:var(--af-text-mute); background:rgba(255,255,255,0.05); border-radius:3px; padding:1px 5px; margin-left:6px;">${pos}</span>` : '';
+                    return `<li style="padding:7px 0; border-bottom:1px solid var(--af-border-soft); font-size:13px; display:flex; align-items:center; gap:4px;"><span style="color:var(--af-text-mute); font-family:var(--af-font-data); font-size:11px; width:28px;">#${d}</span>${this.rosterData[team][d]}${posBadge}</li>`;
+                };
                 let html = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">';
-                html += `<div><strong style="color:var(--af-local); display:block; margin-bottom:8px; font-size:11px; letter-spacing:1px; text-transform:uppercase;">Local</strong><ul style="list-style:none; padding:0;">
-                    ${keysA.map(d => `<li style="padding:7px 0; border-bottom:1px solid var(--af-border-soft); font-size:13px;"><span style="color:var(--af-text-mute); font-family:var(--af-font-data); font-size:11px; display:inline-block; width:28px;">#${d}</span> ${this.rosterData['A'][d]}</li>`).join('')}
-                </ul></div>`;
-                html += `<div><strong style="color:var(--af-visit); display:block; margin-bottom:8px; font-size:11px; letter-spacing:1px; text-transform:uppercase;">Visitante</strong><ul style="list-style:none; padding:0;">
-                    ${keysB.map(d => `<li style="padding:7px 0; border-bottom:1px solid var(--af-border-soft); font-size:13px;"><span style="color:var(--af-text-mute); font-family:var(--af-font-data); font-size:11px; display:inline-block; width:28px;">#${d}</span> ${this.rosterData['B'][d]}</li>`).join('')}
-                </ul></div>`;
+                html += `<div><strong style="color:var(--af-local); display:block; margin-bottom:8px; font-size:11px; letter-spacing:1px; text-transform:uppercase;">Local</strong><ul style="list-style:none; padding:0;">${keysA.map(d => makeRow(d,'A')).join('')}</ul></div>`;
+                html += `<div><strong style="color:var(--af-visit); display:block; margin-bottom:8px; font-size:11px; letter-spacing:1px; text-transform:uppercase;">Visitante</strong><ul style="list-style:none; padding:0;">${keysB.map(d => makeRow(d,'B')).join('')}</ul></div>`;
                 html += '</div>';
                 container.innerHTML = html;
             },
@@ -2170,6 +2297,7 @@
                 this.eventCache    = [];
                 this.syncQueue     = [];
                 this.rosterData    = { 'A': {}, 'B': {} };
+                this.rosterPositions = { 'A': {}, 'B': {} };
                 this.secondsCounter = 0;
                 this.clipBuffer    = { pointIn: null, pointOut: null };
                 this.isPdfExporting = false;
@@ -2180,6 +2308,21 @@
                 this.currentHalf   = 1;
                 this.activeModifier = '';
                 this.telegramAutoSync = false;
+                this.teamNameLocal = 'Local';
+                this.teamNameVisit = 'Visitante';
+                this.isTacticalDrawing = false;
+
+                const inL = document.getElementById('input-team-local');
+                const inV = document.getElementById('input-team-visit');
+                if (inL) inL.value = '';
+                if (inV) inV.value = '';
+                const lblL = document.getElementById('ui-label-local');
+                const lblV = document.getElementById('ui-label-visit');
+                if (lblL) lblL.innerText = 'Local';
+                if (lblV) lblV.innerText = 'Visitante';
+
+                this.clearTacticalDraw();
+                if (this.isTacticalDrawing) this.toggleTacticalDraw();
 
                 const btnHalf = document.getElementById('btn-half-toggle');
                 if (btnHalf) { btnHalf.innerText = "1ª Parte"; btnHalf.style.color = ""; btnHalf.style.borderColor = ""; }
