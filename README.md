@@ -3,6 +3,12 @@
 A public board. You pay to get on it. You climb it by sending people through your own link.
 Score = money paid + traffic brought, traffic capped at 70% of any entry's score.
 
+**Deploying this with a local Claude Code session?** Read `DEPLOY.md` instead of the manual
+steps below — it's a runbook written to be run largely hands-off, using each service's CLI/API,
+flagging only the handful of steps that genuinely need you (account logins, a registrar
+nameserver change, the Vercel spending-limit setting, your real legal identity). `CLAUDE.md` has
+the project context a fresh session needs first.
+
 ## What's here
 
 ```
