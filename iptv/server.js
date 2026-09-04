@@ -359,5 +359,14 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n  📺  IPTV personal\n  →  http://${HOST}:${PORT}\n`);
+  // Cuando arranca desde el lanzador, es este quien muestra las direcciones.
+  if (!process.env.QUIET) console.log(`\n  📺  Mi IPTV\n  →  http://${HOST}:${PORT}\n`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n  El puerto ${PORT} ya esta ocupado. Cierra la otra ventana de Mi IPTV o arranca con otro puerto:\n  PORT=8790 npm start\n`);
+    process.exit(1);
+  }
+  throw err;
 });

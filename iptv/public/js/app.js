@@ -43,12 +43,37 @@ const searchInput = el('input', {
 
 const syncButton = el('button', { class: 'icon-button', title: 'Sincronizar listas', onclick: startSync }, icon('refresh'));
 
+// Boton de instalar: solo aparece si el navegador permite instalar la app.
+let installPrompt = null;
+const installButton = el('button', {
+  class: 'button secondary install-button',
+  hidden: true,
+  onclick: async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') installButton.hidden = true;
+    installPrompt = null;
+  }
+}, 'Instalar app');
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.hidden = false;
+});
+window.addEventListener('appinstalled', () => {
+  installButton.hidden = true;
+  toast('Mi IPTV instalada. Ya la tienes con su propio icono.');
+});
+
 const topbar = el('header', { class: 'topbar' },
   el('div', { class: 'search-field' },
     icon('search'),
     searchInput,
     el('button', { class: 'clear', title: 'Limpiar', onclick: () => { searchInput.value = ''; navigate('home'); } }, '×')
   ),
+  installButton,
   syncButton
 );
 
@@ -192,13 +217,37 @@ subscribe((_, reason) => {
 
 window.addEventListener('hashchange', render);
 
+/** Pantalla completa para cuando la app se abre y el servidor no esta en marcha. */
+function serverDownScreen(message) {
+  const retry = el('button', { class: 'button', onclick: () => location.reload() }, 'Reintentar');
+  return el('div', { class: 'empty', style: { paddingTop: '90px' } },
+    el('div', { class: 'emoji' }, '🔌'),
+    el('h3', {}, 'Mi IPTV no está arrancado'),
+    el('p', {}, 'Abre la app con el lanzador («Iniciar Mi IPTV») y vuelve a intentarlo.'),
+    el('p', { style: { fontSize: '12.5px', opacity: '0.7' } }, message),
+    el('div', { style: { marginTop: '12px' } }, retry));
+}
+
+/** El service worker es lo que permite instalarla como app con icono propio. */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/sw.js').catch(() => { /* sin instalacion, la app funciona igual */ });
+}
+
 (async function start() {
+  let online = true;
   try {
     await refreshState();
   } catch (err) {
-    toast(`No se pudo conectar con el servidor: ${err.message}`, { type: 'error' });
+    online = false;
+    // "Failed to fetch" no le dice nada a nadie: se traduce el caso habitual.
+    const detail = /fetch|network/i.test(err.message) ? 'No hay respuesta en la dirección de la app.' : err.message;
+    clear(contentInner).append(serverDownScreen(detail));
+    renderNav();
   }
+  if (!online) return;
   if (!location.hash) location.hash = '#/home';
   await render();
   pollSync();
+  registerServiceWorker();
 })();
