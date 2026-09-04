@@ -1,0 +1,13 @@
+{
+  "name": "iptv-personal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reproductor IPTV personal: listas M3U/Xtream, peliculas, series, TV en directo, favoritos y recomendaciones",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=20" }
+}
