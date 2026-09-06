@@ -10,7 +10,7 @@ enum ParserM3U {
         var logo: String?
     }
 
-    private static let atributos = try! NSRegularExpression(pattern: "([a-zA-Z0-9_-]+)=\"([^\"]*)\"")
+    private static let patronAtributos = try! NSRegularExpression(pattern: "([a-zA-Z0-9_-]+)=\"([^\"]*)\"")
     private static let patronesEpisodio = [
         try! NSRegularExpression(pattern: "\\bS\\s?(\\d{1,2})\\s?[\\sxE._-]?\\s?E\\s?(\\d{1,3})\\b", options: .caseInsensitive),
         try! NSRegularExpression(pattern: "\\bT\\s?(\\d{1,2})\\s?[\\sxE._-]?\\s?E?\\s?(\\d{1,3})\\b", options: .caseInsensitive),
@@ -20,7 +20,7 @@ enum ParserM3U {
     private static func atributos(de cabecera: String) -> [String: String] {
         let rango = NSRange(cabecera.startIndex..., in: cabecera)
         var salida: [String: String] = [:]
-        for coincidencia in atributos.matches(in: cabecera, range: rango) {
+        for coincidencia in patronAtributos.matches(in: cabecera, range: rango) {
             guard let clave = Range(coincidencia.range(at: 1), in: cabecera),
                   let valor = Range(coincidencia.range(at: 2), in: cabecera) else { continue }
             salida[String(cabecera[clave]).lowercased()] = String(cabecera[valor])

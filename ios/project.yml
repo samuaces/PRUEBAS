@@ -7,7 +7,7 @@ options:
   # abren las versiones anteriores, y aquí interesa que lo abra cualquiera.
   objectVersion: 56
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
   createIntermediateGroups: true
 
 targets:
