@@ -302,11 +302,24 @@ const RELES_PUBLICOS = [
 /** Intermediario propio (un Worker de Cloudflare, por ejemplo). */
 export const releDelUsuario = () => (estado.ajustes.rele || '').trim();
 
+/**
+ * Formas alternativas de la misma dirección. Muchos paneles solo atienden por
+ * http en el puerto 80, aunque den la URL con https.
+ */
+export function variantes(url) {
+  const salida = [url];
+  if (/^https:/i.test(url)) salida.push(url.replace(/^https:/i, 'http:').replace(/:443(?=\/|$)/, ''));
+  if (/^http:/i.test(url)) salida.push(url.replace(/^http:/i, 'https:'));
+  return [...new Set(salida)];
+}
+
 function candidatos(url) {
   const propio = releDelUsuario();
   const lista = [];
-  if (propio) lista.push(`${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`);
-  for (const arma of RELES_PUBLICOS) lista.push(arma(url));
+  for (const variante of variantes(url)) {
+    if (propio) lista.push(`${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(variante)}`);
+    for (const arma of RELES_PUBLICOS) lista.push(arma(variante));
+  }
   return lista;
 }
 
@@ -1056,9 +1069,9 @@ export async function diagnostica(url, informa) {
     }
   }
 
-  // 5. Los intermediarios
+  // 5. Los intermediarios (prueban https y http, por si el panel solo sirve por http)
   try {
-    const texto = await conTiempo(traeConRele(url), 45000);
+    const texto = await conTiempo(traeConRele(url), 60000);
     apunta('Un intermediario puede traerla', texto.includes('#EXT'), texto.includes('#EXT') ? 'trae la lista' : `trae otra cosa: «${texto.slice(0, 60).replace(/\s+/g, ' ')}»`);
   } catch (err) {
     apunta('Un intermediario puede traerla', false, err.message);
