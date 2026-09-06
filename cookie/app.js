@@ -1224,6 +1224,20 @@ function vistaAlta() {
     ve('inicio');
   }
 
+  const selector = el('input', { type: 'file', style: { display: 'none' } });
+  selector.addEventListener('change', async () => {
+    const archivo = selector.files?.[0];
+    if (!archivo) return;
+    try {
+      await procesa(await archivo.text(), { nombre: archivo.name.replace(/\.[^.]+$/, ''), tipo: 'archivo' });
+    } catch (err) {
+      aviso(err.message);
+    }
+  });
+
+  /** La misma dirección por http y sin el puerto 443: así atienden estos paneles. */
+  const versionHttp = (url) => url.replace(/^https:/i, 'http:').replace(/:443(?=\/|$)/, '');
+
   const nombreDe = (url) => {
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Mi lista'; }
   };
@@ -1315,13 +1329,36 @@ function vistaAlta() {
     avance(0);
     paso('No se ha podido cargar esta lista.');
     aviso('Ninguna vía ha respondido todavía');
-    caja.append(el('div', { class: 'nota-aviso' },
-      el('strong', {}, 'Ninguna vía ha podido traer tu lista. '),
-      'Queda una que se activa con un toque y no pide cuenta: abre esta página, pulsa el botón que aparece allí, vuelve y dale otra vez a «Cargar lista».',
-      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
-        el('a', { class: 'btn', href: PERMISO_CORS, target: '_blank', rel: 'noopener' }, 'Activar intermediario (1 toque)'),
-        el('button', { class: 'btn sec', onclick: () => cargaDesdeUrl() }, 'Volver a intentarlo')),
-      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.65' } }, `Detalle — ${[...new Set(fallos)].join(' · ')}`)));
+    const sinCifrar = versionHttp(url);
+    caja.append(el('div', { class: 'card-opcion' },
+      el('h2', {}, 'Tu servidor solo atiende a tu propio móvil'),
+      el('p', {}, 'Ni desde esta página ni desde ningún intermediario se llega a él: su dirección solo existe dentro de tu conexión. Pero tu Safari sí llega. Son dos toques:'),
+      el('div', { class: 'paso' }, el('div', { class: 'num' }, '1'),
+        el('div', { class: 'txt' }, 'Abre tu lista en Safari con el botón de abajo. Se abrirá en otra pestaña.')),
+      el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
+        el('div', { class: 'txt' }, 'Si ves un montón de texto: mantén pulsado → ', el('strong', {}, 'Seleccionar todo'), ' → ', el('strong', {}, 'Copiar'), '. Si se descarga un archivo, no hagas nada más.')),
+      el('div', { class: 'paso' }, el('div', { class: 'num' }, '3'),
+        el('div', { class: 'txt' }, 'Vuelve a esta pestaña y pulsa el botón que corresponda.')),
+      el('a', {
+        class: 'btn',
+        style: { width: '100%', justifyContent: 'center', marginBottom: '10px' },
+        href: sinCifrar, target: '_blank', rel: 'noopener'
+      }, 'Abrir mi lista en Safari'),
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+        el('button', {
+          class: 'btn',
+          onclick: async () => {
+            try {
+              const texto = await navigator.clipboard.readText();
+              await procesa(texto, { nombre: nombreDe(url), url, tipo: 'copiada' });
+            } catch (err) {
+              aviso(`No se ha podido pegar: ${err.message}`);
+            }
+          }
+        }, 'Pegar lo copiado'),
+        el('button', { class: 'btn sec', onclick: () => selector.click() }, 'Elegir el archivo descargado')),
+      el('div', { style: { marginTop: '12px', fontSize: '12px', opacity: '0.65' } },
+        `Detalle — ${[...new Set(fallos)].join(' · ')}`)));
     boton.disabled = false;
     boton.textContent = 'Cargar lista';
   }
@@ -1343,16 +1380,6 @@ function vistaAlta() {
         'Si tu proveedor solo atiende a apps (como MaxPlayer) y no a los navegadores, hace falta un intermediario: ponlo en Ajustes y la lista y el vídeo pasarán por él, igual que en una app nativa.')));
 
   // ---- Otras formas, plegadas: solo estorban si todo va bien ----
-  const selector = el('input', { type: 'file', style: { display: 'none' } });
-  selector.addEventListener('change', async () => {
-    const archivo = selector.files?.[0];
-    if (!archivo) return;
-    try {
-      await procesa(await archivo.text(), { nombre: archivo.name.replace(/\.[^.]+$/, ''), tipo: 'archivo' });
-    } catch (err) {
-      aviso(err.message);
-    }
-  });
 
   const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
 
