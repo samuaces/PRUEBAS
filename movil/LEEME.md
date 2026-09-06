@@ -22,6 +22,19 @@ La lista se ordena en películas, series y canales y **se guarda en el propio
 teléfono** (IndexedDB); no se sube a ningún sitio. Favoritos, vistos y ajustes
 van en el almacenamiento local del navegador.
 
+## Cuando el proveedor no atiende al navegador
+
+Casi ningún panel IPTV responde a peticiones hechas desde una web. Para esos
+casos la app ofrece, por orden de comodidad:
+
+1. **Cargar con intermediario** — un servicio que pide la lista por ti. Un toque,
+   sin configurar nada; a cambio, la dirección de tu lista pasa por ese servicio.
+2. **Tu propio intermediario** — `rele/worker.js` es un Cloudflare Worker que
+   hace lo mismo en tu cuenta gratuita (5 minutos, sin tarjeta). Se pega su
+   dirección en *Ajustes → Mi intermediario* y ya nada sale hacia terceros.
+3. **Archivo o portapapeles** — descargar la lista en el iPhone (Safari o la app
+   Atajos) y cargarla desde la app. Nada sale del teléfono.
+
 ## Qué reproduce y qué no
 
 - **Listas por `https`:** se ven dentro de la app, con el reproductor nativo de

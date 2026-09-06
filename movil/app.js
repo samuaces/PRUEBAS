@@ -288,12 +288,66 @@ export function credencialesDesdeUrl(entrada) {
   }
 }
 
-async function apiXtream({ base, usuario, clave }, accion, extra = {}) {
+/**
+ * Intermediarios públicos: servicios que piden la URL por ti y te la devuelven
+ * con los permisos que el navegador necesita. No hace falta configurar nada,
+ * pero la dirección de tu lista pasa por ellos.
+ */
+const RELES_PUBLICOS = [
+  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+/** Intermediario propio (un Worker de Cloudflare, por ejemplo). */
+export const releDelUsuario = () => (estado.ajustes.rele || '').trim();
+
+function candidatos(url) {
+  const propio = releDelUsuario();
+  const lista = [];
+  if (propio) lista.push(`${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`);
+  for (const arma of RELES_PUBLICOS) lista.push(arma(url));
+  return lista;
+}
+
+/**
+ * Pide una URL a través de intermediarios, en orden, hasta que uno responda.
+ * @returns {Promise<string>} el cuerpo de la respuesta
+ */
+export async function traeConRele(url, informa) {
+  const fallos = [];
+  const opciones = candidatos(url);
+  for (const [i, direccion] of opciones.entries()) {
+    try {
+      informa?.(`Probando intermediario ${i + 1} de ${opciones.length}…`);
+      const res = await fetch(direccion, { redirect: 'follow' });
+      if (!res.ok) throw new Error(`respondió ${res.status}`);
+      const texto = await res.text();
+      if (!texto || texto.length < 20) throw new Error('respuesta vacía');
+      return texto;
+    } catch (err) {
+      fallos.push(err.message);
+    }
+  }
+  throw new Error(`ningún intermediario pudo (${[...new Set(fallos)].join(', ')})`);
+}
+
+async function apiXtream({ base, usuario, clave, viaRele }, accion, extra = {}) {
   const url = new URL(`${base}/player_api.php`);
   url.searchParams.set('username', usuario);
   url.searchParams.set('password', clave);
   if (accion) url.searchParams.set('action', accion);
   for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, String(v));
+
+  if (viaRele) {
+    const texto = await traeConRele(url.href);
+    try {
+      return JSON.parse(texto);
+    } catch {
+      throw new Error('el panel no devolvió JSON válido');
+    }
+  }
+
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) throw new Error(`el panel respondió ${res.status}`);
   return res.json();
@@ -463,7 +517,7 @@ export const estado = {
   origen: null,               // de dónde salió la lista y cuándo
   favoritos: new Set(local.lee('favoritos', [])),
   vistos: local.lee('vistos', {}),          // id -> { at, posicion, duracion }
-  ajustes: local.lee('ajustes', { filtroAdulto: true, tema: 'sistema' }),
+  ajustes: local.lee('ajustes', { filtroAdulto: true, tema: 'sistema', rele: '' }),
   vista: 'inicio',
   busqueda: ''
 };
@@ -1007,6 +1061,48 @@ function vistaAlta() {
   const botonUrl = el('button', { class: 'btn' }, 'Cargar desde la URL');
   const ayudaUrl = el('div', {});
 
+  /** Botón que repite la carga pidiéndosela a un intermediario. */
+  function botonRele(url) {
+    const boton = el('button', { class: 'btn' }, 'Cargar con intermediario');
+    boton.addEventListener('click', async () => {
+      boton.disabled = true;
+      const cuenta = credencialesDesdeUrl(url);
+      try {
+        // Primero la lista entera; si el intermediario no la trae, la API del panel.
+        paso('Pidiendo la lista a un intermediario…');
+        avance(20);
+        let texto = null;
+        try {
+          texto = await traeConRele(url, (t) => paso(t));
+        } catch (err) {
+          if (!cuenta) throw err;
+        }
+
+        if (texto && texto.includes('#EXT')) {
+          await procesa(texto, { tipo: 'rele', nombre: 'Lista vía intermediario', url });
+          return;
+        }
+
+        if (!cuenta) throw new Error('la respuesta no era una lista M3U');
+        paso('Probando la API del panel a través del intermediario…');
+        avance(45);
+        const catalogo = await catalogoDesdeXtream({ ...cuenta, viaRele: true }, (t) => paso(t));
+        paso('Guardando en el teléfono…');
+        avance(90);
+        await guardaCatalogo(catalogo, { tipo: 'xtream-rele', nombre: cuenta.base.replace(/^https?:\/\//, ''), cuando: Date.now(), entradas: catalogo.pelis.length + catalogo.series.length + catalogo.canales.length });
+        avance(100);
+        aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
+        ve('inicio');
+      } catch (err) {
+        paso(`El intermediario tampoco ha podido: ${err.message}`);
+        aviso('El intermediario no ha podido con tu servidor');
+      } finally {
+        boton.disabled = false;
+      }
+    });
+    return boton;
+  }
+
   botonUrl.addEventListener('click', async () => {
     const url = campoUrl.value.trim();
     if (!url) return aviso('Pega antes la dirección de tu lista');
@@ -1059,8 +1155,9 @@ function vistaAlta() {
       el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
         el('div', { class: 'txt' }, 'Vuelve a esta pestaña y pulsa ', el('strong', {}, 'Elegir el archivo descargado'), ' (estará en Descargas, quizá llamado ', el('strong', {}, 'get.php'), ').')),
       el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' } },
-        el('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener' }, 'Abrir la lista en Safari'),
-        el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir el archivo descargado'),
+        botonRele(url),
+        el('a', { class: 'btn sec', href: url, target: '_blank', rel: 'noopener' }, 'Abrir la lista en Safari'),
+        el('button', { class: 'btn sec', onclick: () => selector.click() }, 'Elegir el archivo descargado'),
         el('button', {
           class: 'btn sec',
           onclick: async () => {
@@ -1069,7 +1166,7 @@ function vistaAlta() {
           }
         }, 'Copiar la dirección')),
       el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.75' } },
-        'Si Safari muestra el texto de la lista en vez de descargarla: mantén pulsado, Seleccionar todo, Copiar, y pégalo en «Pegar el contenido».'),
+        'El intermediario es un servicio que pide la lista por ti, porque tu proveedor no atiende al navegador. Es lo más cómodo, pero la dirección de tu lista pasa por él; si prefieres que no, usa el archivo o pon tu propio intermediario en Ajustes.'),
       el('div', { style: { marginTop: '6px', fontSize: '12px', opacity: '0.6' } }, `Detalle técnico — ${fallos.join(' · ')}`)));
     botonUrl.disabled = false;
   });
@@ -1270,6 +1367,22 @@ function vistaBuscar() {
   return salida;
 }
 
+/** Permite usar un intermediario propio en vez de los públicos. */
+function campoRele() {
+  const campo = el('input', { type: 'url', placeholder: 'https://mi-intermediario.workers.dev', value: estado.ajustes.rele || '', autocapitalize: 'off', spellcheck: false });
+  const guardar = el('button', { class: 'btn sec' }, 'Guardar');
+  guardar.addEventListener('click', () => {
+    estado.ajustes.rele = campo.value.trim();
+    guardaAjustes();
+    aviso(estado.ajustes.rele ? 'Intermediario propio guardado' : 'Se usarán los intermediarios públicos');
+  });
+  return el('div', { style: { paddingTop: '14px' } },
+    el('div', { class: 'label', style: { fontSize: '14.5px', marginBottom: '4px' } }, 'Mi intermediario (opcional)'),
+    el('small', { style: { display: 'block', color: 'var(--text-2)', fontSize: '12.5px', marginBottom: '8px', lineHeight: '1.5' } },
+      'Si montas el tuyo (hay una receta de 5 minutos en el repositorio), pégalo aquí y tu lista dejará de pasar por servicios ajenos.'),
+    el('div', { style: { display: 'flex', gap: '8px' } }, campo, guardar));
+}
+
 function vistaAjustes() {
   const origen = estado.origen || {};
   const catalogo = estado.catalogo;
@@ -1336,7 +1449,8 @@ function vistaAjustes() {
         el('div', { class: 'spacer' }), interruptor),
       el('div', { class: 'switch-row' },
         el('div', { class: 'label' }, 'Apariencia'),
-        el('div', { class: 'spacer' }), tema)),
+        el('div', { class: 'spacer' }), tema),
+      campoRele()),
     el('div', { class: 'nota-aviso' },
       el('strong', {}, 'Para actualizar la lista: '),
       'ejecuta tu atajo de Atajos (copia la lista al portapapeles) y pulsa «Actualizar desde el portapapeles». Los favoritos se mantienen.'),
