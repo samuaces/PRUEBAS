@@ -10,62 +10,55 @@ control de versiones.
 
 ---
 
-## La vía fácil: tenerla en el móvil (el tuyo y el de quien tú quieras)
+## La vía fácil: la app en el móvil, coste 0 y sin cuentas
 
-Son dos pasos: **publicas la app una vez** y luego **cada móvil la instala** desde
-esa dirección. Quien la use no tiene que instalar nada raro ni saber nada de esto.
+**Doble clic en «Compartir Cookie Play»** (`.command` en macOS, `.bat` en
+Windows, `compartir-cookie-play.sh` en Linux). La ventana te enseña esto:
 
-### Paso 1 — Publicar la app (10 minutos, una sola vez)
+```
+┌────────────────────────────────────────────────────┐
+│  Enlace para el móvil (funciona desde cualquier red)
+│  https://algo-aleatorio.trycloudflare.com
+│  Contraseña: 481902
+└────────────────────────────────────────────────────┘
+```
 
-1. Entra en [Render](https://render.com) y crea una cuenta (sirve la de GitHub).
-2. **New → Blueprint** y elige este repositorio. Render lee el `render.yaml` que
-   ya está preparado.
-3. Te pedirá `ACCESS_PIN`: esa es **la contraseña de la app**. Ponle una que
-   puedas pasar por WhatsApp sin apuros.
-4. Dale a crear y espera a que ponga *Live*. Te queda una dirección tipo
-   `https://cookie-play.onrender.com`.
+Le pasas **ese enlace y esa contraseña** a quien quieras. Esa persona lo abre en
+el navegador del móvil, escribe la contraseña y ya está dentro; si además le da a
+**Compartir → Añadir a pantalla de inicio** (iPhone) o **⋮ → Instalar aplicación**
+(Android), le queda con el icono de la galleta y a pantalla completa, como
+cualquier app.
 
-Ese es tu link. Sirve para siempre y desde cualquier red.
+Qué hay detrás: la app sigue corriendo en tu ordenador y Cloudflare le pone una
+dirección `https` pública por delante. **No hay que registrarse en ningún sitio,
+no se paga nada y no se sube ninguna lista a ningún servicio.** La primera vez se
+descarga el conector oficial de Cloudflare (unos 40 MB) y queda guardado en
+`data/bin/` para las siguientes.
 
-> El mismo `Dockerfile` vale para Railway, Fly.io o un VPS si prefieres otro
-> sitio. En Render, el plan con disco persistente cuesta unos 7 $/mes; es lo que
-> mantiene tus listas y favoritos entre reinicios. Si quieres probar en el plan
-> gratuito, rellena las variables `PLAYLIST_URL` (o `XTREAM_HOST`, `XTREAM_USER`
-> y `XTREAM_PASS`) y la app se reconfigura sola cada vez que el servidor
-> despierta; lo que sí perderás en cada reinicio son los favoritos.
+Dos cosas que conviene saber:
 
-### Paso 2 — Instalarla en cada móvil (1 minuto por móvil)
+- **El ordenador tiene que estar encendido** con esa ventana abierta. Si la
+  cierras, el enlace deja de funcionar (la app y los datos siguen intactos).
+- **El enlace cambia cada vez que lo abres.** La contraseña no: se guarda en
+  `data/acceso.json` y es siempre la misma. Si quieres una dirección fija y
+  gratis, la vía es [Tailscale Funnel](https://tailscale.com/kb/1223/funnel):
+  cuenta gratuita en *tu* equipo, y te da algo tipo
+  `https://tu-equipo.tu-red.ts.net` que ya no cambia; quien la use no instala nada.
 
-Le pasas el link y la contraseña a quien quieras, y que haga esto:
-
-- **iPhone / iPad**: abre el link en Safari → botón **Compartir** → **Añadir a
-  pantalla de inicio**.
-- **Android**: abre el link en Chrome → menú **⋮** → **Instalar aplicación**
-  (o «Añadir a pantalla de inicio»).
-
-Queda con el icono de la galleta, se abre a pantalla completa sin barra de
-navegador y pide la contraseña la primera vez. A partir de ahí, es una app más.
-
-### Alternativa sin publicar nada: Tailscale
-
-Si prefieres no sacar nada a internet: instala
-[Tailscale](https://tailscale.com/download) en el equipo que ejecuta la app y en
-los móviles, con la misma cuenta (o invitando a la otra persona a tu red).
-Arranca la app con `--red` y tendrás una dirección fija tipo
-`http://100.x.y.z:8787` que funciona desde cualquier sitio. Es gratis y privado,
-pero el equipo tiene que estar encendido y la otra persona necesita Tailscale.
-
----
+> Si algún día quieres que funcione sin tener el ordenador encendido, hay que
+> alojarla en un servidor, y eso ya cuesta dinero: en el repositorio están el
+> `Dockerfile` y el `render.yaml` preparados para ese día, pero no hace falta
+> para nada de lo anterior.
 
 ## Abrirla en el ordenador, de un clic
 
 Descarga la carpeta `iptv/` y haz **doble clic** en el lanzador de tu sistema:
 
-| Sistema | Archivo |
-| --- | --- |
-| macOS | `Iniciar Cookie Play.command` |
-| Windows | `Iniciar Cookie Play.bat` |
-| Linux | `iniciar-cookie-play.sh` |
+| Sistema | Solo en este equipo | Con enlace para el móvil |
+| --- | --- | --- |
+| macOS | `Iniciar Cookie Play.command` | `Compartir Cookie Play.command` |
+| Windows | `Iniciar Cookie Play.bat` | `Compartir Cookie Play.bat` |
+| Linux | `iniciar-cookie-play.sh` | `compartir-cookie-play.sh` |
 
 Arranca la app, busca un puerto libre y **abre el navegador solo**. Para cerrarla,
 cierra esa ventana. Lo único que necesitas instalado es
@@ -140,7 +133,7 @@ alimenta las recomendaciones. Los resultados se cachean un mes en
 | --- | --- | --- |
 | `PORT` | `8787` | Puerto del servidor |
 | `HOST` | `127.0.0.1` | `0.0.0.0` para verlo desde otros dispositivos |
-| `ACCESS_PIN` | vacía | Contraseña de acceso. **Obligatoria si publicas la app** |
+| `ACCESS_PIN` | vacía | Contraseña de acceso. Con «Compartir» se genera sola |
 | `PLAYLIST_URL` | vacía | Configura una lista M3U al arrancar |
 | `PLAYLIST_NAME` | `Lista principal` | Nombre de esa lista |
 | `XTREAM_HOST` / `XTREAM_USER` / `XTREAM_PASS` | vacías | Configura una cuenta Xtream al arrancar |
@@ -151,7 +144,8 @@ Desde la terminal: `cd iptv && npm start` y abre <http://127.0.0.1:8787>.
 
 ```
 iptv/
-├─ Iniciar Cookie Play.command / .bat / iniciar-cookie-play.sh   lanzadores
+├─ Iniciar Cookie Play…    lanzadores de un clic (solo este equipo)
+├─ Compartir Cookie Play…  lanzadores con enlace público gratuito
 ├─ iniciar.mjs        elige puerto, arranca el servidor y abre el navegador
 ├─ server.js          API, archivos estáticos y proxy de vídeo (Node puro)
 ├─ Dockerfile         para publicarla en Render, Railway, Fly.io o un VPS
@@ -161,6 +155,7 @@ iptv/
 │  ├─ xtream.js       cliente de Xtream Codes
 │  ├─ library.js      catálogo unificado, búsqueda y recomendaciones
 │  ├─ tmdb.js         enriquecimiento opcional con TMDB (con caché)
+│  ├─ tunel.js        enlace público con Cloudflare Tunnel (sin cuentas)
 │  └─ sync.js         orquesta descarga → parseo → catálogo
 ├─ tools/
 │  └─ generar-iconos.py  regenera los iconos a partir del logo
