@@ -325,7 +325,7 @@ export async function searchView() {
 
 export async function settingsView() {
   const page = el('div', {}, head('Ajustes', 'Tus listas, tus datos. Todo se guarda solo en este equipo.'));
-  page.append(playlistsPanel(), addPlaylistPanel(), preferencesPanel(), aboutPanel());
+  append(page, playlistsPanel(), addPlaylistPanel(), preferencesPanel(), sessionPanel(), aboutPanel());
   return page;
 }
 
@@ -549,6 +549,20 @@ function preferencesPanel() {
     )
   );
   return panel;
+}
+
+function sessionPanel() {
+  if (!state.auth) return null;
+  return el('div', { class: 'panel' },
+    el('h3', {}, 'Acceso'),
+    el('p', { class: 'hint' }, 'Esta copia está protegida con contraseña. Cierra la sesión si usas un dispositivo compartido.'),
+    el('button', {
+      class: 'button secondary',
+      onclick: async () => {
+        await fetch('/api/logout', { method: 'POST' });
+        location.reload();
+      }
+    }, 'Cerrar sesión'));
 }
 
 function aboutPanel() {

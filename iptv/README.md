@@ -40,9 +40,43 @@ Arranca con `--red` (en Windows: `"Iniciar Mi IPTV.bat" --red`) y el lanzador te
 mostrará una dirección tipo `http://192.168.1.40:8787` que puedes abrir desde
 cualquier dispositivo de tu red.
 
-> Ojo: la app **no tiene contraseña**. Con `--red`, cualquiera de tu red local
-> puede usarla. Para compartirla con alguien de fuera, lo sensato es que se
-> copie la carpeta y la arranque en su equipo, o usar una VPN tipo Tailscale.
+En local la app no pide contraseña. Si la sacas de tu equipo, ponle una:
+arranca con `ACCESS_PIN=loquesea` y aparecerá una pantalla de acceso antes de
+todo lo demás.
+
+## Tener tu propio link, desde cualquier sitio
+
+Hay dos caminos, y el primero es el que recomiendo:
+
+### 1. Tailscale (gratis, privado, sin desplegar nada)
+
+Instala [Tailscale](https://tailscale.com/download) en el equipo que ejecuta la
+app y en tu móvil o portátil, con la misma cuenta. Arranca la app con `--red` y
+tendrás una dirección fija tipo `http://100.x.y.z:8787` que funciona desde
+cualquier red del mundo, sin abrir puertos ni exponer nada a internet. Es lo más
+parecido a «mi link» sin los riesgos de publicar el servidor.
+
+Para que alguien más entre, invítalo a tu red de Tailscale.
+
+### 2. Publicarla en internet con Docker
+
+En el repositorio van un `Dockerfile` y un `render.yaml` listos. En
+[Render](https://render.com): **New → Blueprint**, eliges este repositorio y te
+pedirá la contraseña (`ACCESS_PIN`). Al terminar te da una URL pública tipo
+`https://mi-iptv.onrender.com` que puedes abrir e instalar como app desde
+cualquier dispositivo. El mismo `Dockerfile` sirve para Railway, Fly.io o un VPS.
+
+Antes de hacerlo, ten en cuenta que:
+
+- **La contraseña no es opcional.** Sin `ACCESS_PIN`, cualquiera que dé con la
+  dirección entra a tus listas y consume tu conexión.
+- Los datos viven en `/app/data`: necesitas un disco persistente montado ahí
+  (en Render, plan de pago) o perderás listas y favoritos en cada despliegue.
+- En planes gratuitos el servicio se duerme y la primera carga tarda.
+- Todo el vídeo pasa por ese servidor, así que gasta ancho de banda del hosting.
+- Algunos proveedores IPTV bloquean las IP de centros de datos: si los canales
+  no cargan desde el servidor pero sí desde casa, es por eso, y entonces la
+  opción de Tailscale es la buena.
 
 ## Arrancar desde la terminal
 
@@ -60,6 +94,7 @@ Variables opcionales:
 | --- | --- | --- |
 | `PORT` | `8787` | Puerto del servidor |
 | `HOST` | `127.0.0.1` | Pon `0.0.0.0` para verlo desde el móvil o la tele de casa |
+| `ACCESS_PIN` | vacía | Contraseña de acceso. Obligatoria si publicas la app fuera de tu casa |
 
 ## Añadir tus listas
 
@@ -133,10 +168,12 @@ iptv/
 │  ├─ library.js      catálogo unificado, búsqueda y recomendaciones
 │  ├─ tmdb.js         enriquecimiento opcional con TMDB (con caché)
 │  └─ sync.js         orquesta descarga → parseo → catálogo
+├─ Dockerfile         para publicarla en Render, Railway, Fly.io o un VPS
 ├─ tools/
 │  └─ generar-iconos.py  regenera los iconos PNG de la app
 └─ public/            interfaz (ES modules, sin build)
    ├─ index.html
+   ├─ login.html     pantalla de acceso cuando hay ACCESS_PIN
    ├─ manifest.webmanifest + sw.js   para poder instalarla como app
    ├─ css/style.css
    ├─ icons/

@@ -6,6 +6,11 @@ async function request(path, { method = 'GET', body } = {}) {
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined
   });
+  // Sesión caducada en una copia protegida con contraseña: de vuelta al acceso.
+  if (res.status === 401 && !location.pathname.startsWith('/login')) {
+    location.href = '/';
+    throw new Error('Sesión caducada');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data;

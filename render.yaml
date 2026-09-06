@@ -1,0 +1,21 @@
+# Plano de despliegue para Render (https://render.com).
+# En Render: New > Blueprint > elige este repositorio. Te pedira la contrasena.
+# Este archivo debe estar en la raiz del repositorio para que Render lo lea.
+services:
+  - type: web
+    name: mi-iptv
+    runtime: docker
+    dockerfilePath: ./iptv/Dockerfile
+    dockerContext: ./iptv
+    plan: starter          # el plan gratuito no permite disco persistente
+    region: frankfurt
+    healthCheckPath: /login.html
+    envVars:
+      - key: ACCESS_PIN
+        sync: false        # Render te la pide al crear el servicio
+      - key: HOST
+        value: 0.0.0.0
+    disk:
+      name: datos
+      mountPath: /app/data
+      sizeGB: 1

@@ -4,6 +4,7 @@
  * Sin dependencias externas: solo Node.
  */
 import { createServer } from 'node:http';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, dirname } from 'node:path';
@@ -20,6 +21,60 @@ const PUBLIC_DIR = join(ROOT, 'public');
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '127.0.0.1';
 const USER_AGENT = 'VLC/3.0.20 LibVLC/3.0.20';
+
+/**
+ * Contrasena de acceso. Vacia (uso local) = sin login.
+ * Al publicar la app en internet es obligatoria: sin ella cualquiera que
+ * encuentre la direccion entraria a tus listas.
+ */
+const ACCESS_PIN = (process.env.ACCESS_PIN || '').trim();
+const COOKIE = 'miiptv_sesion';
+const SESSION_TOKEN = ACCESS_PIN
+  ? createHmac('sha256', ACCESS_PIN).update('miiptv-sesion-v1').digest('hex')
+  : '';
+// Rutas que se sirven sin sesion para poder pintar la pantalla de acceso.
+const PUBLIC_PATHS = new Set(['/login.html', '/css/style.css', '/manifest.webmanifest', '/favicon.ico']);
+
+function cookies(req) {
+  const out = {};
+  for (const part of (req.headers.cookie || '').split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name) out[name] = decodeURIComponent(rest.join('='));
+  }
+  return out;
+}
+
+function sameToken(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
+
+const hasSession = (req) => !ACCESS_PIN || sameToken(cookies(req)[COOKIE] || '', SESSION_TOKEN);
+
+function isPublicPath(pathname) {
+  return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/icons/');
+}
+
+// Un retardo creciente hace inviable probar contrasenas a lo bruto.
+let failedLogins = 0;
+
+async function handleLogin(req, res) {
+  const body = await readBody(req);
+  const pin = String(body.pin || '');
+  if (!ACCESS_PIN || !sameToken(pin, ACCESS_PIN)) {
+    failedLogins += 1;
+    await new Promise((r) => setTimeout(r, Math.min(3000, failedLogins * 400)));
+    return fail(res, 'Contraseña incorrecta', 401);
+  }
+  failedLogins = 0;
+  const secure = req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Set-Cookie': `${COOKIE}=${SESSION_TOKEN}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 60}${secure}`
+  });
+  res.end(JSON.stringify({ ok: true }));
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -172,6 +227,7 @@ async function handleApi(req, res, url) {
       settings: { ...settings, tmdbApiKey: settings.tmdbApiKey ? '••••••••' : '' },
       favorites,
       history: history.slice(0, 30),
+      auth: Boolean(ACCESS_PIN),
       counts: {
         movies: catalog.movies.length,
         series: catalog.series.length,
@@ -344,6 +400,21 @@ const server = createServer(async (req, res) => {
   }
 
   try {
+    // Puerta de acceso: solo activa si hay ACCESS_PIN configurada.
+    if (ACCESS_PIN && !isPublicPath(url.pathname) && !hasSession(req)) {
+      if (url.pathname === '/api/login' && req.method === 'POST') return await handleLogin(req, res);
+      if (url.pathname.startsWith('/api/')) return fail(res, 'Necesitas iniciar sesión', 401);
+      return await serveStatic(req, res, '/login.html');
+    }
+    if (url.pathname === '/api/login' && req.method === 'POST') return await handleLogin(req, res);
+    if (url.pathname === '/api/logout' && req.method === 'POST') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Set-Cookie': `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`
+      });
+      return res.end(JSON.stringify({ ok: true }));
+    }
+
     if (url.pathname === '/api/proxy') {
       const target = url.searchParams.get('url');
       if (!target) return fail(res, 'Falta el parametro url');
@@ -360,7 +431,10 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   // Cuando arranca desde el lanzador, es este quien muestra las direcciones.
-  if (!process.env.QUIET) console.log(`\n  📺  Mi IPTV\n  →  http://${HOST}:${PORT}\n`);
+  if (!process.env.QUIET) {
+    console.log(`\n  📺  Mi IPTV\n  →  http://${HOST}:${PORT}`);
+    console.log(ACCESS_PIN ? '  🔒  Acceso protegido con contraseña\n' : '');
+  }
 });
 
 server.on('error', (err) => {

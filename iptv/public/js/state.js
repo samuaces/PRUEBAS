@@ -14,6 +14,7 @@ export const state = {
   favoriteIds: new Set(),
   history: [],
   sync: { running: false, step: '', progress: 0 },
+  auth: false,
   ready: false
 };
 
@@ -40,6 +41,7 @@ export async function refreshState() {
     favorites: data.favorites,
     history: data.history,
     sync: data.sync,
+    auth: Boolean(data.auth),
     ready: true
   });
   indexFavorites();
