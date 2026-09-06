@@ -294,9 +294,12 @@ export function credencialesDesdeUrl(entrada) {
  * pero la dirección de tu lista pasa por ellos.
  */
 const RELES_PUBLICOS = [
-  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+  { nombre: 'corsproxy', arma: (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}` },
+  { nombre: 'allorigins', arma: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
+  { nombre: 'codetabs', arma: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
+  { nombre: 'cors.lol', arma: (url) => `https://api.cors.lol/?url=${encodeURIComponent(url)}` },
+  { nombre: 'thingproxy', arma: (url) => `https://thingproxy.freeboard.io/fetch/${url}` },
+  { nombre: 'jina', arma: (url) => `https://r.jina.ai/${url}` }
 ];
 
 /** Intermediario propio (un Worker de Cloudflare, por ejemplo). */
@@ -317,8 +320,11 @@ function candidatos(url) {
   const propio = releDelUsuario();
   const lista = [];
   for (const variante of variantes(url)) {
-    if (propio) lista.push(`${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(variante)}`);
-    for (const arma of RELES_PUBLICOS) lista.push(arma(variante));
+    const comoLlega = /^https:/i.test(variante) ? 'https' : 'http';
+    if (propio) lista.push({ nombre: `el tuyo (${comoLlega})`, direccion: `${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(variante)}` });
+    for (const { nombre, arma } of RELES_PUBLICOS) {
+      lista.push({ nombre: `${nombre} (${comoLlega})`, direccion: arma(variante) });
+    }
   }
   return lista;
 }
@@ -327,22 +333,27 @@ function candidatos(url) {
  * Pide una URL a través de intermediarios, en orden, hasta que uno responda.
  * @returns {Promise<string>} el cuerpo de la respuesta
  */
-export async function traeConRele(url, informa) {
+export async function traeConRele(url, informa, detalle) {
   const fallos = [];
   const opciones = candidatos(url);
-  for (const [i, direccion] of opciones.entries()) {
+  for (const [i, { nombre, direccion }] of opciones.entries()) {
     try {
-      informa?.(`Probando intermediario ${i + 1} de ${opciones.length}…`);
+      informa?.(`Probando vía ${nombre} (${i + 1}/${opciones.length})…`);
       const res = await fetch(direccion, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
       if (!res.ok) throw new Error(`respondió ${res.status}`);
       const texto = await res.text();
       if (!texto || texto.length < 20) throw new Error('respuesta vacía');
+      if (!texto.includes('#EXT') && !texto.trim().startsWith('{')) {
+        throw new Error(`devolvió otra cosa («${texto.slice(0, 40).replace(/\s+/g, ' ')}»)`);
+      }
+      detalle?.({ nombre, ok: true });
       return texto;
     } catch (err) {
-      fallos.push(err.message);
+      fallos.push(`${nombre}: ${err.message}`);
+      detalle?.({ nombre, ok: false, error: err.message });
     }
   }
-  throw new Error(`ningún intermediario pudo (${[...new Set(fallos)].join(', ')})`);
+  throw new Error(`ninguna vía funcionó — ${fallos.join(' · ')}`);
 }
 
 async function apiXtream({ base, usuario, clave, viaRele }, accion, extra = {}) {
@@ -923,10 +934,17 @@ export function abreFicha(item) {
   if (item.tipo === 'serie') datos.append(el('span', {}, `${item.numTemporadas} temporadas · ${numero(item.episodios)} episodios`));
   for (const g of (item.grupos || []).slice(0, 3)) datos.append(el('span', { class: 'pill' }, g));
 
+  const primeraUrl = item.tipo === 'peli'
+    ? item.fuentes?.[0]?.url
+    : item.temporadas?.[Object.keys(item.temporadas || {}).sort((a, b) => a - b)[0]]?.[0]?.url;
+
   const cuerpo = el('div', { class: 'sheet-body flush' },
     el('h2', {}, item.titulo),
     datos,
-    el('div', { class: 'sheet-actions' }, accionPrincipal(item), botonFav),
+    el('div', { class: 'sheet-actions' },
+      accionPrincipal(item),
+      botonFav,
+      primeraUrl ? el('a', { class: 'btn sec', href: enlaceVLC(primeraUrl) }, 'Ver en VLC') : null),
     item.sinopsis ? el('p', { class: 'plot' }, item.sinopsis) : null);
 
   if (item.tipo === 'serie') {
@@ -1082,12 +1100,18 @@ export async function diagnostica(url, informa) {
     }
   }
 
-  // 5. Los intermediarios (prueban https y http, por si el panel solo sirve por http)
+  // 5. Los intermediarios, uno por uno (con https y con http)
+  const vias = [];
   try {
-    const texto = await conTiempo(traeConRele(url), 60000);
-    apunta('Un intermediario puede traerla', texto.includes('#EXT'), texto.includes('#EXT') ? 'trae la lista' : `trae otra cosa: «${texto.slice(0, 60).replace(/\s+/g, ' ')}»`);
+    const texto = await conTiempo(
+      traeConRele(url, null, (v) => { vias.push(v); informa?.(lineas); }),
+      90000
+    );
+    apunta('Alguna vía trae la lista', texto.includes('#EXT') || texto.trim().startsWith('{'), `funcionó: ${vias.filter((v) => v.ok).map((v) => v.nombre).join(', ')}`);
   } catch (err) {
-    apunta('Un intermediario puede traerla', false, err.message);
+    apunta('Alguna vía trae la lista', false, vias.length
+      ? vias.map((v) => `${v.nombre}: ${v.ok ? 'ok' : v.error}`).join(' · ')
+      : err.message);
   }
 
   return lineas;
@@ -1100,7 +1124,7 @@ export function conclusion(lineas) {
   const direccion = dato('La dirección')?.ok;
   const lee = dato('El navegador puede leer')?.ok;
   const api = dato('La API del panel')?.ok;
-  const rele = dato('Un intermediario')?.ok;
+  const rele = dato('Alguna vía')?.ok;
 
   if (lee || api || rele) return 'Hay al menos una vía que funciona: vuelve atrás y pulsa «Cargar lista».';
   if (!vivo && !direccion) {
