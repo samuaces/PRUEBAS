@@ -299,8 +299,13 @@ const RELES_PUBLICOS = [
   { nombre: 'codetabs', arma: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
   { nombre: 'cors.lol', arma: (url) => `https://api.cors.lol/?url=${encodeURIComponent(url)}` },
   { nombre: 'thingproxy', arma: (url) => `https://thingproxy.freeboard.io/fetch/${url}` },
-  { nombre: 'jina', arma: (url) => `https://r.jina.ai/${url}` }
+  { nombre: 'jina', arma: (url) => `https://r.jina.ai/${url}` },
+  // Este pide un permiso temporal que se concede pulsando un botón en su web.
+  { nombre: 'cors-anywhere', arma: (url) => `https://cors-anywhere.herokuapp.com/${url}` }
 ];
+
+/** Página donde se concede el permiso temporal de cors-anywhere. */
+export const PERMISO_CORS = 'https://cors-anywhere.herokuapp.com/corsdemo';
 
 /** Intermediario propio (un Worker de Cloudflare, por ejemplo). */
 export const releDelUsuario = () => (estado.ajustes.rele || '').trim();
@@ -1275,12 +1280,14 @@ function vistaAlta() {
 
     avance(0);
     paso('No se ha podido cargar esta lista.');
-    aviso('No se ha podido cargar. Mira las otras formas de abajo.');
-    detalles.open = true;
+    aviso('Ninguna vía ha respondido todavía');
     caja.append(el('div', { class: 'nota-aviso' },
-      el('strong', {}, 'Ni tu proveedor ni los intermediarios han respondido. '),
-      'Prueba a cargarla desde un archivo o desde el portapapeles, aquí debajo.',
-      el('div', { style: { marginTop: '8px', fontSize: '12px', opacity: '0.65' } }, `Detalle — ${[...new Set(fallos)].join(' · ')}`)));
+      el('strong', {}, 'Ninguna vía ha podido traer tu lista. '),
+      'Queda una que se activa con un toque y no pide cuenta: abre esta página, pulsa el botón que aparece allí, vuelve y dale otra vez a «Cargar lista».',
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
+        el('a', { class: 'btn', href: PERMISO_CORS, target: '_blank', rel: 'noopener' }, 'Activar intermediario (1 toque)'),
+        el('button', { class: 'btn sec', onclick: () => cargaDesdeUrl() }, 'Volver a intentarlo')),
+      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.65' } }, `Detalle — ${[...new Set(fallos)].join(' · ')}`)));
     boton.disabled = false;
     boton.textContent = 'Cargar lista';
   }
