@@ -937,7 +937,8 @@ function vistaAlta() {
   }
 
   // 1. Archivo guardado en el iPhone
-  const selector = el('input', { type: 'file', accept: '.m3u,.m3u8,text/plain', style: { display: 'none' } });
+  // Sin filtro de extensión: Safari suele guardar la lista como "get.php".
+  const selector = el('input', { type: 'file', style: { display: 'none' } });
   selector.addEventListener('change', async () => {
     const archivo = selector.files?.[0];
     if (!archivo) return;
@@ -945,14 +946,16 @@ function vistaAlta() {
   });
 
   caja.append(el('div', { class: 'card-opcion' },
-    el('h2', {}, 'Desde un archivo (lo más fiable)'),
-    el('p', {}, 'Si tienes el .m3u en Archivos, elígelo y en unos segundos está todo dentro.'),
+    el('h2', {}, 'Desde un archivo (la vía que siempre funciona)'),
+    el('p', {}, 'Descargas la lista en el iPhone una vez y la cargas aquí. Después ya no hace falta repetirlo.'),
     el('div', { class: 'paso' }, el('div', { class: 'num' }, '1'),
-      el('div', { class: 'txt' }, 'Abre en Safari el enlace que te dio tu proveedor: se descarga en ', el('strong', {}, 'Archivos'), '.')),
+      el('div', { class: 'txt' }, 'Abre en Safari el enlace de tu proveedor y pulsa ', el('strong', {}, 'Descargar'), '.')),
     el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
-      el('div', { class: 'txt' }, 'Vuelve aquí, pulsa el botón y elige ese archivo.')),
+      el('div', { class: 'txt' }, 'Vuelve aquí y elige el archivo en ', el('strong', {}, 'Descargas'), '. Puede llamarse ', el('strong', {}, 'get.php'), ' en vez de acabar en .m3u: da igual, sirve.')),
+    el('div', { class: 'paso' }, el('div', { class: 'num' }, '3'),
+      el('div', { class: 'txt' }, 'Si Safari te enseña un montón de texto en vez de descargar nada, mantén pulsado, ', el('strong', {}, 'Seleccionar todo → Copiar'), ', y pégalo abajo del todo.')),
     selector,
-    el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir archivo .m3u')));
+    el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir el archivo de la lista')));
 
   // 2. Desde la dirección: se prueba la descarga directa y, si no, la API del panel
   const campoUrl = el('input', { type: 'url', placeholder: 'https://servidor/get.php?username=…&type=m3u_plus', autocapitalize: 'off', autocorrect: 'off', spellcheck: false });
@@ -1004,10 +1007,15 @@ function vistaAlta() {
     paso('No se ha podido cargar desde la dirección.');
     avance(0);
     ayudaUrl.append(el('div', { class: 'nota-aviso' },
-      el('strong', {}, 'Tu proveedor no deja que una web le pida la lista. '),
-      'Es lo más habitual. El camino que sí funciona: abre la lista en Safari, deja que se guarde en Archivos y cárgala con el botón de arriba.',
-      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
+      el('strong', {}, 'Tu proveedor no atiende peticiones hechas desde una web. '),
+      'Es lo más habitual, y tiene solución en dos toques:',
+      el('div', { class: 'paso', style: { marginTop: '12px' } }, el('div', { class: 'num' }, '1'),
+        el('div', { class: 'txt' }, 'Pulsa ', el('strong', {}, 'Abrir la lista en Safari'), ' y, cuando pregunte, ', el('strong', {}, 'Descargar'), '.')),
+      el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
+        el('div', { class: 'txt' }, 'Vuelve a esta pestaña y pulsa ', el('strong', {}, 'Elegir el archivo descargado'), ' (estará en Descargas, quizá llamado ', el('strong', {}, 'get.php'), ').')),
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' } },
         el('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener' }, 'Abrir la lista en Safari'),
+        el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir el archivo descargado'),
         el('button', {
           class: 'btn sec',
           onclick: async () => {
@@ -1015,7 +1023,9 @@ function vistaAlta() {
             catch { aviso('Mantén pulsado el campo para copiarla'); }
           }
         }, 'Copiar la dirección')),
-      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.75' } }, `Detalle técnico — ${fallos.join(' · ')}`)));
+      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.75' } },
+        'Si Safari muestra el texto de la lista en vez de descargarla: mantén pulsado, Seleccionar todo, Copiar, y pégalo en «Pegar el contenido».'),
+      el('div', { style: { marginTop: '6px', fontSize: '12px', opacity: '0.6' } }, `Detalle técnico — ${fallos.join(' · ')}`)));
     botonUrl.disabled = false;
   });
 
