@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f1f5f8" media="(prefers-color-scheme: light)" />
+  <title>Cookie Play</title>
+  <meta name="description" content="Cookie Play: tu lista IPTV ordenada en películas, series y canales, dentro del propio móvil." />
+  <meta name="application-name" content="Cookie Play" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Cookie Play" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="estilo.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+      <header class="topbar" id="barra-superior" hidden>
+        <div class="search">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+          <input id="buscador" type="search" placeholder="Buscar películas, series o canales…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        </div>
+      </header>
+      <div class="content"><div class="inner" id="view"></div></div>
+    </main>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
