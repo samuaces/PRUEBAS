@@ -4,6 +4,9 @@
    se guarda en el propio teléfono (IndexedDB) y no sale de él.
    =========================================================================== */
 
+/** Versión visible: sirve para saber si el móvil tiene la última. */
+export const VERSION = '14';
+
 /* ----------------------------- Utilidades -------------------------------- */
 
 export function el(tag, props, ...hijos) {
@@ -1460,6 +1463,14 @@ function vistaAlta() {
       el('button', { class: 'btn sec', onclick: () => ve('inicio') }, 'Volver a mis listas')));
   }
 
+  caja.append(el('div', { style: { marginTop: '18px', textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' } },
+    `Cookie Play v${VERSION}`,
+    el('button', {
+      class: 'btn sec',
+      style: { display: 'block', margin: '10px auto 0', fontSize: '12.5px', padding: '6px 14px' },
+      onclick: forzarActualizacion
+    }, 'Buscar actualización')));
+
   return caja;
 }
 
@@ -1756,6 +1767,10 @@ function vistaAjustes() {
         el('div', { class: 'label' }, 'Apariencia'),
         el('div', { class: 'spacer' }), tema),
       campoRele()),
+    el('div', { class: 'card-opcion' },
+      el('h2', {}, 'La app'),
+      el('p', {}, `Estás usando la versión ${VERSION}. Si te he dicho que hay algo nuevo y no lo ves, pulsa aquí.`),
+      el('button', { class: 'btn', onclick: forzarActualizacion }, 'Buscar actualización')),
     el('div', { class: 'nota-aviso' },
       el('strong', {}, 'Para actualizar la lista: '),
       'ejecuta tu atajo de Atajos (copia la lista al portapapeles) y pulsa «Actualizar desde el portapapeles». Los favoritos se mantienen.'),
@@ -1763,6 +1778,24 @@ function vistaAjustes() {
       el('strong', {}, 'Si un canal no arranca: '),
       'tu lista sirve el vídeo por http y el iPhone no lo mezcla con una página https. En esos casos la app te ofrece abrirlo en VLC, que es gratis y sí puede.')
   ];
+}
+
+/** Borra lo guardado de la propia app (no las listas) y recarga la última versión. */
+export async function forzarActualizacion() {
+  aviso('Buscando la última versión…');
+  try {
+    if ('serviceWorker' in navigator) {
+      const registros = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registros.map((r) => r.unregister()));
+    }
+    if (window.caches) {
+      const claves = await caches.keys();
+      await Promise.all(claves.map((k) => caches.delete(k)));
+    }
+  } catch { /* si no se puede, la recarga con marca de tiempo suele bastar */ }
+  const destino = new URL(location.href);
+  destino.searchParams.set('v', Date.now().toString(36));
+  location.replace(destino.href);
 }
 
 /* ------------------------- Navegación y arranque -------------------------- */
