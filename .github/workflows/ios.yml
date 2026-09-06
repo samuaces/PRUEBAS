@@ -10,9 +10,16 @@ on:
 
 jobs:
   compilar:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Usar el Xcode más nuevo del runner
+        run: |
+          ultimo=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          echo "Usando $ultimo"
+          sudo xcode-select -s "$ultimo"
+          xcodebuild -version
 
       - name: Instalar XcodeGen
         run: brew install xcodegen

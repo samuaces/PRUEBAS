@@ -3,6 +3,9 @@
 name: CookiePlay
 options:
   bundleIdPrefix: com.cookieplay
+  # Formato de proyecto compatible con Xcode 15 en adelante: el más nuevo no lo
+  # abren las versiones anteriores, y aquí interesa que lo abra cualquiera.
+  objectVersion: 56
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
