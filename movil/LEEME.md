@@ -11,6 +11,13 @@ se instala en la pantalla de inicio como una app más.
 3. Ábrela y carga tu lista: desde un archivo `.m3u` de Archivos, desde la
    dirección de la lista, o pegando el contenido.
 
+Con la dirección se prueban dos vías: la descarga directa del `.m3u` y, si el
+proveedor la bloquea (lo habitual), **la API del panel Xtream**, que además trae
+valoraciones, géneros, sinopsis y carátulas. Los episodios de cada serie se
+piden al abrir su ficha, para no descargar miles de capítulos de golpe. Cuando
+se usa esa vía, las credenciales quedan guardadas en el teléfono para poder
+pedir esos episodios.
+
 La lista se ordena en películas, series y canales y **se guarda en el propio
 teléfono** (IndexedDB); no se sube a ningún sitio. Favoritos, vistos y ajustes
 van en el almacenamiento local del navegador.
