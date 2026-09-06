@@ -998,6 +998,94 @@ function bloqueTemporadas(serie) {
     chips, lista);
 }
 
+/* ------------------------------ Diagnóstico ------------------------------- */
+
+/**
+ * Comprueba, una por una, todas las vías, y dice qué falla exactamente.
+ * La prueba clave es la petición «opaca»: si esa pasa, el servidor está vivo y
+ * el problema es de permisos del navegador; si no pasa, no hay servidor.
+ */
+export async function diagnostica(url, informa) {
+  const cuenta = credencialesDesdeUrl(url);
+  const lineas = [];
+  const apunta = (nombre, ok, detalle) => {
+    lineas.push({ nombre, ok, detalle });
+    informa?.(lineas);
+  };
+
+  const conTiempo = (promesa, ms) => Promise.race([
+    promesa,
+    new Promise((_, r) => setTimeout(() => r(new Error(`sin respuesta en ${ms / 1000} s`)), ms))
+  ]);
+
+  // 1. ¿Existe el servidor y contesta algo?
+  let base = url;
+  try { base = new URL(url).origin; } catch { /* se usa la url tal cual */ }
+  try {
+    await conTiempo(fetch(base, { mode: 'no-cors', cache: 'no-store' }), 15000);
+    apunta('El servidor existe y responde', true, base);
+  } catch (err) {
+    apunta('El servidor existe y responde', false, err.message);
+  }
+
+  // 2. ¿Contesta a la dirección concreta de la lista?
+  try {
+    await conTiempo(fetch(url, { mode: 'no-cors', cache: 'no-store' }), 20000);
+    apunta('La dirección de la lista responde', true, 'contesta algo');
+  } catch (err) {
+    apunta('La dirección de la lista responde', false, err.message);
+  }
+
+  // 3. ¿Deja que el navegador lea la respuesta? (esto es lo que suele fallar)
+  try {
+    const res = await conTiempo(fetch(url, { cache: 'no-store' }), 20000);
+    const texto = (await res.text()).slice(0, 400);
+    apunta('El navegador puede leer la lista', texto.includes('#EXT'), texto.includes('#EXT') ? `${res.status}, parece una lista` : `${res.status}, empieza por «${texto.slice(0, 60).replace(/\s+/g, ' ')}»`);
+  } catch (err) {
+    apunta('El navegador puede leer la lista', false, err.message);
+  }
+
+  // 4. La API del panel
+  if (cuenta) {
+    try {
+      const info = await conTiempo(apiXtream(cuenta, null), 25000);
+      const auth = info?.user_info?.auth;
+      apunta('La API del panel contesta', auth === 1, auth === 1 ? `cuenta ${info.user_info.status || 'activa'}` : 'responde pero no autentica');
+    } catch (err) {
+      apunta('La API del panel contesta', false, err.message);
+    }
+  }
+
+  // 5. Los intermediarios
+  try {
+    const texto = await conTiempo(traeConRele(url), 45000);
+    apunta('Un intermediario puede traerla', texto.includes('#EXT'), texto.includes('#EXT') ? 'trae la lista' : `trae otra cosa: «${texto.slice(0, 60).replace(/\s+/g, ' ')}»`);
+  } catch (err) {
+    apunta('Un intermediario puede traerla', false, err.message);
+  }
+
+  return lineas;
+}
+
+/** Traduce el resultado del diagnóstico a una conclusión en cristiano. */
+export function conclusion(lineas) {
+  const dato = (n) => lineas.find((l) => l.nombre.startsWith(n));
+  const vivo = dato('El servidor existe')?.ok;
+  const direccion = dato('La dirección')?.ok;
+  const lee = dato('El navegador puede leer')?.ok;
+  const api = dato('La API del panel')?.ok;
+  const rele = dato('Un intermediario')?.ok;
+
+  if (lee || api || rele) return 'Hay al menos una vía que funciona: vuelve atrás y pulsa «Cargar lista».';
+  if (!vivo && !direccion) {
+    return 'Tu servidor no responde a nada desde este teléfono. O la lista ha caducado, o el proveedor ha cambiado de dirección, o tu operadora la bloquea. Pruébala en otra app de IPTV o con los datos móviles en vez del wifi: si allí tampoco va, el problema está en la lista, no en la app.';
+  }
+  if (vivo && !lee && !rele) {
+    return 'Tu servidor está vivo pero no deja que ninguna web lea su respuesta, y los intermediarios tampoco llegan. La única vía que queda es meter la lista desde el propio teléfono: descárgala en Safari o cópiala con la app Atajos y usa «Otras formas de cargarla».';
+  }
+  return 'Resultado mixto: mira las líneas de arriba para ver qué paso falla.';
+}
+
 /* --------------------------------- Vistas --------------------------------- */
 
 /** Lee la lista del portapapeles (la deja ahí el atajo) y rehace el catálogo. */
@@ -1204,6 +1292,49 @@ function vistaAlta() {
           catch (err) { aviso(err.message); }
         }
       }, 'Cargar lo pegado')));
+  // Diagnóstico: para cuando nada funciona y hay que saber por qué.
+  const informe = el('div', {});
+  const botonDiag = el('button', { class: 'btn sec', style: { width: '100%', justifyContent: 'center' } }, 'No carga: ver qué falla');
+  botonDiag.addEventListener('click', async () => {
+    const url = campo.value.trim();
+    if (!url) return aviso('Pega antes el enlace de tu lista');
+    botonDiag.disabled = true;
+    botonDiag.textContent = 'Comprobando…';
+    vaciar(informe);
+    const caja2 = el('div', { class: 'nota-aviso' });
+    informe.append(caja2);
+
+    const pinta = (lineas) => {
+      vaciar(caja2);
+      for (const l of lineas) {
+        caja2.append(el('div', { style: { display: 'flex', gap: '8px', padding: '3px 0', alignItems: 'flex-start' } },
+          el('span', { style: { color: l.ok ? '#34c759' : 'var(--danger)', fontWeight: '700' } }, l.ok ? '✓' : '✗'),
+          el('span', {}, l.nombre, el('div', { style: { fontSize: '12px', opacity: '0.7' } }, l.detalle))));
+      }
+    };
+
+    try {
+      const lineas = await diagnostica(url, pinta);
+      pinta(lineas);
+      const texto = conclusion(lineas);
+      caja2.append(el('div', { style: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--separator)' } },
+        el('strong', {}, 'Conclusión: '), texto));
+      const resumen = lineas.map((l) => `${l.ok ? 'OK' : 'FALLA'} — ${l.nombre}: ${l.detalle}`).join('\n');
+      caja2.append(el('button', {
+        class: 'btn sec',
+        style: { marginTop: '12px' },
+        onclick: async () => {
+          try { await navigator.clipboard.writeText(`${resumen}\n\n${texto}`); aviso('Informe copiado'); }
+          catch { aviso('Haz una captura de pantalla y mándala'); }
+        }
+      }, 'Copiar informe'));
+    } finally {
+      botonDiag.disabled = false;
+      botonDiag.textContent = 'No carga: ver qué falla';
+    }
+  });
+
+  caja.append(el('div', { style: { marginTop: '4px' } }, botonDiag), informe);
   caja.append(detalles);
 
   if (estado.listas.length) {
