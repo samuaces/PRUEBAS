@@ -24,6 +24,19 @@ La lista se ordena en películas, series y canales y **se guarda en el propio
 teléfono** (IndexedDB); no se sube a ningún sitio. Favoritos, vistos y ajustes
 van en el almacenamiento local del navegador.
 
+## Versión de archivo único (`CookiePlay.html`)
+
+En la raíz del repositorio hay un `CookiePlay.html` con **todo dentro** (estilos,
+código, logo). Se guarda en el iPhone y se abre desde la app Archivos.
+
+Esto no es un capricho: una página servida por `https` tiene **prohibido**
+reproducir vídeo `http`, y casi todos los paneles IPTV sirven por `http`. Un
+archivo local no es `https`, así que esa prohibición no se le aplica y el vídeo
+puede reproducirse dentro de la app.
+
+Se regenera con el pequeño script de `herramientas/empaquetar.py` cada vez que
+cambia `movil/`.
+
 ## Cuando el proveedor no atiende al navegador
 
 Casi ningún panel IPTV responde a peticiones hechas desde una web. Para esos

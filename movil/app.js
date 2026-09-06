@@ -626,8 +626,17 @@ export async function cargaListasGuardadas() {
 }
 
 async function persisteListas() {
-  await guardaEnBD('listas', estado.listas);
-  await guardaEnBD('activa', estado.activaId);
+  try {
+    await guardaEnBD('listas', estado.listas);
+    await guardaEnBD('activa', estado.activaId);
+  } catch {
+    // Abierta como archivo suelto, el navegador puede no dejar guardar nada.
+    // La app sigue funcionando; lo que se pierde es recordarlo al cerrar.
+    if (!estado.avisoSinGuardado) {
+      estado.avisoSinGuardado = true;
+      aviso('Aquí no se puede guardar: al cerrar habrá que volver a cargar la lista');
+    }
+  }
 }
 
 /**
@@ -1463,9 +1472,10 @@ function vistaAlta() {
       el('button', { class: 'btn sec', onclick: () => ve('inicio') }, 'Volver a mis listas')));
   }
 
+  const esArchivoLocal = location.protocol === 'file:';
   caja.append(el('div', { style: { marginTop: '18px', textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' } },
     `Cookie Play v${VERSION}`,
-    el('button', {
+    esArchivoLocal ? null : el('button', {
       class: 'btn sec',
       style: { display: 'block', margin: '10px auto 0', fontSize: '12.5px', padding: '6px 14px' },
       onclick: forzarActualizacion
@@ -1908,7 +1918,7 @@ async function arranca() {
   pinta();
 
   // El service worker es lo que permite instalarla en la pantalla de inicio.
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* sin instalación, la app funciona igual */ });
   }
 }
