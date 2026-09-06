@@ -452,7 +452,7 @@ export async function completaSerie(serie) {
   serie.episodios = total;
   serie.numTemporadas = Object.keys(temporadas).length;
   serie.pendiente = false;
-  guardaCatalogo(estado.catalogo, estado.origen).catch(() => { /* se recargará si hace falta */ });
+  refrescaListaActiva().catch(() => { /* se recargará si hace falta */ });
   return serie;
 }
 
@@ -513,10 +513,12 @@ const local = {
 };
 
 export const estado = {
-  catalogo: null,
-  origen: null,               // de dónde salió la lista y cuándo
+  listas: [],                 // [{ id, nombre, url, tipo, cuando, entradas, catalogo }]
+  activaId: null,
+  catalogo: null,             // el catálogo de la lista activa
+  origen: null,
   favoritos: new Set(local.lee('favoritos', [])),
-  vistos: local.lee('vistos', {}),          // id -> { at, posicion, duracion }
+  vistos: local.lee('vistos', {}),
   ajustes: local.lee('ajustes', { filtroAdulto: true, tema: 'sistema', rele: '' }),
   vista: 'inicio',
   busqueda: ''
@@ -526,24 +528,84 @@ export function guardaFavoritos() { local.guarda('favoritos', [...estado.favorit
 export function guardaVistos() { local.guarda('vistos', estado.vistos); }
 export function guardaAjustes() { local.guarda('ajustes', estado.ajustes); }
 
-export async function cargaCatalogoGuardado() {
-  estado.catalogo = await leeDeBD('catalogo').catch(() => null);
-  estado.origen = await leeDeBD('origen').catch(() => null);
-  return estado.catalogo;
+/** Pone en `catalogo` la lista activa. */
+function aplicaActiva() {
+  const lista = estado.listas.find((l) => l.id === estado.activaId) || estado.listas[0] || null;
+  estado.activaId = lista?.id || null;
+  estado.catalogo = lista?.catalogo || null;
+  estado.origen = lista ? { nombre: lista.nombre, cuando: lista.cuando, entradas: lista.entradas, tipo: lista.tipo, url: lista.url } : null;
 }
 
-export async function guardaCatalogo(catalogo, origen) {
-  estado.catalogo = catalogo;
-  estado.origen = origen;
-  await guardaEnBD('catalogo', catalogo);
-  await guardaEnBD('origen', origen);
+/** Carga las listas guardadas (y migra la versión de una sola lista). */
+export async function cargaListasGuardadas() {
+  let listas = await leeDeBD('listas').catch(() => null);
+  if (!listas) {
+    const anterior = await leeDeBD('catalogo').catch(() => null);
+    const origen = await leeDeBD('origen').catch(() => null);
+    listas = anterior ? [{
+      id: 'lista-1',
+      nombre: origen?.nombre || 'Mi lista',
+      url: origen?.url || '',
+      tipo: origen?.tipo || 'm3u',
+      cuando: origen?.cuando || Date.now(),
+      entradas: origen?.entradas || 0,
+      catalogo: anterior
+    }] : [];
+    if (listas.length) await guardaEnBD('listas', listas);
+  }
+  estado.listas = listas;
+  estado.activaId = (await leeDeBD('activa').catch(() => null)) || listas[0]?.id || null;
+  aplicaActiva();
+  return estado.listas;
 }
 
-export async function olvidaCatalogo() {
-  estado.catalogo = null;
-  estado.origen = null;
-  await borraDeBD('catalogo');
-  await borraDeBD('origen');
+async function persisteListas() {
+  await guardaEnBD('listas', estado.listas);
+  await guardaEnBD('activa', estado.activaId);
+}
+
+/**
+ * Guarda una lista nueva (o actualiza la que tenga la misma dirección) y la
+ * deja como activa.
+ */
+export async function guardaLista({ nombre, url = '', tipo = 'm3u', entradas = 0, catalogo }) {
+  const existente = url ? estado.listas.find((l) => l.url === url) : null;
+  const lista = existente || { id: `lista-${Date.now().toString(36)}` };
+  // Dos listas del mismo servidor no pueden llamarse igual: se numeran.
+  if (!existente && nombre) {
+    const base = nombre;
+    let intento = base;
+    let n = 2;
+    while (estado.listas.some((l) => l.nombre === intento)) intento = `${base} (${n++})`;
+    nombre = intento;
+  }
+  Object.assign(lista, { nombre: nombre || lista.nombre || 'Mi lista', url, tipo, entradas, cuando: Date.now(), catalogo });
+  if (!existente) estado.listas.push(lista);
+  estado.activaId = lista.id;
+  aplicaActiva();
+  await persisteListas();
+  return lista;
+}
+
+export async function eligeLista(id) {
+  estado.activaId = id;
+  aplicaActiva();
+  await persisteListas();
+}
+
+export async function borraLista(id) {
+  estado.listas = estado.listas.filter((l) => l.id !== id);
+  if (estado.activaId === id) estado.activaId = estado.listas[0]?.id || null;
+  aplicaActiva();
+  await persisteListas();
+}
+
+/** Vuelve a guardar la lista activa (se usa al completar los episodios). */
+export async function refrescaListaActiva() {
+  const lista = estado.listas.find((l) => l.id === estado.activaId);
+  if (!lista) return;
+  lista.catalogo = estado.catalogo;
+  await persisteListas();
 }
 
 /* ----------------------- Búsqueda y recomendaciones ----------------------- */
@@ -946,7 +1008,7 @@ export async function cargaDesdePortapapeles(informa) {
   informa?.('Ordenando la lista…');
   const entradas = parseaM3U(texto);
   const catalogo = construyeCatalogo(entradas, { filtroAdulto: estado.ajustes.filtroAdulto });
-  await guardaCatalogo(catalogo, { tipo: 'atajo', nombre: 'Lista copiada con Atajos', cuando: Date.now(), entradas: entradas.length });
+  await guardaLista({ nombre: 'Lista copiada', tipo: 'portapapeles', entradas: entradas.length, catalogo });
   return catalogo;
 }
 
@@ -955,233 +1017,174 @@ const cabecera = (titulo, sub) => [
   sub ? el('p', { class: 'page-sub' }, sub) : null
 ];
 
-/** Alta de la lista: lo primero que ve alguien que abre la app vacía. */
+/** Alta de la lista: pegar el enlace y ya. Lo demás queda plegado debajo. */
 function vistaAlta() {
   const caja = el('div', { class: 'onboarding' });
-
-  caja.append(
-    el('div', { class: 'marca' },
-      el('img', { class: 'logo', src: 'icons/logo.png', alt: '' }),
-      el('img', { class: 'logotipo', src: 'icons/wordmark.png', alt: 'Cookie Play' })),
-    el('h1', {}, 'Carga tu lista y listo'),
-    el('p', { class: 'intro' },
-      'Cookie Play ordena tu lista en películas, series y canales. Todo se queda guardado en este teléfono: la lista no se sube a ningún sitio.'));
-
-  const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
   const progreso = el('div', { class: 'progreso' });
   const barra = el('div', { class: 'barra' }, el('i', {}));
   const paso = (texto) => {
     progreso.replaceChildren(texto, barra);
-    if (!progreso.isConnected) caja.append(progreso);
   };
   const avance = (pct) => { barra.firstChild.style.width = `${pct}%`; };
 
-  async function procesa(texto, origen) {
-    if (!String(texto).includes('#EXT')) {
-      aviso('Ese archivo no parece una lista M3U');
-      return;
-    }
-    paso('Leyendo la lista…');
-    avance(25);
-    await new Promise((r) => setTimeout(r, 30));      // deja pintar antes de bloquear
+  /** Ordena el texto de una lista y la guarda. */
+  async function procesa(texto, datos) {
+    if (!String(texto).includes('#EXT')) throw new Error('eso no parece una lista M3U');
+    paso('Ordenando la lista…');
+    avance(70);
+    await new Promise((r) => setTimeout(r, 20));
     const entradas = parseaM3U(texto);
-    paso(`Ordenando ${numero(entradas.length)} entradas…`);
-    avance(65);
-    await new Promise((r) => setTimeout(r, 30));
     const catalogo = construyeCatalogo(entradas, { filtroAdulto: estado.ajustes.filtroAdulto });
-    paso('Guardando en el teléfono…');
-    avance(90);
-    try {
-      await guardaCatalogo(catalogo, { ...origen, cuando: Date.now(), entradas: entradas.length });
-    } catch (err) {
-      aviso('No se pudo guardar la lista en el teléfono');
-      paso(`Error al guardar: ${err.message}`);
-      return;
-    }
+    paso('Guardando…');
+    avance(92);
+    await guardaLista({ ...datos, entradas: entradas.length, catalogo });
+    listo(catalogo);
+  }
+
+  function listo(catalogo) {
     avance(100);
     aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
     ve('inicio');
   }
 
-  // 0. Atajos: es la única forma en el iPhone de pedirle la lista al proveedor
-  //    sin las restricciones del navegador. Copia y se pega aquí de un toque.
-  const botonPegar = el('button', { class: 'btn' }, 'Pegar la lista copiada');
-  botonPegar.addEventListener('click', async () => {
-    try {
-      if (!navigator.clipboard?.readText) throw new Error('sin acceso al portapapeles');
-      const texto = await navigator.clipboard.readText();
-      if (!texto || !texto.includes('#EXT')) {
-        aviso('En el portapapeles no hay ninguna lista');
-        return;
-      }
-      await procesa(texto, { tipo: 'atajo', nombre: 'Lista copiada con Atajos' });
-    } catch {
-      aviso('Pégala a mano en el recuadro de abajo');
-      area.focus();
-      area.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+  const nombreDe = (url) => {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Mi lista'; }
+  };
+
+  // ---- Lo único que hay que hacer: pegar el enlace ----
+  const campo = el('input', {
+    type: 'url',
+    placeholder: 'Pega aquí el enlace de tu lista',
+    autocapitalize: 'off', autocorrect: 'off', spellcheck: false, enterKeyHint: 'go'
   });
+  const boton = el('button', { class: 'btn', style: { width: '100%', justifyContent: 'center' } }, 'Cargar lista');
 
-  caja.append(el('div', { class: 'card-opcion' },
-    el('h2', {}, 'Con la app Atajos (lo más cómodo en iPhone)'),
-    el('p', {}, 'Tu proveedor no atiende a Safari, pero sí a Atajos. Se prepara una vez en dos minutos y luego es un toque cada vez que quieras actualizar.'),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '1'),
-      el('div', { class: 'txt' }, 'Abre ', el('strong', {}, 'Atajos'), ' → ', el('strong', {}, '+'), ' → ', el('strong', {}, 'Añadir acción'), ' → busca ', el('strong', {}, '«Obtener contenido de la URL»'), ' y pega ahí la dirección de tu lista.')),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
-      el('div', { class: 'txt' }, 'Añade debajo la acción ', el('strong', {}, '«Copiar en el portapapeles»'), '. Ponle nombre, por ejemplo ', el('strong', {}, 'Lista IPTV'), ', y guarda.')),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '3'),
-      el('div', { class: 'txt' }, 'Ejecuta el atajo (tarda unos segundos) y vuelve aquí.')),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '4'),
-      el('div', { class: 'txt' }, 'Pulsa el botón de abajo y acepta cuando el iPhone pregunte si quieres pegar.')),
-    botonPegar));
+  async function cargaDesdeUrl() {
+    const url = campo.value.trim();
+    if (!url) return aviso('Pega antes el enlace de tu lista');
+    boton.disabled = true;
+    boton.textContent = 'Cargando…';
+    const cuenta = credencialesDesdeUrl(url);
+    const fallos = [];
 
-  // 1. Archivo guardado en el iPhone
-  // Sin filtro de extensión: Safari suele guardar la lista como "get.php".
+    const intentos = [
+      ['Conectando con tu proveedor…', 12, async () => {
+        const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
+        if (!res.ok) throw new Error(`respondió ${res.status}`);
+        return { texto: await res.text() };
+      }],
+      cuenta && ['Probando la API de tu panel…', 30, async () => ({
+        catalogo: await catalogoDesdeXtream(cuenta, paso)
+      })],
+      ['Tu proveedor no atiende al navegador: pidiéndola por otra vía…', 45, async () => ({
+        texto: await traeConRele(url, paso)
+      })],
+      cuenta && ['Probando la API por otra vía…', 65, async () => ({
+        catalogo: await catalogoDesdeXtream({ ...cuenta, viaRele: true }, paso)
+      })]
+    ].filter(Boolean);
+
+    for (const [mensaje, pct, intenta] of intentos) {
+      try {
+        paso(mensaje);
+        avance(pct);
+        const salida = await intenta();
+        if (salida.texto) {
+          await procesa(salida.texto, { nombre: nombreDe(url), url, tipo: 'm3u' });
+        } else {
+          paso('Guardando…');
+          avance(92);
+          const catalogo = salida.catalogo;
+          await guardaLista({
+            nombre: nombreDe(url), url, tipo: 'xtream',
+            entradas: catalogo.pelis.length + catalogo.series.length + catalogo.canales.length,
+            catalogo
+          });
+          listo(catalogo);
+        }
+        boton.disabled = false;
+        boton.textContent = 'Cargar lista';
+        return;
+      } catch (err) {
+        fallos.push(err.message);
+      }
+    }
+
+    avance(0);
+    paso('No se ha podido cargar esta lista.');
+    aviso('No se ha podido cargar. Mira las otras formas de abajo.');
+    detalles.open = true;
+    caja.append(el('div', { class: 'nota-aviso' },
+      el('strong', {}, 'Ni tu proveedor ni los intermediarios han respondido. '),
+      'Prueba a cargarla desde un archivo o desde el portapapeles, aquí debajo.',
+      el('div', { style: { marginTop: '8px', fontSize: '12px', opacity: '0.65' } }, `Detalle — ${[...new Set(fallos)].join(' · ')}`)));
+    boton.disabled = false;
+    boton.textContent = 'Cargar lista';
+  }
+
+  boton.addEventListener('click', cargaDesdeUrl);
+  campo.addEventListener('keydown', (e) => { if (e.key === 'Enter') cargaDesdeUrl(); });
+
+  caja.append(
+    el('div', { class: 'marca' },
+      el('img', { class: 'logo', src: 'icons/logo.png', alt: '' }),
+      el('img', { class: 'logotipo', src: 'icons/wordmark.png', alt: 'Cookie Play' })),
+    el('h1', {}, estado.listas.length ? 'Añade otra lista' : 'Pega tu lista y listo'),
+    el('p', { class: 'intro' }, 'Se ordena sola en películas, series y canales, y se queda guardada en este teléfono.'),
+    el('div', { class: 'card-opcion' },
+      campo,
+      boton,
+      progreso,
+      el('small', { style: { display: 'block', marginTop: '10px', color: 'var(--text-2)', fontSize: '12.5px', lineHeight: '1.5' } },
+        'Si tu proveedor no atiende a los navegadores, la app la pedirá a través de un intermediario. Para que ni eso salga de tus manos, puedes poner el tuyo en Ajustes.')));
+
+  // ---- Otras formas, plegadas: solo estorban si todo va bien ----
   const selector = el('input', { type: 'file', style: { display: 'none' } });
   selector.addEventListener('change', async () => {
     const archivo = selector.files?.[0];
     if (!archivo) return;
-    procesa(await archivo.text(), { tipo: 'archivo', nombre: archivo.name });
+    try {
+      await procesa(await archivo.text(), { nombre: archivo.name.replace(/\.[^.]+$/, ''), tipo: 'archivo' });
+    } catch (err) {
+      aviso(err.message);
+    }
   });
 
-  caja.append(el('div', { class: 'card-opcion' },
-    el('h2', {}, 'Desde un archivo (la vía que siempre funciona)'),
-    el('p', {}, 'Descargas la lista en el iPhone una vez y la cargas aquí. Después ya no hace falta repetirlo.'),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '1'),
-      el('div', { class: 'txt' }, 'Abre en Safari el enlace de tu proveedor y pulsa ', el('strong', {}, 'Descargar'), '.')),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
-      el('div', { class: 'txt' }, 'Vuelve aquí y elige el archivo en ', el('strong', {}, 'Descargas'), '. Puede llamarse ', el('strong', {}, 'get.php'), ' en vez de acabar en .m3u: da igual, sirve.')),
-    el('div', { class: 'paso' }, el('div', { class: 'num' }, '3'),
-      el('div', { class: 'txt' }, 'Si Safari te enseña un montón de texto en vez de descargar nada, mantén pulsado, ', el('strong', {}, 'Seleccionar todo → Copiar'), ', y pégalo abajo del todo.')),
-    selector,
-    el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir el archivo de la lista')));
+  const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
 
-  // 2. Desde la dirección: se prueba la descarga directa y, si no, la API del panel
-  const campoUrl = el('input', { type: 'url', placeholder: 'https://servidor/get.php?username=…&type=m3u_plus', autocapitalize: 'off', autocorrect: 'off', spellcheck: false });
-  const botonUrl = el('button', { class: 'btn' }, 'Cargar desde la URL');
-  const ayudaUrl = el('div', {});
-
-  /** Botón que repite la carga pidiéndosela a un intermediario. */
-  function botonRele(url) {
-    const boton = el('button', { class: 'btn' }, 'Cargar con intermediario');
-    boton.addEventListener('click', async () => {
-      boton.disabled = true;
-      const cuenta = credencialesDesdeUrl(url);
-      try {
-        // Primero la lista entera; si el intermediario no la trae, la API del panel.
-        paso('Pidiendo la lista a un intermediario…');
-        avance(20);
-        let texto = null;
-        try {
-          texto = await traeConRele(url, (t) => paso(t));
-        } catch (err) {
-          if (!cuenta) throw err;
-        }
-
-        if (texto && texto.includes('#EXT')) {
-          await procesa(texto, { tipo: 'rele', nombre: 'Lista vía intermediario', url });
-          return;
-        }
-
-        if (!cuenta) throw new Error('la respuesta no era una lista M3U');
-        paso('Probando la API del panel a través del intermediario…');
-        avance(45);
-        const catalogo = await catalogoDesdeXtream({ ...cuenta, viaRele: true }, (t) => paso(t));
-        paso('Guardando en el teléfono…');
-        avance(90);
-        await guardaCatalogo(catalogo, { tipo: 'xtream-rele', nombre: cuenta.base.replace(/^https?:\/\//, ''), cuando: Date.now(), entradas: catalogo.pelis.length + catalogo.series.length + catalogo.canales.length });
-        avance(100);
-        aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
-        ve('inicio');
-      } catch (err) {
-        paso(`El intermediario tampoco ha podido: ${err.message}`);
-        aviso('El intermediario no ha podido con tu servidor');
-      } finally {
-        boton.disabled = false;
-      }
-    });
-    return boton;
-  }
-
-  botonUrl.addEventListener('click', async () => {
-    const url = campoUrl.value.trim();
-    if (!url) return aviso('Pega antes la dirección de tu lista');
-    vaciar(ayudaUrl);
-    botonUrl.disabled = true;
-    const fallos = [];
-
-    // Intento 1: descargar el .m3u tal cual.
-    paso('Descargando la lista…');
-    avance(15);
-    try {
-      const res = await fetch(url, { redirect: 'follow' });
-      if (!res.ok) throw new Error(`el servidor respondió ${res.status}`);
-      await procesa(await res.text(), { tipo: 'url', nombre: url });
-      botonUrl.disabled = false;
-      return;
-    } catch (err) {
-      fallos.push(`descarga directa: ${err.message}`);
-    }
-
-    // Intento 2: la API del panel (Xtream). Muchos la dejan abierta aunque
-    // bloqueen el .m3u, y además trae valoraciones, géneros y carátulas.
-    const cuenta = credencialesDesdeUrl(url);
-    if (cuenta) {
-      try {
-        paso('Probando con la API de tu proveedor…');
-        avance(35);
-        const catalogo = await catalogoDesdeXtream(cuenta, (texto) => paso(texto));
-        paso('Guardando en el teléfono…');
-        avance(90);
-        await guardaCatalogo(catalogo, { tipo: 'xtream', nombre: cuenta.base.replace(/^https?:\/\//, ''), cuando: Date.now(), entradas: catalogo.pelis.length + catalogo.series.length + catalogo.canales.length });
-        avance(100);
-        aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
-        botonUrl.disabled = false;
-        ve('inicio');
-        return;
-      } catch (err) {
-        fallos.push(`API del panel: ${err.message}`);
-      }
-    }
-
-    // Las dos vías fallaron: se explica y se ofrece el camino del archivo.
-    paso('No se ha podido cargar desde la dirección.');
-    avance(0);
-    ayudaUrl.append(el('div', { class: 'nota-aviso' },
-      el('strong', {}, 'Tu proveedor no atiende peticiones hechas desde una web. '),
-      'Es lo más habitual, y tiene solución en dos toques:',
-      el('div', { class: 'paso', style: { marginTop: '12px' } }, el('div', { class: 'num' }, '1'),
-        el('div', { class: 'txt' }, 'Pulsa ', el('strong', {}, 'Abrir la lista en Safari'), ' y, cuando pregunte, ', el('strong', {}, 'Descargar'), '.')),
-      el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
-        el('div', { class: 'txt' }, 'Vuelve a esta pestaña y pulsa ', el('strong', {}, 'Elegir el archivo descargado'), ' (estará en Descargas, quizá llamado ', el('strong', {}, 'get.php'), ').')),
-      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' } },
-        botonRele(url),
-        el('a', { class: 'btn sec', href: url, target: '_blank', rel: 'noopener' }, 'Abrir la lista en Safari'),
-        el('button', { class: 'btn sec', onclick: () => selector.click() }, 'Elegir el archivo descargado'),
+  const detalles = el('details', { class: 'card-opcion' },
+    el('summary', { style: { fontWeight: '600', fontSize: '15px', cursor: 'pointer' } }, 'Otras formas de cargarla'),
+    el('div', { style: { paddingTop: '14px' } },
+      el('p', {}, 'Por si tu proveedor no responde: descarga la lista en el iPhone (Safari o la app Atajos) y cárgala desde aquí.'),
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+        el('button', { class: 'btn sec', onclick: () => selector.click() }, 'Elegir un archivo'),
         el('button', {
           class: 'btn sec',
           onclick: async () => {
-            try { await navigator.clipboard.writeText(url); aviso('Dirección copiada'); }
-            catch { aviso('Mantén pulsado el campo para copiarla'); }
+            try {
+              const texto = await navigator.clipboard.readText();
+              await procesa(texto, { nombre: 'Lista copiada', tipo: 'portapapeles' });
+            } catch (err) {
+              aviso(`No se ha podido pegar: ${err.message}`);
+            }
           }
-        }, 'Copiar la dirección')),
-      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.75' } },
-        'El intermediario es un servicio que pide la lista por ti, porque tu proveedor no atiende al navegador. Es lo más cómodo, pero la dirección de tu lista pasa por él; si prefieres que no, usa el archivo o pon tu propio intermediario en Ajustes.'),
-      el('div', { style: { marginTop: '6px', fontSize: '12px', opacity: '0.6' } }, `Detalle técnico — ${fallos.join(' · ')}`)));
-    botonUrl.disabled = false;
-  });
+        }, 'Pegar lo copiado')),
+      selector,
+      el('p', { style: { marginTop: '14px' } }, 'O pega aquí el contenido de la lista:'),
+      area,
+      el('button', {
+        class: 'btn sec',
+        onclick: async () => {
+          try { await procesa(area.value, { nombre: 'Lista pegada', tipo: 'pegada' }); }
+          catch (err) { aviso(err.message); }
+        }
+      }, 'Cargar lo pegado')));
+  caja.append(detalles);
 
-  caja.append(el('div', { class: 'card-opcion' },
-    el('h2', {}, 'Desde la dirección de tu lista'),
-    el('p', {}, 'Pega el enlace de tu proveedor. Pruebo dos formas: la descarga directa y la API del panel.'),
-    campoUrl, botonUrl, ayudaUrl));
-
-  // 3. Pegar el contenido a mano
-  caja.append(el('div', { class: 'card-opcion' },
-    el('h2', {}, 'Pegar el contenido'),
-    el('p', {}, 'Para listas pequeñas o para probar.'),
-    area,
-    el('button', { class: 'btn sec', onclick: () => procesa(area.value, { tipo: 'pegada', nombre: 'Lista pegada' }) }, 'Cargar lo pegado')));
+  if (estado.listas.length) {
+    caja.append(el('div', { style: { marginTop: '16px', textAlign: 'center' } },
+      el('button', { class: 'btn sec', onclick: () => ve('inicio') }, 'Volver a mis listas')));
+  }
 
   return caja;
 }
@@ -1189,6 +1192,23 @@ function vistaAlta() {
 function vistaInicio() {
   const catalogo = estado.catalogo;
   const nodos = [];
+
+  // Con varias listas guardadas, se cambia de una a otra desde aquí mismo.
+  if (estado.listas.length > 1) {
+    const chips = el('div', { class: 'chips' });
+    for (const lista of estado.listas) {
+      chips.append(el('button', {
+        class: `chip ${lista.id === estado.activaId ? 'active' : ''}`,
+        onclick: async () => {
+          if (lista.id === estado.activaId) return;
+          await eligeLista(lista.id);
+          ve('inicio');
+        }
+      }, lista.nombre));
+    }
+    chips.append(el('button', { class: 'chip', onclick: () => ve('alta') }, '+ Añadir'));
+    nodos.push(chips);
+  }
   const recomendadas = recomienda(catalogo, 16);
   const destacada = recomendadas[0];
 
@@ -1367,6 +1387,53 @@ function vistaBuscar() {
   return salida;
 }
 
+/** Mis listas: elegir cuál ver, actualizarla o quitarla. */
+function panelListas() {
+  const caja = el('div', { class: 'card-opcion' },
+    el('h2', {}, estado.listas.length > 1 ? 'Mis listas' : 'Mi lista'),
+    el('p', {}, 'Toca una para verla. Puedes tener las que quieras y cambiar cuando te apetezca.'));
+
+  for (const lista of estado.listas) {
+    const activa = lista.id === estado.activaId;
+    const c = lista.catalogo || { pelis: [], series: [], canales: [] };
+    caja.append(el('div', { class: 'lista-info' },
+      el('button', {
+        style: { display: 'contents' },
+        onclick: async () => {
+          if (activa) return;
+          await eligeLista(lista.id);
+          aviso(`Viendo «${lista.nombre}»`);
+          ve('inicio');
+        }
+      },
+        el('div', { class: 'logo', style: { width: '38px', height: '38px', borderRadius: '10px', background: activa ? 'var(--accent)' : 'var(--fill)', color: activa ? '#fff' : 'var(--text-2)', display: 'grid', placeItems: 'center', flex: 'none', fontWeight: '700', fontSize: '13px' } },
+          activa ? '✓' : String(estado.listas.indexOf(lista) + 1)),
+        el('div', { style: { flex: '1', minWidth: '0' } },
+          el('div', { class: 'n' }, lista.nombre),
+          el('div', { class: 'd' }, `${numero(c.pelis.length)} pelis · ${numero(c.series.length)} series · ${numero(c.canales.length)} canales`))),
+      el('button', {
+        class: 'btn sec',
+        style: { padding: '6px 12px', fontSize: '13px' },
+        onclick: async () => {
+          if (!confirm(`¿Quitar «${lista.nombre}»? Los favoritos se conservan.`)) return;
+          await borraLista(lista.id);
+          aviso('Lista quitada');
+          ve(estado.catalogo ? 'ajustes' : 'alta');
+        }
+      }, 'Quitar')));
+  }
+
+  caja.append(el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' } },
+    el('button', { class: 'btn', onclick: () => ve('alta') }, 'Añadir otra lista'),
+    estado.origen?.url
+      ? el('button', {
+          class: 'btn sec',
+          onclick: () => { ve('alta'); setTimeout(() => { const c = document.querySelector('.onboarding input[type=url]'); if (c) c.value = estado.origen.url; }, 60); }
+        }, 'Actualizar la actual')
+      : null));
+  return caja;
+}
+
 /** Permite usar un intermediario propio en vez de los públicos. */
 function campoRele() {
   const campo = el('input', { type: 'url', placeholder: 'https://mi-intermediario.workers.dev', value: estado.ajustes.rele || '', autocapitalize: 'off', spellcheck: false });
@@ -1384,9 +1451,6 @@ function campoRele() {
 }
 
 function vistaAjustes() {
-  const origen = estado.origen || {};
-  const catalogo = estado.catalogo;
-
   const interruptor = el('button', { class: `switch ${estado.ajustes.filtroAdulto ? 'on' : ''}` }, el('i', {}));
   interruptor.addEventListener('click', () => {
     estado.ajustes.filtroAdulto = !estado.ajustes.filtroAdulto;
@@ -1408,40 +1472,7 @@ function vistaAjustes() {
 
   return [
     ...cabecera('Ajustes', 'Todo se guarda solo en este teléfono'),
-    el('div', { class: 'card-opcion' },
-      el('h2', {}, 'Tu lista'),
-      el('div', { class: 'lista-info' },
-        el('div', {},
-          el('div', { class: 'n' }, origen.nombre || 'Lista cargada'),
-          el('div', { class: 'd' }, `${numero(origen.entradas || 0)} entradas · ${numero(catalogo.pelis.length)} pelis · ${numero(catalogo.series.length)} series · ${numero(catalogo.canales.length)} canales`))),
-      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
-        el('button', {
-          class: 'btn',
-          onclick: async (evento) => {
-            const boton = evento.currentTarget;
-            boton.disabled = true;
-            boton.textContent = 'Actualizando…';
-            try {
-              const catalogo = await cargaDesdePortapapeles();
-              aviso(`Actualizada: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
-              ve('inicio');
-            } catch (err) {
-              aviso(`No se ha podido actualizar: ${err.message}`);
-              boton.disabled = false;
-              boton.textContent = 'Actualizar desde el portapapeles';
-            }
-          }
-        }, 'Actualizar desde el portapapeles'),
-        el('button', { class: 'btn sec', onclick: () => ve('alta') }, 'Cargar otra lista'),
-        el('button', {
-          class: 'btn sec',
-          onclick: async () => {
-            if (!confirm('¿Borrar la lista de este teléfono? Los favoritos se conservan.')) return;
-            await olvidaCatalogo();
-            aviso('Lista borrada');
-            ve('alta');
-          }
-        }, 'Borrar la lista'))),
+    panelListas(),
     el('div', { class: 'card-opcion' },
       el('h2', {}, 'Preferencias'),
       el('div', { class: 'switch-row' },
@@ -1556,7 +1587,7 @@ export function pinta() {
 async function arranca() {
   aplicaTema();
   try {
-    await cargaCatalogoGuardado();
+    await cargaListasGuardadas();
   } catch { /* primera vez o almacenamiento no disponible */ }
 
   const campo = document.getElementById('buscador');

@@ -8,15 +8,17 @@ se instala en la pantalla de inicio como una app más.
 
 1. Abre la dirección donde esté publicada, en Safari.
 2. **Compartir → Añadir a pantalla de inicio.** Queda con el icono de la galleta.
-3. Ábrela y carga tu lista: desde un archivo `.m3u` de Archivos, desde la
-   dirección de la lista, o pegando el contenido.
+3. Ábrela, pega el enlace de tu lista y pulsa **Cargar lista**. Nada más.
 
-Con la dirección se prueban dos vías: la descarga directa del `.m3u` y, si el
-proveedor la bloquea (lo habitual), **la API del panel Xtream**, que además trae
-valoraciones, géneros, sinopsis y carátulas. Los episodios de cada serie se
-piden al abrir su ficha, para no descargar miles de capítulos de golpe. Cuando
-se usa esa vía, las credenciales quedan guardadas en el teléfono para poder
-pedir esos episodios.
+Al pulsar **Cargar lista** la app prueba sola, en este orden y sin preguntar
+nada: la descarga directa del `.m3u`, la API del panel Xtream, y las mismas dos
+a través de un intermediario para cuando el proveedor no atiende a los
+navegadores (que es lo normal). Los episodios de cada serie se piden al abrir su
+ficha, para no descargar miles de capítulos de golpe.
+
+**Varias listas.** Cada una que cargues se guarda. En Inicio aparecen como
+pestañas para cambiar de una a otra, y en Ajustes se pueden quitar o añadir más.
+Los favoritos son comunes a todas.
 
 La lista se ordena en películas, series y canales y **se guarda en el propio
 teléfono** (IndexedDB); no se sube a ningún sitio. Favoritos, vistos y ajustes
