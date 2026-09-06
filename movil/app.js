@@ -320,7 +320,7 @@ export async function traeConRele(url, informa) {
   for (const [i, direccion] of opciones.entries()) {
     try {
       informa?.(`Probando intermediario ${i + 1} de ${opciones.length}…`);
-      const res = await fetch(direccion, { redirect: 'follow' });
+      const res = await fetch(direccion, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
       if (!res.ok) throw new Error(`respondió ${res.status}`);
       const texto = await res.text();
       if (!texto || texto.length < 20) throw new Error('respuesta vacía');
@@ -348,7 +348,7 @@ async function apiXtream({ base, usuario, clave, viaRele }, accion, extra = {}) 
     }
   }
 
-  const res = await fetch(url, { redirect: 'follow' });
+  const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`el panel respondió ${res.status}`);
   return res.json();
 }
@@ -1072,23 +1072,46 @@ function vistaAlta() {
         const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
         if (!res.ok) throw new Error(`respondió ${res.status}`);
         return { texto: await res.text() };
-      }],
+      }, 20000],
       cuenta && ['Probando la API de tu panel…', 30, async () => ({
         catalogo: await catalogoDesdeXtream(cuenta, paso)
-      })],
+      }), 45000],
       ['Tu proveedor no atiende al navegador: pidiéndola por otra vía…', 45, async () => ({
         texto: await traeConRele(url, paso)
-      })],
+      }), 60000],
       cuenta && ['Probando la API por otra vía…', 65, async () => ({
         catalogo: await catalogoDesdeXtream({ ...cuenta, viaRele: true }, paso)
-      })]
+      }), 120000]
     ].filter(Boolean);
 
-    for (const [mensaje, pct, intenta] of intentos) {
+    // Un intento no puede eternizarse: pasado su tope, se prueba el siguiente.
+    // Y siempre se puede saltar a mano, sin esperar al tope.
+    let saltaAhora = null;
+    const botonSaltar = el('button', {
+      class: 'btn sec',
+      style: { marginTop: '10px', width: '100%', justifyContent: 'center' },
+      onclick: () => saltaAhora?.()
+    }, 'Saltar este intento');
+    progreso.after(botonSaltar);
+
+    const conTope = (promesa, ms, queEs) => Promise.race([
+      promesa,
+      new Promise((_, rechaza) => setTimeout(() => rechaza(new Error(`${queEs} tardó demasiado`)), ms)),
+      new Promise((_, rechaza) => { saltaAhora = () => rechaza(new Error('saltado a mano')); })
+    ]);
+
+    for (const [mensaje, pct, intenta, tope] of intentos) {
       try {
         paso(mensaje);
         avance(pct);
-        const salida = await intenta();
+        const desde = Date.now();
+        const reloj = setInterval(() => paso(`${mensaje} (${Math.round((Date.now() - desde) / 1000)} s)`), 1000);
+        let salida;
+        try {
+          salida = await conTope(intenta(), tope, 'este intento');
+        } finally {
+          clearInterval(reloj);
+        }
         if (salida.texto) {
           await procesa(salida.texto, { nombre: nombreDe(url), url, tipo: 'm3u' });
         } else {
@@ -1102,6 +1125,7 @@ function vistaAlta() {
           });
           listo(catalogo);
         }
+        botonSaltar.remove();
         boton.disabled = false;
         boton.textContent = 'Cargar lista';
         return;
@@ -1109,6 +1133,7 @@ function vistaAlta() {
         fallos.push(err.message);
       }
     }
+    botonSaltar.remove();
 
     avance(0);
     paso('No se ha podido cargar esta lista.');
