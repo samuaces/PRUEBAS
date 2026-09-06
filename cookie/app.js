@@ -273,6 +273,135 @@ export function construyeCatalogo(entradas, { filtroAdulto = true } = {}) {
   };
 }
 
+/* ---------------------- Cuentas Xtream desde el navegador ----------------- */
+
+/** Saca servidor, usuario y contraseña de una URL get.php de Xtream. */
+export function credencialesDesdeUrl(entrada) {
+  try {
+    const url = new URL(entrada);
+    const usuario = url.searchParams.get('username');
+    const clave = url.searchParams.get('password');
+    if (!usuario || !clave) return null;
+    return { base: `${url.protocol}//${url.host}`, usuario, clave };
+  } catch {
+    return null;
+  }
+}
+
+async function apiXtream({ base, usuario, clave }, accion, extra = {}) {
+  const url = new URL(`${base}/player_api.php`);
+  url.searchParams.set('username', usuario);
+  url.searchParams.set('password', clave);
+  if (accion) url.searchParams.set('action', accion);
+  for (const [k, v] of Object.entries(extra)) url.searchParams.set(k, String(v));
+  const res = await fetch(url, { redirect: 'follow' });
+  if (!res.ok) throw new Error(`el panel respondió ${res.status}`);
+  return res.json();
+}
+
+const mapaCategorias = (lista) => new Map((lista || []).map((c) => [String(c.category_id), c.category_name]));
+
+/**
+ * Construye el catálogo con la API del panel. Trae valoraciones y géneros, y
+ * deja los episodios de cada serie para cuando se abra su ficha.
+ */
+export async function catalogoDesdeXtream(cuenta, aviso) {
+  const { base, usuario, clave } = cuenta;
+
+  aviso?.('Comprobando la cuenta…');
+  const info = await apiXtream(cuenta, null);
+  if (!info?.user_info || info.user_info.auth === 0) throw new Error('usuario o contraseña incorrectos');
+
+  aviso?.('Descargando canales…');
+  const [catDirecto, directos] = await Promise.all([
+    apiXtream(cuenta, 'get_live_categories').catch(() => []),
+    apiXtream(cuenta, 'get_live_streams').catch(() => [])
+  ]);
+  const nombresDirecto = mapaCategorias(catDirecto);
+  const canales = (directos || []).map((c, i) => ({
+    id: `canal-${claveTexto(c.name || '')}-${i}`,
+    tipo: 'canal',
+    titulo: limpiaTitulo(c.name || '') || c.name || 'Canal',
+    logo: c.stream_icon || '',
+    grupo: nombresDirecto.get(String(c.category_id)) || 'Canales',
+    url: `${base}/live/${usuario}/${clave}/${c.stream_id}.m3u8`
+  }));
+
+  aviso?.('Descargando películas…');
+  const [catVod, vod] = await Promise.all([
+    apiXtream(cuenta, 'get_vod_categories').catch(() => []),
+    apiXtream(cuenta, 'get_vod_streams').catch(() => [])
+  ]);
+  const nombresVod = mapaCategorias(catVod);
+  const pelis = (vod || []).map((v) => ({
+    id: `peli-${claveTexto(v.name || v.title || '')}-${v.stream_id}`,
+    tipo: 'peli',
+    titulo: limpiaTitulo(v.name || v.title || '') || v.name || 'Película',
+    anyo: Number(String(v.year || v.releaseDate || '').slice(0, 4)) || null,
+    nota: Number(v.rating) || null,
+    poster: v.stream_icon || v.cover || '',
+    grupos: [nombresVod.get(String(v.category_id)) || 'Películas'],
+    generos: v.genre ? String(v.genre).split(/[,\/|]/).map((g) => g.trim()).filter(Boolean) : [],
+    fuentes: [{ url: `${base}/movie/${usuario}/${clave}/${v.stream_id}.${v.container_extension || 'mp4'}`, etiqueta: 'Fuente principal' }]
+  }));
+
+  aviso?.('Descargando series…');
+  const [catSeries, listaSeries] = await Promise.all([
+    apiXtream(cuenta, 'get_series_categories').catch(() => []),
+    apiXtream(cuenta, 'get_series').catch(() => [])
+  ]);
+  const nombresSeries = mapaCategorias(catSeries);
+  const series = (listaSeries || []).map((s) => ({
+    id: `serie-${claveTexto(s.name || '')}-${s.series_id}`,
+    tipo: 'serie',
+    titulo: limpiaTitulo(s.name || '') || s.name || 'Serie',
+    anyo: Number(String(s.releaseDate || s.release_date || '').slice(0, 4)) || null,
+    nota: Number(s.rating) || null,
+    poster: s.cover || '',
+    grupos: [nombresSeries.get(String(s.category_id)) || 'Series'],
+    generos: s.genre ? String(s.genre).split(/[,\/|]/).map((g) => g.trim()).filter(Boolean) : [],
+    sinopsis: s.plot || '',
+    temporadas: {},
+    episodios: 0,
+    numTemporadas: 0,
+    serieId: s.series_id,
+    pendiente: true                 // los episodios se piden al abrir la ficha
+  }));
+
+  const porTitulo = (a, b) => a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' });
+  return {
+    pelis: pelis.sort(porTitulo),
+    series: series.sort(porTitulo),
+    canales: canales.sort((a, b) => a.grupo.localeCompare(b.grupo, 'es') || porTitulo(a, b)),
+    creado: Date.now(),
+    cuenta                            // hace falta para pedir los episodios después
+  };
+}
+
+/** Rellena los episodios de una serie la primera vez que se abre su ficha. */
+export async function completaSerie(serie) {
+  const cuenta = estado.catalogo?.cuenta;
+  if (!cuenta || !serie.pendiente) return serie;
+  const info = await apiXtream(cuenta, 'get_series_info', { series_id: serie.serieId });
+  const temporadas = {};
+  let total = 0;
+  for (const [numero, episodios] of Object.entries(info?.episodes || {})) {
+    temporadas[numero] = (episodios || []).map((e) => ({
+      n: Number(e.episode_num) || 1,
+      titulo: e.title && e.title !== serie.titulo ? e.title : '',
+      url: `${cuenta.base}/series/${cuenta.usuario}/${cuenta.clave}/${e.id}.${e.container_extension || 'mp4'}`,
+      etiquetas: []
+    })).sort((a, b) => a.n - b.n);
+    total += temporadas[numero].length;
+  }
+  serie.temporadas = temporadas;
+  serie.episodios = total;
+  serie.numTemporadas = Object.keys(temporadas).length;
+  serie.pendiente = false;
+  guardaCatalogo(estado.catalogo, estado.origen).catch(() => { /* se recargará si hace falta */ });
+  return serie;
+}
+
 /* ------------------------- Guardado en el teléfono ------------------------ */
 
 const BD = 'cookieplay';
@@ -373,7 +502,7 @@ export function busca(catalogo, consulta, limite = 80) {
 
   const revisa = (lista) => {
     for (const item of lista) {
-      const heno = sinTildes(`${item.titulo} ${(item.grupos || [item.grupo] || []).join(' ')}`);
+      const heno = sinTildes(`${item.titulo} ${(item.grupos || [item.grupo] || []).join(' ')} ${(item.generos || []).join(' ')}`);
       if (!trozos.every((t) => heno.includes(t))) continue;
       const titulo = sinTildes(item.titulo);
       let punto = titulo === q ? 100 : titulo.startsWith(q) ? 60 : titulo.includes(q) ? 40 : 10;
@@ -398,6 +527,7 @@ export function recomienda(catalogo, limite = 24, tipo) {
   const peso = new Map();
   const anota = (item, valor) => {
     for (const g of item?.grupos || []) peso.set(g, (peso.get(g) || 0) + valor);
+    for (const g of item?.generos || []) peso.set(g, (peso.get(g) || 0) + valor);
   };
   const indice = new Map([...catalogo.pelis, ...catalogo.series].map((i) => [i.id, i]));
   for (const id of estado.favoritos) anota(indice.get(id), 2);
@@ -409,9 +539,10 @@ export function recomienda(catalogo, limite = 24, tipo) {
 
   const anyoActual = new Date().getFullYear();
   return conjunto.map((item) => {
-    let punto = 30;
+    let punto = item.nota ? Number(item.nota) * 10 : 30;
     let afinidad = 0;
     for (const g of item.grupos || []) afinidad += peso.get(g) || 0;
+    for (const g of item.generos || []) afinidad += peso.get(g) || 0;
     punto += Math.min(afinidad, 12) * 5;
     if (item.poster) punto += 8;
     if (item.anyo && item.anyo >= anyoActual - 2) punto += 10;
@@ -423,6 +554,7 @@ export function recomienda(catalogo, limite = 24, tipo) {
       punto,
       motivo: afinidad >= 6 ? 'De una categoría que sigues'
         : afinidad > 0 ? 'Encaja con lo que sueles ver'
+        : Number(item.nota) >= 8 ? 'Muy bien valorada'
         : item.anyo && item.anyo >= anyoActual - 1 ? 'Estreno en tu lista'
         : 'Puede que te guste'
     };
@@ -523,7 +655,9 @@ export function tarjeta(item, motivo) {
     img.addEventListener('error', () => img.remove());
     caja.append(img);
   }
-  if (item.tipo === 'serie' && item.numTemporadas) {
+  if (item.nota) {
+    caja.append(el('div', { class: 'badge' }, icono('estrella', true), Number(item.nota).toFixed(1)));
+  } else if (item.tipo === 'serie' && item.numTemporadas) {
     caja.append(el('div', { class: 'badge plain' }, `${item.numTemporadas} temp.`));
   }
 
@@ -641,17 +775,31 @@ export function abreFicha(item) {
   });
 
   const datos = el('div', { class: 'sheet-facts' });
+  if (item.nota) datos.append(el('span', { class: 'pill' }, `★ ${Number(item.nota).toFixed(1)}`));
   if (item.anyo) datos.append(el('span', {}, String(item.anyo)));
+  for (const g of (item.generos || []).slice(0, 3)) datos.append(el('span', { class: 'pill' }, g));
   if (item.tipo === 'serie') datos.append(el('span', {}, `${item.numTemporadas} temporadas · ${numero(item.episodios)} episodios`));
   for (const g of (item.grupos || []).slice(0, 3)) datos.append(el('span', { class: 'pill' }, g));
 
   const cuerpo = el('div', { class: 'sheet-body flush' },
     el('h2', {}, item.titulo),
     datos,
-    el('div', { class: 'sheet-actions' }, accionPrincipal(item), botonFav));
+    el('div', { class: 'sheet-actions' }, accionPrincipal(item), botonFav),
+    item.sinopsis ? el('p', { class: 'plot' }, item.sinopsis) : null);
 
-  if (item.tipo === 'serie') cuerpo.append(bloqueTemporadas(item));
-  else if (item.fuentes?.length > 1) cuerpo.append(bloqueFuentes(item));
+  if (item.tipo === 'serie') {
+    if (item.pendiente) {
+      const cargando = el('p', { class: 'page-sub' }, 'Cargando episodios…');
+      cuerpo.append(cargando);
+      completaSerie(item)
+        .then(() => { cargando.remove(); cuerpo.append(bloqueTemporadas(item)); accionesFicha(cuerpo, item); })
+        .catch((err) => { cargando.textContent = `No se han podido cargar los episodios: ${err.message}`; });
+    } else {
+      cuerpo.append(bloqueTemporadas(item));
+    }
+  } else if (item.fuentes?.length > 1) {
+    cuerpo.append(bloqueFuentes(item));
+  }
 
   const ficha = el('div', { class: 'sheet' },
     el('button', { class: 'sheet-close', onclick: cerrar, 'aria-label': 'Cerrar' }, icono('cerrar')),
@@ -661,6 +809,12 @@ export function abreFicha(item) {
   document.body.append(fondo);
   fichaAbierta = fondo;
   document.addEventListener('keydown', esc);
+}
+
+/** Rehace el botón de reproducir cuando los episodios llegan más tarde. */
+function accionesFicha(cuerpo, item) {
+  const acciones = cuerpo.querySelector('.sheet-actions');
+  if (acciones) acciones.replaceChild(accionPrincipal(item), acciones.firstChild);
 }
 
 function accionPrincipal(item) {
@@ -800,34 +954,75 @@ function vistaAlta() {
     selector,
     el('button', { class: 'btn', onclick: () => selector.click() }, 'Elegir archivo .m3u')));
 
-  // 2. URL directa (funciona si el servidor lo permite)
-  const campoUrl = el('input', { type: 'url', placeholder: 'http://servidor/get.php?username=…&type=m3u_plus', autocapitalize: 'off', autocorrect: 'off', spellcheck: false });
+  // 2. Desde la dirección: se prueba la descarga directa y, si no, la API del panel
+  const campoUrl = el('input', { type: 'url', placeholder: 'https://servidor/get.php?username=…&type=m3u_plus', autocapitalize: 'off', autocorrect: 'off', spellcheck: false });
   const botonUrl = el('button', { class: 'btn' }, 'Cargar desde la URL');
+  const ayudaUrl = el('div', {});
+
   botonUrl.addEventListener('click', async () => {
     const url = campoUrl.value.trim();
     if (!url) return aviso('Pega antes la dirección de tu lista');
+    vaciar(ayudaUrl);
     botonUrl.disabled = true;
+    const fallos = [];
+
+    // Intento 1: descargar el .m3u tal cual.
     paso('Descargando la lista…');
     avance(15);
     try {
       const res = await fetch(url, { redirect: 'follow' });
       if (!res.ok) throw new Error(`el servidor respondió ${res.status}`);
       await procesa(await res.text(), { tipo: 'url', nombre: url });
-    } catch (err) {
-      paso('No se ha podido descargar directamente.');
-      aviso('El servidor no deja descargarla desde el navegador');
-      caja.insertBefore(el('div', { class: 'nota-aviso' },
-        el('strong', {}, 'La descarga directa no ha funcionado. '),
-        'Es lo normal: la mayoría de proveedores no lo permiten desde una web. Abre esa dirección en Safari, deja que se descargue en Archivos y cárgala con el primer botón.'), caja.children[3]);
-    } finally {
       botonUrl.disabled = false;
+      return;
+    } catch (err) {
+      fallos.push(`descarga directa: ${err.message}`);
     }
+
+    // Intento 2: la API del panel (Xtream). Muchos la dejan abierta aunque
+    // bloqueen el .m3u, y además trae valoraciones, géneros y carátulas.
+    const cuenta = credencialesDesdeUrl(url);
+    if (cuenta) {
+      try {
+        paso('Probando con la API de tu proveedor…');
+        avance(35);
+        const catalogo = await catalogoDesdeXtream(cuenta, (texto) => paso(texto));
+        paso('Guardando en el teléfono…');
+        avance(90);
+        await guardaCatalogo(catalogo, { tipo: 'xtream', nombre: cuenta.base.replace(/^https?:\/\//, ''), cuando: Date.now(), entradas: catalogo.pelis.length + catalogo.series.length + catalogo.canales.length });
+        avance(100);
+        aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
+        botonUrl.disabled = false;
+        ve('inicio');
+        return;
+      } catch (err) {
+        fallos.push(`API del panel: ${err.message}`);
+      }
+    }
+
+    // Las dos vías fallaron: se explica y se ofrece el camino del archivo.
+    paso('No se ha podido cargar desde la dirección.');
+    avance(0);
+    ayudaUrl.append(el('div', { class: 'nota-aviso' },
+      el('strong', {}, 'Tu proveedor no deja que una web le pida la lista. '),
+      'Es lo más habitual. El camino que sí funciona: abre la lista en Safari, deja que se guarde en Archivos y cárgala con el botón de arriba.',
+      el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
+        el('a', { class: 'btn', href: url, target: '_blank', rel: 'noopener' }, 'Abrir la lista en Safari'),
+        el('button', {
+          class: 'btn sec',
+          onclick: async () => {
+            try { await navigator.clipboard.writeText(url); aviso('Dirección copiada'); }
+            catch { aviso('Mantén pulsado el campo para copiarla'); }
+          }
+        }, 'Copiar la dirección')),
+      el('div', { style: { marginTop: '10px', fontSize: '12px', opacity: '0.75' } }, `Detalle técnico — ${fallos.join(' · ')}`)));
+    botonUrl.disabled = false;
   });
 
   caja.append(el('div', { class: 'card-opcion' },
     el('h2', {}, 'Desde la dirección de tu lista'),
-    el('p', {}, 'Rápido cuando el proveedor lo permite. Si no, te lo digo y usas la opción de arriba.'),
-    campoUrl, botonUrl));
+    el('p', {}, 'Pega el enlace de tu proveedor. Pruebo dos formas: la descarga directa y la API del panel.'),
+    campoUrl, botonUrl, ayudaUrl));
 
   // 3. Pegar el contenido
   const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
