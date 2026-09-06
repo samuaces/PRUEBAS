@@ -698,6 +698,13 @@ export function recomienda(catalogo, limite = 24, tipo) {
 const esMixto = (url) => location.protocol === 'https:' && /^http:\/\//i.test(url);
 const aHttps = (url) => url.replace(/^http:\/\//i, 'https://');
 
+/** Pasa una dirección de vídeo por el intermediario propio, si lo hay. */
+function porElRele(url) {
+  const propio = releDelUsuario();
+  if (!propio) return null;
+  return `${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
+}
+
 /** Enlaces para abrir el canal en VLC, que sí reproduce http en el iPhone. */
 const enlaceVLC = (url) => `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(url)}`;
 
@@ -741,21 +748,27 @@ export function reproduce(item, url, subtitulo) {
         }, 'Copiar enlace'))));
   };
 
-  let intentadoHttps = false;
+  // Con intermediario propio, el vídeo pasa por él: es lo que hace que
+  // funcione igual que en una app nativa (identificación e http incluidos).
+  const rele = porElRele(url);
+  const plan = rele ? [rele] : (esMixto(url) ? [aHttps(url), url] : [url]);
+  let paso = 0;
+
   video.addEventListener('error', () => {
-    if (esMixto(url) && !intentadoHttps) {
-      // Muchos servidores sirven lo mismo por https en el mismo dominio.
-      intentadoHttps = true;
-      video.src = aHttps(url);
+    paso += 1;
+    if (paso < plan.length) {
+      video.src = plan[paso];
       video.play().catch(() => {});
       return;
     }
-    panelBloqueado(esMixto(url)
-      ? 'Tu lista sirve el vídeo por http y el iPhone no deja mezclarlo con una página https. VLC sí puede: es gratis y se abre con un toque.'
-      : 'El servidor de la lista no responde o el canal ya no existe. Prueba con otra fuente o vuelve a cargar la lista.');
+    panelBloqueado(rele
+      ? 'Tu intermediario no ha podido traer este canal. Puede que ese canal ya no exista, o que el proveedor lo esté rechazando.'
+      : esMixto(url)
+        ? 'Tu lista sirve el vídeo sin cifrar y el iPhone no lo mezcla con una página segura. Se arregla poniendo tu intermediario en Ajustes; mientras tanto, VLC puede abrirlo.'
+        : 'El servidor de la lista no responde o el canal ya no existe. Prueba con otra fuente o vuelve a cargar la lista.');
   });
 
-  video.src = esMixto(url) ? aHttps(url) : url;
+  video.src = plan[0];
   video.play().catch(() => { /* iOS pide un toque: los controles ya están */ });
 }
 
@@ -1262,7 +1275,7 @@ function vistaAlta() {
       boton,
       progreso,
       el('small', { style: { display: 'block', marginTop: '10px', color: 'var(--text-2)', fontSize: '12.5px', lineHeight: '1.5' } },
-        'Si tu proveedor no atiende a los navegadores, la app la pedirá a través de un intermediario. Para que ni eso salga de tus manos, puedes poner el tuyo en Ajustes.')));
+        'Si tu proveedor solo atiende a apps (como MaxPlayer) y no a los navegadores, hace falta un intermediario: ponlo en Ajustes y la lista y el vídeo pasarán por él, igual que en una app nativa.')));
 
   // ---- Otras formas, plegadas: solo estorban si todo va bien ----
   const selector = el('input', { type: 'file', style: { display: 'none' } });
@@ -1615,7 +1628,7 @@ function campoRele() {
   return el('div', { style: { paddingTop: '14px' } },
     el('div', { class: 'label', style: { fontSize: '14.5px', marginBottom: '4px' } }, 'Mi intermediario (opcional)'),
     el('small', { style: { display: 'block', color: 'var(--text-2)', fontSize: '12.5px', marginBottom: '8px', lineHeight: '1.5' } },
-      'Si montas el tuyo (hay una receta de 5 minutos en el repositorio), pégalo aquí y tu lista dejará de pasar por servicios ajenos.'),
+      'Es lo que hace que la app funcione igual que un reproductor nativo: pide la lista y el vídeo como lo hace una app, prueba también sin cifrar y no pasa por servicios ajenos. Receta de 5 minutos en rele/worker.js del repositorio.'),
     el('div', { style: { display: 'flex', gap: '8px' } }, campo, guardar));
 }
 

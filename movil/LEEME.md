@@ -29,11 +29,15 @@ van en el almacenamiento local del navegador.
 Casi ningún panel IPTV responde a peticiones hechas desde una web. Para esos
 casos la app ofrece, por orden de comodidad:
 
-1. **Cargar con intermediario** — un servicio que pide la lista por ti. Un toque,
-   sin configurar nada; a cambio, la dirección de tu lista pasa por ese servicio.
-2. **Tu propio intermediario** — `rele/worker.js` es un Cloudflare Worker que
-   hace lo mismo en tu cuenta gratuita (5 minutos, sin tarjeta). Se pega su
-   dirección en *Ajustes → Mi intermediario* y ya nada sale hacia terceros.
+1. **Tu propio intermediario** (lo que de verdad resuelve) — `rele/worker.js` es
+   un Cloudflare Worker gratuito que hace lo mismo que una app nativa: pide la
+   lista y el vídeo identificándose como un reproductor, prueba también por
+   http, y devuelve todo con los permisos que el navegador exige, reescribiendo
+   los manifiestos HLS. Se pega su dirección en *Ajustes → Mi intermediario* y
+   a partir de ahí también la reproducción pasa por él.
+2. **Intermediarios públicos** — un toque, sin configurar nada, pero la
+   dirección de tu lista pasa por un servicio ajeno y muchos paneles los
+   rechazan.
 3. **Archivo o portapapeles** — descargar la lista en el iPhone (Safari o la app
    Atajos) y cargarla desde la app. Nada sale del teléfono.
 
