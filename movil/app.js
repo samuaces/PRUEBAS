@@ -884,6 +884,18 @@ function bloqueTemporadas(serie) {
 
 /* --------------------------------- Vistas --------------------------------- */
 
+/** Lee la lista del portapapeles (la deja ahí el atajo) y rehace el catálogo. */
+export async function cargaDesdePortapapeles(informa) {
+  if (!navigator.clipboard?.readText) throw new Error('este navegador no deja leer el portapapeles');
+  const texto = await navigator.clipboard.readText();
+  if (!texto || !texto.includes('#EXT')) throw new Error('en el portapapeles no hay ninguna lista');
+  informa?.('Ordenando la lista…');
+  const entradas = parseaM3U(texto);
+  const catalogo = construyeCatalogo(entradas, { filtroAdulto: estado.ajustes.filtroAdulto });
+  await guardaCatalogo(catalogo, { tipo: 'atajo', nombre: 'Lista copiada con Atajos', cuando: Date.now(), entradas: entradas.length });
+  return catalogo;
+}
+
 const cabecera = (titulo, sub) => [
   el('h1', { class: 'page-title' }, titulo),
   sub ? el('p', { class: 'page-sub' }, sub) : null
@@ -901,6 +913,7 @@ function vistaAlta() {
     el('p', { class: 'intro' },
       'Cookie Play ordena tu lista en películas, series y canales. Todo se queda guardado en este teléfono: la lista no se sube a ningún sitio.'));
 
+  const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
   const progreso = el('div', { class: 'progreso' });
   const barra = el('div', { class: 'barra' }, el('i', {}));
   const paso = (texto) => {
@@ -935,6 +948,38 @@ function vistaAlta() {
     aviso(`Listo: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
     ve('inicio');
   }
+
+  // 0. Atajos: es la única forma en el iPhone de pedirle la lista al proveedor
+  //    sin las restricciones del navegador. Copia y se pega aquí de un toque.
+  const botonPegar = el('button', { class: 'btn' }, 'Pegar la lista copiada');
+  botonPegar.addEventListener('click', async () => {
+    try {
+      if (!navigator.clipboard?.readText) throw new Error('sin acceso al portapapeles');
+      const texto = await navigator.clipboard.readText();
+      if (!texto || !texto.includes('#EXT')) {
+        aviso('En el portapapeles no hay ninguna lista');
+        return;
+      }
+      await procesa(texto, { tipo: 'atajo', nombre: 'Lista copiada con Atajos' });
+    } catch {
+      aviso('Pégala a mano en el recuadro de abajo');
+      area.focus();
+      area.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+  caja.append(el('div', { class: 'card-opcion' },
+    el('h2', {}, 'Con la app Atajos (lo más cómodo en iPhone)'),
+    el('p', {}, 'Tu proveedor no atiende a Safari, pero sí a Atajos. Se prepara una vez en dos minutos y luego es un toque cada vez que quieras actualizar.'),
+    el('div', { class: 'paso' }, el('div', { class: 'num' }, '1'),
+      el('div', { class: 'txt' }, 'Abre ', el('strong', {}, 'Atajos'), ' → ', el('strong', {}, '+'), ' → ', el('strong', {}, 'Añadir acción'), ' → busca ', el('strong', {}, '«Obtener contenido de la URL»'), ' y pega ahí la dirección de tu lista.')),
+    el('div', { class: 'paso' }, el('div', { class: 'num' }, '2'),
+      el('div', { class: 'txt' }, 'Añade debajo la acción ', el('strong', {}, '«Copiar en el portapapeles»'), '. Ponle nombre, por ejemplo ', el('strong', {}, 'Lista IPTV'), ', y guarda.')),
+    el('div', { class: 'paso' }, el('div', { class: 'num' }, '3'),
+      el('div', { class: 'txt' }, 'Ejecuta el atajo (tarda unos segundos) y vuelve aquí.')),
+    el('div', { class: 'paso' }, el('div', { class: 'num' }, '4'),
+      el('div', { class: 'txt' }, 'Pulsa el botón de abajo y acepta cuando el iPhone pregunte si quieres pegar.')),
+    botonPegar));
 
   // 1. Archivo guardado en el iPhone
   // Sin filtro de extensión: Safari suele guardar la lista como "get.php".
@@ -1034,8 +1079,7 @@ function vistaAlta() {
     el('p', {}, 'Pega el enlace de tu proveedor. Pruebo dos formas: la descarga directa y la API del panel.'),
     campoUrl, botonUrl, ayudaUrl));
 
-  // 3. Pegar el contenido
-  const area = el('textarea', { placeholder: '#EXTM3U\n#EXTINF:-1 …' });
+  // 3. Pegar el contenido a mano
   caja.append(el('div', { class: 'card-opcion' },
     el('h2', {}, 'Pegar el contenido'),
     el('p', {}, 'Para listas pequeñas o para probar.'),
@@ -1258,7 +1302,24 @@ function vistaAjustes() {
           el('div', { class: 'n' }, origen.nombre || 'Lista cargada'),
           el('div', { class: 'd' }, `${numero(origen.entradas || 0)} entradas · ${numero(catalogo.pelis.length)} pelis · ${numero(catalogo.series.length)} series · ${numero(catalogo.canales.length)} canales`))),
       el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } },
-        el('button', { class: 'btn', onclick: () => ve('alta') }, 'Cargar otra lista'),
+        el('button', {
+          class: 'btn',
+          onclick: async (evento) => {
+            const boton = evento.currentTarget;
+            boton.disabled = true;
+            boton.textContent = 'Actualizando…';
+            try {
+              const catalogo = await cargaDesdePortapapeles();
+              aviso(`Actualizada: ${numero(catalogo.pelis.length)} pelis, ${numero(catalogo.series.length)} series, ${numero(catalogo.canales.length)} canales`);
+              ve('inicio');
+            } catch (err) {
+              aviso(`No se ha podido actualizar: ${err.message}`);
+              boton.disabled = false;
+              boton.textContent = 'Actualizar desde el portapapeles';
+            }
+          }
+        }, 'Actualizar desde el portapapeles'),
+        el('button', { class: 'btn sec', onclick: () => ve('alta') }, 'Cargar otra lista'),
         el('button', {
           class: 'btn sec',
           onclick: async () => {
@@ -1276,6 +1337,9 @@ function vistaAjustes() {
       el('div', { class: 'switch-row' },
         el('div', { class: 'label' }, 'Apariencia'),
         el('div', { class: 'spacer' }), tema)),
+    el('div', { class: 'nota-aviso' },
+      el('strong', {}, 'Para actualizar la lista: '),
+      'ejecuta tu atajo de Atajos (copia la lista al portapapeles) y pulsa «Actualizar desde el portapapeles». Los favoritos se mantienen.'),
     el('div', { class: 'nota-aviso' },
       el('strong', {}, 'Si un canal no arranca: '),
       'tu lista sirve el vídeo por http y el iPhone no lo mezcla con una página https. En esos casos la app te ofrece abrirlo en VLC, que es gratis y sí puede.')
