@@ -1,0 +1,43 @@
+name: Compilar Cookie Play (iOS)
+
+# Comprueba que la app compila. Se puede lanzar a mano desde la pestaña Actions.
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  compilar:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar el proyecto
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Compilar para el simulador
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project CookiePlay.xcodeproj \
+            -scheme CookiePlay \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tail -40
+
+      - name: Guardar la app compilada
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CookiePlay-simulador
+          path: ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/CookiePlay.app
+          if-no-files-found: warn
