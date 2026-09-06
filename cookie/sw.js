@@ -3,7 +3,7 @@
  * Guarda la interfaz para que la app abra al instante y siga funcionando
  * aunque el iPhone esté sin cobertura: la lista ya está dentro del teléfono.
  */
-const CACHE = 'cookie-play-movil-v4';
+const CACHE = 'cookie-play-movil-v5';
 const ARCHIVOS = [
   './',
   'index.html',
