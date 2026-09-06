@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
-  <title>Mi IPTV</title>
+  <meta name="theme-color" content="#f1f5f8" media="(prefers-color-scheme: light)" />
+  <title>Cookie Play</title>
   <link rel="icon" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
@@ -13,15 +13,10 @@
   <style>
     body { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; overflow: auto; padding: 24px; }
     .acceso { width: min(360px, 100%); text-align: center; }
-    .acceso .marca {
-      width: 62px; height: 62px; margin: 0 auto 18px;
-      border-radius: 16px;
-      background: linear-gradient(160deg, #0a84ff, #5e5ce6);
-      display: grid; place-items: center;
-      box-shadow: var(--shadow-md);
-    }
-    .acceso .marca svg { width: 26px; height: 26px; fill: #fff; }
-    .acceso h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.026em; margin: 0 0 6px; }
+    .acceso .marca { width: 108px; margin: 0 auto 14px; }
+    .acceso .marca img { width: 100%; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.22)); }
+    .acceso .logotipo { width: min(260px, 76%); margin: 0 auto 6px; }
+    .acceso .logotipo img { width: 100%; }
     .acceso p.sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; }
     .acceso form { display: flex; flex-direction: column; gap: 10px; }
     .acceso input {
@@ -38,11 +33,9 @@
 </head>
 <body>
   <main class="acceso">
-    <div class="marca">
-      <svg viewBox="0 0 24 24"><path d="M7 4.5 19.5 12 7 19.5Z" /></svg>
-    </div>
-    <h1>Mi IPTV</h1>
-    <p class="sub">Escribe la contraseña para entrar.</p>
+    <div class="marca"><img src="/icons/logo.png" alt="Cookie Play" /></div>
+    <div class="logotipo"><img src="/icons/wordmark.png" alt="Cookie Play" /></div>
+    <p class="sub">Tu IPTV personal. Escribe la contraseña para entrar.</p>
     <form id="form">
       <input id="pin" type="password" placeholder="Contraseña" autocomplete="current-password" autofocus required />
       <p class="error" id="error"></p>

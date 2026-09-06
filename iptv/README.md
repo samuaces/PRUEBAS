@@ -1,100 +1,80 @@
-# Mi IPTV
+# Cookie Play
 
-Reproductor IPTV personal: metes tus listas (M3U o Xtream Codes) y la app las
-organiza sola en **películas**, **series** y **canales de TV**, con favoritos,
-buscador y una lista de recomendados basada en las valoraciones.
+**Tu IPTV personal.** Metes tus listas (M3U o Xtream Codes) y la app las organiza
+sola en **películas**, **series** y **canales de TV**, con favoritos, buscador y
+una lista de recomendados basada en las valoraciones.
 
-Todo se ejecuta en tu equipo. No hay servicios externos ni cuentas: los datos
-(listas, favoritos, historial) se guardan en `iptv/data/`, que está fuera del
+Todo corre en tu servidor o en tu equipo. No hay servicios externos ni cuentas:
+las listas, los favoritos y el historial se guardan en `iptv/data/`, fuera del
 control de versiones.
 
-## Abrirla de un clic
+---
+
+## La vía fácil: tenerla en el móvil (el tuyo y el de quien tú quieras)
+
+Son dos pasos: **publicas la app una vez** y luego **cada móvil la instala** desde
+esa dirección. Quien la use no tiene que instalar nada raro ni saber nada de esto.
+
+### Paso 1 — Publicar la app (10 minutos, una sola vez)
+
+1. Entra en [Render](https://render.com) y crea una cuenta (sirve la de GitHub).
+2. **New → Blueprint** y elige este repositorio. Render lee el `render.yaml` que
+   ya está preparado.
+3. Te pedirá `ACCESS_PIN`: esa es **la contraseña de la app**. Ponle una que
+   puedas pasar por WhatsApp sin apuros.
+4. Dale a crear y espera a que ponga *Live*. Te queda una dirección tipo
+   `https://cookie-play.onrender.com`.
+
+Ese es tu link. Sirve para siempre y desde cualquier red.
+
+> El mismo `Dockerfile` vale para Railway, Fly.io o un VPS si prefieres otro
+> sitio. En Render, el plan con disco persistente cuesta unos 7 $/mes; es lo que
+> mantiene tus listas y favoritos entre reinicios. Si quieres probar en el plan
+> gratuito, rellena las variables `PLAYLIST_URL` (o `XTREAM_HOST`, `XTREAM_USER`
+> y `XTREAM_PASS`) y la app se reconfigura sola cada vez que el servidor
+> despierta; lo que sí perderás en cada reinicio son los favoritos.
+
+### Paso 2 — Instalarla en cada móvil (1 minuto por móvil)
+
+Le pasas el link y la contraseña a quien quieras, y que haga esto:
+
+- **iPhone / iPad**: abre el link en Safari → botón **Compartir** → **Añadir a
+  pantalla de inicio**.
+- **Android**: abre el link en Chrome → menú **⋮** → **Instalar aplicación**
+  (o «Añadir a pantalla de inicio»).
+
+Queda con el icono de la galleta, se abre a pantalla completa sin barra de
+navegador y pide la contraseña la primera vez. A partir de ahí, es una app más.
+
+### Alternativa sin publicar nada: Tailscale
+
+Si prefieres no sacar nada a internet: instala
+[Tailscale](https://tailscale.com/download) en el equipo que ejecuta la app y en
+los móviles, con la misma cuenta (o invitando a la otra persona a tu red).
+Arranca la app con `--red` y tendrás una dirección fija tipo
+`http://100.x.y.z:8787` que funciona desde cualquier sitio. Es gratis y privado,
+pero el equipo tiene que estar encendido y la otra persona necesita Tailscale.
+
+---
+
+## Abrirla en el ordenador, de un clic
 
 Descarga la carpeta `iptv/` y haz **doble clic** en el lanzador de tu sistema:
 
 | Sistema | Archivo |
 | --- | --- |
-| macOS | `Iniciar Mi IPTV.command` |
-| Windows | `Iniciar Mi IPTV.bat` |
-| Linux | `iniciar-mi-iptv.sh` |
+| macOS | `Iniciar Cookie Play.command` |
+| Windows | `Iniciar Cookie Play.bat` |
+| Linux | `iniciar-cookie-play.sh` |
 
-El lanzador arranca la app, busca un puerto libre y **abre el navegador solo**.
-Para cerrarla, cierra esa ventana. Lo único que hace falta tener instalado es
-[Node.js](https://nodejs.org) (versión LTS); si no lo tienes, el propio lanzador
-te lo dice.
+Arranca la app, busca un puerto libre y **abre el navegador solo**. Para cerrarla,
+cierra esa ventana. Lo único que necesitas instalado es
+[Node.js](https://nodejs.org) (versión LTS); si falta, el lanzador te lo dice.
 
-> En macOS, la primera vez puede pedirte permiso: clic derecho sobre el archivo →
-> **Abrir** → **Abrir**. Solo pasa la primera vez.
+> En macOS, la primera vez: clic derecho en el archivo → **Abrir** → **Abrir**.
 
-### Instalarla como app de verdad
-
-Con la app abierta, pulsa **Instalar app** en la barra superior (Chrome, Edge o
-Brave), o en el iPhone/iPad: **Compartir → Añadir a pantalla de inicio**. Queda
-con su icono propio y ventana sin barra de navegador, como cualquier otra app.
-El lanzador sigue siendo el que la enciende: si abres el icono y el servidor no
-está en marcha, la app te lo dice.
-
-### Desde el móvil o la tele de casa
-
-Arranca con `--red` (en Windows: `"Iniciar Mi IPTV.bat" --red`) y el lanzador te
-mostrará una dirección tipo `http://192.168.1.40:8787` que puedes abrir desde
-cualquier dispositivo de tu red.
-
-En local la app no pide contraseña. Si la sacas de tu equipo, ponle una:
-arranca con `ACCESS_PIN=loquesea` y aparecerá una pantalla de acceso antes de
-todo lo demás.
-
-## Tener tu propio link, desde cualquier sitio
-
-Hay dos caminos, y el primero es el que recomiendo:
-
-### 1. Tailscale (gratis, privado, sin desplegar nada)
-
-Instala [Tailscale](https://tailscale.com/download) en el equipo que ejecuta la
-app y en tu móvil o portátil, con la misma cuenta. Arranca la app con `--red` y
-tendrás una dirección fija tipo `http://100.x.y.z:8787` que funciona desde
-cualquier red del mundo, sin abrir puertos ni exponer nada a internet. Es lo más
-parecido a «mi link» sin los riesgos de publicar el servidor.
-
-Para que alguien más entre, invítalo a tu red de Tailscale.
-
-### 2. Publicarla en internet con Docker
-
-En el repositorio van un `Dockerfile` y un `render.yaml` listos. En
-[Render](https://render.com): **New → Blueprint**, eliges este repositorio y te
-pedirá la contraseña (`ACCESS_PIN`). Al terminar te da una URL pública tipo
-`https://mi-iptv.onrender.com` que puedes abrir e instalar como app desde
-cualquier dispositivo. El mismo `Dockerfile` sirve para Railway, Fly.io o un VPS.
-
-Antes de hacerlo, ten en cuenta que:
-
-- **La contraseña no es opcional.** Sin `ACCESS_PIN`, cualquiera que dé con la
-  dirección entra a tus listas y consume tu conexión.
-- Los datos viven en `/app/data`: necesitas un disco persistente montado ahí
-  (en Render, plan de pago) o perderás listas y favoritos en cada despliegue.
-- En planes gratuitos el servicio se duerme y la primera carga tarda.
-- Todo el vídeo pasa por ese servidor, así que gasta ancho de banda del hosting.
-- Algunos proveedores IPTV bloquean las IP de centros de datos: si los canales
-  no cargan desde el servidor pero sí desde casa, es por eso, y entonces la
-  opción de Tailscale es la buena.
-
-## Arrancar desde la terminal
-
-```bash
-cd iptv
-npm start          # o: node server.js
-```
-
-Abre <http://127.0.0.1:8787>. No hay dependencias que instalar: solo hace falta
-Node 20 o superior.
-
-Variables opcionales:
-
-| Variable | Por defecto | Para qué sirve |
-| --- | --- | --- |
-| `PORT` | `8787` | Puerto del servidor |
-| `HOST` | `127.0.0.1` | Pon `0.0.0.0` para verlo desde el móvil o la tele de casa |
-| `ACCESS_PIN` | vacía | Contraseña de acceso. Obligatoria si publicas la app fuera de tu casa |
+Con la app abierta, el botón **Instalar app** de la barra superior la deja
+también en el escritorio con su icono.
 
 ## Añadir tus listas
 
@@ -154,13 +134,27 @@ alimenta las recomendaciones. Los resultados se cachean un mes en
 | `↑` `↓` | Volumen |
 | `F` | Pantalla completa |
 
+## Variables de entorno
+
+| Variable | Por defecto | Para qué sirve |
+| --- | --- | --- |
+| `PORT` | `8787` | Puerto del servidor |
+| `HOST` | `127.0.0.1` | `0.0.0.0` para verlo desde otros dispositivos |
+| `ACCESS_PIN` | vacía | Contraseña de acceso. **Obligatoria si publicas la app** |
+| `PLAYLIST_URL` | vacía | Configura una lista M3U al arrancar |
+| `PLAYLIST_NAME` | `Lista principal` | Nombre de esa lista |
+| `XTREAM_HOST` / `XTREAM_USER` / `XTREAM_PASS` | vacías | Configura una cuenta Xtream al arrancar |
+
+Desde la terminal: `cd iptv && npm start` y abre <http://127.0.0.1:8787>.
+
 ## Cómo está montado
 
 ```
 iptv/
-├─ Iniciar Mi IPTV.command / .bat / iniciar-mi-iptv.sh   lanzadores de un clic
+├─ Iniciar Cookie Play.command / .bat / iniciar-cookie-play.sh   lanzadores
 ├─ iniciar.mjs        elige puerto, arranca el servidor y abre el navegador
-├─ server.js          API y archivos estáticos (Node puro, sin dependencias)
+├─ server.js          API, archivos estáticos y proxy de vídeo (Node puro)
+├─ Dockerfile         para publicarla en Render, Railway, Fly.io o un VPS
 ├─ src/
 │  ├─ store.js        persistencia en JSON, escritura atómica
 │  ├─ parse.js        parser M3U, limpieza de títulos y clasificador
@@ -168,22 +162,28 @@ iptv/
 │  ├─ library.js      catálogo unificado, búsqueda y recomendaciones
 │  ├─ tmdb.js         enriquecimiento opcional con TMDB (con caché)
 │  └─ sync.js         orquesta descarga → parseo → catálogo
-├─ Dockerfile         para publicarla en Render, Railway, Fly.io o un VPS
 ├─ tools/
-│  └─ generar-iconos.py  regenera los iconos PNG de la app
+│  └─ generar-iconos.py  regenera los iconos a partir del logo
 └─ public/            interfaz (ES modules, sin build)
    ├─ index.html
    ├─ login.html     pantalla de acceso cuando hay ACCESS_PIN
    ├─ manifest.webmanifest + sw.js   para poder instalarla como app
    ├─ css/style.css
-   ├─ icons/
-   └─ js/             app, vistas, componentes, reproductor
+   ├─ icons/         logo, logotipo e iconos de la app
+   └─ js/            app, vistas, componentes, reproductor
 ```
 
 El vídeo pasa siempre por `/api/proxy`, que resuelve los problemas de CORS,
 manda el `User-Agent` que esperan estos servidores, reescribe los manifiestos
 HLS y soporta `Range` para poder saltar dentro de una película. La reproducción
 usa HLS nativo cuando el navegador lo soporta (Safari) y `hls.js` en el resto.
+
+## La marca
+
+El logo, el logotipo y la paleta (cian `#11cbf1`, azul `#1b85c8`, galleta
+`#e0a868` y blanco) son los de la lámina de Cookie Play. Los iconos de la app se
+generan del logo con `python3 tools/generar-iconos.py`; si cambias
+`public/icons/logo.png`, vuelve a ejecutarlo y se rehacen todos los tamaños.
 
 ## Aviso
 

@@ -1,4 +1,4 @@
-# Imagen para publicar Mi IPTV en cualquier hosting que acepte Docker
+# Imagen para publicar Cookie Play en cualquier hosting que acepte Docker
 # (Render, Railway, Fly.io, un VPS…). Sin dependencias: solo Node.
 FROM node:22-alpine
 

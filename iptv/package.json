@@ -1,8 +1,8 @@
 {
-  "name": "iptv-personal",
+  "name": "cookie-play",
   "version": "1.0.0",
   "private": true,
-  "description": "Reproductor IPTV personal: listas M3U/Xtream, peliculas, series, TV en directo, favoritos y recomendaciones",
+  "description": "Cookie Play — reproductor IPTV personal: listas M3U/Xtream, peliculas, series, TV en directo, favoritos y recomendaciones",
   "type": "module",
   "main": "server.js",
   "scripts": {

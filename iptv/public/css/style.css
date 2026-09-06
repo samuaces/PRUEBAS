@@ -1,7 +1,8 @@
 /* ==========================================================================
-   IPTV personal — hoja de estilos
-   Lenguaje visual inspirado en Apple: tipografia del sistema, materiales
-   translucidos, esquinas suaves y movimiento discreto.
+   Cookie Play — hoja de estilos
+   Lenguaje visual inspirado en Apple (tipografia del sistema, materiales
+   translucidos, esquinas suaves) con la paleta de la marca: cian, azul,
+   galleta y blanco.
    ========================================================================== */
 
 :root {
@@ -10,7 +11,7 @@
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
           "Helvetica Neue", "Segoe UI", Roboto, system-ui, sans-serif;
 
-  --bg: #f5f5f7;
+  --bg: #f1f5f8;
   --bg-elevated: #ffffff;
   --material: rgba(255, 255, 255, 0.72);
   --material-strong: rgba(255, 255, 255, 0.88);
@@ -20,9 +21,10 @@
   --separator: rgba(0, 0, 0, 0.09);
   --fill: rgba(120, 120, 128, 0.12);
   --fill-strong: rgba(120, 120, 128, 0.2);
-  --accent: #0071e3;
-  --accent-soft: rgba(0, 113, 227, 0.12);
-  --gold: #f5a623;
+  --accent: #1b85c8;
+  --accent-soft: rgba(27, 133, 200, 0.14);
+  --cyan: #11cbf1;
+  --cookie: #d2913f;
   --danger: #d70015;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.1);
@@ -48,8 +50,10 @@
   --separator: rgba(255, 255, 255, 0.1);
   --fill: rgba(118, 118, 128, 0.24);
   --fill-strong: rgba(118, 118, 128, 0.36);
-  --accent: #0a84ff;
-  --accent-soft: rgba(10, 132, 255, 0.18);
+  --accent: #22b8e4;
+  --accent-soft: rgba(34, 184, 228, 0.2);
+  --cyan: #11cbf1;
+  --cookie: #e6a257;
   --danger: #ff453a;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.5);
@@ -58,7 +62,7 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #f5f5f7;
+    --bg: #f1f5f8;
     --bg-elevated: #ffffff;
     --material: rgba(255, 255, 255, 0.72);
     --material-strong: rgba(255, 255, 255, 0.88);
@@ -68,8 +72,10 @@
     --separator: rgba(0, 0, 0, 0.09);
     --fill: rgba(120, 120, 128, 0.12);
     --fill-strong: rgba(120, 120, 128, 0.2);
-    --accent: #0071e3;
-    --accent-soft: rgba(0, 113, 227, 0.12);
+    --accent: #1b85c8;
+    --accent-soft: rgba(27, 133, 200, 0.14);
+    --cyan: #11cbf1;
+    --cookie: #d2913f;
     --danger: #d70015;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.1);
@@ -133,13 +139,10 @@ img { display: block; max-width: 100%; }
   font-weight: 650;
   letter-spacing: -0.02em;
 }
-.brand .dot {
-  width: 26px; height: 26px;
-  display: grid; place-items: center;
-  border-radius: 8px;
-  background: linear-gradient(160deg, #0a84ff, #5e5ce6);
-  color: #fff; font-size: 14px;
-  box-shadow: var(--shadow-sm);
+.brand img {
+  width: 30px; height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.22));
 }
 
 .nav-group-title {
@@ -359,7 +362,7 @@ img { display: block; max-width: 100%; }
   backdrop-filter: blur(8px);
   display: flex; align-items: center; gap: 3px;
 }
-.badge.rating { color: #ffd60a; }
+.badge.rating { color: var(--cookie); }
 .badge svg { width: 10px; height: 10px; }
 
 .fav-toggle {
@@ -440,7 +443,7 @@ img { display: block; max-width: 100%; }
   align-items: flex-end;
   padding: 30px;
   margin-bottom: 34px;
-  background: linear-gradient(140deg, #1c1c1e, #3a3a3c);
+  background: linear-gradient(140deg, #11cbf1, #1b6fa8);
   box-shadow: var(--shadow-md);
   color: #fff;
 }

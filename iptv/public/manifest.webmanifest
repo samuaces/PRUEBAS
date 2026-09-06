@@ -1,7 +1,7 @@
 {
-  "name": "Mi IPTV",
-  "short_name": "Mi IPTV",
-  "description": "Tus listas IPTV ordenadas en peliculas, series y canales, con favoritos y recomendaciones.",
+  "name": "Cookie Play",
+  "short_name": "Cookie Play",
+  "description": "Cookie Play: tus listas IPTV ordenadas en peliculas, series y canales, con favoritos y recomendaciones.",
   "lang": "es",
   "dir": "ltr",
   "start_url": "/#/home",

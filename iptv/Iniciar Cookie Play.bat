@@ -1,6 +1,6 @@
 @echo off
-rem Doble clic en este archivo para abrir Mi IPTV.
-title Mi IPTV
+rem Doble clic en este archivo para abrir Cookie Play.
+title Cookie Play
 chcp 65001 >nul
 cd /d "%~dp0"
 
@@ -15,6 +15,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo   Mi IPTV - arrancando...
+echo   Cookie Play - arrancando...
 node iniciar.mjs %*
 pause

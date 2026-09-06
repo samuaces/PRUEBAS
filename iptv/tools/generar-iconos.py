@@ -1,105 +1,74 @@
 #!/usr/bin/env python3
-"""Genera los iconos PNG de la app (sin dependencias externas).
+"""Genera los iconos de la app a partir del logo de Cookie Play.
 
-Uso: python3 tools/generar-iconos.py
-Dibuja un cuadrado redondeado con degradado azul y un triangulo de play,
-con supermuestreo 4x para que los bordes queden suaves.
+Uso: python3 tools/generar-iconos.py   (necesita Pillow: pip install Pillow)
+
+Toma public/icons/logo.png (el logo con fondo transparente) y compone los
+tamaños que piden iOS, Android y los navegadores, sobre el degradado cian-azul
+de la marca.
 """
-import struct
-import zlib
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / 'public' / 'icons'
-SS = 4  # supermuestreo
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    raise SystemExit('Falta Pillow. Instálalo con:  pip install Pillow')
 
-# Degradado de la marca (mismo azul/violeta que la interfaz)
-C1 = (10, 132, 255)
-C2 = (94, 92, 230)
+ICONS = Path(__file__).resolve().parent.parent / 'public' / 'icons'
+LOGO = ICONS / 'logo.png'
 
-
-def rounded_rect_alpha(x, y, w, h, radius):
-    """1 si el punto esta dentro del cuadrado redondeado."""
-    cx = min(max(x, radius), w - radius)
-    cy = min(max(y, radius), h - radius)
-    dx, dy = x - cx, y - cy
-    return (dx * dx + dy * dy) <= radius * radius
+CYAN = (17, 203, 241)
+AZUL = (27, 133, 200)
 
 
-def in_triangle(px, py, tri):
-    (ax, ay), (bx, by), (cx, cy) = tri
-    d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by)
-    d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy)
-    d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay)
-    neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
-    pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
-    return not (neg and pos)
+def fondo(size, radio_ratio):
+    """Cuadrado redondeado con el degradado de la marca."""
+    ss = 4
+    grande = size * ss
+    base = Image.new('RGBA', (grande, grande), (0, 0, 0, 0))
+    degradado = Image.new('RGBA', (grande, grande))
+    px = degradado.load()
+    for y in range(grande):
+        for x in range(grande):
+            mezcla = (x / grande) * 0.35 + (y / grande) * 0.65
+            px[x, y] = (
+                int(CYAN[0] + (AZUL[0] - CYAN[0]) * mezcla),
+                int(CYAN[1] + (AZUL[1] - CYAN[1]) * mezcla),
+                int(CYAN[2] + (AZUL[2] - CYAN[2]) * mezcla),
+                255
+            )
+    mascara = Image.new('L', (grande, grande), 0)
+    ImageDraw.Draw(mascara).rounded_rectangle(
+        [0, 0, grande - 1, grande - 1], radius=int(grande * radio_ratio), fill=255)
+    base.paste(degradado, (0, 0), mascara)
+    return base.resize((size, size), Image.LANCZOS)
 
 
-def render(size, padding_ratio=0.0, radius_ratio=0.22):
-    """Devuelve filas RGBA del icono. padding_ratio deja margen (iconos maskable)."""
-    pad = size * padding_ratio
-    box = size - 2 * pad
-    radius = box * radius_ratio
-    # Triangulo de play centrado en la caja
-    t = box * 0.30
-    tri = [
-        (pad + box * 0.38, pad + box * 0.28),
-        (pad + box * 0.38, pad + box * 0.72),
-        (pad + box * 0.76, pad + box * 0.50)
-    ]
-    rows = []
-    for py in range(size):
-        row = bytearray()
-        for px in range(size):
-            r = g = b = a = 0
-            for sy in range(SS):
-                for sx in range(SS):
-                    fx = px + (sx + 0.5) / SS
-                    fy = py + (sy + 0.5) / SS
-                    if not rounded_rect_alpha(fx - pad, fy - pad, box, box, radius):
-                        continue
-                    mix = ((fx - pad) / box * 0.35) + ((fy - pad) / box * 0.65)
-                    cr = int(C1[0] + (C2[0] - C1[0]) * mix)
-                    cg = int(C1[1] + (C2[1] - C1[1]) * mix)
-                    cb = int(C1[2] + (C2[2] - C1[2]) * mix)
-                    if in_triangle(fx, fy, tri):
-                        cr = cg = cb = 255
-                    r += cr
-                    g += cg
-                    b += cb
-                    a += 255
-        # media de las muestras cubiertas
-            n = SS * SS
-            if a:
-                covered = a / 255
-                row += bytes((int(r / covered), int(g / covered), int(b / covered), int(a / n)))
-            else:
-                row += b'\x00\x00\x00\x00'
-        rows.append(bytes(row))
-    return rows
-
-
-def write_png(path, size, rows):
-    raw = b''.join(b'\x00' + row for row in rows)
-
-    def chunk(tag, data):
-        payload = tag + data
-        return struct.pack('>I', len(data)) + payload + struct.pack('>I', zlib.crc32(payload) & 0xffffffff)
-
-    png = b'\x89PNG\r\n\x1a\n'
-    png += chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
-    png += chunk(b'IDAT', zlib.compress(raw, 9))
-    png += chunk(b'IEND', b'')
-    path.write_bytes(png)
-    print(f'{path.name}  {size}x{size}  {len(png) / 1024:.1f} KB')
+def componer(size, radio_ratio=0.225, ocupacion=0.74):
+    lienzo = fondo(size, radio_ratio)
+    logo = Image.open(LOGO).convert('RGBA')
+    ancho = int(size * ocupacion)
+    alto = int(logo.height * ancho / logo.width)
+    if alto > size * ocupacion:
+        alto = int(size * ocupacion)
+        ancho = int(logo.width * alto / logo.height)
+    logo = logo.resize((ancho, alto), Image.LANCZOS)
+    lienzo.alpha_composite(logo, ((size - ancho) // 2, (size - alto) // 2))
+    return lienzo
 
 
 def main():
-    OUT.mkdir(parents=True, exist_ok=True)
-    write_png(OUT / 'icon-192.png', 192, render(192))
-    write_png(OUT / 'icon-512.png', 512, render(512))
-    write_png(OUT / 'icon-maskable-512.png', 512, render(512, padding_ratio=0.12, radius_ratio=0.5))
-    write_png(OUT / 'apple-touch-icon.png', 180, render(180, radius_ratio=0.0))
+    salidas = [
+        ('icon-192.png', componer(192)),
+        ('icon-512.png', componer(512)),
+        # El icono maskable deja margen: Android le recorta las esquinas.
+        ('icon-maskable-512.png', componer(512, radio_ratio=0.5, ocupacion=0.58)),
+        ('apple-touch-icon.png', componer(180, radio_ratio=0.0, ocupacion=0.76)),
+    ]
+    for nombre, imagen in salidas:
+        destino = ICONS / nombre
+        imagen.save(destino)
+        print(f'{nombre}  {imagen.size[0]}x{imagen.size[1]}  {destino.stat().st_size / 1024:.1f} KB')
 
 
 if __name__ == '__main__':

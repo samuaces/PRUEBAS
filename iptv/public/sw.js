@@ -4,7 +4,7 @@
  * Estrategia: red primero y cache como respaldo, para que un cambio en el
  * codigo se vea sin trucos raros de version.
  */
-const CACHE = 'mi-iptv-v1';
+const CACHE = 'cookie-play-v2';
 const SHELL = [
   '/',
   '/index.html',
@@ -18,7 +18,9 @@ const SHELL = [
   '/js/player.js',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/icons/logo.png',
+  '/icons/wordmark.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -55,7 +57,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request);
         if (cached) return cached;
         if (request.mode === 'navigate') return caches.match('/index.html');
-        return new Response('Sin conexion con el servidor de Mi IPTV', { status: 503 });
+        return new Response('Sin conexion con el servidor de Cookie Play', { status: 503 });
       })
   );
 });

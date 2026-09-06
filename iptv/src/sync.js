@@ -123,6 +123,46 @@ export async function updatePlaylist(id, patch) {
 }
 
 /**
+ * Configura la lista desde variables de entorno la primera vez que arranca.
+ * Pensado para cuando la app vive en un servidor: asi llega ya configurada y,
+ * si el hosting la reinicia sin disco persistente, se rehace sola.
+ */
+export async function bootstrapFromEnv() {
+  const playlists = await read('playlists');
+  const pendientes = [];
+
+  const url = (process.env.PLAYLIST_URL || '').trim();
+  if (url && !playlists.some((p) => p.url === url)) {
+    pendientes.push({ kind: 'm3u', name: process.env.PLAYLIST_NAME || 'Lista principal', url });
+  }
+
+  const host = (process.env.XTREAM_HOST || '').trim();
+  const username = (process.env.XTREAM_USER || '').trim();
+  if (host && username && !playlists.some((p) => p.host === host && p.username === username)) {
+    pendientes.push({
+      kind: 'xtream',
+      name: process.env.XTREAM_NAME || 'Mi proveedor',
+      host,
+      username,
+      password: process.env.XTREAM_PASS || ''
+    });
+  }
+
+  let anyadidas = 0;
+  for (const entrada of pendientes) {
+    try {
+      await addPlaylist(entrada);
+      anyadidas += 1;
+      console.log(`[inicio] lista "${entrada.name}" configurada desde el entorno`);
+    } catch (err) {
+      console.error(`[inicio] no se pudo configurar "${entrada.name}": ${err.message}`);
+    }
+  }
+  if (anyadidas) syncAll().catch((err) => console.error('[inicio] sincronizacion inicial:', err.message));
+  return anyadidas;
+}
+
+/**
  * Sincroniza todas las listas activas y reconstruye el catalogo.
  * Solo se ejecuta una sincronizacion a la vez.
  */

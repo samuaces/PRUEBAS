@@ -13,7 +13,7 @@ import { Readable } from 'node:stream';
 
 import { read, write, update } from './src/store.js';
 import { groupChannels, recommend, search } from './src/library.js';
-import { addPlaylist, removePlaylist, updatePlaylist, syncAll, status as syncStatus } from './src/sync.js';
+import { addPlaylist, bootstrapFromEnv, removePlaylist, updatePlaylist, syncAll, status as syncStatus } from './src/sync.js';
 import { clearCache } from './src/tmdb.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -432,14 +432,15 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   // Cuando arranca desde el lanzador, es este quien muestra las direcciones.
   if (!process.env.QUIET) {
-    console.log(`\n  📺  Mi IPTV\n  →  http://${HOST}:${PORT}`);
+    console.log(`\n  🍪  Cookie Play\n  →  http://${HOST}:${PORT}`);
     console.log(ACCESS_PIN ? '  🔒  Acceso protegido con contraseña\n' : '');
   }
+  bootstrapFromEnv().catch((err) => console.error('[inicio]', err.message));
 });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n  El puerto ${PORT} ya esta ocupado. Cierra la otra ventana de Mi IPTV o arranca con otro puerto:\n  PORT=8790 npm start\n`);
+    console.error(`\n  El puerto ${PORT} ya esta ocupado. Cierra la otra ventana de Cookie Play o arranca con otro puerto:\n  PORT=8790 npm start\n`);
     process.exit(1);
   }
   throw err;

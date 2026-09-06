@@ -64,7 +64,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
 });
 window.addEventListener('appinstalled', () => {
   installButton.hidden = true;
-  toast('Mi IPTV instalada. Ya la tienes con su propio icono.');
+  toast('Cookie Play instalada. Ya la tienes con su propio icono.');
 });
 
 const topbar = el('header', { class: 'topbar' },
@@ -84,7 +84,9 @@ app.append(sidebar, el('main', { class: 'main' }, topbar, content), mobileTabs);
 
 function renderNav() {
   clear(sidebar);
-  sidebar.append(el('div', { class: 'brand' }, el('span', { class: 'dot' }, '▶'), 'Mi IPTV'));
+  sidebar.append(el('div', { class: 'brand' },
+    el('img', { src: '/icons/logo.png', alt: '', width: 30, height: 30 }),
+    'Cookie Play'));
 
   const current = parseHash().view;
   for (const item of NAV) {
@@ -222,8 +224,8 @@ function serverDownScreen(message) {
   const retry = el('button', { class: 'button', onclick: () => location.reload() }, 'Reintentar');
   return el('div', { class: 'empty', style: { paddingTop: '90px' } },
     el('div', { class: 'emoji' }, '🔌'),
-    el('h3', {}, 'Mi IPTV no está arrancado'),
-    el('p', {}, 'Abre la app con el lanzador («Iniciar Mi IPTV») y vuelve a intentarlo.'),
+    el('h3', {}, 'Cookie Play no está arrancado'),
+    el('p', {}, 'Abre la app con el lanzador («Iniciar Cookie Play») y vuelve a intentarlo.'),
     el('p', { style: { fontSize: '12.5px', opacity: '0.7' } }, message),
     el('div', { style: { marginTop: '12px' } }, retry));
 }

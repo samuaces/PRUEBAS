@@ -1,9 +1,9 @@
-# Plano de despliegue para Render (https://render.com).
+# Plano de despliegue de Cookie Play para Render (https://render.com).
 # En Render: New > Blueprint > elige este repositorio. Te pedira la contrasena.
 # Este archivo debe estar en la raiz del repositorio para que Render lo lea.
 services:
   - type: web
-    name: mi-iptv
+    name: cookie-play
     runtime: docker
     dockerfilePath: ./iptv/Dockerfile
     dockerContext: ./iptv
@@ -15,6 +15,16 @@ services:
         sync: false        # Render te la pide al crear el servicio
       - key: HOST
         value: 0.0.0.0
+      # Opcional: si pones aqui tu lista, la app arranca ya configurada
+      # (util sobre todo si no montas disco persistente).
+      # - key: PLAYLIST_URL
+      #   sync: false
+      # - key: XTREAM_HOST
+      #   sync: false
+      # - key: XTREAM_USER
+      #   sync: false
+      # - key: XTREAM_PASS
+      #   sync: false
     disk:
       name: datos
       mountPath: /app/data

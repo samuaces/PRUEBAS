@@ -1,5 +1,5 @@
 #!/bin/bash
-# Doble clic en este archivo para abrir Mi IPTV.
+# Doble clic en este archivo para abrir Cookie Play.
 cd "$(dirname "$0")" || exit 1
 
 if ! command -v node >/dev/null 2>&1; then
@@ -12,5 +12,5 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "  📺  Mi IPTV — arrancando…"
+echo "  🍪  Cookie Play — arrancando…"
 exec node iniciar.mjs "$@"

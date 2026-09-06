@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Lanzador de Mi IPTV.
+ * Lanzador de Cookie Play.
  * Busca un puerto libre, arranca el servidor, abre el navegador y muestra
  * también la dirección para verla desde el móvil o la tele.
  */
@@ -82,7 +82,7 @@ process.on('SIGTERM', stop);
 
 if (await waitForServer(url)) {
   const lan = OPEN_TO_LAN ? lanAddress() : null;
-  console.log(`\n  Mi IPTV está lista en:      ${url}`);
+  console.log(`\n  Cookie Play está lista en:      ${url}`);
   if (lan) console.log(`  Desde el móvil o la tele:  http://${lan}:${port}`);
   console.log('  Abriendo el navegador…');
   console.log('  Para cerrar la app: cierra esta ventana o pulsa Ctrl+C\n');
