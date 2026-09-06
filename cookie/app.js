@@ -339,26 +339,60 @@ function candidatos(url) {
  * @returns {Promise<string>} el cuerpo de la respuesta
  */
 export async function traeConRele(url, informa, detalle) {
-  const fallos = [];
   const opciones = candidatos(url);
-  for (const [i, { nombre, direccion }] of opciones.entries()) {
+  informa?.(`Probando ${opciones.length} vías a la vez…`);
+  const fallos = [];
+
+  const prueba = async ({ nombre, direccion }) => {
     try {
-      informa?.(`Probando vía ${nombre} (${i + 1}/${opciones.length})…`);
-      const res = await fetch(direccion, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
+      const res = await fetch(direccion, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error(`respondió ${res.status}`);
       const texto = await res.text();
       if (!texto || texto.length < 20) throw new Error('respuesta vacía');
       if (!texto.includes('#EXT') && !texto.trim().startsWith('{')) {
         throw new Error(`devolvió otra cosa («${texto.slice(0, 40).replace(/\s+/g, ' ')}»)`);
       }
-      detalle?.({ nombre, ok: true });
-      return texto;
+      return { nombre, texto };
     } catch (err) {
       fallos.push(`${nombre}: ${err.message}`);
       detalle?.({ nombre, ok: false, error: err.message });
+      throw err;
     }
+  };
+
+  try {
+    // En paralelo: la primera que traiga la lista gana. En serie se agotaba el
+    // tiempo antes de llegar a las vías por http, que son las que suelen valer.
+    const ganadora = await Promise.any(opciones.map(prueba));
+    detalle?.({ nombre: ganadora.nombre, ok: true });
+    recuerdaVia(ganadora.nombre);
+    informa?.(`Vía encontrada: ${ganadora.nombre}`);
+    return ganadora.texto;
+  } catch {
+    throw new Error(`ninguna vía funcionó — ${fallos.join(' · ')}`);
   }
-  throw new Error(`ninguna vía funcionó — ${fallos.join(' · ')}`);
+}
+
+/** Guarda qué vía funcionó para reutilizarla en los episodios y en el vídeo. */
+function recuerdaVia(nombre) {
+  if (estado.ajustes.via === nombre) return;
+  estado.ajustes.via = nombre;
+  guardaAjustes();
+}
+
+/** Reconstruye la dirección de la vía que ya funcionó una vez. */
+export function viaGanadora(url) {
+  const nombre = estado.ajustes.via;
+  if (!nombre) return null;
+  const [, base, forma] = nombre.match(/^(.*) \((https?)\)$/) || [];
+  if (!base) return null;
+  const destino = variantes(url).find((v) => v.startsWith(`${forma}:`)) || url;
+  if (base.startsWith('el tuyo')) {
+    const propio = releDelUsuario();
+    return propio ? `${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(destino)}` : null;
+  }
+  const encontrada = RELES_PUBLICOS.find((r) => r.nombre === base);
+  return encontrada ? encontrada.arma(destino) : null;
 }
 
 async function apiXtream({ base, usuario, clave, viaRele }, accion, extra = {}) {
@@ -717,8 +751,8 @@ const aHttps = (url) => url.replace(/^http:\/\//i, 'https://');
 /** Pasa una dirección de vídeo por el intermediario propio, si lo hay. */
 function porElRele(url) {
   const propio = releDelUsuario();
-  if (!propio) return null;
-  return `${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
+  if (propio) return `${propio}${propio.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
+  return viaGanadora(url);
 }
 
 /** Enlaces para abrir el canal en VLC, que sí reproduce http en el iPhone. */
@@ -1212,16 +1246,16 @@ function vistaAlta() {
 
     const intentos = [
       ['Conectando con tu proveedor…', 12, async () => {
-        const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
+        const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(12000) });
         if (!res.ok) throw new Error(`respondió ${res.status}`);
         return { texto: await res.text() };
-      }, 20000],
-      cuenta && ['Probando la API de tu panel…', 30, async () => ({
+      }, 14000],
+      ['Buscando la vía que sí funciona…', 40, async () => ({
+        texto: await traeConRele(url, paso)
+      }), 40000],
+      cuenta && ['Probando la API de tu panel…', 60, async () => ({
         catalogo: await catalogoDesdeXtream(cuenta, paso)
       }), 45000],
-      ['Tu proveedor no atiende al navegador: pidiéndola por otra vía…', 45, async () => ({
-        texto: await traeConRele(url, paso)
-      }), 60000],
       cuenta && ['Probando la API por otra vía…', 65, async () => ({
         catalogo: await catalogoDesdeXtream({ ...cuenta, viaRele: true }, paso)
       }), 120000]
