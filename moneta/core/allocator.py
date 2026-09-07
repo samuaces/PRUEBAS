@@ -222,7 +222,8 @@ class UniformAllocator(Allocator):
                 book.phase = Phase.LIVE
                 book.promoted_at = book.promoted_at or t
 
-    def allocate(self, t, books, equity, probation_factor: float = 1.0):
+    def allocate(self, t, books, equity, probation_factor: float = 1.0,
+                 ctx=None):
         live = [n for n, b in books.items() if b.is_fundable]
         share = (equity * 0.85 / len(live)) if live else 0.0
         targets = {n: (share if n in live else 0.0) for n in books}

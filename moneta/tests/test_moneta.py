@@ -348,6 +348,35 @@ class TestAllocator(unittest.TestCase):
         t_wild = sum(al.kelly_target(wild, 100_000, 0, 1.0)[0] for _ in range(60))
         self.assertGreater(t_calm, t_wild)
 
+    def test_every_allocator_shares_one_signature(self):
+        """The ablation arms swap the allocator; the call must still match.
+
+        This exact drift shipped once: `ctx` was added to Allocator.allocate
+        and not to UniformAllocator, and the ablation study crashed 40
+        minutes into a verification run.
+        """
+        import inspect
+        from ..core.allocator import UniformAllocator
+        base = inspect.signature(Allocator.allocate).parameters
+        alt = inspect.signature(UniformAllocator.allocate).parameters
+        self.assertEqual(list(base), list(alt))
+
+    def test_uniform_allocator_funds_everything(self):
+        from ..core.allocator import UniformAllocator
+        books = self._books([("funding_carry", 0.0, 0.004),
+                             ("control_null", 0.0, 0.004)])
+        al = UniformAllocator(AllocatorConfig(), seed=1)
+        al.review_phases(100.0, books)
+        targets = al.allocate(100.0, books, 10_000.0, ctx=None)
+        self.assertTrue(all(v > 0 for v in targets.values()),
+                        "the naive baseline is supposed to fund the coin flip")
+
+    def test_bypass_gate_promotes_immediately(self):
+        books = self._books([("control_null", 0.0, 0.004)], ticks=5)
+        al = Allocator(AllocatorConfig(bypass_gate=True), seed=1)
+        al.review_phases(10.0, books)
+        self.assertIs(books["control_null"].phase, Phase.LIVE)
+
     def test_demotes_a_decayed_strategy(self):
         books = self._books([("funding_carry", 0.0, 0.004)])
         b = books["funding_carry"]
