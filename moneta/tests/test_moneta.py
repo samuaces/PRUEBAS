@@ -377,6 +377,24 @@ class TestAllocator(unittest.TestCase):
         al.review_phases(10.0, books)
         self.assertIs(books["control_null"].phase, Phase.LIVE)
 
+    def test_flat_sizing_still_allocates(self):
+        """kelly_fraction=0 must mean flat sizing, not zero sizing.
+
+        The ablation study leans on this. An arm that silently stops trading
+        instead of sizing flat would make Kelly look responsible for the
+        entire return, which is exactly what it did before this was fixed.
+        """
+        books = self._books([("funding_carry", 0.0012, 0.004)])
+        b = books["funding_carry"]
+        b.phase = Phase.LIVE
+        al = Allocator(AllocatorConfig(kelly_fraction=0.0, min_live_fraction=0.20),
+                       seed=1)
+        targets = [al.kelly_target(b, 100_000.0, 0.0, 1.0)[0] for _ in range(40)]
+        funded = [t for t in targets if t > 0]
+        self.assertGreater(len(funded), 20, "flat sizing funded almost nothing")
+        for t in funded:
+            self.assertAlmostEqual(t, 20_000.0, delta=1.0)
+
     def test_demotes_a_decayed_strategy(self):
         books = self._books([("funding_carry", 0.0, 0.004)])
         b = books["funding_carry"]

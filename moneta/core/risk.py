@@ -42,10 +42,6 @@ class RiskLimits:
     kill_switch_file: str = ".moneta_halt"
 
 
-class HaltReason(str):
-    pass
-
-
 @dataclass
 class RiskState:
     halted: bool = False

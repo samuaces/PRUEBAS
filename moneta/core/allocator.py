@@ -152,7 +152,13 @@ class Allocator:
         if book.phase is Phase.PROBATION:
             f *= probation_factor
 
-        f = max(f, cfg.min_live_fraction) if f > 0 else 0.0
+        # Past the early return above the sampled edge already beats the
+        # hurdle, so a funded strategy always gets at least the floor. The
+        # previous form gated the floor on f > 0, which meant that setting
+        # kelly_fraction to zero produced no allocation at all rather than a
+        # flat one -- quietly turning the "no Kelly sizing" ablation arm into
+        # a "no trading" arm, and overstating what Kelly contributes.
+        f = max(f, cfg.min_live_fraction)
         return f * equity, mu
 
     def allocate(self, t: float, books: dict[str, Book], equity: float,

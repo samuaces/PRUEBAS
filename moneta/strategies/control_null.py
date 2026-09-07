@@ -90,6 +90,3 @@ class ControlNull(Strategy):
     def liquidate(self, ctx, ledger, state) -> None:
         if state["qty"] != 0:
             self._close(ctx, ledger, state, ctx.price(*self.SYM))
-
-
-ALL_STRATEGIES = None   # populated by moneta.strategies
