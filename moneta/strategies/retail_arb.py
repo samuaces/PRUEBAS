@@ -88,6 +88,27 @@ class RetailArb(Strategy):
         """Inventory is carried at cost -- never mark unsold stock to hope."""
         return {}
 
+    def capital_in_use(self, ctx, ledger, state) -> float:
+        """Money tied up in stock sitting on the shelf."""
+        return sum(i["cost"] for i in state.get("inventory", ()))
+
+    def capacity(self, ctx: MarketContext, state: dict) -> float:
+        """The most stock this can hold before hours, not money, bind.
+
+        Attention is the constraint: you can only source and ship so many
+        items a week, and each one sits on the shelf for a while before it
+        sells. That product -- items in flight times what an item costs --
+        is the ceiling, and no amount of extra capital raises it. Handing
+        this strategy more than this figure would park cash it cannot use
+        inside a book where it earns nothing.
+        """
+        hours = ctx.data.get("labor_budget_h", 0.0) * 21.0      # per week
+        flips_per_week = hours / max(0.75, 1e-9)
+        weeks_on_shelf = 21.0 / 7.0
+        held = sum(i["cost"] for i in state.get("inventory", ()))
+        avg_cost = (held / max(len(state.get("inventory", ())), 1)) if held else 45.0
+        return max(500.0, flips_per_week * weeks_on_shelf * avg_cost * 1.6)
+
     # ------------------------------------------------------------------
     def step(self, ctx: MarketContext, ledger: Ledger, capital: float,
              state: dict, paper: bool) -> float:

@@ -86,6 +86,14 @@ class CrossVenueArb(Strategy):
     def mark_prices(self, ctx: MarketContext) -> dict[tuple[str, str], float]:
         return {}     # positions are opened and closed within the same tick
 
+    def capital_in_use(self, ctx, ledger, state) -> float:
+        """Everything on both venues is working capital: it has to be sitting
+        there in advance or the trade cannot be done at all."""
+        return ledger.cash_at("ex1") + ledger.cash_at("ex2")
+
+    def capacity(self, ctx: MarketContext, state: dict) -> float:
+        return sum(min(w.capacity, 25_000.0) for w in ctx.data["arb_windows"]) or 5_000.0
+
     # ------------------------------------------------------------------
     def step(self, ctx: MarketContext, ledger: Ledger, capital: float,
              state: dict, paper: bool) -> float:

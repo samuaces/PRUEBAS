@@ -168,88 +168,132 @@ repositorio significa nada. La suite de verificación falla si eso ocurre.
 
 ## Resultados
 
-Todo lo que sigue sale de ejecutar `python3 -m moneta verify`. Los números están
-en `VERIFICATION.txt` y en `verification.json`, y se regeneran ejecutándolo.
+Todo lo que sigue sale de `python3 -m moneta verify`. Los números están en
+`VERIFICATION.txt` y en los `verification_*.json`, y se regeneran ejecutándolo.
 
-Salvo indicación contraria: **10.000 €, preset de fricciones `adversarial`,
-después de impuestos, 10 h/semana de tu tiempo, un año en vivo tras validar
-sobre histórico**.
+Condiciones: **10.000 €, después de impuestos, 10 h/semana, un año en vivo tras
+validar sobre histórico**. La alternativa contra la que se compara todo es
+dejar el dinero en un fondo monetario al 2,00%.
 
 ### El resultado que importa
 
-MONETA **nunca financió** la estrategia de moneda al aire, ni el arbitraje entre
-exchanges, ni el pairs trading. Financió las dos que tenían ventaja real.
+MONETA **nunca financió** la moneda al aire, ni el arbitraje entre exchanges,
+ni el pairs trading. Financió las dos que tenían ventaja real.
 
 Sin la puerta, la moneda al aire se financia en el **100%** de los futuros.
+
+### Todo depende de tus costes reales
+
+Este es el hallazgo central, y no lo esperaba tan limpio. El mismo sistema, el
+mismo mundo, las mismas horas — solo cambian las comisiones, el spread, la
+latencia y las devoluciones:
+
+| capital | `realistic` | `adversarial` |
+|---:|---:|---:|
+| 2.000 € | **+78,9%** (1.640 €) | +2,0% (42 €) |
+| 10.000 € | **+20,4%** (2.118 €) | +2,0% (212 €) |
+| 50.000 € | **+6,0%** (3.121 €) | +2,0% (1.051 €) |
+| 200.000 € | **+3,3%** (6.898 €) | +1,9% (3.913 €) |
+
+Con condiciones minoristas normales, gana entre 1.600 € y 6.900 € al año. Con
+condiciones punitivas, **no pierde: se queda en la caja**. Eso es exactamente lo
+que debe hacer un sistema que sabe medir — cuando la ventaja no cubre el peaje,
+la respuesta correcta es no operar.
+
+Si te llevas una sola cosa: antes de creerte ninguna estrategia, mide tus
+comisiones de verdad y vuelve a ejecutar `verify`. **Si tu resultado solo
+funciona con el preset `optimistic`, no funciona.**
+
+### El techo del trabajo, visible en los números
+
+Con fricciones realistas, el beneficio de la rama de trabajo según el capital:
+
+| capital | de tus **horas** | de tu **dinero** |
+|---:|---:|---:|
+| 2.000 € | +1.966 € | +24 € |
+| 10.000 € | +2.512 € | +120 € |
+| 50.000 € | +2.680 € | +616 € |
+| 200.000 € | +2.666 € | +2.375 € |
+
+Multiplicar la cuenta por **100** multiplicó la aportación del trabajo por
+**1,36** y la del capital por **99**.
+
+La rama de trabajo no escala con dinero: está limitada por las horas que tienes,
+y ningún capital levanta ese techo. Por eso el porcentaje se ve espectacular con
+2.000 € y el euro no se mueve. Las ramas de capital sí escalan, a un porcentaje
+bajo, y solo igualan al trabajo por encima de unos 200.000 €.
+
+> **Lectura práctica:** por debajo de ~20.000 €, esto es una herramienta para
+> gastar bien tus horas. Por encima, se convierte en una herramienta para
+> asignar dinero. Son dos productos distintos y conviene saber cuál usas.
 
 ### Lo que descubrió sobre cada idea
 
 - **Arbitraje entre exchanges**: de ~1.000 ventanas al año, solo **9 superan el
-  peaje** con fricciones adversas. Rentable solo con fricciones optimistas
-  (+0,97%/año), pierde con realistas (−0,93%) y adversas (−2,08%). La idea más
-  repetida de internet no funciona a latencia y comisiones minoristas.
-- **Pairs trading**: 74% de acierto, y aun así mediana ≈0% (realista) y −1,7%
-  (adverso), con cola izquierda de −12%. Una moneda al aire cara.
-- **Carry de financiación**: real y modesto. +2,45%/año (adverso), +4,02%
-  (realista), Sharpe 1,57–3,01, delta-neutral. Peor caso −0,5% en dos años.
-- **Arbitraje minorista**: la mejor rentabilidad sobre capital pequeño, y con un
-  techo duro. **14–21 €/hora.** Tasa de acierto: 133 compras de 49.270 listados
-  analizados (0,27%).
-
-### El hallazgo estructural
-
-El mismo sistema, las mismas horas, distinto tamaño de cuenta:
-
-| capital | beneficio mediano | de tus **horas** | de tu **dinero** |
-|---|---|---|---|
-| 3.000 € | ~+88% | casi todo | casi nada |
-| 12.000 € | ~+22% | casi todo | poco |
-
-**Idéntico beneficio absoluto.** La rama de trabajo no escala con dinero: está
-limitada por las horas que tienes, y ningún capital levanta ese techo. Las ramas
-de capital sí escalan, a un porcentaje bajo de un dígito, y solo empiezan a
-importar en términos absolutos por encima de unos 50.000 €.
-
-> **Lectura práctica:** por debajo de ~20.000 €, esto es una herramienta para
-> gastar bien tus horas. Por encima, se convierte en una herramienta para
-> asignar dinero. Son dos productos distintos y conviene saber cuál estás usando.
+  peaje** con fricciones adversas. Rentable solo con `optimistic` (+0,97%/año);
+  pierde con `realistic` (−0,93%) y `adversarial` (−2,08%). La idea más repetida
+  de internet no funciona a latencia y comisiones minoristas. **Nunca financiada.**
+- **Pairs trading**: 74% de acierto y aun así mediana ≈0% (realista) y −1,7%
+  (adverso), con cola izquierda de −12%. Una moneda al aire cara. **Nunca
+  financiada.**
+- **Carry de financiación**: real y modesto. Delta-neutral, Sharpe 1,57–3,01,
+  +2,45%/año (adverso) y +4,02% (realista). Financiada en el 88–100% de los
+  caminos y a cualquier tamaño de cuenta.
+- **Arbitraje minorista**: la mejor rentabilidad sobre capital pequeño, con techo
+  duro. **14–21 €/hora** de trabajo marginal. Tasa de acierto: 133 compras de
+  49.270 listados analizados (**0,27%**) — por eso hace falta un ordenador.
 
 ### Lo que lo mata
 
-El estrés se aplica **durante la operación en vivo**, no durante la validación
-—si el golpe cae mientras el motor duerme, no prueba nada.
+El estrés se aplica **durante la operación en vivo**, no durante la validación:
+si el golpe cae mientras el motor duerme, no prueba nada.
 
 | escenario | mediana | percentil 5 | P(pérdida) |
-|---|---|---|---|
+|---|---:|---:|---:|
 | base | +4,06% | +0,69% | 0% |
 | caída del 40% en una vela | +3,66% | +0,60% | 0% |
-| financiación se invierte y no vuelve | +2,84% | +0,50% | 4% |
+| la financiación se invierte y no vuelve | +2,84% | +0,50% | 4% |
 | **el exchange quiebra** | **−21,6%** | **−23,8%** | **62%** |
-| **subida de comisiones en todas partes** | +1,98% | **−20,3%** | 21% |
+| **suben las comisiones en todas partes** | +1,98% | **−20,3%** | 21% |
 
-Los dos que hacen daño de verdad merecen leerse con atención:
+Los dos que hacen daño merecen leerse despacio:
 
 **La quiebra del exchange no es un drawdown, es una pérdida total** de lo que
 tengas allí. Por eso el tope de concentración por contraparte *es* tu pérdida
-máxima. Está en el 25%, y el sistema pierde justo eso. Subirlo sube el retorno y
+máxima: está en el 25%, y el sistema pierde justo eso. Subirlo sube el retorno y
 agranda el agujero en la misma proporción. FTX, Celsius, Mt. Gox: esto pasa.
 
-**Una subida de comisiones aniquila la rama de trabajo**: el beneficio de
+**Una subida de comisiones aniquila la rama de trabajo.** El beneficio de
 `retail_arb` cae de ~450 € a ~4 €. Los márgenes finos no sobreviven a que el
 intermediario suba su tajada.
 
 ### La ablación, leída honestamente
 
 Quitar la puerta **sube** la mediana: el capital se pone a trabajar de inmediato
-en vez de esperar a la prueba. Ese es el trato completo.
+en lugar de esperar a la prueba. Ese es el trato completo, y no lo voy a
+disimular.
 
 Lo que compras con la puerta es la cola izquierda y la garantía de que algo sin
-ventaja alguna se financie en ~0% de los futuros en lugar del 100%.
+ventaja alguna se financie en ~0% de los futuros en vez del 100%.
 
 **MONETA no afirma que la puerta te haga ganar más de media. Afirma que te
 impide equivocarte con confianza y con dinero real.**
 
----
+### Tres errores que encontró la propia suite
+
+Vale la pena decir esto porque es el argumento más fuerte a favor de tener una
+suite así. Estos fallos estaban en el código, parecían funcionar, y los detectó
+la verificación, no yo:
+
+1. **Retirar capital se contabilizaba como pérdida**, así que desfinanciar una
+   estrategia disparaba su corte por drawdown y la mataba. Arreglado con un
+   índice tipo NAV que separa flujos de rendimiento.
+2. **La previa sobre σ era una escala absoluta fija**, así que con cuentas
+   grandes ahogaba al dato y la puerta no se abría nunca. El sistema fallaba en
+   silencio por encima de 50.000 €.
+3. **El listón estaba en cero en vez de en el tipo sin riesgo**, así que el
+   sistema desplegaba capital en estrategias que ganaban dinero pero perdían
+   contra dejarlo en caja. Con 200.000 € eso costaba dinero real.
 
 ## Por qué deberías dudar de estos números
 

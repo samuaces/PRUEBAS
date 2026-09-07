@@ -48,8 +48,10 @@ def summary_block(s: dict, capital: float | None = None) -> str:
     L.append(f"  emergency halts          {s['halted_fraction']:.1%} of paths")
     if capital:
         L.append(f"  median profit            EUR {s['median_profit']:,.0f} on EUR {capital:,.0f}")
+    eph = s['eur_per_labor_hour_median']
+    eph_txt = "n/a (too few hours spent)" if eph != eph else f"EUR {eph:,.2f}/hour"
     L.append(f"  your hours (median)      {s['labor_hours_median']:.0f} h/yr"
-             f"  ->  EUR {s['eur_per_labor_hour_median']:,.2f}/hour")
+             f"  ->  {eph_txt}")
     L.append(f"  tax paid / fees paid     EUR {s['tax_paid_median']:,.0f}"
              f" / EUR {s['fees_paid_median']:,.0f} (median)")
     return "\n".join(L)

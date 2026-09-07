@@ -219,6 +219,28 @@ class EdgePosterior:
         return math.sqrt(self.beta_n / max(self.alpha_n - 1.0, 1e-9))
 
     @property
+    def empirical_sigma(self) -> float:
+        """Plain sample standard deviation, with no prior mixed in."""
+        if self.n < 2:
+            return self.sigma_hat
+        xbar = self.sample_mean
+        ss = max(self._sumsq - self.n * xbar * xbar, 0.0)
+        return math.sqrt(ss / (self.n - 1))
+
+    def scale(self, min_n: int = 30) -> float:
+        """Scale parameter to use for interval estimates.
+
+        The prior on sigma is an absolute number, which is fine while a
+        strategy is young and dangerous once it is not: the same strategy
+        measured on a EUR 2,000 book and a EUR 200,000 book produces returns
+        of wildly different magnitude, and a fixed prior scale swamps the
+        data in the second case -- so the gate would refuse to ever open on
+        a large account, silently, for a strategy that works. Past `min_n`
+        observations the data sets the scale.
+        """
+        return self.empirical_sigma if self.n >= min_n else self.sigma_hat
+
+    @property
     def _t_scale(self) -> float:
         return math.sqrt(self.beta_n / (self.alpha_n * self.kappa_n))
 
@@ -237,7 +259,7 @@ class EdgePosterior:
         This, not `prob_mu_greater`, is what the promotion gate acts on:
         it is the version that survives being checked continuously.
         """
-        return anytime_lower_bound(self.n, self.mu_n, self.sigma_hat, alpha, rho)
+        return anytime_lower_bound(self.n, self.mu_n, self.scale(), alpha, rho)
 
     def prob_mu_greater(self, threshold: float = 0.0) -> float:
         """P(mu > threshold | data). The promotion gate's decision variable."""

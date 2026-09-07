@@ -91,6 +91,13 @@ class Engine:
                          else frictions.tax_rate)
         self.strategies = strategies
         self.allocator = allocator or Allocator(AllocatorConfig(), seed=self.cfg.seed)
+        # The bar a strategy must clear is not zero, it is the money-market
+        # rate. Capital handed to a strategy stops earning that rate, so a
+        # strategy that beats zero but not cash makes the account worse while
+        # looking like it works. Measured at EUR 200,000 this was costing real
+        # money before the hurdle was raised.
+        if self.allocator.cfg.hurdle == 0.0 and self.cfg.idle_yield_annual:
+            self.allocator.cfg.hurdle = self.cfg.idle_yield_annual / 1095.0
         self.risk = RiskGovernor(limits or RiskLimits())
 
         self.books: dict[str, Book] = {
@@ -158,7 +165,8 @@ class Engine:
             for book in self.books.values():
                 self.risk.police_strategy(ctx.t, book)
             targets = self.allocator.allocate(ctx.t, self.books, equity,
-                                              self.risk.limits.probation_factor)
+                                              self.risk.limits.probation_factor,
+                                              ctx=ctx)
             venue_of = {n: b.strategy.venues for n, b in self.books.items()}
             capped = self.risk.cap_allocations(equity, targets, venue_of)
             if not may_trade or in_warmup:

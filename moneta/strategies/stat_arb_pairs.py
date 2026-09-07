@@ -77,6 +77,10 @@ class StatArbPairs(Strategy):
         return {self.A: ctx.price(*self.A), self.B: ctx.price(*self.B)}
 
     # ------------------------------------------------------------------
+    def capital_in_use(self, ctx, ledger, state) -> float:
+        """Margin posted against open legs."""
+        return sum(p.margin for p in ledger.positions.values())
+
     def step(self, ctx: MarketContext, ledger: Ledger, capital: float,
              state: dict, paper: bool) -> float:
         f, st = ctx.frictions, state

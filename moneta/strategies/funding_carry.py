@@ -75,6 +75,18 @@ class FundingCarry(Strategy):
     def mark_prices(self, ctx: MarketContext) -> dict[tuple[str, str], float]:
         return {self.SPOT: ctx.price(*self.SPOT), self.PERP: ctx.price(*self.PERP)}
 
+    def capital_in_use(self, ctx, ledger, state) -> float:
+        """Spot leg + posted margin + the reserve held back to feed it.
+
+        The reserve looks like idle cash but it is not: without it the short
+        leg gets liquidated on the first sharp rally. It is part of the cost
+        of running the position and belongs in the denominator.
+        """
+        if state.get("qty", 0.0) <= 0:
+            return 0.0
+        notional = state["qty"] * ctx.price(*self.SPOT)
+        return notional * (1.0 + ctx.frictions.margin_requirement + self.cash_reserve)
+
     # ------------------------------------------------------------------
     def step(self, ctx: MarketContext, ledger: Ledger, capital: float,
              state: dict, paper: bool) -> float:

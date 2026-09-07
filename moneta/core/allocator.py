@@ -37,7 +37,10 @@ from .strategy import Book, Phase
 
 @dataclass
 class AllocatorConfig:
-    #: minimum per-tick return that counts as "an edge worth funding"
+    #: Minimum per-tick return that counts as "an edge worth funding".
+    #: Left at 0.0 the engine fills it in with the risk-free rate, because
+    #: the real question is never "does this make money" but "does this beat
+    #: leaving the money alone".
     hurdle: float = 0.0
     #: total probability of ever funding a strategy that has no edge at all.
     #: This is a time-uniform guarantee: it holds no matter how often the
@@ -133,7 +136,7 @@ class Allocator:
         post = book.posterior
 
         mu = post.sample_mu(self.rng)             # Thompson draw
-        sigma2 = max(post.sigma_hat ** 2, 1e-12)
+        sigma2 = max(post.scale() ** 2, 1e-12)
         if mu <= cfg.hurdle:
             return 0.0, mu
 
@@ -153,7 +156,7 @@ class Allocator:
         return f * equity, mu
 
     def allocate(self, t: float, books: dict[str, Book], equity: float,
-                 probation_factor: float = 0.35) -> dict[str, float]:
+                 probation_factor: float = 0.35, ctx=None) -> dict[str, float]:
         """Compute target capital per strategy. Risk governor caps it after."""
         targets: dict[str, float] = {}
         draws: dict[str, float] = {}
@@ -162,6 +165,11 @@ class Allocator:
                 targets[name] = 0.0
                 continue
             target, mu = self.kelly_target(book, equity, t, probation_factor)
+            if ctx is not None:
+                # Never hand a strategy more than it can put to work. The
+                # surplus would sit idle inside its book, earning nothing,
+                # while counting against every concentration limit.
+                target = min(target, book.strategy.capacity(ctx, book.live_state))
             targets[name] = target
             draws[name] = mu
 

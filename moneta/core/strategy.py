@@ -154,6 +154,8 @@ class Book:
         self.pending_flow: float = 0.0
         self._last_live_equity: float = 0.0
         self.paper_returns: list[float] = []
+        self.notional_returns: list[float] = []
+        self._last_deployed: float = 0.0
         self.labor_hours = Welford()
         self.total_labor_h = 0.0
         self.promoted_at: float | None = None
@@ -164,18 +166,30 @@ class Book:
     def record_paper(self, ctx: MarketContext) -> float | None:
         prices = self.strategy.mark_prices(ctx)
         eq = self.paper.equity(prices)
-        prev = self.last_paper_equity
+        prev_eq = self.last_paper_equity
         self.last_paper_equity = eq
         self.paper_equity_curve.append(eq)
-        if prev <= 0:
+
+        deployed = self._last_deployed
+        self._last_deployed = self.strategy.capital_in_use(
+            ctx, self.paper, self.paper_state)
+        realized = self.paper.realized_pnl
+        d_realized = realized - self._last_realized
+        self._last_realized = realized
+
+        if prev_eq > 0:
+            self.notional_returns.append((eq - prev_eq) / prev_eq)
+
+        if deployed <= 0:
+            # Idle capital carries no information about the strategy's edge.
+            # Counting flat ticks would drag the mean toward zero and inflate
+            # n, making the gate look better informed than it is.
             return None
-        r = (eq - prev) / prev
+
+        r = (eq - prev_eq) / deployed
         self.paper_returns.append(r)
         self.posterior.push(r)
-
-        realized = self.paper.realized_pnl
-        self.cash_posterior.push((realized - self._last_realized) / self.paper_notional)
-        self._last_realized = realized
+        self.cash_posterior.push(d_realized / deployed)
         return r
 
     def record_live(self, ctx: MarketContext, tax_rate: float) -> float:
@@ -228,6 +242,25 @@ class Strategy(ABC):
     upkeep_h_per_week: float = 0.0
     #: fixed running cost per month (subscriptions, data, tools) in base ccy
     monthly_cost: float = 0.0
+
+    def capital_in_use(self, ctx: "MarketContext", ledger: Ledger,
+                       state: dict) -> float:
+        """Capital this strategy actually has at work right now.
+
+        This is the denominator the allocator learns from, and getting it
+        wrong is subtle and expensive. Measuring return against the notional
+        a strategy was *handed* makes any capacity-limited strategy look bad
+        purely because it was given more money than it can use -- and the
+        gate then refuses to fund the thing that works. Return on capital
+        employed and total capacity are two different questions, so they are
+        asked separately: here, and in `capacity()`.
+        """
+        marks = self.mark_prices(ctx)
+        return max(0.0, ledger.gross_equity(marks) - ledger.total_cash())
+
+    def capacity(self, ctx: "MarketContext", state: dict) -> float:
+        """Most capital this strategy could usefully absorb. Infinite by default."""
+        return float("inf")
 
     def deposit_split(self) -> dict[str, float]:
         """How new cash is spread across this strategy's venues."""

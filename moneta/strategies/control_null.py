@@ -42,6 +42,10 @@ class ControlNull(Strategy):
     def mark_prices(self, ctx: MarketContext) -> dict[tuple[str, str], float]:
         return {self.SYM: ctx.price(*self.SYM)}
 
+    def capital_in_use(self, ctx, ledger, state) -> float:
+        """Margin posted against open legs."""
+        return sum(p.margin for p in ledger.positions.values())
+
     def step(self, ctx: MarketContext, ledger: Ledger, capital: float,
              state: dict, paper: bool) -> float:
         f, st = ctx.frictions, state

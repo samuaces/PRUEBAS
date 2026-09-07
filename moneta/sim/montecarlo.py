@@ -150,8 +150,16 @@ def summarise(rows: list[dict], label: str = "") -> dict:
         "sharpe_median": percentile([r["sharpe"] for r in rows], 0.5),
         "halted_fraction": sum(1 for r in rows if r["halted"]) / len(rows),
         "labor_hours_median": percentile([r["labor_hours"] for r in rows], 0.5),
+        # Only meaningful when hours were actually spent; a near-zero
+        # denominator would otherwise manufacture a spectacular hourly rate
+        # out of a system that did nothing.
         "eur_per_labor_hour_median": percentile(
-            [(r["end"] - r["start"]) / max(r["labor_hours"], 1.0) for r in rows], 0.5),
+            [(r["end"] - r["start"]) / r["labor_hours"] for r in rows
+             if r["labor_hours"] >= 5.0], 0.5) if
+        sum(1 for r in rows if r["labor_hours"] >= 5.0) >= max(3, len(rows) // 10)
+        else float("nan"),
+        "labor_meaningful_fraction": sum(1 for r in rows
+                                         if r["labor_hours"] >= 5.0) / len(rows),
         "tax_paid_median": percentile([r["tax_paid"] for r in rows], 0.5),
         "fees_paid_median": percentile([r["fees_paid"] for r in rows], 0.5),
         "per_strategy": per_strategy,
