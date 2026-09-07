@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.moneta_halt
+moneta_dashboard.html
+*.egg-info/
+.venv/
