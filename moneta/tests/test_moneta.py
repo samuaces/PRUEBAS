@@ -610,6 +610,26 @@ class TestEngine(unittest.TestCase):
                 for b in eng.books.values())
             self.assertAlmostEqual(eng.equity(ctx), manual, places=6)
 
+    def test_idle_cash_yield_is_taxed_like_everything_else(self):
+        """Cash must not get a tax exemption the strategies do not get.
+
+        Every "does this beat leaving the money alone?" comparison in the
+        verification suite depends on both sides being taxed the same way.
+        """
+        from ..core.engine import Engine
+        w = SimWorld(WorldConfig(days=365), ADVERSARIAL, seed=21)
+        eng = Engine(build_default(), ADVERSARIAL,
+                     EngineConfig(starting_capital=10_000, warmup_days=10_000,
+                                  idle_yield_annual=0.05, seed=21))
+        while not w.done:
+            eng.step(w.tick())
+        # warmup covers the whole run, so nothing was ever deployed: the
+        # account is pure cash and must have grown at the AFTER-TAX rate
+        gross = 10_000 * (1 + 0.05) ** 1.0
+        net = 10_000 * (1 + 0.05 * (1 - ADVERSARIAL.tax_rate)) ** 1.0
+        self.assertAlmostEqual(eng.idle_cash, net, delta=net * 0.005)
+        self.assertLess(eng.idle_cash, gross * 0.995)
+
     def test_paper_books_never_touch_real_money(self):
         from ..core.engine import Engine
         w = SimWorld(WorldConfig(days=300), ADVERSARIAL, seed=8)

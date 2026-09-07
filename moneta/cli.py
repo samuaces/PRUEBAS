@@ -75,9 +75,13 @@ def cmd_explain(args) -> int:
     for cls in DEFAULT_STRATEGIES:
         s = cls()
         print(R.header(f"{s.name}   [{s.kind.value}-bound]", 78))
-        doc = (s.__doc__ or "").strip().split("\n")
-        for line in doc:
-            print("  " + line.strip())
+        print(f"  {(s.__doc__ or s.name).strip()}")
+        # the module docstring is where the mechanism, the counterparty and
+        # the failure modes are written down -- that is the part worth reading
+        module = sys.modules[cls.__module__]
+        body = (module.__doc__ or "").strip().split("\n")[1:]
+        for line in body:
+            print(f"  {line}" if line.strip() else "")
         print(f"\n  venues: {', '.join(s.venues) or '-'}"
               f"   upkeep: {s.upkeep_h_per_week:.1f} h/week"
               f"   fixed cost: EUR {s.monthly_cost:.0f}/month")

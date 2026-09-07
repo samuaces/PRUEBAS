@@ -26,8 +26,6 @@ are not as described, returns, and marketplace fee changes.
 """
 from __future__ import annotations
 
-import math
-
 from ..core.ledger import Event, Kind, Ledger
 from ..core.strategy import (MarketContext, Opportunity, Strategy, StrategyKind)
 

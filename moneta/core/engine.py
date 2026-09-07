@@ -191,8 +191,14 @@ class Engine:
             book.record_live(ctx, self.tax_rate)
 
         # -- 3b. idle cash earns the money-market rate ------------------------
+        # Net of tax, because interest is taxable income and strategy profits
+        # are taxed everywhere else in this ledger. Crediting it gross would
+        # quietly hand the do-nothing alternative a tax exemption the
+        # strategies do not get, and every "does this beat cash?" comparison
+        # in the verification suite would be rigged against them.
         if self.idle_cash > 0 and cfg.idle_yield_annual:
-            self.idle_cash *= (1.0 + cfg.idle_yield_annual / 1095.0)
+            net_rate = cfg.idle_yield_annual * (1.0 - self.tax_rate)
+            self.idle_cash *= (1.0 + net_rate / 1095.0)
 
         # -- 4. the taxman ------------------------------------------------------
         if cfg.settle_tax_annually and ctx.data["day"] - self._last_tax_day >= 365.0:
