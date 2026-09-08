@@ -88,15 +88,34 @@ async function run(w,d){
   try{d.getElementById('png').click();}catch(e){threw=e.message;}
   w.HTMLCanvasElement.prototype.toBlob=old;
   ok('exportar a PNG no lanza errores',!threw&&got,threw||'');
-  var oldURL=w.URL.createObjectURL,jsonOk=false;
-  w.URL.createObjectURL=function(b){jsonOk=b&&b.size>10;return 'blob:x';};
-  try{d.getElementById('json').click();}catch(e){}
-  w.URL.createObjectURL=oldURL;
-  ok('exportar a JSON genera el archivo',jsonOk);
+  // La pizarra corre dentro de un iframe, donde el navegador bloquea las descargas:
+  // debe recurrir al diálogo que muestra el archivo para copiarlo a mano.
+  d.getElementById('json').click(); await wait(150);
+  var fdlg=d.getElementById('dlg-file');
+  ok('exportar a JSON embebido abre el diálogo de archivo',fdlg.open);
+  ok('el diálogo trae el JSON de la pizarra',
+     (d.getElementById('file-text').value||'').indexOf('"frames"')>0,
+     (d.getElementById('file-text').value||'').slice(0,40));
+  d.querySelector('#dlg-file [data-close]').click(); await raf();
   d.getElementById('help').click();await raf();
   ok('el diálogo de ayuda se abre',d.getElementById('dlg-help').open);
   d.querySelector('#dlg-help [data-close]').click();await raf();
   ok('el diálogo se cierra',!d.getElementById('dlg-help').open);
+  d.querySelector('[data-place="text"]').click();await raf();
+  pointerAt(w,cv,500,240,'pointerdown');pointerAt(w,cv,500,240,'pointerup');await raf();
+  ok('colocar texto abre el diálogo propio',d.getElementById('dlg-ask').open);
+  var pt=region(cv,500,240,40);
+  d.getElementById('ask-input').value='Presión alta';
+  d.getElementById('ask-ok').click();await raf();
+  ok('el texto se escribe en el campo',region(cv,500,240,40)!==pt);
+  ok('el diálogo se cierra al aceptar',!d.getElementById('dlg-ask').open);
+
+  d.querySelector('[data-tool="select"]').click();
+  d.getElementById('clear').click();await raf();
+  ok('vaciar pide confirmación en un diálogo',d.getElementById('dlg-ask').open);
+  d.querySelector('#dlg-ask [data-close]').click();await raf();
+  ok('cancelar no vacía el fotograma',region(cv,cv.clientWidth*0.90,cv.clientHeight*0.5,26)>0);
+
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
 function report(){document.getElementById('out').textContent=log.join('\n')+

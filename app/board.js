@@ -807,8 +807,10 @@
   canvas.addEventListener('dblclick', function (e) {
     var o = hitObject(pointer(e));
     if (o && o.kind === 'text') {
-      var t = prompt('Texto:', o.text || '');
-      if (t !== null) { o.text = t; commit(); draw(); }
+      ask({ title: 'Editar texto', input: o.text || '', ok: 'Guardar' }).then(function (t) {
+        if (t === null) return;
+        o.text = t; commit(); draw();
+      });
     }
   });
 
@@ -822,9 +824,7 @@
       o.team = spec.team;
       o.num = nextNumber(spec.team);
     } else if (spec.kind === 'text') {
-      var t = prompt('Texto a colocar:', 'Presión alta');
-      if (t === null) return;
-      o.text = t;
+      o.text = '';
       o.color = ui.color;
     } else if (spec.kind !== 'ball' && spec.kind !== 'goal' && spec.kind !== 'minigoal' && spec.kind !== 'dummy') {
       o.color = spec.color || null;
@@ -835,6 +835,14 @@
     showInspector(o);
     commit();
     draw();
+
+    if (spec.kind === 'text') {
+      ask({ title: 'Texto sobre el campo', input: 'Presión alta', placeholder: 'Escribe aquí', ok: 'Colocar' })
+        .then(function (t) {
+          if (t === null || t === '') { removeObject(o); return; }
+          o.text = t; commit(); draw();
+        });
+    }
   }
 
   function nextNumber(team) {
@@ -947,6 +955,50 @@
     else if (tool !== 'select') hint('Arrastra sobre el campo para dibujar');
     else hint('');
     draw();
+  }
+
+  /* --- diálogos propios: prompt() y confirm() no funcionan dentro de un iframe --- */
+  function ask(opts) {
+    return new Promise(function (resolve) {
+      var dlg = $('#dlg-ask');
+      $('#ask-title', dlg).textContent = opts.title;
+      var field = $('#ask-field', dlg);
+      var msg = $('#ask-msg', dlg);
+      var input = $('#ask-input', dlg);
+      if (opts.input != null) {
+        field.hidden = false;
+        msg.hidden = true;
+        input.value = opts.input;
+        input.placeholder = opts.placeholder || '';
+      } else {
+        field.hidden = true;
+        msg.hidden = false;
+        msg.textContent = opts.message || '';
+      }
+      var okBtn = $('#ask-ok', dlg);
+      okBtn.textContent = opts.ok || 'Aceptar';
+      okBtn.classList.toggle('danger', !!opts.danger);
+
+      var done = false;
+      function finish(value) {
+        if (done) return;
+        done = true;
+        dlg.removeEventListener('close', onClose);
+        okBtn.removeEventListener('click', onOk);
+        input.removeEventListener('keydown', onKey);
+        if (dlg.open) dlg.close();
+        resolve(value);
+      }
+      function onOk() { finish(opts.input != null ? input.value.trim() : true); }
+      function onClose() { finish(null); }
+      function onKey(e) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } }
+
+      okBtn.addEventListener('click', onOk);
+      dlg.addEventListener('close', onClose);
+      input.addEventListener('keydown', onKey);
+      dlg.showModal();
+      if (opts.input != null) setTimeout(function () { input.select(); }, 30);
+    });
   }
 
   var hintTimer;
@@ -1172,12 +1224,39 @@
   }
   function drawStrokeOn(c, t, s) { drawStroke(c, t, s); }
 
+  // Si la pizarra está embebida en otra página, el navegador bloquea las descargas.
+  // En ese caso enseñamos el resultado para que se pueda guardar o copiar a mano.
+  function embedded() {
+    try { return window.self !== window.top; } catch (e) { return true; }
+  }
+
   function download(blob, name) {
+    if (embedded()) { showFile(blob, name); return; }
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function showFile(blob, name) {
+    var dlg = $('#dlg-file');
+    var img = $('#file-img'), box = $('#file-text'), note = $('#file-note');
+    $('#file-title').textContent = name;
+    if (/\.png$/.test(name)) {
+      var url = URL.createObjectURL(blob);
+      img.src = url; img.hidden = false; box.hidden = true;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Pulsa y mantén sobre la imagen (o clic derecho) para guardarla.';
+      dlg.addEventListener('close', function once() {
+        dlg.removeEventListener('close', once);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+      });
+    } else {
+      blob.text().then(function (t) { box.value = t; });
+      img.hidden = true; box.hidden = false;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Copia este texto y guárdalo como archivo .json.';
+    }
+    dlg.showModal();
   }
 
   function exportJSON() {
@@ -1205,12 +1284,14 @@
     try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
   }
   function saveBoard() {
-    var name = prompt('Nombre de la pizarra:', 'Salida de balón');
-    if (!name) return;
-    var all = savedBoards();
-    all[name] = { at: Date.now(), doc: doc };
-    if (writeBoards(all)) toast('Guardada como «' + name + '»');
-    else toast('No se ha podido guardar (almacenamiento lleno)');
+    ask({ title: 'Guardar pizarra', input: 'Salida de balón', placeholder: 'Nombre', ok: 'Guardar' })
+      .then(function (name) {
+        if (!name) return;
+        var all = savedBoards();
+        all[name] = { at: Date.now(), doc: doc };
+        if (writeBoards(all)) toast('Guardada como «' + name + '»');
+        else toast('No se ha podido guardar (almacenamiento lleno)');
+      });
   }
   function openDialog() {
     var all = savedBoards(), box = $('#saved-list');
@@ -1288,15 +1369,21 @@
     $('#form-away').addEventListener('change', function () { if (this.value) { applyFormation(this.value, 'away'); this.value = ''; } });
 
     $('#clear').addEventListener('click', function () {
-      if (!confirm('¿Vaciar este fotograma? Se quitan las fichas y los trazos.')) return;
-      doc.frames[ui.frame] = emptyFrame();
-      ui.sel = null; hideInspector(); commit(); draw();
+      ask({ title: 'Vaciar el fotograma', message: 'Se quitan las fichas, el material y los trazos de este fotograma. Podrás deshacerlo.', ok: 'Vaciar', danger: true })
+        .then(function (yes) {
+          if (!yes) return;
+          doc.frames[ui.frame] = emptyFrame();
+          ui.sel = null; hideInspector(); commit(); draw();
+        });
     });
     $('#reset').addEventListener('click', function () {
-      if (!confirm('¿Empezar una pizarra nueva? Se pierde lo que no hayas guardado.')) return;
-      doc = { view: doc.view, frames: [emptyFrame()] };
-      ui.frame = 0; ui.sel = null; hideInspector();
-      commit(); buildFrames(); draw();
+      ask({ title: 'Empezar de cero', message: 'Se borra la pizarra entera, incluidos todos los fotogramas. Lo que hayas guardado con nombre se conserva.', ok: 'Empezar de cero', danger: true })
+        .then(function (yes) {
+          if (!yes) return;
+          doc = { view: doc.view, frames: [emptyFrame()] };
+          ui.frame = 0; ui.sel = null; hideInspector();
+          commit(); buildFrames(); draw();
+        });
     });
 
     $('#play').addEventListener('click', function () { ui.playing ? stop() : play(); });

@@ -256,6 +256,34 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ==================== DIÁLOGOS ==================== -->
+<dialog id="dlg-ask" aria-labelledby="ask-title">
+  <div class="dhead"><h3 id="ask-title">…</h3>
+    <button class="tbtn" data-close aria-label="Cancelar">✕</button></div>
+  <div class="dbody">
+    <p id="ask-msg" style="margin:0;color:var(--muted)"></p>
+    <div id="ask-field" hidden>
+      <input type="text" id="ask-input" class="ask-input" autocomplete="off" spellcheck="false" maxlength="40">
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cancelar</button>
+    <button class="tbtn primary" id="ask-ok">Aceptar</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-file" aria-labelledby="file-title">
+  <div class="dhead"><h3 id="file-title">Archivo</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p id="file-note" style="margin:0 0 12px;color:var(--muted);font-size:13px"></p>
+    <img id="file-img" alt="Fotograma exportado de la pizarra" hidden
+         style="width:100%;border-radius:10px;border:1px solid var(--line);display:block">
+    <textarea id="file-text" class="ask-input" rows="9" readonly hidden
+              style="resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+  </div>
+  <div class="dfoot"><button class="tbtn primary" data-close>Cerrar</button></div>
+</dialog>
+
 <dialog id="dlg-open" aria-labelledby="dlg-open-t">
   <div class="dhead"><h3 id="dlg-open-t">Pizarras guardadas</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>

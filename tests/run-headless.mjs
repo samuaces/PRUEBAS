@@ -18,7 +18,7 @@ page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
 await page.goto('http://localhost:8899/tests/pizarra.test.html', { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => document.title !== 'test', { timeout: 45000 });
+await page.waitForFunction(() => /^(OK|FALLOS)/.test(document.title), { timeout: 60000 });
 const out = await page.$eval('#out', el => el.textContent);
 console.log(out);
 if (errors.length) console.log('\nERRORES DE LA PÁGINA:\n' + errors.join('\n'));
