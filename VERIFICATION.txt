@@ -1,0 +1,295 @@
+
+   __  __  ___  _  _ ___ _____  _
+  |  \/  |/ _ \| \| | __|_   _|/_\
+  | |\/| | (_) | .` | _|  | | / _ \
+  |_|  |_|\___/|_|\_|___| |_|/_/ \_\   an engine for finding real edges,
+                                       and refusing to fund fake ones
+
+
+==============================================================================
+1. FALSIFICATION -- can the gate be fooled by a coin flip?
+==============================================================================
+
+  `control_null` trades a coin flip with real costs. Its true edge is
+  negative and it is profitable in roughly a third of individual years, so
+  it looks like a winner often enough to fool a naive backtest. If MONETA
+  funds it, MONETA is broken.
+
+  control_null was funded in 2.5% of paths, average capital share 0.19%
+  -> PASS
+
+==============================================================================
+2. BASELINE -- EUR 10,000, realistic frictions, 365 live days after 730 days of validation
+==============================================================================
+  paths simulated          120
+  annual return (median)   +20.49%
+  annual return (mean)     +20.17%   95% CI [+18.87%, +21.33%]
+  5th / 95th percentile    +12.57% / +28.24%
+  worst 5% average (CVaR)  +1.82%
+  probability of a loss    2%
+  P(drawdown >= 20%)       1.7%
+  max drawdown med / p95   2.5% / 4.6%
+  Sharpe (median)          3.56
+  emergency halts          1.7% of paths
+  median profit            EUR 2,110 on EUR 10,000
+  your hours (median)      310 h/yr  ->  EUR 6.89/hour
+  tax paid / fees paid     EUR 0 / EUR 719 (median)
+
+  strategy            funded  capital   mean P&L   promoted
+                    in paths    share   per year     on day
+  ---------------------------------------------------------
+  retail_arb           100%    24.6%     +2,571        286
+  funding_carry         98%    23.0%       +112         72
+  stat_arb_pairs        11%     1.1%         +8        582
+  control_null           2%     0.2%         +6        630
+  cross_venue_arb        0%     0.0%         +0      never
+
+==============================================================================
+3. CAPITAL CURVE -- does more money help?
+==============================================================================
+
+  The same machine, the same hours, different account sizes. If returns fall
+  as capital rises, the money is coming from your attention rather than from
+  your balance -- which changes what you should do next.
+
+       capital     CAGR     profit   EUR/hour  P(loss)    from your HOURS  from your MONEY
+  ----------------------------------------------------------------------------------------
+         2,000   68.47%      1,410       4.71       8%             +1,617              +20
+        10,000   20.77%      2,139       6.93       2%             +2,583             +126
+        50,000    5.85%      3,011       9.51       2%             +2,583             +547
+       200,000    2.96%      6,103      19.91       0%             +2,635           +2,193
+
+  Multiplying the account by 100x multiplied the labour-side
+  contribution by 1.6x and the capital-side contribution by 107.3x.
+
+  -> The labour arm does NOT scale with money. It is capped by the hours
+     you have, and no amount of capital lifts that ceiling. At small
+     account sizes it is nearly all of the profit, which is why the
+     percentage return looks impressive and the euro figure does not.
+  -> The capital arms DO scale, at a low single-digit percentage. They
+     only start to matter in absolute terms above roughly EUR 50,000.
+  -> Practical reading: below ~EUR 20,000 this is a tool for spending
+     your hours well. Above it, it becomes a tool for allocating money.
+
+==============================================================================
+4. STRESS -- the same system through things that actually happen
+==============================================================================
+
+  scenario                     median      p05  P(loss)   maxDD  distribution                
+  ----------------------------------------------------------------------------
+  base                         20.77%   13.33%       2%    2.4%  -----------|---------#------
+  crash                        20.67%   12.76%       2%    2.4%  -----------|---------#------
+  funding_flip                 19.81%   12.82%       0%    2.5%  -----------|---------#------
+  venue_failure               -17.54%  -21.25%      97%   25.5%  --#--------|----------------
+  venue_failure_secondary      19.25%    9.68%       0%    2.7%  -----------|---------#------
+  fee_shock                    10.75%    0.88%       3%    1.7%  -----------|----#-----------
+  cointegration_break          21.03%   15.16%       0%    2.6%  -----------|----------#-----
+  high_vol                     22.06%    7.56%       3%    2.7%  -----------|----------#-----
+  everything                   11.28%   -1.10%       7%    2.0%  -----------|-----#----------
+
+  Worst case across all scenarios: 5th-percentile annual return of -21.25% ('venue_failure').
+  Note that `venue_failure` is a total loss of everything held at that
+  exchange. The concentration cap is what turns it into a survivable hit.
+
+==============================================================================
+5. ABLATION -- is each mechanism actually earning its place?
+==============================================================================
+
+  Every component is removed in turn and the system re-run on the SAME
+  histories. A mechanism that cannot beat its own absence is decoration.
+
+
+  arm                                   median   vs baseline   p-value
+  ----------------------------------------------------------------------
+  MONETA (all mechanisms)               20.77%       +0.00pp    1.0000  
+  no promotion gate (deploy immediately)    20.98%       +0.05pp    0.9683  
+  no Kelly sizing (flat allocations)    20.79%       +0.04pp    0.9721  
+  uniform split, no gate, no Kelly      18.95%       -2.14pp    0.0558  
+  ----------------------------------------------------------------------
+  * = difference from the baseline is significant at 5% (Welch's t-test)
+
+  What each arm does to the zero-edge control:
+  arm                                        control_null funded   capital
+  ------------------------------------------------------------------------
+  full                                                       5%      0.4%
+  no promotion gate (deploy immediately)                    10%      0.4%
+  no Kelly sizing (flat allocations)                         7%      0.7%
+  uniform split, no gate, no Kelly                         100%      7.0%
+
+  HONEST READING OF THIS TABLE. Removing the gate can RAISE the median
+  return, and in these runs it does: capital goes to work immediately
+  instead of waiting for proof. That is the whole trade. What you buy
+  with the gate is the left tail and the guarantee that a strategy with
+  no edge at all is funded in 5% of futures instead of 100%.
+  MONETA is not claiming the gate makes you more money on average.
+  It is claiming it stops you from being confidently wrong with real money.
+
+==============================================================================
+VERDICT
+==============================================================================
+  [PASS]  zero-edge control is not funded
+          funded in 2.5% of paths (limit 10%), mean capital share 0.19% (limit 2%)
+  [PASS]  baseline beats cash after tax
+          median CAGR +20.49%
+  [PASS]  tail risk is bounded
+          P(drawdown >= 20%) = 1.7%
+  [PASS]  survives every stress scenario without ruin
+          worst 5th-percentile year: -21.25% in 'venue_failure'
+  [PASS]  the gate is what keeps the coin-flip strategy out
+          funded in 5% of paths with the gate, 100% without it
+  [PASS]  the gate reduces tail drawdown
+          95th-percentile drawdown 4.2% with the gate vs 4.4% without
+
+  6/6 checks passed in 1096s
+
+  wrote verification_realistic.json
+
+########################################################################
+# SECOND RUN: adversarial frictions (deliberately punitive assumptions)
+########################################################################
+
+   __  __  ___  _  _ ___ _____  _
+  |  \/  |/ _ \| \| | __|_   _|/_\
+  | |\/| | (_) | .` | _|  | | / _ \
+  |_|  |_|\___/|_|\_|___| |_|/_/ \_\   an engine for finding real edges,
+                                       and refusing to fund fake ones
+
+
+==============================================================================
+1. FALSIFICATION -- can the gate be fooled by a coin flip?
+==============================================================================
+
+  `control_null` trades a coin flip with real costs. Its true edge is
+  negative and it is profitable in roughly a third of individual years, so
+  it looks like a winner often enough to fool a naive backtest. If MONETA
+  funds it, MONETA is broken.
+
+  control_null was funded in 0.8% of paths, average capital share 0.04%
+  -> PASS
+
+==============================================================================
+2. BASELINE -- EUR 10,000, adversarial frictions, 365 live days after 730 days of validation
+==============================================================================
+  paths simulated          120
+  annual return (median)   +1.57%
+  annual return (mean)     +1.77%   95% CI [+0.76%, +2.68%]
+  5th / 95th percentile    -0.83% / +7.78%
+  worst 5% average (CVaR)  -16.66%
+  probability of a loss    6%
+  P(drawdown >= 20%)       3.3%
+  max drawdown med / p95   0.2% / 2.7%
+  Sharpe (median)          2.93
+  emergency halts          3.3% of paths
+  median profit            EUR 162 on EUR 10,000
+  your hours (median)      74 h/yr  ->  EUR 2.64/hour
+  tax paid / fees paid     EUR 0 / EUR 138 (median)
+
+  strategy            funded  capital   mean P&L   promoted
+                    in paths    share   per year     on day
+  ---------------------------------------------------------
+  retail_arb            37%     5.6%       +186        798
+  funding_carry         96%    22.2%        +34        152
+  stat_arb_pairs         5%     0.5%         +1        577
+  cross_venue_arb        0%     0.0%         +0      never
+  control_null           1%     0.0%         -2        758
+
+==============================================================================
+3. CAPITAL CURVE -- does more money help?
+==============================================================================
+
+  The same machine, the same hours, different account sizes. If returns fall
+  as capital rises, the money is coming from your attention rather than from
+  your balance -- which changes what you should do next.
+
+       capital     CAGR     profit   EUR/hour  P(loss)    from your HOURS  from your MONEY
+  ----------------------------------------------------------------------------------------
+         2,000    1.58%         32       0.46      12%               +101              +10
+        10,000    1.56%        160       2.79       3%               +123              +56
+        50,000    1.54%        793       9.62       5%               +203             +196
+       200,000    1.33%      2,726      26.64       5%               +178             +176
+
+  Multiplying the account by 100x multiplied the labour-side
+  contribution by 1.8x and the capital-side contribution by 18.5x.
+
+  -> The labour arm does NOT scale with money. It is capped by the hours
+     you have, and no amount of capital lifts that ceiling. At small
+     account sizes it is nearly all of the profit, which is why the
+     percentage return looks impressive and the euro figure does not.
+  -> The capital arms DO scale, at a low single-digit percentage. They
+     only start to matter in absolute terms above roughly EUR 50,000.
+  -> Practical reading: below ~EUR 20,000 this is a tool for spending
+     your hours well. Above it, it becomes a tool for allocating money.
+
+==============================================================================
+4. STRESS -- the same system through things that actually happen
+==============================================================================
+
+  scenario                     median      p05  P(loss)   maxDD  distribution                
+  ----------------------------------------------------------------------------
+  base                          1.56%    0.36%       3%    0.2%  --------------------|-#-----
+  crash                         1.55%    0.39%       3%    0.2%  --------------------|-#-----
+  funding_flip                  0.88%    0.02%       5%    0.2%  --------------------|#------
+  venue_failure               -24.06%  -24.36%      92%   25.1%  #-------------------|-------
+  venue_failure_secondary       1.57%   -0.26%       8%    0.2%  --------------------|-#-----
+  fee_shock                     0.77%   -0.79%      13%    0.4%  --------------------|#------
+  cointegration_break           1.59%    0.38%       3%    0.2%  --------------------|-#-----
+  high_vol                      1.51%    0.51%       2%    0.2%  --------------------|-#-----
+  everything                    0.94%   -0.72%      10%    0.2%  --------------------|#------
+
+  Worst case across all scenarios: 5th-percentile annual return of -24.36% ('venue_failure').
+  Note that `venue_failure` is a total loss of everything held at that
+  exchange. The concentration cap is what turns it into a survivable hit.
+
+==============================================================================
+5. ABLATION -- is each mechanism actually earning its place?
+==============================================================================
+
+  Every component is removed in turn and the system re-run on the SAME
+  histories. A mechanism that cannot beat its own absence is decoration.
+
+
+  arm                                   median   vs baseline   p-value
+  ----------------------------------------------------------------------
+  MONETA (all mechanisms)                1.56%       +0.00pp    1.0000  
+  no promotion gate (deploy immediately)     4.95%       +2.81pp    0.0000 *
+  no Kelly sizing (flat allocations)     1.58%       +0.08pp    0.8342  
+  uniform split, no gate, no Kelly       2.91%       -0.15pp    0.8302  
+  ----------------------------------------------------------------------
+  * = difference from the baseline is significant at 5% (Welch's t-test)
+
+  What each arm does to the zero-edge control:
+  arm                                        control_null funded   capital
+  ------------------------------------------------------------------------
+  full                                                       2%      0.1%
+  no promotion gate (deploy immediately)                    10%      0.5%
+  no Kelly sizing (flat allocations)                         2%      0.1%
+  uniform split, no gate, no Kelly                         100%      6.9%
+
+  HONEST READING OF THIS TABLE. Removing the gate can RAISE the median
+  return, and in these runs it does: capital goes to work immediately
+  instead of waiting for proof. That is the whole trade. What you buy
+  with the gate is the left tail and the guarantee that a strategy with
+  no edge at all is funded in 2% of futures instead of 100%.
+  MONETA is not claiming the gate makes you more money on average.
+  It is claiming it stops you from being confidently wrong with real money.
+
+==============================================================================
+VERDICT
+==============================================================================
+  [PASS]  zero-edge control is not funded
+          funded in 0.8% of paths (limit 10%), mean capital share 0.04% (limit 2%)
+  [PASS]  baseline beats cash after tax
+          median CAGR +1.57%
+  [PASS]  tail risk is bounded
+          P(drawdown >= 20%) = 3.3%
+  [PASS]  survives every stress scenario without ruin
+          worst 5th-percentile year: -24.36% in 'venue_failure'
+  [PASS]  the gate is what keeps the coin-flip strategy out
+          funded in 2% of paths with the gate, 100% without it
+  [PASS]  the gate reduces tail drawdown
+          95th-percentile drawdown 1.9% with the gate vs 3.4% without
+
+  6/6 checks passed in 1060s
+
+  wrote verification_adversarial.json
+BOTH_RUNS_COMPLETE

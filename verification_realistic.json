@@ -1,0 +1,1121 @@
+{
+  "baseline": {
+    "label": "baseline (MONETA, full machinery)",
+    "paths": 120,
+    "cagr_mean": 0.20166842185734934,
+    "cagr_median": 0.20489605161616053,
+    "cagr_p05": 0.1257089356417018,
+    "cagr_p25": 0.1646529841984593,
+    "cagr_p75": 0.24665278520778866,
+    "cagr_p95": 0.2823635222431258,
+    "cagr_ci95": [
+      0.18870781656516844,
+      0.21327436814571607
+    ],
+    "prob_loss": 0.016666666666666666,
+    "prob_ruin_20pct": 0.016666666666666666,
+    "cvar05_cagr": 0.018234280795398645,
+    "median_end": 12418.928988203405,
+    "median_profit": 2110.1200836581083,
+    "max_drawdown_median": 0.02497194380373049,
+    "max_drawdown_p95": 0.04643094095346598,
+    "sharpe_median": 3.559365801689236,
+    "halted_fraction": 0.016666666666666666,
+    "labor_hours_median": 310.3564106218031,
+    "eur_per_labor_hour_median": 6.892871726153453,
+    "labor_meaningful_fraction": 1.0,
+    "tax_paid_median": 0.0,
+    "fees_paid_median": 718.5911211041234,
+    "per_strategy": {
+      "control_null": {
+        "funded_fraction": 0.025,
+        "mean_capital_share": 0.001908017474772231,
+        "mean_pnl": 6.208742361673597,
+        "median_promotion_day": 629.6666666666666
+      },
+      "cross_venue_arb": {
+        "funded_fraction": 0.0,
+        "mean_capital_share": 0.0,
+        "mean_pnl": 0.0,
+        "median_promotion_day": null
+      },
+      "funding_carry": {
+        "funded_fraction": 0.9833333333333333,
+        "mean_capital_share": 0.2302631660236404,
+        "mean_pnl": 111.92154545513246,
+        "median_promotion_day": 71.66666666666667
+      },
+      "retail_arb": {
+        "funded_fraction": 1.0,
+        "mean_capital_share": 0.24585867928836344,
+        "mean_pnl": 2570.9935249950863,
+        "median_promotion_day": 285.6666666666667
+      },
+      "stat_arb_pairs": {
+        "funded_fraction": 0.10833333333333334,
+        "mean_capital_share": 0.01083514124060022,
+        "mean_pnl": 7.846608110041291,
+        "median_promotion_day": 581.6666666666666
+      }
+    }
+  },
+  "capital_curve": {
+    "2000": {
+      "label": "capital=2,000",
+      "paths": 60,
+      "cagr_mean": 0.6049731742202228,
+      "cagr_median": 0.6846747669229912,
+      "cagr_p05": -0.040808061977025765,
+      "cagr_p25": 0.21174573698931948,
+      "cagr_p75": 0.8954426158979248,
+      "cagr_p95": 1.205843785275757,
+      "cagr_ci95": [
+        0.5053979588392787,
+        0.704246487010838
+      ],
+      "prob_loss": 0.08333333333333333,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": -0.0879501537712594,
+      "median_end": 3471.7437890402703,
+      "median_profit": 1409.9820081312005,
+      "max_drawdown_median": 0.07426270042418898,
+      "max_drawdown_p95": 0.12802109027494518,
+      "sharpe_median": 2.95473195034619,
+      "halted_fraction": 0.45,
+      "labor_hours_median": 281.6305923449805,
+      "eur_per_labor_hour_median": 4.7118327837631755,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 530.0468578090072,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.95,
+          "mean_capital_share": 0.1652389665200578,
+          "mean_pnl": 18.427803647462778,
+          "median_promotion_day": 81.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.17930586401560575,
+          "mean_pnl": 1616.536009062131,
+          "median_promotion_day": 256.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.15,
+          "mean_capital_share": 0.014109210083336847,
+          "mean_pnl": 1.9989372123382518,
+          "median_promotion_day": 662.6666666666666
+        }
+      }
+    },
+    "10000": {
+      "label": "capital=10,000",
+      "paths": 60,
+      "cagr_mean": 0.20208771419612281,
+      "cagr_median": 0.2076931563433908,
+      "cagr_p05": 0.13325526795342155,
+      "cagr_p25": 0.17400584589256163,
+      "cagr_p75": 0.24324042259945045,
+      "cagr_p95": 0.2725929739226362,
+      "cagr_ci95": [
+        0.18489618218412612,
+        0.21689900008927154
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.026882876423845015,
+      "median_end": 12447.732529802015,
+      "median_profit": 2138.923625256718,
+      "max_drawdown_median": 0.024392510997718768,
+      "max_drawdown_p95": 0.0416901997762407,
+      "sharpe_median": 3.7042982815685876,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 307.7616205903051,
+      "eur_per_labor_hour_median": 6.928685228596466,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 721.335467395925,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.003816034949544462,
+          "mean_pnl": 12.417484723347194,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22102498702375098,
+          "mean_pnl": 104.11523760960036,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24799249277146818,
+          "mean_pnl": 2583.256769050618,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.015035247600262076,
+          "mean_pnl": 9.804958224974884,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "50000": {
+      "label": "capital=50,000",
+      "paths": 60,
+      "cagr_mean": 0.05200217282629454,
+      "cagr_median": 0.058480498434595796,
+      "cagr_p05": 0.03256158222483215,
+      "cagr_p25": 0.05073973789218478,
+      "cagr_p75": 0.06483738737525058,
+      "cagr_p95": 0.07692260929252294,
+      "cagr_ci95": [
+        0.040151817279511844,
+        0.05923798440725805
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": -0.05707814042079192,
+      "median_end": 54555.53423779232,
+      "median_profit": 3011.4897150653815,
+      "max_drawdown_median": 0.006041443128774493,
+      "max_drawdown_p95": 0.010587278185675772,
+      "sharpe_median": 4.575605057756678,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 312.44686585343334,
+      "eur_per_labor_hour_median": 9.51284265766919,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 1048.5960590130203,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.23734780481307835,
+          "mean_pnl": 566.5503687528728,
+          "median_promotion_day": 88.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.10476682979318976,
+          "mean_pnl": 2583.1823641303185,
+          "median_promotion_day": 274.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.08333333333333333,
+          "mean_capital_share": 0.00760852786657469,
+          "mean_pnl": -19.767150701437412,
+          "median_promotion_day": 893.6666666666666
+        }
+      }
+    },
+    "200000": {
+      "label": "capital=200,000",
+      "paths": 60,
+      "cagr_mean": 0.028858675523273283,
+      "cagr_median": 0.029628847076235698,
+      "cagr_p05": 0.018921599068847585,
+      "cagr_p25": 0.025925205413307062,
+      "cagr_p75": 0.03256744751328844,
+      "cagr_p95": 0.03855642324207568,
+      "cagr_ci95": [
+        0.027341642414063366,
+        0.03027020083501453
+      ],
+      "prob_loss": 0.0,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": 0.01688272377052491,
+      "median_end": 212279.27999726313,
+      "median_profit": 6103.101906355354,
+      "max_drawdown_median": 0.0018934554035696257,
+      "max_drawdown_p95": 0.003156124164256281,
+      "sharpe_median": 7.16469334378208,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 311.45093777256716,
+      "eur_per_labor_hour_median": 19.911156728953003,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 2459.435844425214,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.23776700517766475,
+          "mean_pnl": 2131.680903634614,
+          "median_promotion_day": 107.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.026609811738662923,
+          "mean_pnl": 2635.1867824613587,
+          "median_promotion_day": 274.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.08333333333333333,
+          "mean_capital_share": 0.007581180140095364,
+          "mean_pnl": 60.841626818496636,
+          "median_promotion_day": 740.6666666666666
+        }
+      }
+    }
+  },
+  "stress": {
+    "base": {
+      "label": "base",
+      "paths": 60,
+      "cagr_mean": 0.20208771419612281,
+      "cagr_median": 0.2076931563433908,
+      "cagr_p05": 0.13325526795342155,
+      "cagr_p25": 0.17400584589256163,
+      "cagr_p75": 0.24324042259945045,
+      "cagr_p95": 0.2725929739226362,
+      "cagr_ci95": [
+        0.18489618218412612,
+        0.21689900008927154
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.026882876423845015,
+      "median_end": 12447.732529802015,
+      "median_profit": 2138.923625256718,
+      "max_drawdown_median": 0.024392510997718768,
+      "max_drawdown_p95": 0.0416901997762407,
+      "sharpe_median": 3.7042982815685876,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 307.7616205903051,
+      "eur_per_labor_hour_median": 6.928685228596466,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 721.335467395925,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.003816034949544462,
+          "mean_pnl": 12.417484723347194,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22102498702375098,
+          "mean_pnl": 104.11523760960036,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24799249277146818,
+          "mean_pnl": 2583.256769050618,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.015035247600262076,
+          "mean_pnl": 9.804958224974884,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "crash": {
+      "label": "crash",
+      "paths": 60,
+      "cagr_mean": 0.20111332736852827,
+      "cagr_median": 0.2067145050868795,
+      "cagr_p05": 0.12755478223729996,
+      "cagr_p25": 0.17041525678175273,
+      "cagr_p75": 0.24336364660158982,
+      "cagr_p95": 0.27144729374701887,
+      "cagr_ci95": [
+        0.18388762150219287,
+        0.21602601550613543
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.024793295776877056,
+      "median_end": 12437.654731764946,
+      "median_profit": 2128.8458272196503,
+      "max_drawdown_median": 0.0243908485380804,
+      "max_drawdown_p95": 0.04170181360540062,
+      "sharpe_median": 3.703598940335957,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 307.7616205903051,
+      "eur_per_labor_hour_median": 6.918501920791225,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 719.2931028085368,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.003395808241105612,
+          "mean_pnl": 1.8581788503095984,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.2214458645705887,
+          "mean_pnl": 101.42491199305054,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24799313886523205,
+          "mean_pnl": 2583.905054533449,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.015035248919107649,
+          "mean_pnl": 9.804727701164166,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "funding_flip": {
+      "label": "funding_flip",
+      "paths": 60,
+      "cagr_mean": 0.19994011240945714,
+      "cagr_median": 0.19808893342218803,
+      "cagr_p05": 0.12819210618399218,
+      "cagr_p25": 0.1627532880217234,
+      "cagr_p75": 0.23450138918021468,
+      "cagr_p95": 0.2722346160866735,
+      "cagr_ci95": [
+        0.18694852505550927,
+        0.21264085118101914
+      ],
+      "prob_loss": 0.0,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": 0.10890456558683399,
+      "median_end": 12348.831538266422,
+      "median_profit": 2040.0226337211252,
+      "max_drawdown_median": 0.024727721337624454,
+      "max_drawdown_p95": 0.04491366661943814,
+      "sharpe_median": 3.4840194673807074,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 310.6795833305351,
+      "eur_per_labor_hour_median": 6.687457215996929,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 693.093253578116,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.001786673565042875,
+          "mean_pnl": -5.087305013995956,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22540619739608184,
+          "mean_pnl": 3.2257290700125987,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24925134991671624,
+          "mean_pnl": 2616.105770570207,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.11666666666666667,
+          "mean_capital_share": 0.01379585125661059,
+          "mean_pnl": 5.998917666779013,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "venue_failure": {
+      "label": "venue_failure",
+      "paths": 60,
+      "cagr_mean": -0.16193626803475836,
+      "cagr_median": -0.17537324431345924,
+      "cagr_p05": -0.212460049607996,
+      "cagr_p25": -0.1912871811242698,
+      "cagr_p75": -0.15948189824408793,
+      "cagr_p95": -0.10678438946095482,
+      "cagr_ci95": [
+        -0.1784706979119128,
+        -0.1387285110215923
+      ],
+      "prob_loss": 0.9666666666666667,
+      "prob_ruin_20pct": 0.9666666666666667,
+      "cvar05_cagr": -0.22729518351178857,
+      "median_end": 8502.416736600328,
+      "median_profit": -1806.3921679449686,
+      "max_drawdown_median": 0.2551781183838162,
+      "max_drawdown_p95": 0.2730695889949907,
+      "sharpe_median": -0.5977116036724024,
+      "halted_fraction": 0.9666666666666667,
+      "labor_hours_median": 222.75954146699644,
+      "eur_per_labor_hour_median": -8.308174243006114,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 403.52758542762336,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.001430341537402623,
+          "mean_pnl": -1.2327818658620682,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.09249600116756292,
+          "mean_pnl": -224.72492710611033,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.10755902163882163,
+          "mean_pnl": 1231.103085369475,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.11666666666666667,
+          "mean_capital_share": 0.0054932503044507345,
+          "mean_pnl": -3.146079821592419,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "venue_failure_secondary": {
+      "label": "venue_failure_secondary",
+      "paths": 60,
+      "cagr_mean": 0.1921404021170921,
+      "cagr_median": 0.19252398673037951,
+      "cagr_p05": 0.09677307445128375,
+      "cagr_p25": 0.1614670920366314,
+      "cagr_p75": 0.22160355189029418,
+      "cagr_p95": 0.2841365032680583,
+      "cagr_ci95": [
+        0.17789408172647833,
+        0.2057747083995742
+      ],
+      "prob_loss": 0.0,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": 0.07647735916972831,
+      "median_end": 12291.525294722796,
+      "median_profit": 1982.7163901775011,
+      "max_drawdown_median": 0.02675640057436691,
+      "max_drawdown_p95": 0.03927605250286923,
+      "sharpe_median": 3.280110179295462,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 308.9838121018738,
+      "eur_per_labor_hour_median": 6.440891116184013,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 716.7140872411127,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.003428139286304664,
+          "mean_pnl": 3.0580649103763053,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22172992186187215,
+          "mean_pnl": 106.46324918873235,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24925984279394567,
+          "mean_pnl": 2392.712127568474,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.15,
+          "mean_capital_share": 0.01597121547587073,
+          "mean_pnl": 6.761140143815059,
+          "median_promotion_day": 581.6666666666666
+        }
+      }
+    },
+    "fee_shock": {
+      "label": "fee_shock",
+      "paths": 60,
+      "cagr_mean": 0.10309118580008332,
+      "cagr_median": 0.10746188548427671,
+      "cagr_p05": 0.008804961019561597,
+      "cagr_p25": 0.07475299603512664,
+      "cagr_p75": 0.13865174433769661,
+      "cagr_p95": 0.18119115154879742,
+      "cagr_ci95": [
+        0.08918160385244342,
+        0.11588805998891702
+      ],
+      "prob_loss": 0.03333333333333333,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": -0.0018062640621507864,
+      "median_end": 11415.548792515194,
+      "median_profit": 1106.7398879698976,
+      "max_drawdown_median": 0.01693871379023687,
+      "max_drawdown_p95": 0.04123937614139895,
+      "sharpe_median": 2.5661374322368866,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 239.77290099936369,
+      "eur_per_labor_hour_median": 4.260120681804382,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 582.074143581598,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.016666666666666666,
+          "mean_capital_share": 0.0006804479411840404,
+          "mean_pnl": -0.8211876702270499,
+          "median_promotion_day": 206.66666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.22681865051361738,
+          "mean_pnl": 42.978286646701456,
+          "median_promotion_day": 83.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.21858062668090558,
+          "mean_pnl": 1252.8693051967198,
+          "median_promotion_day": 441.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.013874320223203724,
+          "mean_pnl": 1.441888590137642,
+          "median_promotion_day": 710.6666666666666
+        }
+      }
+    },
+    "cointegration_break": {
+      "label": "cointegration_break",
+      "paths": 60,
+      "cagr_mean": 0.21298552443526717,
+      "cagr_median": 0.210285476768986,
+      "cagr_p05": 0.15158739417726855,
+      "cagr_p25": 0.18399394013871861,
+      "cagr_p75": 0.23945833233421604,
+      "cagr_p95": 0.29368108180920305,
+      "cagr_ci95": [
+        0.20202752548951688,
+        0.2251258416348166
+      ],
+      "prob_loss": 0.0,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": 0.12578727762229822,
+      "median_end": 12474.42723869888,
+      "median_profit": 2165.6183341535834,
+      "max_drawdown_median": 0.02612245147629076,
+      "max_drawdown_p95": 0.03895453235235444,
+      "sharpe_median": 3.5552749623942774,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 309.3297120899664,
+      "eur_per_labor_hour_median": 6.895369071802163,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 739.7313456547724,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.0016270125012270054,
+          "mean_pnl": -4.8539997747094015,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22706648816674174,
+          "mean_pnl": 107.40756914567223,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24926474615227073,
+          "mean_pnl": 2684.19406582262,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.012414807676406757,
+          "mean_pnl": 7.588005911757392,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "high_vol": {
+      "label": "high_vol",
+      "paths": 60,
+      "cagr_mean": 0.21045299817650845,
+      "cagr_median": 0.2205607314283472,
+      "cagr_p05": 0.07557520563761892,
+      "cagr_p25": 0.1926482672954533,
+      "cagr_p75": 0.2598944478387034,
+      "cagr_p95": 0.3182462253722157,
+      "cagr_ci95": [
+        0.1872149228556871,
+        0.23179923100973598
+      ],
+      "prob_loss": 0.03333333333333333,
+      "prob_ruin_20pct": 0.03333333333333333,
+      "cvar05_cagr": -0.08985593050991159,
+      "median_end": 12580.237288098024,
+      "median_profit": 2271.4283835527276,
+      "max_drawdown_median": 0.02691929720240939,
+      "max_drawdown_p95": 0.05498997745471334,
+      "sharpe_median": 3.682825381258168,
+      "halted_fraction": 0.03333333333333333,
+      "labor_hours_median": 317.2799720769036,
+      "eur_per_labor_hour_median": 6.967709465548177,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 730.8237554141067,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 1.567930304264069e-05,
+          "mean_pnl": -0.5941202160535527,
+          "median_promotion_day": 102.66666666666667
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.007720299605538777,
+          "mean_pnl": -11.363419625110968,
+          "median_promotion_day": 719.6666666666666
+        },
+        "funding_carry": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.21385305651228775,
+          "mean_pnl": 83.03585318055194,
+          "median_promotion_day": 100.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24246310070822769,
+          "mean_pnl": 2804.0073240748925,
+          "median_promotion_day": 255.66666666666666
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.2833333333333333,
+          "mean_capital_share": 0.025081317780216463,
+          "mean_pnl": 5.647877840209767,
+          "median_promotion_day": 790.6666666666666
+        }
+      }
+    },
+    "everything": {
+      "label": "everything",
+      "paths": 60,
+      "cagr_mean": 0.09663800417035676,
+      "cagr_median": 0.11276329401530427,
+      "cagr_p05": -0.010951365470190957,
+      "cagr_p25": 0.07287017172352789,
+      "cagr_p75": 0.1352810693960973,
+      "cagr_p95": 0.18218222966176936,
+      "cagr_ci95": [
+        0.07460854825123416,
+        0.11398991052765389
+      ],
+      "prob_loss": 0.06666666666666667,
+      "prob_ruin_20pct": 0.05,
+      "cvar05_cagr": -0.1711890291647942,
+      "median_end": 11470.14482673292,
+      "median_profit": 1161.3359221876235,
+      "max_drawdown_median": 0.02025185725565275,
+      "max_drawdown_p95": 0.0641797574823165,
+      "sharpe_median": 2.6379190359223132,
+      "halted_fraction": 0.05,
+      "labor_hours_median": 262.7326599394561,
+      "eur_per_labor_hour_median": 4.2254625516862685,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 535.8750177631125,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.22070959628352066,
+          "mean_pnl": 1.9320751939655514,
+          "median_promotion_day": 67.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.23963017031576284,
+          "mean_pnl": 1392.2636653666837,
+          "median_promotion_day": 405.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.2,
+          "mean_capital_share": 0.019580170633634982,
+          "mean_pnl": 5.111456081257244,
+          "median_promotion_day": 657.6666666666666
+        }
+      }
+    }
+  },
+  "ablation": {
+    "full": {
+      "label": "MONETA (all mechanisms)",
+      "paths": 60,
+      "cagr_mean": 0.20208771419612281,
+      "cagr_median": 0.2076931563433908,
+      "cagr_p05": 0.13325526795342155,
+      "cagr_p25": 0.17400584589256163,
+      "cagr_p75": 0.24324042259945045,
+      "cagr_p95": 0.2725929739226362,
+      "cagr_ci95": [
+        0.18489618218412612,
+        0.21689900008927154
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.026882876423845015,
+      "median_end": 12447.732529802015,
+      "median_profit": 2138.923625256718,
+      "max_drawdown_median": 0.024392510997718768,
+      "max_drawdown_p95": 0.0416901997762407,
+      "sharpe_median": 3.7042982815685876,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 307.7616205903051,
+      "eur_per_labor_hour_median": 6.928685228596466,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 721.335467395925,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.003816034949544462,
+          "mean_pnl": 12.417484723347194,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.22102498702375098,
+          "mean_pnl": 104.11523760960036,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24799249277146818,
+          "mean_pnl": 2583.256769050618,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.015035247600262076,
+          "mean_pnl": 9.804958224974884,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "no promotion gate (deploy immediately)": {
+      "label": "no promotion gate (deploy immediately)",
+      "paths": 60,
+      "cagr_mean": 0.20257018505035698,
+      "cagr_median": 0.2097915497003846,
+      "cagr_p05": 0.11051183206351982,
+      "cagr_p25": 0.1718743560194146,
+      "cagr_p75": 0.24487343482258722,
+      "cagr_p95": 0.2887194520641731,
+      "cagr_ci95": [
+        0.18466992940972968,
+        0.21895810769726173
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.03162051222185761,
+      "median_end": 12469.340887912942,
+      "median_profit": 2160.531983367646,
+      "max_drawdown_median": 0.02406200665999969,
+      "max_drawdown_p95": 0.04388367407554878,
+      "sharpe_median": 3.737239651359824,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 590.9840702723984,
+      "eur_per_labor_hour_median": 3.71468272505986,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 722.8710003768099,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.1,
+          "mean_capital_share": 0.004010403225428909,
+          "mean_pnl": -7.873344394114752,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.05,
+          "mean_capital_share": 0.001187379674319515,
+          "mean_pnl": -3.2682276977438836,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9833333333333333,
+          "mean_capital_share": 0.15385598343078877,
+          "mean_pnl": 63.57508885492841,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.24814287067967247,
+          "mean_pnl": 2642.8374828613687,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.08927716000367354,
+          "mean_pnl": 26.986290341695632,
+          "median_promotion_day": 0.6666666666666666
+        }
+      }
+    },
+    "no Kelly sizing (flat allocations)": {
+      "label": "no Kelly sizing (flat allocations)",
+      "paths": 60,
+      "cagr_mean": 0.2024763267612646,
+      "cagr_median": 0.2079292480770779,
+      "cagr_p05": 0.13354785012953055,
+      "cagr_p25": 0.17757242297809267,
+      "cagr_p75": 0.24039398647077082,
+      "cagr_p95": 0.2710315976845972,
+      "cagr_ci95": [
+        0.18670410124293774,
+        0.21618096955309862
+      ],
+      "prob_loss": 0.016666666666666666,
+      "prob_ruin_20pct": 0.016666666666666666,
+      "cvar05_cagr": 0.04559282693842145,
+      "median_end": 12450.163708922913,
+      "median_profit": 2141.3548043776173,
+      "max_drawdown_median": 0.024253760892803275,
+      "max_drawdown_p95": 0.040459123770222885,
+      "sharpe_median": 3.682073793562798,
+      "halted_fraction": 0.016666666666666666,
+      "labor_hours_median": 307.7616205903051,
+      "eur_per_labor_hour_median": 6.964604618111963,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 702.8843299406908,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 0.06666666666666667,
+          "mean_capital_share": 0.00688443441900415,
+          "mean_pnl": 12.079905923811896,
+          "median_promotion_day": 629.6666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 0.0,
+          "mean_capital_share": 0.0,
+          "mean_pnl": 0.0,
+          "median_promotion_day": null
+        },
+        "funding_carry": {
+          "funded_fraction": 0.9666666666666667,
+          "mean_capital_share": 0.17877173478203132,
+          "mean_pnl": 83.68176768986503,
+          "median_promotion_day": 80.66666666666667
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.19850194678896024,
+          "mean_pnl": 2575.8910285325373,
+          "median_promotion_day": 287.6666666666667
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 0.13333333333333333,
+          "mean_capital_share": 0.014557915048742176,
+          "mean_pnl": 9.916520305958965,
+          "median_promotion_day": 579.6666666666666
+        }
+      }
+    },
+    "uniform split, no gate, no Kelly": {
+      "label": "uniform split, no gate, no Kelly",
+      "paths": 60,
+      "cagr_mean": 0.18071610831170118,
+      "cagr_median": 0.18953362232520155,
+      "cagr_p05": 0.0834035022574127,
+      "cagr_p25": 0.13957722700078923,
+      "cagr_p75": 0.2217910018163639,
+      "cagr_p95": 0.25869616434031306,
+      "cagr_ci95": [
+        0.1663004361032128,
+        0.19450114059151127
+      ],
+      "prob_loss": 0.0,
+      "prob_ruin_20pct": 0.0,
+      "cvar05_cagr": 0.05923675686424638,
+      "median_end": 12260.731275198952,
+      "median_profit": 1951.922370653656,
+      "max_drawdown_median": 0.026855574834667627,
+      "max_drawdown_p95": 0.051456344041747794,
+      "sharpe_median": 3.174113632032105,
+      "halted_fraction": 0.0,
+      "labor_hours_median": 643.8454919646061,
+      "eur_per_labor_hour_median": 3.034350141845258,
+      "labor_meaningful_fraction": 1.0,
+      "tax_paid_median": 0.0,
+      "fees_paid_median": 1030.117637884876,
+      "per_strategy": {
+        "control_null": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.07042524169991414,
+          "mean_pnl": -16.63633396479819,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "cross_venue_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.07096383718169777,
+          "mean_pnl": -285.53046809529616,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "funding_carry": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.07177646554981526,
+          "mean_pnl": 32.65271830032068,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "retail_arb": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.17062157274941556,
+          "mean_pnl": 2732.513520488918,
+          "median_promotion_day": 0.6666666666666666
+        },
+        "stat_arb_pairs": {
+          "funded_fraction": 1.0,
+          "mean_capital_share": 0.07177646554981526,
+          "mean_pnl": 25.488104393069815,
+          "median_promotion_day": 0.6666666666666666
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "zero-edge control is not funded",
+      "passed": true,
+      "detail": "funded in 2.5% of paths (limit 10%), mean capital share 0.19% (limit 2%)"
+    },
+    {
+      "name": "baseline beats cash after tax",
+      "passed": true,
+      "detail": "median CAGR +20.49%"
+    },
+    {
+      "name": "tail risk is bounded",
+      "passed": true,
+      "detail": "P(drawdown >= 20%) = 1.7%"
+    },
+    {
+      "name": "survives every stress scenario without ruin",
+      "passed": true,
+      "detail": "worst 5th-percentile year: -21.25% in 'venue_failure'"
+    },
+    {
+      "name": "the gate is what keeps the coin-flip strategy out",
+      "passed": true,
+      "detail": "funded in 5% of paths with the gate, 100% without it"
+    },
+    {
+      "name": "the gate reduces tail drawdown",
+      "passed": true,
+      "detail": "95th-percentile drawdown 4.2% with the gate vs 4.4% without"
+    }
+  ],
+  "all_passed": true
+}
