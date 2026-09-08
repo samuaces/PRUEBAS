@@ -221,6 +221,46 @@ async function run(w,d){
   ok('la grabación termina sola',stopped&&!d.getElementById('video').classList.contains('rec'));
   w.MediaRecorder=RealRec;
 
+  // --- selección múltiple ---
+  d.querySelector('[data-tool="select"]').click();await raf();
+  // dejamos tres conos juntos en una esquina despejada
+  d.querySelector('[data-place="cone"]').click();await raf();
+  var base=[[180,560],[240,560],[300,560]];
+  for(var ci=0;ci<base.length;ci++){
+    pointerAt(w,cv,base[ci][0],base[ci][1],'pointerdown');
+    pointerAt(w,cv,base[ci][0],base[ci][1],'pointerup');await raf();
+  }
+  d.querySelector('[data-tool="select"]').click();await raf();
+  pointerAt(w,cv,140,510,'pointerdown');
+  pointerAt(w,cv,250,540,'pointermove');
+  pointerAt(w,cv,340,610,'pointermove');
+  pointerAt(w,cv,340,610,'pointerup');await raf();
+  var bar=d.querySelector('#inspector .name');
+  ok('el recuadro selecciona varias piezas',!!bar&&/seleccionados/.test(bar.textContent),
+     bar?bar.textContent:'sin barra de grupo');
+
+  var antesG=region(cv,240,560,60);
+  pointerAt(w,cv,240,560,'pointerdown');
+  pointerAt(w,cv,240,470,'pointermove');
+  pointerAt(w,cv,240,470,'pointerup');await raf();
+  ok('arrastrar mueve todo el grupo a la vez',region(cv,240,560,60)!==antesG);
+
+  d.querySelector('#g-del').click();await raf();
+  ok('se puede borrar el grupo entero',!d.getElementById('inspector').classList.contains('show'));
+
+  // --- hoja de sesión ---
+  var opened=null,oldOpen=w.open;
+  w.open=function(){ opened={html:'',document:{write:function(h){opened.html+=h;},close:function(){}},
+    focus:function(){},print:function(){opened.printed=true;}}; return opened; };
+  d.getElementById('sheet').click();await wait(150);
+  ok('la hoja de sesión pide un título',d.getElementById('dlg-ask').open);
+  d.getElementById('ask-ok').click();
+  await wait(900);
+  w.open=oldOpen;
+  ok('la hoja se genera con los fotogramas',!!opened&&/data:image\/png/.test(opened.html),
+     opened?String(opened.html.length)+' caracteres':'no se abrió');
+  ok('la hoja se manda a imprimir',!!opened&&opened.printed===true);
+
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
 function report(){document.getElementById('out').textContent=log.join('\n')+

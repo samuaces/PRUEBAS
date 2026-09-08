@@ -39,6 +39,13 @@ hacen arrastrando por el recorrido real, no punto a punto.
 las fichas, se añade otro fotograma y al reproducir la pizarra interpola el movimiento con
 suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 
+**Selección múltiple.** Arrastrando sobre una zona vacía se dibuja un recuadro que
+selecciona todas las piezas de dentro; a partir de ahí se mueven, duplican o borran en
+bloque. Es lo que permite recolocar una línea entera de un arrastre.
+
+**Hoja de sesión.** Saca todos los fotogramas de la jugada en una página imprimible, con
+título, modalidad, fecha y un recuadro para anotaciones.
+
 **Vídeo.** La jugada animada se graba en el propio navegador (MediaRecorder sobre un
 lienzo aparte a 1280 px) y se descarga como archivo de vídeo, sin marca de agua y sin
 pasar por ningún servidor.
@@ -51,7 +58,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 
 `V` mover · `A` pase · `S` carrera · `D` conducción · `F` línea · `Z` zona · `E` borrar ·
 `Supr` eliminar la selección · `Espacio` reproducir o pausar · `Esc` volver a mover ·
-`M` regla · `R` girar la pieza seleccionada · `+` / `-` / `0` zoom ·
+`M` regla · arrastrar en vacío para seleccionar varias · `R` girar la pieza seleccionada · `+` / `-` / `0` zoom ·
 `Ctrl+Z` / `Ctrl+Mayús+Z` deshacer y rehacer.
 
 ## Estructura
@@ -133,10 +140,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 48 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 54 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
-modalidades de campo, deshacer y rehacer, formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
+modalidades de campo, la selección múltiple, la hoja de sesión, deshacer y rehacer,
+formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento

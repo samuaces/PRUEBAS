@@ -132,6 +132,7 @@
     width: 0.32,             // grosor del trazo en metros
     snap: false,
     sel: null,               // id del objeto seleccionado
+    multi: [],               // ids seleccionados en grupo
     playing: false,
     speed: 1,
     loop: false,
@@ -154,7 +155,7 @@
   function restore(json) {
     doc = JSON.parse(json);
     ui.frame = clamp(ui.frame, 0, doc.frames.length - 1);
-    ui.sel = null;
+    ui.sel = null; ui.multi = [];
     syncViewButtons();
     buildFrames();
     hideInspector();
@@ -810,7 +811,9 @@
     f.objects.forEach(function (o) { if (o.kind === 'player' || o.kind === 'ball' || o.kind === 'text') drawObject(ctx, T, o); });
 
     if (drawing) drawStroke(ctx, T, drawing);
+    if (ui.multi.length) drawGroup(ctx, T);
     if (ui.sel) drawSelection(ctx, T, byId(ui.sel));
+    if (drag && drag.mode === 'marquee') drawMarquee(ctx, T, drag);
     ctx.restore();
   }
 
@@ -853,6 +856,39 @@
       c.lineTo(HANDLE_R * 0.12, -d - HANDLE_R * 0.12);
       c.stroke();
     }
+    c.restore();
+  }
+
+  // Recuadro que se arrastra sobre el campo para seleccionar varias piezas.
+  function drawMarquee(c, t, d) {
+    var x = Math.min(d.x0, d.x1) * t.s + t.ox, y = Math.min(d.y0, d.y1) * t.s + t.oy;
+    var w = Math.abs(d.x1 - d.x0) * t.s, h = Math.abs(d.y1 - d.y0) * t.s;
+    c.save();
+    c.fillStyle = 'rgba(0,226,126,.12)';
+    c.strokeStyle = '#00E27E';
+    c.lineWidth = 1.6;
+    c.setLineDash([6, 4]);
+    c.fillRect(x, y, w, h);
+    c.strokeRect(x, y, w, h);
+    c.restore();
+  }
+
+  function drawGroup(c, t) {
+    c.save();
+    c.strokeStyle = '#00E27E';
+    c.lineWidth = 2;
+    c.setLineDash([4, 4]);
+    ui.multi.forEach(function (id) {
+      var o = byId(id);
+      if (!o) return;
+      var k = dims(o), u = t.s;
+      c.save();
+      c.translate(o.x * u + t.ox, o.y * u + t.oy);
+      c.rotate((o.rot || 0) * Math.PI / 180);
+      if (k.r != null) { c.beginPath(); c.arc(0, 0, k.r * u + 6, 0, 7); c.stroke(); }
+      else c.strokeRect(-k.w * u / 2 - 5, -k.h * u / 2 - 5, k.w * u + 10, k.h * u + 10);
+      c.restore();
+    });
     c.restore();
   }
 
@@ -986,13 +1022,28 @@
         }
       }
       var hit = hitObject(m);
+      if (hit && ui.multi.indexOf(hit.id) >= 0) {
+        // arrastrar el grupo entero
+        drag = {
+          mode: 'group', moved: false,
+          items: ui.multi.map(function (id) {
+            var o = byId(id);
+            return o ? { o: o, dx: o.x - m.x, dy: o.y - m.y } : null;
+          }).filter(Boolean)
+        };
+        draw();
+        return;
+      }
       if (hit) {
+        ui.multi = [];
         ui.sel = hit.id;
         drag = { mode: 'move', o: hit, dx: hit.x - m.x, dy: hit.y - m.y, moved: false };
         showInspector(hit);
       } else {
         ui.sel = null;
+        ui.multi = [];
         hideInspector();
+        drag = { mode: 'marquee', x0: m.x, y0: m.y, x1: m.x, y1: m.y, moved: false };
       }
       draw();
       return;
@@ -1025,6 +1076,21 @@
     var m = pointer(e);
 
     if (drag) {
+      if (drag.mode === 'marquee') {
+        drag.x1 = m.x; drag.y1 = m.y;
+        drag.moved = true;
+        draw();
+        return;
+      }
+      if (drag.mode === 'group') {
+        drag.items.forEach(function (it) {
+          it.o.x = clamp(snap(m.x + it.dx), -6, PITCH().L + 6);
+          it.o.y = clamp(snap(m.y + it.dy), -6, PITCH().W + 6);
+        });
+        drag.moved = true;
+        draw();
+        return;
+      }
       if (drag.mode === 'move') {
         drag.o.x = clamp(snap(m.x + drag.dx), -6, PITCH().L + 6);
         drag.o.y = clamp(snap(m.y + drag.dy), -6, PITCH().W + 6);
@@ -1061,6 +1127,13 @@
       return;
     }
     if (drag) {
+      if (drag.mode === 'marquee') {
+        var d0 = drag;
+        drag = null;
+        if (d0.moved && Math.abs(d0.x1 - d0.x0) > 1 && Math.abs(d0.y1 - d0.y0) > 1) selectInside(d0);
+        draw();
+        return;
+      }
       if (drag.moved) commit();
       if (drag.mode === 'rotate') hint('');
       drag = null;
@@ -1078,6 +1151,46 @@
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
+
+  function selectInside(r) {
+    var x0 = Math.min(r.x0, r.x1), x1 = Math.max(r.x0, r.x1);
+    var y0 = Math.min(r.y0, r.y1), y1 = Math.max(r.y0, r.y1);
+    var ids = frame().objects.filter(function (o) {
+      return o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1;
+    }).map(function (o) { return o.id; });
+
+    if (ids.length === 1) { ui.multi = []; ui.sel = ids[0]; showInspector(byId(ids[0])); return; }
+    ui.multi = ids;
+    ui.sel = null;
+    if (ids.length) showGroupBar(); else hideInspector();
+  }
+
+  function showGroupBar() {
+    insp.innerHTML =
+      '<span class="name">' + ui.multi.length + ' seleccionados</span><span class="div"></span>' +
+      '<button class="ibtn" id="g-dup" aria-label="Duplicar la selección" title="Duplicar">' + icon('copy') + '</button>' +
+      '<button class="ibtn danger" id="g-del" aria-label="Eliminar la selección" title="Eliminar">' + icon('trash') + '</button>';
+    insp.classList.add('show');
+    $('#g-dup', insp).addEventListener('click', function () {
+      var copies = ui.multi.map(function (id) {
+        var o = byId(id); if (!o) return null;
+        var c = clone(o); c.id = uid(); c.x += 3; c.y += 3;
+        return c;
+      }).filter(Boolean);
+      copies.forEach(function (c) { frame().objects.push(c); });
+      ui.multi = copies.map(function (c) { return c.id; });
+      showGroupBar(); commit(); draw();
+    });
+    $('#g-del', insp).addEventListener('click', function () {
+      var a = frame().objects;
+      ui.multi.forEach(function (id) {
+        var o = byId(id), i = o ? a.indexOf(o) : -1;
+        if (i >= 0) a.splice(i, 1);
+      });
+      ui.multi = []; hideInspector(); commit(); draw();
+    });
+    hint('Arrastra cualquiera de las piezas para mover todo el grupo');
+  }
 
   canvas.addEventListener('wheel', function (e) {
     if (ui.playing) return;
@@ -1141,7 +1254,7 @@
     var a = frame().objects, i = a.indexOf(o);
     if (i < 0) return;
     a.splice(i, 1);
-    if (ui.sel === o.id) { ui.sel = null; hideInspector(); }
+    if (ui.sel === o.id) { ui.sel = null; ui.multi = []; hideInspector(); }
     commit(); draw();
   }
 
@@ -1233,7 +1346,7 @@
   function setTool(tool, place) {
     ui.tool = tool;
     ui.place = place || null;
-    if (tool !== 'select') { ui.sel = null; hideInspector(); }
+    if (tool !== 'select') { ui.sel = null; ui.multi = []; hideInspector(); }
     $$('[data-tool]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.tool === tool && !place); });
     $$('[data-place]').forEach(function (b) {
       b.setAttribute('aria-pressed', !!(place && b.dataset.place === place.kind && (!place.team || b.dataset.team === place.team)));
@@ -1323,7 +1436,7 @@
         num: nums[i] != null ? nums[i] : i + 1, rot: 0
       });
     });
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     commit(); draw();
     toast('Formación ' + name + ' aplicada · ' + (team === 'home' ? 'local' : 'visitante'));
   }
@@ -1358,14 +1471,14 @@
   function gotoFrame(i) {
     stop();
     ui.frame = clamp(i, 0, doc.frames.length - 1);
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     buildFrames(); draw();
   }
   function addFrame() {
     stop();
     doc.frames.splice(ui.frame + 1, 0, clone(frame()));
     ui.frame++;
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     commit(); buildFrames(); draw();
     toast('Fotograma ' + (ui.frame + 1) + ' añadido — mueve las fichas y pulsa reproducir');
   }
@@ -1374,14 +1487,14 @@
     stop();
     doc.frames.splice(ui.frame, 1);
     ui.frame = clamp(ui.frame, 0, doc.frames.length - 1);
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     commit(); buildFrames(); draw();
   }
 
   function play() {
     if (doc.frames.length < 2) return;
     ui.playing = true;
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     anim = { seg: 0, t0: performance.now() };
     $('#play').innerHTML = icoPause();
     $('#play').setAttribute('aria-label', 'Pausar');
@@ -1496,23 +1609,74 @@
      Guardar, abrir y exportar
      ====================================================================== */
 
-  function exportPNG() {
+  // Pinta un fotograma completo en un lienzo nuevo, a la anchura que se pida.
+  function renderFrame(index, W) {
     var view = viewRect();
     var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
-    var W = 2400, H = Math.round(W * vh / vw);
+    var H = Math.round(W * vh / vw);
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var c = cv.getContext('2d');
     var t = transformFor(W, H, view);
     var keepAnim = anim; anim = null;
     drawPitch(c, t, view);
-    var f = frame();
+    var f = doc.frames[clamp(index, 0, doc.frames.length - 1)];
     f.strokes.forEach(function (s) { if (s.tool === 'zone') drawStrokeOn(c, t, s); });
     f.objects.forEach(function (o) { if (o.kind !== 'player' && o.kind !== 'ball' && o.kind !== 'text') drawObjectOn(c, t, o); });
     f.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStrokeOn(c, t, s); });
     f.objects.forEach(function (o) { if (o.kind === 'player' || o.kind === 'ball' || o.kind === 'text') drawObjectOn(c, t, o); });
     anim = keepAnim;
-    cv.toBlob(function (b) { download(b, 'pizarra-tactica-' + (ui.frame + 1) + '.png'); });
+    return cv;
+  }
+
+  function exportPNG() {
+    renderFrame(ui.frame, 2400).toBlob(function (b) {
+      download(b, 'pizarra-tactica-' + (ui.frame + 1) + '.png');
+    });
+  }
+
+  // ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
+  function printSheet() {
+    ask({ title: 'Hoja de sesión', input: 'Sesión del martes', placeholder: 'Título de la sesión', ok: 'Preparar' })
+      .then(function (title) {
+        if (title === null) return;
+        var P = PITCH();
+        var imgs = doc.frames.map(function (f, i) {
+          return '<figure><img src="' + renderFrame(i, 1100).toDataURL('image/png') + '" alt="Fotograma ' + (i + 1) + '">' +
+                 '<figcaption>' + (doc.frames.length > 1 ? 'Fotograma ' + (i + 1) : 'Esquema') + '</figcaption></figure>';
+        }).join('');
+
+        var win = window.open('', '_blank');
+        if (!win) { toast('Permite las ventanas emergentes para imprimir la hoja'); return; }
+        win.document.write(
+          '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+          '<title>' + (title || 'Hoja de sesión') + '</title><style>' +
+          '@page{margin:14mm}' +
+          'body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#111}' +
+          'header{display:flex;justify-content:space-between;align-items:baseline;' +
+          'border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}' +
+          'h1{font-size:20px;margin:0}' +
+          'header span{font-size:12px;color:#555}' +
+          '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}' +
+          '.grid.one{grid-template-columns:1fr}' +
+          'figure{margin:0;break-inside:avoid}' +
+          'img{width:100%;display:block;border:1px solid #ccc;border-radius:4px}' +
+          'figcaption{font-size:11px;color:#555;margin-top:4px}' +
+          'footer{margin-top:18px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#666}' +
+          '.notes{margin-top:16px;border:1px solid #ccc;border-radius:4px;height:70px}' +
+          '</style></head><body>' +
+          '<header><h1>' + (title || 'Hoja de sesión') + '</h1>' +
+          '<span>' + PITCHES[doc.pitch].label + ' · ' + P.L + ' × ' + P.W + ' m · ' +
+          new Date().toLocaleDateString('es-ES') + '</span></header>' +
+          '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +
+          '<div class="notes"></div>' +
+          '<footer>Pizarra Táctica</footer>' +
+          '</body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(function () { win.print(); }, 400);
+        toast('Hoja de sesión preparada');
+      });
   }
 
   // Variantes que aceptan una transformación distinta a la de pantalla.
@@ -1742,7 +1906,7 @@
         st.pts.forEach(function (pt) { pt.x *= fx; pt.y *= fy; });
       });
     });
-    ui.sel = null; hideInspector();
+    ui.sel = null; ui.multi = []; hideInspector();
     ui.zoom = 1; ui.panX = 0; ui.panY = 0;
     syncViewButtons(); commit(); resize();
     toast(to.label + ' · ' + to.L + ' × ' + to.W + ' m');
@@ -1795,7 +1959,7 @@
         .then(function (yes) {
           if (!yes) return;
           doc.frames[ui.frame] = emptyFrame();
-          ui.sel = null; hideInspector(); commit(); draw();
+          ui.sel = null; ui.multi = []; hideInspector(); commit(); draw();
         });
     });
     $('#reset').addEventListener('click', function () {
@@ -1803,7 +1967,7 @@
         .then(function (yes) {
           if (!yes) return;
           doc = { pitch: doc.pitch, view: doc.view, frames: [emptyFrame()] };
-          ui.frame = 0; ui.sel = null; hideInspector();
+          ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
           commit(); buildFrames(); draw();
         });
     });
@@ -1826,6 +1990,7 @@
     });
 
     $('#png').addEventListener('click', exportPNG);
+    $('#sheet').addEventListener('click', printSheet);
     $('#video').addEventListener('click', function () {
       if (recording) return;
       exportVideo();
@@ -1882,13 +2047,15 @@
       if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
       if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
       if (e.ctrlKey || e.metaKey) return;
-      if (k === 'escape') { setTool('select'); return; }
+      if (k === 'escape') { ui.multi = []; setTool('select'); return; }
       if (k === '+' || k === '=') { setZoom(ui.zoom * 1.25); return; }
       if (k === '-') { setZoom(ui.zoom / 1.25); return; }
       if (k === '0') { resetView(); return; }
       if (k === ' ') { e.preventDefault(); ui.playing ? stop() : play(); return; }
       if (k === 'delete' || k === 'backspace') {
-        if (ui.sel) { e.preventDefault(); removeObject(byId(ui.sel)); }
+        e.preventDefault();
+        if (ui.multi.length) { $('#g-del', insp) && $('#g-del', insp).click(); }
+        else if (ui.sel) removeObject(byId(ui.sel));
         return;
       }
       if (k === 'r' && ui.sel) {
