@@ -17,13 +17,28 @@
      1. Constantes y utilidades
      ====================================================================== */
 
-  var PITCH = { L: 105, W: 68 };           // metros reglamentarios
-
-  var VIEWS = {
-    full:  { x0: -5,  y0: -5, x1: 110,  y1: 73, lines: true },
-    half:  { x0: -5,  y0: -5, x1: 57.5, y1: 73, lines: true },
-    blank: { x0: -5,  y0: -5, x1: 110,  y1: 73, lines: false }
+  // Modalidades, con las medidas de su reglamento. Todo lo demás se deriva de aquí.
+  var PITCHES = {
+    f11:    { L: 105, W: 68, label: 'Fútbol 11', goal: 7.32, goalD: 2.0,
+              circle: 9.15, spot: 11, box: [16.5, 40.32], small: [5.5, 18.32], corner: 1 },
+    f7:     { L: 65,  W: 45, label: 'Fútbol 7',  goal: 6,    goalD: 1.8,
+              circle: 6,    spot: 9,  box: [12, 24],      small: [6, 12],      corner: 0.75 },
+    futsal: { L: 40,  W: 20, label: 'Fútbol sala', goal: 3,  goalD: 1.2,
+              circle: 3,    spot: 6,  arc: 6, second: 10, corner: 0.25 }
   };
+
+  function PITCH() { return PITCHES[doc.pitch] || PITCHES.f11; }
+
+  // El recuadro visible se calcula a partir de la modalidad y de la vista elegida.
+  function viewRect() {
+    var P = PITCH(), m = Math.max(2.5, P.L * 0.05);
+    return {
+      x0: -m, y0: -m,
+      x1: (doc.view === 'half' ? P.L / 2 : P.L) + m,
+      y1: P.W + m,
+      lines: doc.view !== 'blank'
+    };
+  }
 
   var TEAM = { home: '#E03B2F', away: '#2E86DE', neutral: '#F1C40F' };
 
@@ -33,17 +48,17 @@
   var KIND = {
     player:   { r: 1.45,               rot: false, label: 'Jugador' },
     ball:     { r: 0.85,               rot: false, label: 'Balón' },
-    cone:     { r: 0.95,               rot: false, label: 'Cono' },
-    disc:     { r: 1.00,               rot: false, label: 'Plato' },
+    cone:     { r: 0.95,               rot: true,  label: 'Cono' },
+    disc:     { r: 1.00,               rot: true,  label: 'Plato' },
     goal:     { w: 7.32, h: 2.0,       rot: true,  label: 'Portería' },
     minigoal: { w: 4.5,  h: 1.8,       rot: true,  label: 'Portería pequeña' },
     hurdle:   { w: 2.2,  h: 1.1,       rot: true,  label: 'Valla' },
     ladder:   { w: 7.0,  h: 1.6,       rot: true,  label: 'Escalera' },
-    pole:     { r: 0.75,               rot: false, label: 'Pica' },
+    pole:     { r: 0.75,               rot: true,  label: 'Pica' },
     dummy:    { w: 1.4,  h: 2.1,       rot: true,  label: 'Maniquí' },
-    ring:     { r: 1.2,                rot: false, label: 'Aro' },
-    flag:     { r: 1.00,               rot: false, label: 'Banderín' },
-    text:     { r: 1.2,                rot: false, label: 'Texto' }
+    ring:     { r: 1.2,                rot: true,  label: 'Aro' },
+    flag:     { r: 1.00,               rot: true,  label: 'Banderín' },
+    text:     { r: 1.2,                rot: true,  label: 'Texto' }
   };
 
   var COLORS = ['#FFFFFF', '#F1C40F', '#E03B2F', '#00E27E', '#4CC2FF', '#E67E22', '#B36BE0', '#1ABC9C'];
@@ -65,6 +80,34 @@
     '4-1-4-1': [1,2,4,5,3,6,7,8,10,11,9]
   };
 
+  // Fútbol 7 (65 x 45) y fútbol sala (40 x 20) tienen sus propios sistemas.
+  var FORMATIONS_F7 = {
+    '1-3-2-1': [[4,22.5],[13,8],[11,22.5],[13,37],[22,13],[22,32],[30,22.5]],
+    '1-2-3-1': [[4,22.5],[12,15],[12,30],[22,7],[21,22.5],[22,38],[30,22.5]],
+    '1-3-1-2': [[4,22.5],[13,8],[11,22.5],[13,37],[21,22.5],[29,15],[29,30]],
+    '1-1-3-2': [[4,22.5],[11,22.5],[20,7],[19,22.5],[20,38],[29,15],[29,30]]
+  };
+  var NUMBERS_F7 = {
+    '1-3-2-1': [1,2,4,3,8,6,9], '1-2-3-1': [1,2,3,7,8,11,9],
+    '1-3-1-2': [1,2,4,3,8,9,11], '1-1-3-2': [1,4,7,8,11,9,10]
+  };
+  var FORMATIONS_FS = {
+    '1-2-1 (rombo)': [[2.5,10],[8,5],[8,15],[13,10],[17,10]],
+    '2-2 (cuadrado)': [[2.5,10],[8,5.5],[8,14.5],[16,5.5],[16,14.5]],
+    '1-3-0':          [[2.5,10],[9,10],[16,4],[16,10],[16,16]],
+    '3-1':            [[2.5,10],[8,4],[8,10],[8,16],[16,10]]
+  };
+  var NUMBERS_FS = {
+    '1-2-1 (rombo)': [1,4,3,5,9], '2-2 (cuadrado)': [1,4,3,7,9],
+    '1-3-0': [1,5,7,9,11], '3-1': [1,2,4,3,9]
+  };
+
+  function formationSet() {
+    if (doc.pitch === 'f7') return { pos: FORMATIONS_F7, num: NUMBERS_F7 };
+    if (doc.pitch === 'futsal') return { pos: FORMATIONS_FS, num: NUMBERS_FS };
+    return { pos: FORMATIONS, num: NUMBERS };
+  }
+
   var $  = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
   var uid = function () { return Math.random().toString(36).slice(2, 9); };
@@ -79,7 +122,7 @@
 
   function emptyFrame() { return { objects: [], strokes: [] }; }
 
-  var doc = { view: 'full', frames: [emptyFrame()] };
+  var doc = { pitch: 'f11', view: 'full', frames: [emptyFrame()] };
 
   var ui = {
     frame: 0,
@@ -91,7 +134,9 @@
     sel: null,               // id del objeto seleccionado
     playing: false,
     speed: 1,
-    loop: false
+    loop: false,
+    zoom: 1,           // acercamiento del usuario
+    panX: 0, panY: 0   // desplazamiento, en píxeles de pantalla
   };
 
   var hist = [], hi = -1;
@@ -135,14 +180,64 @@
      ====================================================================== */
 
   var canvas = $('#board'), ctx = canvas.getContext('2d');
-  var T = { s: 1, ox: 0, oy: 0 };   // metros -> píxeles CSS
+  var T = { s: 1, ox: 0, oy: 0 };   // metros -> píxeles CSS (ya con zoom aplicado)
+  var BASE = { s: 1, ox: 0, oy: 0 };// el campo entero encajado en la pantalla
   var CW = 0, CH = 0;
+  var ZOOM_MIN = 1, ZOOM_MAX = 5;
 
   function transformFor(w, h, view) {
     var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
     var s = Math.min(w / vw, h / vh);
     return { s: s, ox: (w - vw * s) / 2 - view.x0 * s, oy: (h - vh * s) / 2 - view.y0 * s };
   }
+  // Ancho y alto del lienzo en coordenadas locales (con el campo girado se intercambian).
+  function localW() { return BASE.rot ? CH : CW; }
+  function localH() { return BASE.rot ? CW : CH; }
+
+  // Aplica el zoom y el desplazamiento del usuario sobre el encaje base.
+  function applyView() {
+    var z = ui.zoom, cx = localW() / 2, cy = localH() / 2;
+    T = {
+      s: BASE.s * z,
+      ox: (BASE.ox - cx) * z + cx + ui.panX,
+      oy: (BASE.oy - cy) * z + cy + ui.panY,
+      rot: BASE.rot
+    };
+    clampPan();
+    $('#zoom').hidden = ui.zoom <= 1.001;
+    draw();
+  }
+
+  // El campo no puede salirse del todo de la pantalla.
+  function clampPan() {
+    var view = viewRect();
+    var w = (view.x1 - view.x0) * T.s, h = (view.y1 - view.y0) * T.s;
+    var lw = localW(), lh = localH();
+    var maxX = Math.max(0, (w - lw) / 2), maxY = Math.max(0, (h - lh) / 2);
+    ui.panX = clamp(ui.panX, -maxX, maxX);
+    ui.panY = clamp(ui.panY, -maxY, maxY);
+    var cx = lw / 2, cy = lh / 2, z = ui.zoom;
+    T.ox = (BASE.ox - cx) * z + cx + ui.panX;
+    T.oy = (BASE.oy - cy) * z + cy + ui.panY;
+  }
+
+  function setZoom(z, fx, fy) {
+    var old = ui.zoom;
+    z = clamp(z, ZOOM_MIN, ZOOM_MAX);
+    if (Math.abs(z - old) < 1e-4) return;
+    // mantiene bajo los dedos el punto (fx, fy), en coordenadas locales
+    if (fx != null) {
+      var cx = localW() / 2, cy = localH() / 2;
+      ui.panX = fx - (fx - ui.panX - cx) * (z / old) - cx;
+      ui.panY = fy - (fy - ui.panY - cy) * (z / old) - cy;
+    }
+    ui.zoom = z;
+    if (z <= 1.001) { ui.zoom = 1; ui.panX = 0; ui.panY = 0; }
+    applyView();
+  }
+
+  function resetView() { ui.zoom = 1; ui.panX = 0; ui.panY = 0; applyView(); toast('Vista completa'); }
+
   // Coordenadas locales (las que usa todo el dibujo) -> píxeles de pantalla.
   function toScreen(x, y) {
     var a = x * T.s + T.ox, b = y * T.s + T.oy;
@@ -155,10 +250,11 @@
   }
 
   function resize() {
-    var r = canvas.parentNode.getBoundingClientRect();
-    var pad = 10;
-    CW = Math.max(240, r.width - pad * 2);
-    CH = Math.max(200, r.height - pad * 2);
+    var stage = canvas.parentNode;
+    // clientWidth/Height del contenedor: no lo influye el propio canvas, que va absoluto.
+    var pad = 8;
+    CW = Math.max(240, stage.clientWidth - pad * 2);
+    CH = Math.max(200, stage.clientHeight - pad * 2);
     var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     canvas.style.width = CW + 'px';
     canvas.style.height = CH + 'px';
@@ -166,11 +262,11 @@
     canvas.height = Math.round(CH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // En pantallas verticales giramos el campo 90°: aprovecha mucho mejor el móvil.
-    var view = VIEWS[doc.view];
+    var view = viewRect();
     var rot = CW < CH && (view.x1 - view.x0) > (view.y1 - view.y0);
-    T = rot ? transformFor(CH, CW, view) : transformFor(CW, CH, view);
-    T.rot = rot;
-    draw();
+    BASE = rot ? transformFor(CH, CW, view) : transformFor(CW, CH, view);
+    BASE.rot = rot;
+    applyView();
   }
 
   /* =========================================================================
@@ -178,21 +274,30 @@
      ====================================================================== */
 
   function drawPitch(c, t, view) {
-    var u = t.s;
+    var P = PITCH(), u = t.s;
+
     // fondo exterior
-    c.fillStyle = '#0A3D24';
+    c.fillStyle = doc.pitch === 'futsal' ? '#111C26' : '#0A3D24';
     c.fillRect(t.ox + view.x0 * u, t.oy + view.y0 * u, (view.x1 - view.x0) * u, (view.y1 - view.y0) * u);
 
     // césped con franjas de siega
-    var bands = 12, bw = PITCH.L / bands;
+    var bands = doc.pitch === 'futsal' ? 8 : 12, bw = P.L / bands;
     for (var i = 0; i < bands; i++) {
       c.fillStyle = i % 2 ? '#127A46' : '#0F6E3F';
-      c.fillRect(t.ox + i * bw * u, t.oy, bw * u + 1, PITCH.W * u);
+      c.fillRect(t.ox + i * bw * u, t.oy, bw * u + 1, P.W * u);
     }
+    // el fútbol sala se juega sobre pista, no sobre hierba
+    if (doc.pitch === 'futsal') {
+      c.fillStyle = '#1D5B7E';
+      c.fillRect(t.ox, t.oy, P.L * u, P.W * u);
+      c.fillStyle = 'rgba(255,255,255,.045)';
+      for (var j = 0; j < bands; j++) if (j % 2) c.fillRect(t.ox + j * bw * u, t.oy, bw * u + 1, P.W * u);
+    }
+
     // viñeta suave
     var g = c.createRadialGradient(
-      t.ox + PITCH.L / 2 * u, t.oy + PITCH.W / 2 * u, PITCH.W * 0.25 * u,
-      t.ox + PITCH.L / 2 * u, t.oy + PITCH.W / 2 * u, PITCH.L * 0.72 * u);
+      t.ox + P.L / 2 * u, t.oy + P.W / 2 * u, P.W * 0.25 * u,
+      t.ox + P.L / 2 * u, t.oy + P.W / 2 * u, P.L * 0.72 * u);
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, 'rgba(0,0,0,.26)');
     c.fillStyle = g;
@@ -202,7 +307,7 @@
 
     c.save();
     c.strokeStyle = 'rgba(255,255,255,.85)';
-    c.lineWidth = Math.max(1.2, 0.14 * u);
+    c.lineWidth = Math.max(1.2, Math.min(0.14, P.L / 750) * u);
     c.lineJoin = 'round';
 
     function rect(x, y, w, h) { c.strokeRect(t.ox + x * u, t.oy + y * u, w * u, h * u); }
@@ -213,38 +318,63 @@
       c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, a1, a2); c.stroke();
     }
     function dot(cx, cy, r) {
-      c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, 0, 7); c.fillStyle = 'rgba(255,255,255,.9)'; c.fill();
+      c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, 0, 7);
+      c.fillStyle = 'rgba(255,255,255,.9)'; c.fill();
     }
 
-    rect(0, 0, PITCH.L, PITCH.W);
-    line(52.5, 0, 52.5, PITCH.W);
-    arc(52.5, 34, 9.15, 0, Math.PI * 2);
-    dot(52.5, 34, 0.16);
+    rect(0, 0, P.L, P.W);
+    line(P.L / 2, 0, P.L / 2, P.W);
+    arc(P.L / 2, P.W / 2, P.circle, 0, Math.PI * 2);
+    dot(P.L / 2, P.W / 2, P.L / 650);
 
-    // áreas y arcos de penalti
+    var gy0 = (P.W - P.goal) / 2;
+
     [0, 1].forEach(function (side) {
-      var sx = side ? PITCH.L : 0, dir = side ? -1 : 1;
-      rect(side ? PITCH.L - 16.5 : 0, 13.84, 16.5, 40.32);
-      rect(side ? PITCH.L - 5.5 : 0, 24.84, 5.5, 18.32);
-      dot(sx + dir * 11, 34, 0.16);
-      // arco de penalti: solo el tramo que queda fuera del área
-      var a = Math.acos(5.5 / 9.15);
-      arc(sx + dir * 11, 34, 9.15,
-          side ? Math.PI - a : -a,
-          side ? Math.PI + a : a);
-      // porterías
+      var sx = side ? P.L : 0, dir = side ? -1 : 1;
+
+      if (doc.pitch === 'futsal') {
+        // El área es un doble cuarto de círculo trazado desde cada poste.
+        var r = P.arc;
+        c.beginPath();
+        if (!side) {
+          c.arc(t.ox, t.oy + gy0 * u, r * u, -Math.PI / 2, 0);
+          c.lineTo(t.ox + r * u, t.oy + (gy0 + P.goal) * u);
+          c.arc(t.ox, t.oy + (gy0 + P.goal) * u, r * u, 0, Math.PI / 2);
+        } else {
+          c.arc(t.ox + P.L * u, t.oy + gy0 * u, r * u, Math.PI * 1.5, Math.PI, true);
+          c.lineTo(t.ox + (P.L - r) * u, t.oy + (gy0 + P.goal) * u);
+          c.arc(t.ox + P.L * u, t.oy + (gy0 + P.goal) * u, r * u, Math.PI, Math.PI / 2, true);
+        }
+        c.stroke();
+        dot(sx + dir * P.spot, P.W / 2, P.L / 650);
+        dot(sx + dir * P.second, P.W / 2, P.L / 650);
+      } else {
+        rect(side ? P.L - P.box[0] : 0, (P.W - P.box[1]) / 2, P.box[0], P.box[1]);
+        rect(side ? P.L - P.small[0] : 0, (P.W - P.small[1]) / 2, P.small[0], P.small[1]);
+        dot(sx + dir * P.spot, P.W / 2, P.L / 650);
+        // arco de penalti: sólo el tramo que queda fuera del área
+        if (P.circle > P.box[0] - P.spot) {
+          var a = Math.acos((P.box[0] - P.spot) / P.circle);
+          arc(sx + dir * P.spot, P.W / 2, P.circle,
+              side ? Math.PI - a : -a,
+              side ? Math.PI + a : a);
+        }
+      }
+
+      // portería
       c.save();
-      c.lineWidth = Math.max(1.6, 0.2 * u);
+      c.lineWidth = Math.max(1.6, Math.min(0.2, P.L / 520) * u);
       c.strokeStyle = 'rgba(255,255,255,.95)';
-      c.strokeRect(t.ox + (side ? PITCH.L : -2) * u, t.oy + 30.34 * u, 2 * u, 7.32 * u);
+      c.strokeRect(t.ox + (side ? P.L : -P.goalD) * u, t.oy + gy0 * u, P.goalD * u, P.goal * u);
       c.restore();
     });
 
     // córners
-    arc(0, 0, 1, 0, Math.PI / 2);
-    arc(PITCH.L, 0, 1, Math.PI / 2, Math.PI);
-    arc(PITCH.L, PITCH.W, 1, Math.PI, Math.PI * 1.5);
-    arc(0, PITCH.W, 1, Math.PI * 1.5, Math.PI * 2);
+    var cr = P.corner;
+    arc(0, 0, cr, 0, Math.PI / 2);
+    arc(P.L, 0, cr, Math.PI / 2, Math.PI);
+    arc(P.L, P.W, cr, Math.PI, Math.PI * 1.5);
+    arc(0, P.W, cr, Math.PI * 1.5, Math.PI * 2);
 
     c.restore();
   }
@@ -252,6 +382,24 @@
   /* =========================================================================
      5. Objetos y materiales
      ====================================================================== */
+
+  // Medidas reales del objeto: puede llevarlas propias (una portería de fútbol 7
+  // no mide lo mismo que una de fútbol 11).
+  var SYMBOLS = { player: 1, ball: 1, text: 1 };
+
+  function symbolScale() {
+    return clamp(Math.sqrt(PITCH().L / 105), 0.5, 1);
+  }
+
+  function dims(o) {
+    var k = KIND[o.kind], f = SYMBOLS[o.kind] ? symbolScale() : 1;
+    return {
+      r: k.r != null ? k.r * f : null,
+      w: (o.w || k.w) * (o.w ? 1 : f),
+      h: (o.h || k.h) * (o.h ? 1 : f),
+      rot: k.rot, label: k.label
+    };
+  }
 
   function objColor(o) {
     if (o.kind === 'player') return TEAM[o.team] || TEAM.home;
@@ -276,11 +424,11 @@
 
     switch (o.kind) {
       case 'player':   drawPlayer(c, t, o); break;
-      case 'ball':     drawBall(c, u); break;
+      case 'ball':     drawBall(c, u, dims(o).r); break;
       case 'cone':     drawCone(c, u, o); break;
       case 'disc':     drawDisc(c, u, o); break;
-      case 'goal':     drawGoal(c, u, KIND.goal.w, KIND.goal.h); break;
-      case 'minigoal': drawGoal(c, u, KIND.minigoal.w, KIND.minigoal.h); break;
+      case 'goal':
+      case 'minigoal': var dg = dims(o); drawGoal(c, u, dg.w, dg.h); break;
       case 'hurdle':   drawHurdle(c, u, o); break;
       case 'ladder':   drawLadder(c, u, o); break;
       case 'pole':     drawPole(c, u, o); break;
@@ -300,8 +448,8 @@
   }
 
   function drawPlayer(c, t, o) {
-    var u = t.s, r = KIND.player.r * u, col = objColor(o);
-    shadow(c, u, KIND.player.r * 0.95, 0.75, 0.35);
+    var u = t.s, r = dims(o).r * u, col = objColor(o);
+    shadow(c, u, r / u * 0.95, 0.75, 0.35);
     var g = c.createLinearGradient(0, -r, 0, r);
     g.addColorStop(0, col);
     g.addColorStop(1, shade(col, -0.28));
@@ -332,9 +480,9 @@
     c.restore();
   }
 
-  function drawBall(c, u) {
-    var r = KIND.ball.r * u;
-    shadow(c, u, KIND.ball.r, 0.4, 0.4);
+  function drawBall(c, u, rm) {
+    var r = (rm || KIND.ball.r) * u;
+    shadow(c, u, rm || KIND.ball.r, 0.4, 0.4);
     c.fillStyle = '#fff';
     c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
     c.lineWidth = Math.max(1, r * 0.16); c.strokeStyle = '#20303F'; c.stroke();
@@ -355,6 +503,7 @@
     var g = c.createLinearGradient(-s * 0.5, 0, s * 0.5, 0);
     g.addColorStop(0, shade(col, 0.16)); g.addColorStop(1, shade(col, -0.22));
     c.fillStyle = g;
+    // un cono se dibuja de pie; el giro sólo desplaza la punta, como al inclinarlo
     c.beginPath();
     c.moveTo(-s * 0.55, s * 0.12); c.quadraticCurveTo(-s * 0.2, -s * 1.35, 0, -s * 1.5);
     c.quadraticCurveTo(s * 0.2, -s * 1.35, s * 0.55, s * 0.12);
@@ -468,7 +617,7 @@
   }
 
   function drawText(c, t, o) {
-    var u = t.s, fs = Math.max(11, 1.5 * u);
+    var u = t.s, fs = Math.max(11, 1.5 * u * symbolScale());
     c.save();
     if (t.rot) c.rotate(-Math.PI / 2);
     c.font = '700 ' + fs + 'px Outfit, system-ui, sans-serif';
@@ -558,6 +707,8 @@
     c.globalAlpha = alpha == null ? 1 : alpha;
     var w = Math.max(1.5, st.width * t.s);
 
+    if (st.tool === 'measure') { drawMeasure(c, t, st); c.restore(); return; }
+
     if (st.tool === 'zone') {
       var a = st.pts[0], b = st.pts[1];
       var X = Math.min(a.x, b.x) * t.s + t.ox, Y = Math.min(a.y, b.y) * t.s + t.oy;
@@ -592,14 +743,59 @@
     c.restore();
   }
 
+  // Regla: distancia real entre dos puntos del campo.
+  function drawMeasure(c, t, st) {
+    var a = st.pts[0], b = st.pts[st.pts.length - 1];
+    var ax = a.x * t.s + t.ox, ay = a.y * t.s + t.oy;
+    var bx = b.x * t.s + t.ox, by = b.y * t.s + t.oy;
+    var metres = Math.hypot(b.x - a.x, b.y - a.y);
+    var ang = Math.atan2(by - ay, bx - ax);
+    var tick = Math.max(6, t.s * 0.6);
+
+    c.lineCap = 'butt';
+    c.lineWidth = Math.max(2.6, t.s * 0.14);
+    c.strokeStyle = 'rgba(0,0,0,.45)';
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.lineWidth = Math.max(1.4, t.s * 0.08);
+    c.strokeStyle = st.color;
+    c.setLineDash([Math.max(5, t.s * 0.5), Math.max(4, t.s * 0.34)]);
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.setLineDash([]);
+
+    // topes perpendiculares en los extremos
+    var nx = -Math.sin(ang) * tick, ny = Math.cos(ang) * tick;
+    c.beginPath();
+    c.moveTo(ax - nx, ay - ny); c.lineTo(ax + nx, ay + ny);
+    c.moveTo(bx - nx, by - ny); c.lineTo(bx + nx, by + ny);
+    c.stroke();
+
+    // etiqueta con la distancia, siempre derecha
+    var mx2 = (ax + bx) / 2, my2 = (ay + by) / 2;
+    var fs = Math.max(11, t.s * 0.95);
+    var txt = (metres < 10 ? metres.toFixed(1) : Math.round(metres)) .toString().replace('.', ',') + ' m';
+    c.save();
+    c.translate(mx2, my2);
+    if (t.rot) c.rotate(-Math.PI / 2);
+    c.font = '700 ' + fs + 'px Outfit, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    var wlab = c.measureText(txt).width + fs * 0.9;
+    c.fillStyle = 'rgba(7,10,15,.85)';
+    roundRect(c, -wlab / 2, -fs * 0.8, wlab, fs * 1.6, fs * 0.45); c.fill();
+    c.strokeStyle = st.color; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = st.color;
+    c.fillText(txt, 0, fs * 0.04);
+    c.restore();
+  }
+
   /* =========================================================================
      7. Render
      ====================================================================== */
 
-  var anim = null;   // estado de reproducción
+  var anim = null;       // estado de reproducción
+  var recording = false; // grabando vídeo
 
   function draw() {
-    var view = VIEWS[doc.view];
+    var view = viewRect();
     ctx.clearRect(0, 0, CW, CH);
     ctx.save();
     if (T.rot) { ctx.translate(CW, 0); ctx.rotate(Math.PI / 2); }
@@ -618,34 +814,53 @@
     ctx.restore();
   }
 
+  var HANDLE_GAP = 34;   // píxeles entre la pieza y el tirador de giro
+  var HANDLE_R = 11;     // radio dibujado; el área sensible es mayor
+
+  // Semi-altura de la pieza, en metros: de ahí cuelga el tirador.
+  function objExtent(o) {
+    var d = dims(o);
+    return d.r != null ? d.r : d.h / 2;
+  }
+
   function drawSelection(c, t, o) {
     if (!o) return;
-    var k = KIND[o.kind], u = t.s;
-    var X = o.x * u + t.ox, Y = o.y * u + t.oy;
+    var k = dims(o), u = t.s;
     c.save();
-    c.translate(X, Y);
+    c.translate(o.x * u + t.ox, o.y * u + t.oy);
+    c.rotate((o.rot || 0) * Math.PI / 180);
     c.strokeStyle = '#00E27E';
     c.lineWidth = 2;
     c.setLineDash([5, 4]);
-    if (k.r) {
-      c.beginPath(); c.arc(0, 0, k.r * u + 6, 0, 7); c.stroke();
+    if (k.r != null) {
+      c.beginPath(); c.arc(0, 0, k.r * u + 7, 0, 7); c.stroke();
     } else {
-      c.rotate((o.rot || 0) * Math.PI / 180);
-      c.strokeRect(-k.w * u / 2 - 5, -k.h * u / 2 - 5, k.w * u + 10, k.h * u + 10);
-      c.setLineDash([]);
-      // tirador de rotación
-      c.beginPath(); c.moveTo(0, -k.h * u / 2 - 5); c.lineTo(0, -k.h * u / 2 - 24); c.stroke();
+      c.strokeRect(-k.w * u / 2 - 6, -k.h * u / 2 - 6, k.w * u + 12, k.h * u + 12);
+    }
+    c.setLineDash([]);
+
+    if (k.rot) {
+      var d = objExtent(o) * u + HANDLE_GAP;
+      c.beginPath(); c.moveTo(0, -(objExtent(o) * u + 7)); c.lineTo(0, -d + HANDLE_R); c.stroke();
       c.fillStyle = '#00E27E';
-      c.beginPath(); c.arc(0, -k.h * u / 2 - 28, 6, 0, 7); c.fill();
+      c.beginPath(); c.arc(0, -d, HANDLE_R, 0, 7); c.fill();
+      // icono de giro dentro del tirador
+      c.strokeStyle = '#04120B'; c.lineWidth = 1.8; c.lineCap = 'round';
+      c.beginPath(); c.arc(0, -d, HANDLE_R * 0.46, 0.5, 5.2); c.stroke();
+      c.beginPath();
+      c.moveTo(HANDLE_R * 0.16, -d - HANDLE_R * 0.56);
+      c.lineTo(HANDLE_R * 0.46, -d - HANDLE_R * 0.34);
+      c.lineTo(HANDLE_R * 0.12, -d - HANDLE_R * 0.12);
+      c.stroke();
     }
     c.restore();
   }
 
   function rotateHandlePos(o) {
-    var k = KIND[o.kind];
-    if (!k || k.r) return null;
+    var k = dims(o);
+    if (!k || !k.rot) return null;
     var a = (o.rot || 0) * Math.PI / 180;
-    var d = (k.h * T.s / 2 + 28) / T.s;   // en metros, para reutilizar toScreen
+    var d = (objExtent(o) * T.s + HANDLE_GAP) / T.s;   // en metros, para reutilizar toScreen
     return toScreen(o.x + Math.sin(a) * d, o.y - Math.cos(a) * d);
   }
 
@@ -654,6 +869,24 @@
      ====================================================================== */
 
   var drawing = null, drag = null;
+  var pointers = {}, gesture = null;
+
+  // Punto en coordenadas locales (sin deshacer el zoom): sirve para el pellizco.
+  function localPoint(e) {
+    var r = canvas.getBoundingClientRect();
+    var sx = e.clientX - r.left, sy = e.clientY - r.top;
+    return T.rot ? { x: sy, y: CW - sx } : { x: sx, y: sy };
+  }
+  function gestureState() {
+    var ids = Object.keys(pointers);
+    if (ids.length < 2) return null;
+    var a = pointers[ids[0]], b = pointers[ids[1]];
+    return {
+      d: Math.hypot(a.x - b.x, a.y - b.y),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2
+    };
+  }
 
   function byId(id) {
     var a = frame().objects;
@@ -664,8 +897,8 @@
   function hitObject(m) {
     var a = frame().objects;
     for (var i = a.length - 1; i >= 0; i--) {
-      var o = a[i], k = KIND[o.kind];
-      if (k.r) {
+      var o = a[i], k = dims(o);
+      if (k.r != null) {
         if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + 0.35) return o;
       } else {
         var ang = -(o.rot || 0) * Math.PI / 180;
@@ -711,6 +944,19 @@
   canvas.addEventListener('pointerdown', function (e) {
     if (ui.playing) return;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    pointers[e.pointerId] = localPoint(e);
+
+    // Con dos dedos se navega, no se dibuja: se cancela lo que hubiera empezado.
+    if (Object.keys(pointers).length === 2) {
+      drawing = null;
+      drag = null;
+      var g = gestureState();
+      gesture = { d0: g.d, z0: ui.zoom, cx0: g.cx, cy0: g.cy, px0: ui.panX, py0: ui.panY };
+      draw();
+      return;
+    }
+    if (gesture) return;
+
     var m = pointer(e);
 
     // colocar material
@@ -732,8 +978,9 @@
         var sel = byId(ui.sel), h = sel && rotateHandlePos(sel);
         if (h) {
           var r = canvas.getBoundingClientRect();
-          if (Math.hypot(e.clientX - r.left - h.x, e.clientY - r.top - h.y) < 16) {
+          if (Math.hypot(e.clientX - r.left - h.x, e.clientY - r.top - h.y) < 26) {
             drag = { mode: 'rotate', o: sel };
+            hint('Gira la pieza · suelta para fijar');
             return;
           }
         }
@@ -753,31 +1000,48 @@
 
     // herramientas de dibujo
     drawing = { id: uid(), tool: ui.tool, color: ui.color, width: ui.width, pts: [{ x: m.x, y: m.y }] };
-    if (ui.tool === 'zone') drawing.pts.push({ x: m.x, y: m.y });
+    if (ui.tool === 'zone' || ui.tool === 'measure') drawing.pts.push({ x: m.x, y: m.y });
     draw();
   });
 
   canvas.addEventListener('pointermove', function (e) {
     if (ui.playing) return;
+    if (pointers[e.pointerId]) pointers[e.pointerId] = localPoint(e);
+
+    if (gesture) {
+      var g = gestureState();
+      if (!g) return;
+      ui.panX = gesture.px0 + (g.cx - gesture.cx0);
+      ui.panY = gesture.py0 + (g.cy - gesture.cy0);
+      var z = clamp(gesture.z0 * (g.d / Math.max(1, gesture.d0)), ZOOM_MIN, ZOOM_MAX);
+      var cx = localW() / 2, cy = localH() / 2;
+      ui.panX = g.cx - (g.cx - ui.panX - cx) * (z / ui.zoom) - cx;
+      ui.panY = g.cy - (g.cy - ui.panY - cy) * (z / ui.zoom) - cy;
+      ui.zoom = z;
+      applyView();
+      return;
+    }
+
     var m = pointer(e);
 
     if (drag) {
       if (drag.mode === 'move') {
-        drag.o.x = clamp(snap(m.x + drag.dx), -6, PITCH.L + 6);
-        drag.o.y = clamp(snap(m.y + drag.dy), -6, PITCH.W + 6);
+        drag.o.x = clamp(snap(m.x + drag.dx), -6, PITCH().L + 6);
+        drag.o.y = clamp(snap(m.y + drag.dy), -6, PITCH().W + 6);
         drag.moved = true;
         moveInspector(drag.o);
       } else {
         var a = Math.atan2(m.x - drag.o.x, -(m.y - drag.o.y)) * 180 / Math.PI;
         drag.o.rot = ui.snap ? Math.round(a / 15) * 15 : Math.round(a);
         drag.moved = true;
+        hint('<b>' + ((drag.o.rot + 360) % 360) + '°</b>');
       }
       draw();
       return;
     }
 
     if (drawing) {
-      if (drawing.tool === 'zone') {
+      if (drawing.tool === 'zone' || drawing.tool === 'measure') {
         drawing.pts[1] = { x: m.x, y: m.y };
       } else {
         var last = drawing.pts[drawing.pts.length - 1];
@@ -787,15 +1051,26 @@
     }
   });
 
-  function endPointer() {
+  function endPointer(e) {
+    if (e && e.pointerId != null) delete pointers[e.pointerId];
+    if (gesture) {
+      if (Object.keys(pointers).length < 2) {
+        gesture = null;
+        if (ui.zoom <= 1.001) { ui.zoom = 1; ui.panX = 0; ui.panY = 0; applyView(); }
+      }
+      return;
+    }
     if (drag) {
       if (drag.moved) commit();
+      if (drag.mode === 'rotate') hint('');
       drag = null;
     }
     if (drawing) {
       var ok = drawing.tool === 'zone'
         ? Math.abs(drawing.pts[1].x - drawing.pts[0].x) > 1 && Math.abs(drawing.pts[1].y - drawing.pts[0].y) > 1
-        : drawing.pts.length > 1;
+        : drawing.tool === 'measure'
+          ? Math.hypot(drawing.pts[1].x - drawing.pts[0].x, drawing.pts[1].y - drawing.pts[0].y) > 1
+          : drawing.pts.length > 1;
       if (ok) { frame().strokes.push(drawing); commit(); }
       drawing = null;
       draw();
@@ -803,6 +1078,13 @@
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
+
+  canvas.addEventListener('wheel', function (e) {
+    if (ui.playing) return;
+    e.preventDefault();
+    var p = localPoint(e);
+    setZoom(ui.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), p.x, p.y);
+  }, { passive: false });
 
   canvas.addEventListener('dblclick', function (e) {
     var o = hitObject(pointer(e));
@@ -829,7 +1111,10 @@
     } else if (spec.kind !== 'ball' && spec.kind !== 'goal' && spec.kind !== 'minigoal' && spec.kind !== 'dummy') {
       o.color = spec.color || null;
     }
-    if (spec.kind === 'goal' || spec.kind === 'minigoal') o.rot = 0;
+    if (spec.kind === 'goal') {
+      var P = PITCH();
+      o.w = P.goal; o.h = Math.max(1.4, P.goalD);   // la de la modalidad activa
+    }
     frame().objects.push(o);
     ui.sel = o.id;
     showInspector(o);
@@ -864,7 +1149,7 @@
   var insp = $('#inspector');
 
   function showInspector(o) {
-    var k = KIND[o.kind];
+    var k = dims(o);
     var html = '<span class="name">' + k.label + '</span><span class="div"></span>';
 
     if (o.kind === 'player') {
@@ -881,9 +1166,10 @@
 
     if (k.rot) {
       html += '<span class="div"></span>' +
-        '<button class="ibtn" data-rot="-15" aria-label="Girar a la izquierda">' + icon('rotL') + '</button>' +
-        '<button class="ibtn" data-rot="15" aria-label="Girar a la derecha">' + icon('rotR') + '</button>' +
-        '<button class="ibtn" data-rot="90" aria-label="Girar 90 grados">90°</button>';
+        '<button class="ibtn" data-rot="-15" aria-label="Girar 15 grados a la izquierda" title="Girar a la izquierda">' + icon('rotL') + '</button>' +
+        '<button class="ibtn" data-rot="15" aria-label="Girar 15 grados a la derecha" title="Girar a la derecha">' + icon('rotR') + '</button>' +
+        '<button class="ibtn" data-rot="90" aria-label="Girar 90 grados" title="Girar 90°">90°</button>' +
+        '<button class="ibtn" data-rot="reset" aria-label="Enderezar" title="Enderezar">0°</button>';
     }
 
     html += '<span class="div"></span>' +
@@ -911,7 +1197,9 @@
     });
     $$('[data-rot]', insp).forEach(function (b) {
       b.addEventListener('click', function () {
-        o.rot = ((o.rot || 0) + parseInt(b.dataset.rot, 10) + 360) % 360;
+        o.rot = b.dataset.rot === 'reset'
+          ? 0
+          : ((o.rot || 0) + parseInt(b.dataset.rot, 10) + 360) % 360;
         commit(); draw();
       });
     });
@@ -951,7 +1239,9 @@
       b.setAttribute('aria-pressed', !!(place && b.dataset.place === place.kind && (!place.team || b.dataset.team === place.team)));
     });
     canvas.className = tool === 'select' ? 'is-select' : '';
-    if (place) hint('Toca el campo para colocar <b>' + (KIND[place.kind].label) + '</b> · Esc para salir');
+    if (place) hint('Toca el campo para colocar <b>' + KIND[place.kind].label + '</b>'
+                    + (window.innerWidth <= 900 ? '' : ' · Esc para salir'));
+    else if (tool === 'measure') hint('Arrastra de un punto a otro para medir la distancia');
     else if (tool !== 'select') hint('Arrastra sobre el campo para dibujar');
     else hint('');
     draw();
@@ -1021,16 +1311,16 @@
 
   /* --- formaciones --- */
   function applyFormation(name, team) {
-    var pos = FORMATIONS[name], nums = NUMBERS[name];
+    var set = formationSet(), pos = set.pos[name], nums = set.num[name] || [];
     if (!pos) return;
-    var f = frame();
+    var P = PITCH(), f = frame();
     f.objects = f.objects.filter(function (o) { return !(o.kind === 'player' && o.team === team); });
     pos.forEach(function (p, i) {
       f.objects.push({
         id: uid(), kind: 'player', team: team,
-        x: team === 'home' ? p[0] : PITCH.L - p[0],
-        y: team === 'home' ? p[1] : PITCH.W - p[1],
-        num: nums[i], rot: 0
+        x: team === 'home' ? p[0] : P.L - p[0],
+        y: team === 'home' ? p[1] : P.W - p[1],
+        num: nums[i] != null ? nums[i] : i + 1, rot: 0
       });
     });
     ui.sel = null; hideInspector();
@@ -1114,7 +1404,7 @@
   function tick(now) {
     if (!ui.playing || !anim) return;
     var d = segMs();
-    var t = (now - anim.t0) / d;
+    var t = clamp((now - anim.t0) / d, 0, 2);
     if (t >= 1) {
       anim.seg++;
       anim.t0 = now;
@@ -1136,12 +1426,19 @@
   }
 
   function drawAnimated() {
-    var A = doc.frames[anim.seg], B = doc.frames[anim.seg + 1] || A;
-    var e = ease(clamp(anim.t || 0, 0, 1));
+    drawAnimatedInto(ctx, T, anim.seg, ease(clamp(anim.t || 0, 0, 1)));
+  }
+
+  // Pinta el instante `e` (0..1) del tramo `seg` sobre el lienzo que se le pase.
+  // Lo usan tanto la reproducción en pantalla como la grabación de vídeo.
+  function drawAnimatedInto(c, t, seg, e) {
+    seg = clamp(seg | 0, 0, doc.frames.length - 1);
+    var A = doc.frames[seg], B = doc.frames[seg + 1] || A;
+    if (!A) return;
 
     // zonas y trazos: fundido cruzado
-    A.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(ctx, T, s, 1 - e); });
-    B.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(ctx, T, s, e); });
+    A.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(c, t, s, 1 - e); });
+    B.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(c, t, s, e); });
 
     var mapB = {};
     B.objects.forEach(function (o) { mapB[o.id] = o; });
@@ -1160,24 +1457,24 @@
     B.objects.forEach(function (b) { if (!seen[b.id]) list.push({ o: b, alpha: e }); });
 
     // estelas de movimiento
-    ctx.save();
-    ctx.lineCap = 'round';
+    c.save();
+    c.lineCap = 'round';
     list.forEach(function (it) {
       if (!it.from || it.o.kind !== 'player' && it.o.kind !== 'ball') return;
       if (Math.hypot(it.o.x - it.from.x, it.o.y - it.from.y) < 0.6) return;
-      ctx.strokeStyle = it.o.kind === 'ball' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.22)';
-      ctx.lineWidth = Math.max(2, T.s * 0.22);
-      ctx.beginPath();
-      ctx.moveTo(it.from.x * T.s + T.ox, it.from.y * T.s + T.oy);
-      ctx.lineTo(it.o.x * T.s + T.ox, it.o.y * T.s + T.oy);
-      ctx.stroke();
+      c.strokeStyle = it.o.kind === 'ball' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.22)';
+      c.lineWidth = Math.max(2, t.s * 0.22);
+      c.beginPath();
+      c.moveTo(it.from.x * t.s + t.ox, it.from.y * t.s + t.oy);
+      c.lineTo(it.o.x * t.s + t.ox, it.o.y * t.s + t.oy);
+      c.stroke();
     });
-    ctx.restore();
+    c.restore();
 
-    list.forEach(function (it) { if (it.o.kind !== 'player' && it.o.kind !== 'ball' && it.o.kind !== 'text') drawObject(ctx, T, it.o, it.alpha); });
-    A.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(ctx, T, s, 1 - e); });
-    B.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(ctx, T, s, e); });
-    list.forEach(function (it) { if (it.o.kind === 'player' || it.o.kind === 'ball' || it.o.kind === 'text') drawObject(ctx, T, it.o, it.alpha); });
+    list.forEach(function (it) { if (it.o.kind !== 'player' && it.o.kind !== 'ball' && it.o.kind !== 'text') drawObject(c, t, it.o, it.alpha); });
+    A.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(c, t, s, 1 - e); });
+    B.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(c, t, s, e); });
+    list.forEach(function (it) { if (it.o.kind === 'player' || it.o.kind === 'ball' || it.o.kind === 'text') drawObject(c, t, it.o, it.alpha); });
   }
 
   function mix(a, b, e) {
@@ -1200,7 +1497,7 @@
      ====================================================================== */
 
   function exportPNG() {
-    var view = VIEWS[doc.view];
+    var view = viewRect();
     var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
     var W = 2400, H = Math.round(W * vh / vw);
     var cv = document.createElement('canvas');
@@ -1243,6 +1540,16 @@
     var dlg = $('#dlg-file');
     var img = $('#file-img'), box = $('#file-text'), note = $('#file-note');
     $('#file-title').textContent = name;
+    var video = $('#file-video');
+    video.hidden = true; video.removeAttribute('src');
+    if (/\.(webm|mp4)$/.test(name)) {
+      var vurl = URL.createObjectURL(blob);
+      video.src = vurl; video.hidden = false;
+      img.hidden = true; box.hidden = true;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Reproduce el vídeo y guárdalo con una pulsación larga.';
+      dlg.showModal();
+      return;
+    }
     if (/\.png$/.test(name)) {
       var url = URL.createObjectURL(blob);
       img.src = url; img.hidden = false; box.hidden = true;
@@ -1257,6 +1564,84 @@
       note.textContent = 'Aquí va embebida y el navegador no deja descargar. Copia este texto y guárdalo como archivo .json.';
     }
     dlg.showModal();
+  }
+
+  // ---- Vídeo de la jugada ----------------------------------------------------
+  // Se pinta la animación en un lienzo aparte, a resolución fija, y se graba con
+  // MediaRecorder. Sin servidores ni bibliotecas externas.
+  function canRecord() {
+    return typeof MediaRecorder !== 'undefined' &&
+           !!HTMLCanvasElement.prototype.captureStream &&
+           doc.frames.length > 1;
+  }
+
+  function pickMime() {
+    var opts = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+    for (var i = 0; i < opts.length; i++) {
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+    }
+    return '';
+  }
+
+  function exportVideo() {
+    if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para grabar la jugada'); return; }
+    if (!canRecord()) { toast('Este navegador no puede grabar vídeo'); return; }
+
+    var view = viewRect();
+    var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+    var W = 1280, H = Math.round(W * vh / vw);
+    if (H % 2) H += 1;
+
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var c = cv.getContext('2d');
+    var t = transformFor(W, H, view);
+
+    var mime = pickMime();
+    var stream = cv.captureStream(30);
+    var rec;
+    try {
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined);
+    } catch (err) { toast('Este navegador no puede grabar vídeo'); return; }
+
+    var chunks = [];
+    rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = function () {
+      var type = (mime || 'video/webm').split(';')[0];
+      var blob = new Blob(chunks, { type: type });
+      var ext = type.indexOf('mp4') > -1 ? 'mp4' : 'webm';
+      download(blob, 'jugada.' + ext);
+      recording = false;
+      $('#video').classList.remove('rec');
+      hint('');
+      toast('Vídeo listo');
+    };
+
+    var segs = doc.frames.length - 1;
+    var segMsRec = segMs();
+    var total = segs * segMsRec + 900;    // un respiro al final
+    var t0 = performance.now();
+
+    recording = true;
+    $('#video').classList.add('rec');
+    hint('Grabando la jugada…');
+    rec.start();
+
+    (function frameLoop(now) {
+      // La marca de tiempo de requestAnimationFrame corresponde al inicio del cuadro
+      // y puede ser anterior a t0: sin acotar, el primer cuadro pedía el tramo -1.
+      var el = clamp((now || performance.now()) - t0, 0, total);
+      var p = Math.min(el, segs * segMsRec) / segMsRec;
+      var seg = clamp(Math.floor(p), 0, segs - 1);
+      var e = ease(clamp(p - seg, 0, 1));
+
+      c.clearRect(0, 0, W, H);
+      drawPitch(c, t, view);
+      drawAnimatedInto(c, t, seg, e);
+
+      if (el < total) requestAnimationFrame(frameLoop);
+      else { try { rec.stop(); } catch (err) {} }
+    })();
   }
 
   function exportJSON() {
@@ -1327,6 +1712,40 @@
 
   function syncViewButtons() {
     $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === doc.view); });
+    $$('[data-pitch]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pitch === doc.pitch); });
+    buildFormationLists();
+  }
+
+  function buildFormationLists() {
+    var names = Object.keys(formationSet().pos);
+    [['#form-home', 'local'], ['#form-away', 'visitante']].forEach(function (pair) {
+      var sel = $(pair[0]);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Colocar equipo ' + pair[1] + '…</option>' +
+        names.map(function (n) { return '<option>' + n + '</option>'; }).join('');
+    });
+  }
+
+  // Las fichas y el material se reescalan al cambiar de modalidad, para que la
+  // jugada siga teniendo sentido en el campo nuevo.
+  function setPitch(kind) {
+    if (kind === doc.pitch) return;
+    var from = PITCHES[doc.pitch] || PITCHES.f11, to = PITCHES[kind];
+    var fx = to.L / from.L, fy = to.W / from.W;
+    doc.pitch = kind;
+    doc.frames.forEach(function (f) {
+      f.objects.forEach(function (o) {
+        o.x *= fx; o.y *= fy;
+        if (o.kind === 'goal') { o.w = to.goal; o.h = Math.max(1.4, to.goalD); }
+      });
+      f.strokes.forEach(function (st) {
+        st.pts.forEach(function (pt) { pt.x *= fx; pt.y *= fy; });
+      });
+    });
+    ui.sel = null; hideInspector();
+    ui.zoom = 1; ui.panX = 0; ui.panY = 0;
+    syncViewButtons(); commit(); resize();
+    toast(to.label + ' · ' + to.L + ' × ' + to.W + ' m');
   }
 
   /* =========================================================================
@@ -1360,6 +1779,9 @@
         syncViewButtons(); commit(); resize();
       });
     });
+    $$('[data-pitch]').forEach(function (b) {
+      b.addEventListener('click', function () { setPitch(b.dataset.pitch); });
+    });
 
     $('#snap').addEventListener('change', function () { ui.snap = this.checked; });
     $('#undo').addEventListener('click', undo);
@@ -1380,45 +1802,76 @@
       ask({ title: 'Empezar de cero', message: 'Se borra la pizarra entera, incluidos todos los fotogramas. Lo que hayas guardado con nombre se conserva.', ok: 'Empezar de cero', danger: true })
         .then(function (yes) {
           if (!yes) return;
-          doc = { view: doc.view, frames: [emptyFrame()] };
+          doc = { pitch: doc.pitch, view: doc.view, frames: [emptyFrame()] };
           ui.frame = 0; ui.sel = null; hideInspector();
           commit(); buildFrames(); draw();
         });
     });
 
     $('#play').addEventListener('click', function () { ui.playing ? stop() : play(); });
-    $('#addframe').addEventListener('click', addFrame);
     $('#delframe').addEventListener('click', delFrame);
-    $('#loop').addEventListener('change', function () { ui.loop = this.checked; });
-    $('#speed').addEventListener('input', function () {
-      ui.speed = parseFloat(this.value);
-      $('#speed-val').textContent = ui.speed.toFixed(1) + '×';
+    var loopBtn = $('#loop');
+    loopBtn.addEventListener('click', function () {
+      ui.loop = !ui.loop;
+      loopBtn.setAttribute('aria-pressed', String(ui.loop));
+      toast(ui.loop ? 'La animación se repetirá en bucle' : 'Bucle desactivado');
+    });
+
+    var SPEEDS = [0.5, 0.75, 1, 1.5, 2];
+    var speedBtn = $('#speed');
+    speedBtn.addEventListener('click', function () {
+      var i = SPEEDS.indexOf(ui.speed);
+      ui.speed = SPEEDS[(i + 1) % SPEEDS.length];
+      speedBtn.textContent = ui.speed.toFixed(1).replace('.0', '.0') + '×';
     });
 
     $('#png').addEventListener('click', exportPNG);
+    $('#video').addEventListener('click', function () {
+      if (recording) return;
+      exportVideo();
+    });
     $('#save').addEventListener('click', saveBoard);
     $('#open').addEventListener('click', openDialog);
     $('#json').addEventListener('click', exportJSON);
+    $('#json-sm').addEventListener('click', exportJSON);
     $('#import').addEventListener('change', function () { if (this.files[0]) importJSON(this.files[0]); this.value = ''; });
     $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
+    $('#zoom').addEventListener('click', resetView);
     $$('[data-close]').forEach(function (b) {
       b.addEventListener('click', function () { b.closest('dialog').close(); });
     });
 
     var aside = $('#aside'), scrim = $('#scrim');
-    $('#menu').addEventListener('click', function () {
-      var open = aside.classList.toggle('open');
-      scrim.classList.toggle('show', open);
-      this.setAttribute('aria-expanded', String(open));
+    var current = null;
+
+    function sheetOpen(id) {
+      current = id;
+      aside.classList.add('open');
+      scrim.classList.add('show');
+      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
+      var block = document.getElementById(id);
+      if (block) requestAnimationFrame(function () { aside.scrollTop = block.offsetTop - 30; });
+    }
+    function sheetClose() {
+      current = null;
+      aside.classList.remove('open');
+      scrim.classList.remove('show');
+      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
+    }
+
+    $$('.tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        if (current === t.dataset.section) sheetClose();
+        else sheetOpen(t.dataset.section);
+      });
     });
-    scrim.addEventListener('click', function () {
-      aside.classList.remove('open'); scrim.classList.remove('show');
-      $('#menu').setAttribute('aria-expanded', 'false');
-    });
-    // en móvil, elegir herramienta cierra el panel
+    scrim.addEventListener('click', sheetClose);
+    $('#sheet-grab').addEventListener('click', sheetClose);
+
+    // Elegir una herramienta o un material cierra la hoja y deja el campo libre.
     aside.addEventListener('click', function (e) {
-      if (window.innerWidth <= 900 && e.target.closest('[data-tool],[data-place]')) {
-        aside.classList.remove('open'); scrim.classList.remove('show');
+      if (window.innerWidth <= 900 && e.target.closest('[data-tool],[data-place],[data-view],[data-width],.sw')) {
+        setTimeout(sheetClose, 130);
       }
     });
 
@@ -1430,17 +1883,86 @@
       if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
       if (e.ctrlKey || e.metaKey) return;
       if (k === 'escape') { setTool('select'); return; }
+      if (k === '+' || k === '=') { setZoom(ui.zoom * 1.25); return; }
+      if (k === '-') { setZoom(ui.zoom / 1.25); return; }
+      if (k === '0') { resetView(); return; }
       if (k === ' ') { e.preventDefault(); ui.playing ? stop() : play(); return; }
       if (k === 'delete' || k === 'backspace') {
         if (ui.sel) { e.preventDefault(); removeObject(byId(ui.sel)); }
         return;
       }
-      var map = { v: 'select', a: 'pass', s: 'run', d: 'dribble', f: 'free', z: 'zone', e: 'eraser' };
+      if (k === 'r' && ui.sel) {
+        var so = byId(ui.sel);
+        if (so && KIND[so.kind].rot) {
+          so.rot = ((so.rot || 0) + (e.shiftKey ? -15 : 15) + 360) % 360;
+          commit(); draw();
+        }
+        return;
+      }
+      var map = { v: 'select', a: 'pass', s: 'run', d: 'dribble', f: 'free', z: 'zone', e: 'eraser', m: 'measure' };
       if (map[k]) { setTool(map[k]); }
     });
 
     window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas.parentNode);
+
+    // Nada de zoom por pellizco ni por doble toque: se dibuja con el dedo.
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
+      document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+    });
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    // Y nada de menú contextual al mantener pulsado sobre el campo.
+    canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+
+  /* =========================================================================
+     Instalación en el dispositivo
+     ====================================================================== */
+
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function isStandalone() {
+    return window.navigator.standalone === true ||
+           (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  }
+
+  function setupInstall() {
+    var btn = $('#install'), deferred = null;
+
+    // iOS no ofrece aviso de instalación: hay que explicar el camino de Safari.
+    if (isIOS() && !isStandalone()) {
+      btn.hidden = false;
+      btn.lastChild.textContent = ' Instalar en el iPhone';
+      btn.addEventListener('click', function () { $('#dlg-ios').showModal(); });
+    }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.hidden = false;
+    });
+    btn.addEventListener('click', function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+    });
+    window.addEventListener('appinstalled', function () {
+      btn.hidden = true;
+      toast('Pizarra instalada. Ya puedes abrirla desde el icono.');
+    });
+
+    // Guarda la aplicación para poder abrirla sin conexión.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
   }
 
   /* =========================================================================
@@ -1456,8 +1978,11 @@
     f.objects.push({ id: uid(), kind: 'ball', x: 28, y: 34, rot: 0 });
   }
 
+  function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
+
   function start() {
     wire();
+    setupInstall();
     var saved = null;
     try { saved = localStorage.getItem('pt-autosave'); } catch (e) {}
     if (saved) {
@@ -1466,6 +1991,7 @@
         if (d && d.frames && d.frames.length) doc = d;
       } catch (e) {}
     }
+    ensurePitch();
     if (!doc.frames[0].objects.length && doc.frames.length === 1) seed();
     syncViewButtons();
     buildFrames();
@@ -1474,7 +2000,11 @@
     refreshHistoryButtons();
     resize();
     setTool('select');
-    setTimeout(function () { hint('Arrastra las fichas · pulsa <b>+</b> en la línea de tiempo y mueve la jugada para animarla'); }, 700);
+    setTimeout(function () {
+      hint(window.innerWidth <= 900
+        ? 'Arrastra las fichas. Con <b>+</b> añades un fotograma y la jugada se anima.'
+        : 'Arrastra las fichas · pulsa <b>+</b> en la línea de tiempo y mueve la jugada para animarla');
+    }, 700);
     setTimeout(function () { hint(''); }, 7000);
   }
 

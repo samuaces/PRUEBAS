@@ -10,14 +10,21 @@ Todo estático: HTML, CSS y JavaScript sin dependencias, sin build y sin servido
 
 ## Qué hace la pizarra
 
-**Campo.** 105 × 68 m a escala, con áreas, arcos de penalti y córners correctos. Tres
-vistas: campo completo, medio campo o superficie libre. En pantallas verticales el campo
-se gira 90° automáticamente para aprovechar el alto del móvil, manteniendo los dorsales
-derechos.
+**Modalidades.** Fútbol 11 (105 × 68), fútbol 7 (65 × 45) y fútbol sala (40 × 20), cada
+una con sus medidas de reglamento: áreas, arcos de penalti, córners, porterías y —en
+sala— el área en doble cuarto de círculo trazado desde cada poste y pista en lugar de
+césped. Al cambiar de modalidad, las fichas, el material y los trazos se reescalan al
+campo nuevo. Tres vistas por modalidad: completo, medio campo o superficie libre.
+
+**En el móvil.** En vertical el campo se gira 90° para aprovechar el alto de la pantalla,
+manteniendo los dorsales derechos. Se acerca con dos dedos y se desplaza arrastrando.
+Nada de la interfaz hace scroll, y la aplicación se instala en la pantalla de inicio
+(en iPhone, desde Compartir → Añadir a pantalla de inicio) y funciona sin conexión.
 
 **Fichas.** Jugador local, visitante y comodín, con dorsal y nombre editables, más el
-balón. Formaciones predefinidas para cualquiera de los dos equipos: 4-4-2, 4-3-3,
-4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1.
+balón. Las fichas son símbolos, así que su tamaño se ajusta a la modalidad. Alineaciones
+predefinidas para ambos equipos: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1 en fútbol
+11; 1-3-2-1, 1-2-3-1, 1-3-1-2 y 1-1-3-2 en fútbol 7; rombo, cuadrado, 1-3-0 y 3-1 en sala.
 
 **Materiales.** Conos, platos marcadores, porterías reglamentarias, porterías pequeñas,
 vallas de agilidad, escaleras de agilidad, picas, maniquíes, aros y banderines. Se
@@ -25,14 +32,18 @@ colocan tocando el campo tantas veces como haga falta, y los alargados se giran 
 tirador de la selección o con los botones de 15° y 90°.
 
 **Dibujo.** Flecha de pase (sólida), de carrera (discontinua) y de conducción (ondulada),
-línea libre, zona sombreada y textos. Ocho colores y tres grosores. Todos los trazos se
+línea libre, zona sombreada, textos y una regla que mide distancias reales en metros. Ocho colores y tres grosores. Todos los trazos se
 hacen arrastrando por el recorrido real, no punto a punto.
 
 **Animación.** Cada fotograma es una posición del tablero. Se guarda la inicial, se mueven
 las fichas, se añade otro fotograma y al reproducir la pizarra interpola el movimiento con
 suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 
-**Gestión.** Deshacer y rehacer, guardado con nombre en el navegador, autoguardado al
+**Vídeo.** La jugada animada se graba en el propio navegador (MediaRecorder sobre un
+lienzo aparte a 1280 px) y se descarga como archivo de vídeo, sin marca de agua y sin
+pasar por ningún servidor.
+
+**Gestión.** Deshacer y rehacer, guardado con nombre en el dispositivo, autoguardado al
 recargar, exportación del fotograma a PNG (2400 px) y exportación e importación de la
 pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 
@@ -40,6 +51,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 
 `V` mover · `A` pase · `S` carrera · `D` conducción · `F` línea · `Z` zona · `E` borrar ·
 `Supr` eliminar la selección · `Espacio` reproducir o pausar · `Esc` volver a mover ·
+`M` regla · `R` girar la pieza seleccionada · `+` / `-` / `0` zoom ·
 `Ctrl+Z` / `Ctrl+Mayús+Z` deshacer y rehacer.
 
 ## Estructura
@@ -69,7 +81,10 @@ DOM: es lo que permite arrastrar veinte fichas y animar la jugada sin tirones.
 
 - **Coordenadas en metros.** El documento guarda posiciones en metros del campo real; la
   transformación `{escala, desplazamiento, rotación}` las convierte a píxeles. Cambiar de
-  vista, redimensionar la ventana o girar el campo solo recalcula esa transformación.
+  vista o de modalidad, redimensionar la ventana, girar el campo o acercar con dos dedos
+  solo recalcula esa transformación.
+- **Modalidades como datos.** `PITCHES` define las medidas de cada una y el dibujo del
+  campo se deriva de ahí, así que añadir una nueva es cuestión de una entrada más.
 - **Documento y fotogramas.** `doc = { view, frames: [{ objects, strokes }] }`. Editar
   siempre actúa sobre el fotograma actual.
 - **Historial.** Instantáneas JSON del documento completo (hasta 80), lo que hace que
@@ -118,10 +133,10 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 26 comprobaciones de punta a punta sobre la
-pizarra: colocación de los once elementos, arrastre, las cuatro herramientas de trazo,
-la animación por fotogramas, deshacer y rehacer, formaciones, las tres vistas del campo y
-la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
+`tests/pizarra.test.html` es una batería de 48 comprobaciones de punta a punta sobre la
+pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
+regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
+modalidades de campo, deshacer y rehacer, formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento

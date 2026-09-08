@@ -59,7 +59,7 @@ async function run(w,d){
   var pz=region(cv,300,250,30);
   pointerAt(w,cv,240,200,'pointerdown');pointerAt(w,cv,380,310,'pointermove');pointerAt(w,cv,380,310,'pointerup');await raf();
   ok('la zona sombreada se dibuja',region(cv,300,250,30)!==pz);
-  d.getElementById('addframe').click();await raf();
+  d.querySelector('.frame.add').click();await raf();
   ok('añadir fotograma crea el segundo',d.getElementById('frames').children.length===3);
   ok('el botón de reproducir se habilita',!d.getElementById('play').disabled);
   d.querySelector('[data-tool="select"]').click();
@@ -115,6 +115,111 @@ async function run(w,d){
   ok('vaciar pide confirmación en un diálogo',d.getElementById('dlg-ask').open);
   d.querySelector('#dlg-ask [data-close]').click();await raf();
   ok('cancelar no vacía el fotograma',region(cv,cv.clientWidth*0.90,cv.clientHeight*0.5,26)>0);
+
+  var lp=d.getElementById('loop');
+  lp.click();await raf();
+  ok('el bucle se activa como interruptor',lp.getAttribute('aria-pressed')==='true');
+  lp.click();await raf();
+  var sp=d.getElementById('speed'),v0=sp.textContent;
+  sp.click();await raf();
+  ok('la velocidad cambia al pulsarla',sp.textContent!==v0,v0+' -> '+sp.textContent);
+
+  // giro: ahora TODO el material se puede girar
+  var rotables=['cone','disc','pole','ring','flag','goal','minigoal','hurdle','ladder','dummy'];
+  var okRot=true,dr='';
+  for(var r0=0;r0<rotables.length;r0++){
+    d.querySelector('[data-place="'+rotables[r0]+'"]').click();await raf();
+    var RX=260+r0*62,RY=560;
+    pointerAt(w,cv,RX,RY,'pointerdown');pointerAt(w,cv,RX,RY,'pointerup');await raf();
+    d.querySelector('[data-tool="select"]').click();await raf();
+    pointerAt(w,cv,RX,RY,'pointerdown');pointerAt(w,cv,RX,RY,'pointerup');await raf();
+    var rb=d.querySelector('#inspector [data-rot="90"]');
+    if(!rb){okRot=false;dr+=rotables[r0]+' sin botón de giro; ';continue;}
+    var pre=region(cv,RX,RY,30);
+    rb.click();await raf();
+    if(region(cv,RX,RY,30)===pre){okRot=false;dr+=rotables[r0]+' no cambia al girar; ';}
+  }
+  ok('las 10 piezas de material se pueden girar',okRot,dr);
+
+  // la página no debe poder desplazarse
+  var scrollable=await new Promise(function(res){
+    w.scrollTo(0,300);
+    setTimeout(function(){res(w.scrollY!==0||d.documentElement.scrollHeight>d.documentElement.clientHeight+1);},60);
+  });
+  ok('la pantalla de la pizarra no hace scroll',!scrollable,
+     'scrollY='+w.scrollY+' alto='+d.documentElement.scrollHeight+'/'+d.documentElement.clientHeight);
+
+  // --- zoom con dos dedos ---
+  function two(type,a,b2){
+    var r=cv.getBoundingClientRect();
+    cv.dispatchEvent(new w.PointerEvent(type,{clientX:r.left+a[0],clientY:r.top+a[1],pointerId:11,isPrimary:true,bubbles:true,buttons:1}));
+    cv.dispatchEvent(new w.PointerEvent(type,{clientX:r.left+b2[0],clientY:r.top+b2[1],pointerId:12,isPrimary:false,bubbles:true,buttons:1}));
+  }
+  var zbtn=d.getElementById('zoom');
+  ok('el botón de ajustar está oculto al inicio',zbtn.hidden);
+  var antes=region(cv,cv.clientWidth/2,cv.clientHeight/2,40);
+  two('pointerdown',[380,300],[520,300]);
+  two('pointermove',[300,300],[600,300]);
+  await raf();
+  ok('el pellizco acerca el campo',region(cv,cv.clientWidth/2,cv.clientHeight/2,40)!==antes);
+  ok('aparece el botón de ver el campo entero',!zbtn.hidden);
+  two('pointerup',[300,300],[600,300]);
+  await raf();
+  var conZoom=region(cv,cv.clientWidth/2,cv.clientHeight/2,40);
+  zbtn.click();await raf();
+  ok('ajustar devuelve la vista completa',region(cv,cv.clientWidth/2,cv.clientHeight/2,40)!==conZoom&&zbtn.hidden);
+
+  // tras el gesto se debe poder seguir dibujando con un dedo
+  d.querySelector('[data-tool="pass"]').click();await raf();
+  var pz=region(cv,500,250,30);
+  pointerAt(w,cv,430,290,'pointerdown');
+  for(var q=1;q<=6;q++)pointerAt(w,cv,430+q*24,290-q*8,'pointermove');
+  pointerAt(w,cv,580,240,'pointerup');await raf();
+  ok('después del pellizco se sigue dibujando con un dedo',region(cv,500,250,30)!==pz);
+
+  // --- modalidades de campo ---
+  var modal=[['f7','Fútbol 7'],['futsal','Fútbol sala'],['f11','Fútbol 11']];
+  var okMod=true,dm='';
+  for(var mi=0;mi<modal.length;mi++){
+    d.querySelector('[data-pitch="'+modal[mi][0]+'"]').click();
+    await wait(200);
+    var c0=px(cv,cv.clientWidth/2,cv.clientHeight/2);
+    if(!(c0[0]+c0[1]+c0[2]>60)){okMod=false;dm+=modal[mi][0]+' no pinta; ';}
+    if(d.querySelector('[data-pitch="'+modal[mi][0]+'"]').getAttribute('aria-pressed')!=='true'){okMod=false;dm+=modal[mi][0]+' sin marcar; ';}
+  }
+  ok('las tres modalidades de campo se dibujan',okMod,dm);
+
+  d.querySelector('[data-pitch="futsal"]').click(); await wait(200);
+  var fsOpts=d.getElementById('form-home').options.length;
+  ok('el fútbol sala trae sus propias alineaciones',fsOpts>1&&
+     d.getElementById('form-home').options[1].text.indexOf('-')>0,fsOpts+' opciones');
+  d.querySelector('[data-pitch="f11"]').click(); await wait(200);
+  ok('al volver a fútbol 11 hay 6 sistemas',d.getElementById('form-home').options.length===7,
+     d.getElementById('form-home').options.length+' opciones');
+
+  // --- regla ---
+  d.querySelector('[data-tool="measure"]').click();await raf();
+  var pm=region(cv,500,420,40);
+  pointerAt(w,cv,400,380,'pointerdown');
+  pointerAt(w,cv,620,470,'pointermove');
+  pointerAt(w,cv,620,470,'pointerup');await raf();
+  ok('la regla dibuja la medida sobre el campo',region(cv,500,420,40)!==pm);
+
+  // --- vídeo de la jugada ---
+  var started=false,stopped=false;
+  var RealRec=w.MediaRecorder;
+  w.MediaRecorder=function(){ started=true; this.start=function(){}; this.stop=function(){ stopped=true; if(this.onstop)this.onstop(); };
+    this.ondataavailable=null; this.onstop=null; };
+  w.MediaRecorder.isTypeSupported=function(){return true;};
+  if(!w.HTMLCanvasElement.prototype.captureStream)
+    w.HTMLCanvasElement.prototype.captureStream=function(){return {};};
+  d.getElementById('video').click();
+  await wait(120);
+  ok('grabar la jugada arranca el grabador',started);
+  ok('el botón de vídeo se marca mientras graba',d.getElementById('video').classList.contains('rec'));
+  await wait(4200);
+  ok('la grabación termina sola',stopped&&!d.getElementById('video').classList.contains('rec'));
+  w.MediaRecorder=RealRec;
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
