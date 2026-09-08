@@ -1,0 +1,32 @@
+# Pizarra Táctica
+
+> Pizarra táctica de fútbol online, gratuita y sin registro. Se ejecuta entera en el
+> navegador: no hay servidor, ni cuentas, ni recogida de datos.
+
+Proyecto estático (HTML, CSS y JavaScript sin dependencias) pensado para entrenadores,
+analistas y aficionados que necesitan dibujar una jugada o un ejercicio rápido.
+
+## Páginas
+
+- [Inicio](https://samuaces.github.io/PRUEBAS/): qué es, funciones, casos de uso y preguntas frecuentes.
+- [La pizarra](https://samuaces.github.io/PRUEBAS/app/): la aplicación en sí, lista para dibujar.
+- [Código fuente](https://github.com/samuaces/PRUEBAS): repositorio público.
+
+## Qué hace hoy
+
+- Campo de fútbol en SVG con proporción 105 × 68 m (áreas, círculo central, punto de penalti).
+- Fichas de jugadores locales (rojo) y visitantes (azul), arrastrables y numeradas.
+- Flecha sólida (recorrido del balón) y flecha discontinua (recorrido del jugador).
+- Trazo libre y conos para diseñar ejercicios de entrenamiento.
+- 8 colores y 3 grosores de trazo; deshacer último trazo y limpiar la pizarra.
+
+## Qué NO hace todavía
+
+- No guarda esquemas ni permite exportarlos como imagen.
+- No tiene formaciones predefinidas ni animación de jugadas.
+- No sincroniza nada en la nube: si cierras la pestaña, se pierde el dibujo.
+
+## Privacidad
+
+Sin cookies, sin analítica y sin llamadas a terceros. Todo el dibujo ocurre en el
+dispositivo del usuario.
