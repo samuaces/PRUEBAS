@@ -1,0 +1,105 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pruebas de la pizarra</title>
+<meta name="robots" content="noindex, nofollow">
+<style>html,body{margin:0;background:#111;color:#eee;font:13px monospace}
+iframe{width:1200px;height:820px;border:0}#out{white-space:pre;padding:10px;font-size:14px}</style></head>
+<body>
+<h1 style="font:700 16px system-ui;padding:10px 10px 0;margin:0">Pruebas de la pizarra táctica</h1>
+<p style="font:13px system-ui;color:#9aa;padding:0 10px;margin:6px 0">Sirve el repositorio (<code>python3 -m http.server</code>) y abre este archivo. Se ejecuta solo.</p>
+<div id="out">ejecutando…</div><iframe id="fr" src="../app/"></iframe>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){log.push((c?'PASA  ':'FALLA ')+n+(x?'  ('+x+')':''));if(!c)fails++;}
+function raf(){return new Promise(function(r){setTimeout(r,70);});}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+var fr=document.getElementById('fr'),errors=[];
+fr.addEventListener('load',function(){var w=fr.contentWindow,d=fr.contentDocument;
+  w.addEventListener('error',function(e){errors.push(e.message);});
+  run(w,d).catch(function(e){log.push('EXCEPCION: '+e.message);fails++;}).then(report);});
+function px(cv,x,y){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width);
+  return c.getImageData(Math.round(x*dpr),Math.round(y*dpr),1,1).data;}
+function pointerAt(w,el,x,y,t){var r=el.getBoundingClientRect();
+  el.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x,clientY:r.top+y,bubbles:true,pointerId:1,isPrimary:true,buttons:1}));}
+function region(cv,x,y,s){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width);
+  var d=c.getImageData(Math.round((x-s)*dpr),Math.round((y-s)*dpr),Math.round(2*s*dpr),Math.round(2*s*dpr)).data;
+  var sum=0;for(var i=0;i<d.length;i+=4)sum+=d[i]+d[i+1]+d[i+2];return sum;}
+async function run(w,d){
+  await wait(400);
+  var cv=d.getElementById('board');
+  ok('el canvas existe y tiene tamaño',!!cv&&cv.width>200,cv?cv.width+'x'+cv.height:'no');
+  var p=px(cv,cv.clientWidth/2,cv.clientHeight/2);
+  ok('el campo se dibuja en verde',p[1]>p[0]&&p[1]>p[2]&&p[1]>40,'rgb('+p[0]+','+p[1]+','+p[2]+')');
+  ok('la línea de tiempo arranca con 1 fotograma',d.getElementById('frames').children.length===2);
+  ok('el 4-3-3 inicial pinta jugadores',region(cv,cv.clientWidth*0.10,cv.clientHeight*0.5,26)>0);
+  var before=region(cv,300,620,22);
+  d.querySelector('[data-place="cone"]').click(); await raf();
+  ok('la herramienta de colocar queda activa',d.querySelector('[data-place="cone"]').getAttribute('aria-pressed')==='true');
+  pointerAt(w,cv,300,620,'pointerdown');pointerAt(w,cv,300,620,'pointerup');await raf();
+  ok('al tocar el campo se coloca el cono',region(cv,300,620,22)!==before);
+  var mats=['goal','hurdle','ladder','dummy','ring','flag','pole','disc','minigoal','ball','player'],okM=true,det='';
+  for(var i=0;i<mats.length;i++){var b=d.querySelector('[data-place="'+mats[i]+'"]');
+    if(!b){okM=false;det+=mats[i]+' sin botón; ';continue;} b.click();
+    var X=200+i*66,Y=120,pre=region(cv,X,Y,24);
+    pointerAt(w,cv,X,Y,'pointerdown');pointerAt(w,cv,X,Y,'pointerup');await raf();
+    if(region(cv,X,Y,24)===pre){okM=false;det+=mats[i]+' no pinta; ';}}
+  ok('los 11 elementos colocables se dibujan',okM,det);
+  d.querySelector('[data-tool="select"]').click();await raf();
+  pointerAt(w,cv,300,620,'pointerdown');await raf();
+  ok('el inspector aparece al seleccionar',d.getElementById('inspector').classList.contains('show'));
+  pointerAt(w,cv,430,530,'pointermove');pointerAt(w,cv,430,530,'pointerup');await raf();
+  ok('arrastrar mueve el objeto',region(cv,430,530,22)!==region(cv,700,620,22));
+  var tools=['pass','run','dribble','free'],okT=true,dt='';
+  for(var t=0;t<tools.length;t++){d.querySelector('[data-tool="'+tools[t]+'"]').click();await raf();
+    var y0=300+t*60,pre=region(cv,700,y0,26);
+    pointerAt(w,cv,600,y0+20,'pointerdown');
+    for(var k=1;k<=8;k++)pointerAt(w,cv,600+k*26,y0+20-k*4,'pointermove');
+    pointerAt(w,cv,810,y0-12,'pointerup');await raf();
+    if(region(cv,700,y0,26)===pre){okT=false;dt+=tools[t]+' no pinta; ';}}
+  ok('las 4 herramientas de trazo dibujan',okT,dt);
+  d.querySelector('[data-tool="zone"]').click();await raf();
+  var pz=region(cv,300,250,30);
+  pointerAt(w,cv,240,200,'pointerdown');pointerAt(w,cv,380,310,'pointermove');pointerAt(w,cv,380,310,'pointerup');await raf();
+  ok('la zona sombreada se dibuja',region(cv,300,250,30)!==pz);
+  d.getElementById('addframe').click();await raf();
+  ok('añadir fotograma crea el segundo',d.getElementById('frames').children.length===3);
+  ok('el botón de reproducir se habilita',!d.getElementById('play').disabled);
+  d.querySelector('[data-tool="select"]').click();
+  var jx=cv.clientWidth*0.10,jy=cv.clientHeight*0.5;
+  pointerAt(w,cv,jx,jy,'pointerdown');pointerAt(w,cv,jx+160,jy+40,'pointermove');pointerAt(w,cv,jx+160,jy+40,'pointerup');await raf();
+  d.getElementById('play').click();await wait(300);
+  ok('la animación arranca',d.getElementById('progress').classList.contains('show'));
+  var w1=d.querySelector('#progress i').style.width;await wait(500);
+  ok('la animación avanza',w1!==d.querySelector('#progress i').style.width,w1+' -> '+d.querySelector('#progress i').style.width);
+  await wait(1800);
+  ok('la animación termina sola',!d.getElementById('progress').classList.contains('show'));
+  ok('deshacer está disponible',!d.getElementById('undo').disabled);
+  d.getElementById('undo').click();await raf();
+  ok('rehacer se habilita tras deshacer',!d.getElementById('redo').disabled);
+  d.getElementById('redo').click();await raf();
+  var sel=d.getElementById('form-away');sel.value='4-4-2';
+  sel.dispatchEvent(new w.Event('change',{bubbles:true}));await raf();
+  ok('la formación visitante coloca jugadores',region(cv,cv.clientWidth*0.90,cv.clientHeight*0.5,26)>0);
+  d.querySelector('[data-view="half"]').click();await wait(150);
+  ok('el medio campo se redibuja',px(cv,cv.clientWidth/2,cv.clientHeight/2)[1]>40);
+  d.querySelector('[data-view="blank"]').click();await wait(150);
+  ok('la superficie libre se redibuja',px(cv,cv.clientWidth/2,cv.clientHeight/2)[1]>40);
+  d.querySelector('[data-view="full"]').click();await wait(150);
+  var threw=null,got=false,old=w.HTMLCanvasElement.prototype.toBlob;
+  w.HTMLCanvasElement.prototype.toBlob=function(cb){got=true;try{cb(new w.Blob(['x']));}catch(e){}};
+  try{d.getElementById('png').click();}catch(e){threw=e.message;}
+  w.HTMLCanvasElement.prototype.toBlob=old;
+  ok('exportar a PNG no lanza errores',!threw&&got,threw||'');
+  var oldURL=w.URL.createObjectURL,jsonOk=false;
+  w.URL.createObjectURL=function(b){jsonOk=b&&b.size>10;return 'blob:x';};
+  try{d.getElementById('json').click();}catch(e){}
+  w.URL.createObjectURL=oldURL;
+  ok('exportar a JSON genera el archivo',jsonOk);
+  d.getElementById('help').click();await raf();
+  ok('el diálogo de ayuda se abre',d.getElementById('dlg-help').open);
+  d.querySelector('#dlg-help [data-close]').click();await raf();
+  ok('el diálogo se cierra',!d.getElementById('dlg-help').open);
+  ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
+}
+function report(){document.getElementById('out').textContent=log.join('\n')+
+  '\n\nRESULTADO: '+(fails?fails+' FALLOS':'TODO CORRECTO ('+log.length+' comprobaciones)');
+  document.title=fails?'FALLOS':'OK';}
+</script></body></html>

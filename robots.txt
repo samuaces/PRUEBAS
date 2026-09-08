@@ -6,6 +6,7 @@
 
 User-agent: *
 Allow: /
+Disallow: /tests/
 
 # Rastreadores de IA: permitidos a propósito (visibilidad en respuestas generativas).
 User-agent: GPTBot

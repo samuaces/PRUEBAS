@@ -1,10 +1,11 @@
 # Pizarra Táctica
 
-> Pizarra táctica de fútbol online, gratuita y sin registro. Se ejecuta entera en el
+> Pizarra táctica de fútbol online, gratuita y sin registro, con material de
+> entrenamiento y animación de la jugada por fotogramas. Se ejecuta entera en el
 > navegador: no hay servidor, ni cuentas, ni recogida de datos.
 
 Proyecto estático (HTML, CSS y JavaScript sin dependencias) pensado para entrenadores,
-analistas y aficionados que necesitan dibujar una jugada o un ejercicio rápido.
+analistas y aficionados que necesitan diseñar una jugada o una sesión de entrenamiento.
 
 ## Páginas
 
@@ -12,21 +13,31 @@ analistas y aficionados que necesitan dibujar una jugada o un ejercicio rápido.
 - [La pizarra](https://samuaces.github.io/PRUEBAS/app/): la aplicación en sí, lista para dibujar.
 - [Código fuente](https://github.com/samuaces/PRUEBAS): repositorio público.
 
-## Qué hace hoy
+## Qué hace
 
-- Campo de fútbol en SVG con proporción 105 × 68 m (áreas, círculo central, punto de penalti).
-- Fichas de jugadores locales (rojo) y visitantes (azul), arrastrables y numeradas.
-- Flecha sólida (recorrido del balón) y flecha discontinua (recorrido del jugador).
-- Trazo libre y conos para diseñar ejercicios de entrenamiento.
-- 8 colores y 3 grosores de trazo; deshacer último trazo y limpiar la pizarra.
+- Campo de fútbol a escala reglamentaria (105 × 68 m) con áreas, arcos de penalti y
+  córners. Vistas: campo completo, medio campo o superficie libre. En pantallas
+  verticales el campo se gira solo.
+- Fichas de jugador local, visitante y comodín, con dorsal y nombre editables.
+- Formaciones predefinidas: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1, para
+  cualquiera de los dos equipos.
+- Material de entrenamiento colocable y orientable: conos, platos marcadores,
+  porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras de
+  agilidad, picas, maniquíes, aros y banderines.
+- Dibujo: flecha de pase (sólida), flecha de carrera (discontinua), conducción
+  (ondulada), línea libre, zonas sombreadas y textos. Ocho colores y tres grosores.
+- Animación por fotogramas: se guardan posiciones sucesivas y la pizarra interpola el
+  movimiento, con estelas, control de velocidad y bucle.
+- Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
+  de la pizarra en JSON, deshacer y rehacer, y ajuste opcional a una rejilla de 0,5 m.
 
 ## Qué NO hace todavía
 
-- No guarda esquemas ni permite exportarlos como imagen.
-- No tiene formaciones predefinidas ni animación de jugadas.
-- No sincroniza nada en la nube: si cierras la pestaña, se pierde el dibujo.
+- No exporta la animación como vídeo o GIF.
+- No mide distancias sobre el campo.
+- No sincroniza nada en la nube ni permite compartir por enlace.
 
 ## Privacidad
 
-Sin cookies, sin analítica y sin llamadas a terceros. Todo el dibujo ocurre en el
-dispositivo del usuario.
+Sin cookies, sin analítica y sin llamadas a terceros. Todo ocurre en el dispositivo
+del usuario; lo guardado vive en el almacenamiento local de su navegador.

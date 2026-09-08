@@ -28,6 +28,7 @@ aquí, más el trabajo manual que solo puedes hacer tú.
 | Fuentes autoalojadas + CSS crítico embebido | `assets/fonts/`, `<style>` en línea | La página se pinta con **una sola petición HTML**: sin CSS externo, sin CDN, sin bloqueo de renderizado. Es lo que mueve el LCP de los Core Web Vitals. |
 | Cero dependencias y cero rastreo | todo el proyecto | Nada de jQuery, de fuentes de Google en caliente ni de scripts de terceros: menos peso, menos latencia y ningún banner de cookies. |
 | Sin valoraciones ni testimonios inventados | `index.html` | Marcar `AggregateRating` falso es motivo de acción manual por *spam de datos estructurados*. Por eso aquí no hay ninguno. |
+| La FAQ visible coincide con la del marcado | `index.html` | Google exige que el contenido de `FAQPage` esté visible en la página; si no coincide, ignora el marcado o penaliza. |
 | Página 404 útil | `404.html` | Recupera al visitante perdido en lugar de expulsarlo. |
 | `site.webmanifest` + iconos | raíz, `assets/img/` | Instalable en el móvil y con icono propio en la pestaña. |
 
@@ -62,8 +63,14 @@ las que tengan impresiones pero pocos clics: ahí está el crecimiento fácil.
 Una sola URL compite por un puñado de búsquedas. Diez páginas útiles compiten por cientos.
 Ideas que encajan con este proyecto y que además dan motivos para enlazarte:
 "cómo dibujar una jugada de estrategia a balón parado", "el 4-3-3 explicado en la pizarra",
-"20 ejercicios de rondo con conos", "qué significa cada flecha en un esquema táctico".
-Cada artículo, con su propio `title`, su `description` y un enlace a la pizarra.
+"20 ejercicios de rondo con conos", "qué significa cada flecha en un esquema táctico",
+"circuitos de agilidad con vallas y escalera". Cada artículo, con su propio `title`, su
+`description` y un enlace a la pizarra.
+
+Y hay algo que ninguna palabra clave sustituye: **la herramienta hace algo que las demás
+pizarras gratuitas no hacen** —animar la jugada por fotogramas con el material real del
+entrenamiento—. Eso es lo que hace que alguien la comparta, y compartir es lo que trae
+enlaces, que es lo que trae posiciones.
 
 ### Paso 6 — Distribución, que es lo que enciende la mecha
 El SEO tarda semanas; la gente, no. Ahí está el tráfico de las primeras semanas:
