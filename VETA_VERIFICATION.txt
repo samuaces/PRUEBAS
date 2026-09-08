@@ -1,0 +1,44 @@
+==========================================================================================
+VETA -- verificacion de la politica de seleccion
+==========================================================================================
+
+  Mismo mercado, mismas horas, misma habilidad, misma regla de abandono para
+  todas las politicas. Lo unico que cambia es cual eliges. Cada bounty tiene
+  una verdad oculta (horas reales, si el repo paga de verdad, cuanta gente va
+  a por ella) y el cazador solo ve una sombra ruidosa de esa verdad.
+
+politica                     EUR/h   ganado  aciertos  repo no paga  h. tiradas  p vs veta
+------------------------------------------------------------------------------------------
+veta                          18.1     9392       22%          21.3         57%           
+pago / horas estimadas        15.8     8205       15%          29.3         65%     0.0631
+al azar                        6.8     3517       23%          25.0         48%   0.0000 *
+mayor pago primero             6.0     3144        7%           5.1         20%   0.0000 *
+la mas reciente                4.6     2396       19%          12.6         27%   0.0000 *
+------------------------------------------------------------------------------------------
+  * = diferencia significativa al 5% (test de Welch), 40 temporadas de 26 semanas
+
+==========================================================================================
+FALSACION -- un mercado donde casi nadie fusiona trabajo de fuera
+==========================================================================================
+
+politica                      normal    hostil     caida
+--------------------------------------------------------
+veta                            19.6       9.1      54%
+pago / horas                    17.7       7.2      59%
+mayor pago                       5.4       1.6      70%
+
+==========================================================================================
+VEREDICTO
+==========================================================================================
+  [PASA]  el ranking por valor esperado es el mejor
+           mejor politica: veta (18.1 EUR/h)
+  [PASA]  bate a 'coge la de mayor pago', que es lo que hace la gente
+           18.1 vs 6.0 EUR/h (x3.0)
+  [PASA]  bate al ranking ingenuo pago/horas
+           18.1 vs 15.8 EUR/h; p=0.0631
+  [PASA]  evita mas repos que no pagan
+           21.3 vs 29.3 parches perdidos por repos que no fusionan
+  [PASA]  aguanta mejor un mercado hostil
+           cae 54% frente a 59% del ingenuo
+
+  5/5 comprobaciones en 374s

@@ -1,0 +1,607 @@
+{
+ "issues": [
+  {
+   "id": 101,
+   "number": 12,
+   "title": "Crash when config file is empty",
+   "html_url": "https://github.com/acme/tool/issues/12",
+   "labels": [
+    {
+     "name": "\ud83d\udc8e Bounty"
+    },
+    {
+     "name": "bug"
+    }
+   ],
+   "body": "Bounty: $400\n\nSteps to reproduce:\n```\ntool --config empty.yml\n```\nTraceback follows.",
+   "repository_url": "https://api.github.com/repos/acme/tool",
+   "created_at": "2026-09-02T04:53:52.807878Z",
+   "updated_at": "2026-09-06T04:53:52.807878Z",
+   "comments": 3,
+   "assignee": null,
+   "state": "open",
+   "comments_url": "https://api.github.com/repos/acme/tool/issues/12/comments"
+  },
+  {
+   "id": 102,
+   "number": 40,
+   "title": "Redesign the plugin architecture",
+   "html_url": "https://github.com/acme/tool/issues/40",
+   "labels": [
+    {
+     "name": "\ud83d\udc8e Bounty"
+    },
+    {
+     "name": "refactor"
+    },
+    {
+     "name": "design"
+    }
+   ],
+   "body": "$2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. $2000 bounty. We should redesign and investigate race conditions across platforms. ",
+   "repository_url": "https://api.github.com/repos/acme/tool",
+   "created_at": "2025-07-15T04:53:52.807878Z",
+   "updated_at": "2026-08-09T04:53:52.807878Z",
+   "comments": 58,
+   "assignee": null,
+   "state": "open",
+   "comments_url": "https://api.github.com/repos/acme/tool/issues/40/comments"
+  },
+  {
+   "id": 103,
+   "number": 7,
+   "title": "Fix typo in README",
+   "html_url": "https://github.com/ghost/dead/issues/7",
+   "labels": [
+    {
+     "name": "bounty"
+    },
+    {
+     "name": "good first issue"
+    }
+   ],
+   "body": "$60 for fixing this typo",
+   "repository_url": "https://api.github.com/repos/ghost/dead",
+   "created_at": "2026-08-24T04:53:52.807878Z",
+   "updated_at": "2026-08-24T04:53:52.807878Z",
+   "comments": 0,
+   "assignee": null,
+   "state": "open",
+   "comments_url": "https://api.github.com/repos/ghost/dead/issues/7/comments"
+  },
+  {
+   "id": 104,
+   "number": 19,
+   "title": "Memory leak in worker pool",
+   "html_url": "https://github.com/ghost/dead/issues/19",
+   "labels": [
+    {
+     "name": "bounty"
+    }
+   ],
+   "body": "$800. Steps to reproduce:\n```\nrun --workers 8\n```",
+   "repository_url": "https://api.github.com/repos/ghost/dead",
+   "created_at": "2026-08-19T04:53:52.807878Z",
+   "updated_at": "2026-09-03T04:53:52.807878Z",
+   "comments": 2,
+   "assignee": null,
+   "state": "open",
+   "comments_url": "https://api.github.com/repos/ghost/dead/issues/19/comments"
+  },
+  {
+   "id": 105,
+   "number": 88,
+   "title": "Add retry to the uploader",
+   "html_url": "https://github.com/acme/tool/issues/88",
+   "labels": [
+    {
+     "name": "\ud83d\udc8e Bounty"
+    }
+   ],
+   "body": "$300 bounty. Add exponential backoff.",
+   "repository_url": "https://api.github.com/repos/acme/tool",
+   "created_at": "2026-09-05T04:53:52.807878Z",
+   "updated_at": "2026-09-07T04:53:52.807878Z",
+   "comments": 4,
+   "assignee": {
+    "login": "someone_else"
+   },
+   "state": "open",
+   "comments_url": "https://api.github.com/repos/acme/tool/issues/88/comments"
+  },
+  {
+   "id": 106,
+   "number": 90,
+   "title": "No money mentioned here",
+   "html_url": "https://github.com/acme/tool/issues/90",
+   "labels": [
+    {
+     "name": "bug"
+    }
+   ],
+   "body": "just a bug",
+   "repository_url": "https://api.github.com/repos/acme/tool",
+   "created_at": "2026-09-07T04:53:52.807878Z",
+   "updated_at": "2026-09-07T04:53:52.807878Z",
+   "comments": 0,
+   "assignee": null,
+   "state": "open"
+  }
+ ],
+ "pulls": {
+  "acme/tool": [
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-31T04:53:52.807878Z",
+    "merged_at": "2026-09-06T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev0"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-20T04:53:52.807878Z",
+    "merged_at": "2026-08-26T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev1"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-09T04:53:52.807878Z",
+    "merged_at": "2026-08-15T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev2"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-29T04:53:52.807878Z",
+    "merged_at": "2026-08-04T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev3"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-18T04:53:52.807878Z",
+    "merged_at": "2026-07-24T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev4"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-07T04:53:52.807878Z",
+    "merged_at": "2026-07-13T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev5"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-26T04:53:52.807878Z",
+    "merged_at": "2026-07-02T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev6"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-15T04:53:52.807878Z",
+    "merged_at": "2026-06-21T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev7"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-04T04:53:52.807878Z",
+    "merged_at": "2026-06-10T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev8"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-24T04:53:52.807878Z",
+    "merged_at": "2026-05-30T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev9"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-13T04:53:52.807878Z",
+    "merged_at": "2026-05-19T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev10"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-02T04:53:52.807878Z",
+    "merged_at": "2026-05-08T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev11"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-04-21T04:53:52.807878Z",
+    "merged_at": "2026-04-27T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev12"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-04-10T04:53:52.807878Z",
+    "merged_at": "2026-04-16T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev13"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-30T04:53:52.807878Z",
+    "merged_at": "2026-04-05T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev14"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-19T04:53:52.807878Z",
+    "merged_at": "2026-03-25T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev15"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-08T04:53:52.807878Z",
+    "merged_at": "2026-03-14T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev16"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-25T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev17"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-14T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev18"
+    },
+    "repo": "acme/tool"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-03T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev19"
+    },
+    "repo": "acme/tool"
+   }
+  ],
+  "ghost/dead": [
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-31T04:53:52.807878Z",
+    "merged_at": "2025-12-22T04:53:52.807878Z",
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev0"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-20T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev1"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-08-09T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev2"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-29T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev3"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-18T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev4"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-07-07T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev5"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-26T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev6"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-15T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev7"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-06-04T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev8"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-24T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev9"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-13T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev10"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-05-02T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev11"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-04-21T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev12"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-04-10T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev13"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-30T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev14"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-19T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev15"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-03-08T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev16"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-25T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev17"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-14T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev18"
+    },
+    "repo": "ghost/dead"
+   },
+   {
+    "author_association": "CONTRIBUTOR",
+    "created_at": "2026-02-03T04:53:52.807878Z",
+    "merged_at": null,
+    "comments": 1,
+    "review_comments": 1,
+    "user": {
+     "login": "dev19"
+    },
+    "repo": "ghost/dead"
+   }
+  ]
+ },
+ "meta": {
+  "acme/tool": {
+   "open_issues_count": 9,
+   "archived": false
+  },
+  "ghost/dead": {
+   "open_issues_count": 180,
+   "archived": false
+  }
+ },
+ "comments": {
+  "https://api.github.com/repos/acme/tool/issues/12/comments": [],
+  "https://api.github.com/repos/acme/tool/issues/40/comments": [
+   {
+    "body": "I'm working on this",
+    "user": {
+     "login": "rival1"
+    }
+   },
+   {
+    "body": "any update?",
+    "user": {
+     "login": "bob"
+    }
+   }
+  ],
+  "https://api.github.com/repos/ghost/dead/issues/7/comments": [],
+  "https://api.github.com/repos/ghost/dead/issues/19/comments": [],
+  "https://api.github.com/repos/acme/tool/issues/88/comments": []
+ }
+}
