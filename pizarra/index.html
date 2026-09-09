@@ -117,8 +117,8 @@ p{margin:0}
 
 /* ---------- Secciones ---------- */
 section{position:relative}
-.section{padding:clamp(64px,9vw,112px) 0}
-.section-head{max-width:720px;margin-bottom:52px}
+.section{padding:clamp(54px,7vw,92px) 0}
+.section-head{max-width:720px;margin-bottom:44px}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--ff-display);font-weight:700;
   font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:16px}
 .eyebrow::before{content:"";width:22px;height:2px;background:var(--brand);border-radius:2px}
@@ -126,7 +126,7 @@ h2.title{font-size:clamp(30px,4.4vw,46px);font-weight:800}
 .lead{color:var(--muted);font-size:clamp(17px,1.5vw,19px);margin-top:18px;max-width:62ch}
 
 /* ---------- Hero ---------- */
-.hero{padding:clamp(48px,7vw,88px) 0 clamp(50px,7vw,90px);overflow:hidden}
+.hero{padding:clamp(44px,6vw,76px) 0 clamp(40px,5.5vw,70px);overflow:hidden}
 .hero::before{content:"";position:absolute;inset:-30% -20% auto -20%;height:820px;z-index:-1;
   background:
     radial-gradient(58% 48% at 22% 12%,color-mix(in srgb,var(--brand) 22%,transparent),transparent 68%),
@@ -137,7 +137,7 @@ h2.title{font-size:clamp(30px,4.4vw,46px);font-weight:800}
   border:1px solid var(--line);background:var(--surface);font-size:14px;color:var(--muted);margin-bottom:24px}
 .badge b{color:var(--text);font-weight:600}
 .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent);margin-inline:6px 2px;flex:none}
-h1{font-size:clamp(36px,4.7vw,56px);font-weight:800;letter-spacing:-.032em}
+h1{font-size:clamp(36px,4.7vw,56px);font-weight:800;letter-spacing:-.032em;text-wrap:balance}
 h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p.lead{margin-top:22px;font-size:clamp(17px,1.6vw,20px)}
 .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
@@ -157,12 +157,6 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 .pulse{animation:pulse 2.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.55;r:15}50%{opacity:.15;r:23}}
 
-/* ---------- Tira de datos ---------- */
-.strip{border-block:1px solid var(--line);background:var(--bg-2)}
-.strip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
-.stat{background:var(--bg-2);padding:30px 22px;text-align:center}
-.stat b{display:block;font-family:var(--ff-display);font-size:clamp(26px,3.2vw,34px);font-weight:800;letter-spacing:-.03em}
-.stat span{display:block;color:var(--muted);font-size:14px;margin-top:6px}
 
 /* ---------- Tarjetas ---------- */
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -178,63 +172,21 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 .card p{color:var(--muted);font-size:15.5px;line-height:1.6}
 
 /* ---------- Pasos ---------- */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:s}
-.step{position:relative;padding:30px 26px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:s}
+.step{position:relative;padding:26px 22px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface)}
 .step::before{counter-increment:s;content:"0" counter(s);display:block;margin-bottom:16px;
   font-family:var(--ff-display);font-size:42px;font-weight:800;line-height:1;letter-spacing:-.04em;
   color:transparent;-webkit-text-stroke:1.5px var(--line-strong)}
 .step h3{font-size:19px;margin:0 0 10px}
 .step p{color:var(--muted);font-size:15.5px}
 
-/* ---------- Casos de uso ---------- */
-.cases{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-.case{display:flex;gap:18px;padding:26px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface-2)}
-.case .ico{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:20px;
-  background:var(--surface);border:1px solid var(--line)}
-.case h3{font-size:17.5px;margin-bottom:7px}
-.case p{color:var(--muted);font-size:15px}
 
-/* ---------- Bloque split (roadmap) ---------- */
-.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);align-items:center}
-.roadmap{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.roadmap li{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:13px;
-  border:1px solid var(--line);background:var(--surface)}
-.roadmap .tag{font-family:var(--ff-display);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  padding:4px 9px;border-radius:100px;flex:none;margin-top:2px}
-.tag.live{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
-.tag.soon{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--line)}
-.roadmap b{display:block;font-family:var(--ff-display);font-size:16px}
-.roadmap span{color:var(--muted);font-size:14.5px}
 
-/* ---------- Texto largo (SEO) ---------- */
-.prose{max-width:74ch}
-.prose h3{font-size:21px;margin:34px 0 12px}
-.prose p{color:var(--muted);margin-bottom:14px}
-.prose strong{color:var(--text);font-weight:600}
 
-/* ---------- FAQ ---------- */
-.faq{display:grid;gap:12px;max-width:860px}
-.faq details{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;transition:border-color .25s}
-.faq details[open]{border-color:var(--line-strong)}
-.faq summary{cursor:pointer;list-style:none;padding:20px 56px 20px 22px;position:relative;
-  font-family:var(--ff-display);font-weight:600;font-size:17px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"";position:absolute;right:22px;top:50%;width:11px;height:11px;margin-top:-7px;
-  border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s}
-.faq details[open] summary::after{transform:rotate(-135deg);margin-top:-2px}
-.faq .answer{padding:0 22px 22px;color:var(--muted);font-size:16px}
 
-/* ---------- CTA final ---------- */
-.cta-final{position:relative;border-radius:var(--radius-lg);border:1px solid var(--line);overflow:hidden;
-  padding:clamp(44px,6vw,72px) clamp(24px,5vw,60px);text-align:center;background:var(--surface)}
-.cta-final::before{content:"";position:absolute;inset:0;z-index:0;opacity:.9;
-  background:radial-gradient(70% 120% at 50% 0%,color-mix(in srgb,var(--brand) 18%,transparent),transparent 70%)}
-.cta-final > *{position:relative;z-index:1}
-.cta-final h2{font-size:clamp(28px,4.2vw,44px);font-weight:800}
-.cta-final p{color:var(--muted);margin:18px auto 30px;max-width:56ch}
 
 /* ---------- Footer ---------- */
-.site-footer{border-top:1px solid var(--line);background:var(--bg-2);padding:56px 0 34px;margin-top:clamp(60px,8vw,100px)}
+.site-footer{border-top:1px solid var(--line);background:var(--bg-2);padding:48px 0 30px;margin-top:0}
 .foot-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr;gap:40px}
 .foot-grid p{color:var(--muted);font-size:15px;margin-top:14px;max-width:34ch}
 .foot h4{font-family:var(--ff-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text);margin-bottom:14px}
@@ -251,11 +203,10 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 
 /* ---------- Responsive ---------- */
 @media (max-width:980px){
-  .hero-grid,.split{grid-template-columns:1fr}
+  .hero-grid{grid-template-columns:1fr}
   .pitch-card{transform:none}
   .cards,.steps{grid-template-columns:repeat(2,1fr)}
   .foot-grid{grid-template-columns:1fr 1fr}
-  .strip-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:760px){
   body{font-size:16px}
@@ -263,11 +214,16 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     background:var(--bg);border-bottom:1px solid var(--line);margin:0;display:none}
   .nav-links.open{display:flex}
   .nav-links a{padding:13px 14px;font-size:16px}
+  .nav{gap:10px}
   .nav-actions{margin-left:auto}
   .nav-toggle{display:grid}
-  .nav .btn-sm{display:none}
-  .cards,.steps,.cases{grid-template-columns:1fr}
-  .hero-cta .btn{width:100%}
+  .cards,.steps{grid-template-columns:1fr}
+  .hero-cta{gap:10px}
+  .hero-cta .btn{flex:1;padding-inline:16px}
+}
+@media (max-width:430px){
+  .brand span{display:none}
+  .nav .btn-sm{padding:9px 13px}
 }
 </style>
 
@@ -328,36 +284,6 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
         "Guardado en el dispositivo, exportacion a PNG y a JSON, deshacer y rehacer"
       ],
       "offers":{"@type":"Offer","price":"0","priceCurrency":"EUR","availability":"https://schema.org/InStock"}
-    },
-    {
-      "@type":"FAQPage",
-      "@id":"https://samuaces.github.io/PRUEBAS/pizarra/#faq",
-      "mainEntity":[
-        {"@type":"Question","name":"¿La pizarra táctica es gratis?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí. Es completamente gratuita: no tiene registro, ni cuenta de usuario, ni anuncios, ni una versión de pago escondida detrás."}},
-        {"@type":"Question","name":"¿Necesito instalar algún programa?",
-         "acceptedAnswer":{"@type":"Answer","text":"No. Funciona directamente en el navegador. Abres el enlace y ya puedes colocar jugadores y dibujar."}},
-        {"@type":"Question","name":"¿Funciona en móvil y tablet?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí, está pensada para el móvil: en pantallas verticales el campo se gira automáticamente, se acerca con dos dedos para trabajar cómodo y no hay barras de desplazamiento por medio. Además puedes instalarla en la pantalla de inicio y usarla sin conexión."}},
-        {"@type":"Question","name":"¿Se guardan mis jugadas en algún servidor?",
-         "acceptedAnswer":{"@type":"Answer","text":"No. Todo el dibujo ocurre en tu propio navegador: no se envía nada a ningún servidor y no se recogen datos personales."}},
-        {"@type":"Question","name":"¿Puedo exportar o guardar los esquemas?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí. Puedes guardar la pizarra en tu propio navegador, descargar el fotograma como imagen PNG para el informe y exportar la pizarra completa a un archivo JSON para abrirla en otro dispositivo."}},
-        {"@type":"Question","name":"¿Cómo se anima una jugada?",
-         "acceptedAnswer":{"@type":"Answer","text":"Colocas la posición inicial, pulsas «+ Fotograma», mueves las fichas a la siguiente posición y repites. Al darle a reproducir, la pizarra interpola el movimiento entre fotogramas y dibuja la estela de cada jugador. Puedes ajustar la velocidad y activar el bucle."}},
-        {"@type":"Question","name":"¿Qué material de entrenamiento puedo colocar?",
-         "acceptedAnswer":{"@type":"Answer","text":"Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador rojo que aparece al seleccionarlas, o con los botones de 15° y 90°."}},
-        {"@type":"Question","name":"¿Sirve para fútbol 7 y fútbol sala?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí. Hay tres modalidades con sus medidas de reglamento: fútbol 11 (105 × 68 m), fútbol 7 (65 × 45 m) y fútbol sala (40 × 20 m), cada una con sus áreas, sus porterías y sus propias alineaciones. Si cambias de modalidad, lo que ya tengas colocado se reescala al campo nuevo."}},
-        {"@type":"Question","name":"¿Puedo descargar la jugada animada en vídeo?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí, y sin marca de agua. La pizarra graba la animación en el propio navegador y te descarga el archivo de vídeo, listo para mandarlo por WhatsApp al grupo del equipo. En la mayoría de aplicaciones esta función es de pago."}},
-        {"@type":"Question","name":"¿Puedo rellenar una ficha del ejercicio con objetivos y consignas?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí. Cada ejercicio tiene su ficha: título, categoría, momento del juego, duración, series, descanso, número de jugadores, porteros, espacio y material, más el objetivo, la descripción, las consignas, las normas y las variantes. Sale en una página A4 ordenada, con el dibujo de la pizarra incluido, lista para imprimir o guardar en PDF. Un botón la rellena sola contando lo que hay en el campo."}},
-        {"@type":"Question","name":"¿Puedo llevarme la sesión impresa al campo?",
-         "acceptedAnswer":{"@type":"Answer","text":"Sí. La hoja de sesión saca todos los fotogramas de la jugada en una sola página, con el título, la modalidad, la fecha y un recuadro en blanco para anotaciones. Sale lista para imprimir o para guardar en PDF desde el propio diálogo de impresión."}},
-        {"@type":"Question","name":"¿Qué medidas tiene el campo?",
-         "acceptedAnswer":{"@type":"Answer","text":"En fútbol 11, 105 × 68 metros a escala, con áreas, arcos de penalti y córners correctos. Puedes verlo completo, a medio campo o sin líneas para diseñar ejercicios libres, y cambiar a fútbol 7 o a fútbol sala."}}
-      ]
     }
   ]
 }
@@ -380,15 +306,12 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
               stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
-      Pizarra Táctica
+      <span>Pizarra Táctica</span>
     </a>
 
     <nav class="nav-links" id="navlinks" aria-label="Principal">
-      <a href="#funciones">Funciones</a>
+      <a href="#que-hace">Qué hace</a>
       <a href="#como-funciona">Cómo funciona</a>
-      <a href="#casos">Casos de uso</a>
-      <a href="#roadmap">Roadmap</a>
-      <a href="#faq">Preguntas</a>
     </nav>
 
     <div class="nav-actions">
@@ -409,25 +332,22 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 
 <main id="contenido">
 
-  <!-- ================= HERO ================= -->
+  <!-- ================= PRESENTACIÓN ================= -->
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <span class="badge"><i class="dot"></i><b>Gratis para siempre</b> · sin registro</span>
-        <h1>La <span class="hl">pizarra táctica</span> de fútbol en la que la jugada se mueve</h1>
-        <p class="lead">Coloca a tus jugadores, monta el circuito con conos, vallas, escaleras y porterías, dibuja los movimientos y pulsa reproducir: la jugada se anima sola. En el navegador, gratis y sin registro.</p>
+        <span class="badge"><i class="dot"></i>Fútbol 11 · Fútbol 7 · Fútbol sala</span>
+        <h1>Una <span class="hl">pizarra táctica</span> en la que la jugada se mueve</h1>
+        <p class="lead">Colocas a los jugadores y el material sobre un campo a escala, dibujas los
+          movimientos y, si quieres verlo rodar, guardas fotogramas y le das a reproducir. En el
+          navegador, lo mismo en el móvil que en el ordenador.</p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="app/">
-            Abrir la pizarra gratis
+            Abrir la pizarra
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
-          <a class="btn btn-ghost btn-lg" href="#como-funciona">Ver cómo funciona</a>
+          <a class="btn btn-ghost btn-lg" href="#como-funciona">Cómo funciona</a>
         </div>
-        <p class="hero-note">
-          <span><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> 0 € y sin anuncios</span>
-          <span><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> No pide correo</span>
-          <span><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> Se anima y se exporta</span>
-        </p>
       </div>
 
       <div class="pitch-card">
@@ -497,74 +417,55 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     </div>
   </section>
 
-  <!-- ================= TIRA DE DATOS ================= -->
-  <section class="strip" aria-label="Datos clave">
-    <div class="wrap">
-      <div class="strip-grid">
-        <div class="stat"><b>0 €</b><span>Sin coste ni registro</span></div>
-        <div class="stat"><b>10</b><span>Materiales de entrenamiento</span></div>
-        <div class="stat"><b>3</b><span>Modalidades reglamentarias</span></div>
-        <div class="stat"><b>0</b><span>Conexión necesaria</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= FUNCIONES ================= -->
-  <section class="section" id="funciones">
+  <!-- ================= QUÉ HACE ================= -->
+  <section class="section" id="que-hace">
     <div class="wrap">
       <div class="section-head reveal">
-        <span class="eyebrow">Funciones</span>
-        <h2 class="title">Todo lo que necesitas para explicar una jugada</h2>
-        <p class="lead">Las piezas de una pizarra de verdad: el campo a escala, el material del almacén y la posibilidad de poner la jugada en movimiento en lugar de dejarla congelada.</p>
+        <span class="eyebrow">Qué hace</span>
+        <h2 class="title">Lo que hay dentro</h2>
       </div>
-
       <div class="cards">
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
           </div>
-          <h3>Tres modalidades reglamentarias</h3>
-          <p>Fútbol 11 (105×68), fútbol 7 (65×45) y fútbol sala (40×20), cada una con sus áreas, sus porterías y sus alineaciones. Cambias de una a otra y la jugada se reescala sola.</p>
+          <h3>El campo, a escala</h3>
+          <p>Fútbol 11 (105 × 68 m), fútbol 7 (65 × 45) y fútbol sala (40 × 20), cada uno con sus medidas de reglamento. Se ve entero, a medio campo o sin líneas.</p>
         </article>
-
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><circle cx="17" cy="16" r="3.2"/><path d="M11 9.5l3 5"/></svg>
           </div>
-          <h3>Equipos y formaciones</h3>
-          <p>Fichas de local, visitante y comodín, con dorsal y nombre editables. O planta los once de golpe: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1.</p>
+          <h3>Jugadores y formaciones</h3>
+          <p>Fichas de local, visitante y comodín, con dorsal y nombre. O plantas los once de una vez eligiendo un sistema.</p>
         </article>
-
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M4 18l6-6M4 18V8"/><path d="M14 6l6 6-6 6"/></svg>
           </div>
           <h3>Material de entrenamiento</h3>
-          <p>Conos, platos, porterías, minigoles, vallas, escaleras de agilidad, picas, maniquíes, aros y banderines. Todas las piezas se giran para orientarlas como están en el campo.</p>
+          <p>Conos, platos, porterías, minigoles, vallas, escaleras, picas, maniquíes, aros y banderines. Todo se gira para orientarlo como en el campo.</p>
         </article>
-
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20c4-1 5-6 9-8s6-6 9-8"/></svg>
           </div>
           <h3>Pase, carrera y conducción</h3>
-          <p>Flecha sólida para el balón, discontinua para el desmarque y ondulada para la conducción. Más líneas libres, zonas sombreadas y textos sobre el campo.</p>
+          <p>Flecha sólida, discontinua y ondulada, más líneas libres, zonas y textos. Y una regla que mide distancias reales sobre el césped.</p>
         </article>
-
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/><circle cx="19" cy="5" r="2.4"/><path d="M7 12h10"/></svg>
           </div>
-          <h3>Animación y vídeo de la jugada</h3>
-          <p>Guarda una posición, mueve las fichas, guarda otra y dale a reproducir. Y cuando la tengas, <strong>descárgala en vídeo</strong> para mandarla al grupo del equipo. Sin marca de agua.</p>
+          <h3>La jugada en movimiento</h3>
+          <p>Guardas posiciones sucesivas y la pizarra interpola el recorrido entre ellas. Se descarga en vídeo MP4 o en GIF.</p>
         </article>
-
         <article class="card reveal">
           <div class="ico" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10h-3"/><path d="M8 5L4 9l4 4"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4H7z"/><path d="M7 16H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/></svg>
           </div>
-          <h3>Del móvil al papel</h3>
-          <p>Mide distancias reales, acércate con dos dedos, selecciona varias fichas de un recuadro para mover una línea entera, e imprime la <strong>hoja de sesión</strong> con todos los fotogramas para llevarla al campo.</p>
+          <h3>Del campo al papel</h3>
+          <p>Ficha del ejercicio y hoja de sesión, listas para imprimir. Se instala en el móvil y funciona sin conexión.</p>
         </article>
       </div>
     </div>
@@ -575,181 +476,30 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     <div class="wrap">
       <div class="section-head reveal">
         <span class="eyebrow">Cómo funciona</span>
-        <h2 class="title">De la idea al campo en tres pasos</h2>
-        <p class="lead">No hay tutorial que estudiar. Si has usado alguna vez una pizarra de vestuario, ya sabes usar esta; lo de animar la jugada son dos clics más.</p>
+        <h2 class="title">Cuatro pasos</h2>
+        <p class="lead">Si has usado una pizarra de vestuario, ya sabes usar esta. Animar la jugada
+          son dos clics más.</p>
       </div>
       <div class="steps">
         <article class="step reveal">
-          <h3>Abre la pizarra</h3>
-          <p>Un clic en el enlace y el campo aparece listo. Nada que descargar, ninguna cuenta que crear, ninguna cookie que aceptar.</p>
+          <h3>Coloca</h3>
+          <p>Eliges modalidad, plantas a los jugadores y añades el material que vayas a usar.</p>
         </article>
         <article class="step reveal">
-          <h3>Coloca a tus jugadores</h3>
-          <p>Añade las fichas de local y visitante que necesites y arrástralas hasta la posición exacta de tu sistema.</p>
+          <h3>Dibuja</h3>
+          <p>Arrastras por el recorrido real para trazar el pase, la carrera o la conducción.</p>
         </article>
         <article class="step reveal">
-          <h3>Dibuja y anímalo</h3>
-          <p>Traza las flechas, y si quieres verlo en movimiento pulsa «+ Fotograma», recoloca las fichas y dale a reproducir.</p>
+          <h3>Anima</h3>
+          <p>Añades un fotograma, recolocas las fichas y le das a reproducir.</p>
+        </article>
+        <article class="step reveal">
+          <h3>Llévatelo</h3>
+          <p>Vídeo, GIF, imagen, ficha del ejercicio u hoja de sesión para el campo.</p>
         </article>
       </div>
-      <div style="margin-top:40px" class="reveal">
-        <a class="btn btn-primary btn-lg" href="app/">Probarlo ahora</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= CASOS DE USO ================= -->
-  <section class="section" id="casos">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <span class="eyebrow">Casos de uso</span>
-        <h2 class="title">Pensada para quien vive del banquillo</h2>
-      </div>
-      <div class="cases">
-        <article class="case reveal">
-          <div class="ico" aria-hidden="true">🧤</div>
-          <div><h3>Entrenadores de fútbol base</h3>
-          <p>Prepara la sesión del martes en cinco minutos y enséñala en la tablet al llegar al campo, sin instalar nada ni pedirle permiso a nadie.</p></div>
-        </article>
-        <article class="case reveal">
-          <div class="ico" aria-hidden="true">🔍</div>
-          <div><h3>Analistas y segundos entrenadores</h3>
-          <p>Traduce el informe del rival a un esquema sencillo: bloque, líneas de pase y zonas de presión que el vestuario entienda de un vistazo.</p></div>
-        </article>
-        <article class="case reveal">
-          <div class="ico" aria-hidden="true">🎓</div>
-          <div><h3>Formación y cursos de entrenador</h3>
-          <p>Un lienzo limpio para explicar conceptos en clase, montar ejercicios de examen o ilustrar trabajos y apuntes.</p></div>
-        </article>
-        <article class="case reveal">
-          <div class="ico" aria-hidden="true">🎥</div>
-          <div><h3>Creadores de contenido</h3>
-          <p>Graba la pantalla mientras dibujas la jugada y tendrás una explicación táctica limpia para YouTube, TikTok o un hilo en redes.</p></div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= ROADMAP ================= -->
-  <section class="section" id="roadmap" style="background:var(--bg-2);border-block:1px solid var(--line)">
-    <div class="wrap split">
-      <div class="reveal">
-        <span class="eyebrow">Transparencia</span>
-        <h2 class="title">Lo que ya funciona y lo que viene</h2>
-        <p class="lead">Preferimos decirte hoy lo que la herramienta todavía no hace antes que prometerlo en la portada. Esto es lo que hay dentro ahora mismo, y lo único que falta.</p>
-        <div style="margin-top:28px">
-          <a class="btn btn-ghost" href="app/">Probar lo que ya hay</a>
-        </div>
-      </div>
-      <ul class="roadmap reveal">
-        <li><span class="tag live">Ya</span><span><b>Diez materiales de entrenamiento</b><span>Conos, platos, porterías, minigoles, vallas, escaleras, picas, maniquíes, aros y banderines, todos orientables.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Instalable y sin conexión</b><span>Se añade a la pantalla de inicio y, una vez instalada, abre y funciona sin cobertura.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Animación por fotogramas</b><span>Con estelas de movimiento, control de velocidad y bucle.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Formaciones, guardado y exportación</b><span>Seis sistemas predefinidos, guardado en el navegador y descarga en PNG o JSON.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Vídeo de la jugada y regla de medición</b><span>Descarga la animación en vídeo, sin marca de agua, y mide distancias reales sobre el campo.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Hoja de sesión y selección múltiple</b><span>Imprime todos los fotogramas en una página, y mueve una línea entera de un arrastre.</span></span></li>
-        <li><span class="tag live">Ya</span><span><b>Ficha del ejercicio</b><span>Objetivos, consignas, normas, duración y material en una página A4 con el dibujo, lista para imprimir.</span></span></li>
-        <li><span class="tag soon">Pronto</span><span><b>Compartir la pizarra por enlace</b><span>Pasarle una jugada a otro entrenador sin exportar archivos.</span></span></li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ================= CONTENIDO SEO ================= -->
-  <section class="section">
-    <div class="wrap">
-      <div class="prose reveal">
-        <span class="eyebrow">Guía rápida</span>
-        <h2 class="title">Qué es una pizarra táctica y por qué usar una online</h2>
-        <p style="margin-top:20px">Una <strong>pizarra táctica de fútbol</strong> es la representación del terreno de juego sobre la que un entrenador coloca a sus jugadores y dibuja los movimientos que quiere ver en el partido: líneas de pase, desmarques, basculaciones, saltos de presión o jugadas a balón parado. Durante décadas fue una tabla imantada; hoy, un navegador hace el mismo trabajo con la ventaja de poder rehacer el dibujo tantas veces como haga falta.</p>
-
-        <h3>Ventajas frente a la pizarra de toda la vida</h3>
-        <p>La pizarra imantada se cae, pierde fichas y no cabe en la mochila. Una <strong>pizarra táctica online y gratis</strong> se abre en el móvil del delegado, en la tablet del segundo entrenador y en el portátil de la charla previa, siempre con el mismo aspecto. Además puedes borrar un trazo suelto sin perder toda la disposición del equipo, algo imposible con un rotulador.</p>
-
-        <h3>Cómo dibujar una jugada que se entienda</h3>
-        <p>Tres convenciones bastan para que cualquier futbolista lea el esquema: la <strong>flecha sólida</strong> indica el recorrido del balón, la <strong>flecha discontinua</strong> el del jugador sin balón y las <strong>líneas o zonas sombreadas</strong> marcan el espacio que se quiere ocupar o proteger. Si además reservas un color para cada fase del juego —por ejemplo, amarillo para la salida y blanco para la presión tras pérdida—, la charla se acorta a la mitad.</p>
-
-        <h3>Para entrenamientos, no solo para partidos</h3>
-        <p>El mismo campo sirve para diseñar la sesión con el material real del almacén: <strong>conos y platos</strong> para delimitar el rondo, <strong>minigoles</strong> para el partido reducido, <strong>vallas y escaleras de agilidad</strong> para el circuito de activación, <strong>picas y maniquíes</strong> para la barrera o el rival pasivo, y <strong>aros y banderines</strong> para las estaciones. Llevar el ejercicio dibujado evita los cinco minutos de explicación en mitad del entrenamiento.</p>
-
-        <h3>Una jugada que se mueve se entiende antes</h3>
-        <p>El límite de cualquier pizarra es que la jugada queda congelada: una maraña de flechas que el futbolista tiene que descifrar. Trabajando <strong>por fotogramas</strong> el problema desaparece. Guardas la posición inicial, mueves las fichas a la siguiente situación, guardas otra vez, y al reproducir se ve el movimiento real: quién arranca antes, quién arrastra la marca y cuándo sale el pase. Es la diferencia entre explicar una basculación y verla.</p>
-
-        <h3>Privacidad: tus jugadas son tuyas</h3>
-        <p>Todo el dibujo ocurre en el navegador. No hay cuenta, no hay servidor guardando tus esquemas y no hay analítica siguiéndote: si preparas el plan de partido contra el rival del domingo, ese plan no sale de tu dispositivo.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= FAQ ================= -->
-  <section class="section" id="faq" style="background:var(--bg-2);border-block:1px solid var(--line)">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <span class="eyebrow">Preguntas frecuentes</span>
-        <h2 class="title">Lo que suelen preguntarnos</h2>
-      </div>
-      <div class="faq reveal">
-        <details open>
-          <summary>¿La pizarra táctica es gratis?</summary>
-          <div class="answer">Sí. Es completamente gratuita: no tiene registro, ni cuenta de usuario, ni anuncios, ni una versión de pago escondida detrás.</div>
-        </details>
-        <details>
-          <summary>¿Necesito instalar algún programa?</summary>
-          <div class="answer">No. Funciona directamente en el navegador. Abres el enlace y ya puedes colocar jugadores y dibujar.</div>
-        </details>
-        <details>
-          <summary>¿Funciona en móvil y tablet?</summary>
-          <div class="answer">Sí, está pensada para el móvil: en pantallas verticales el campo se gira automáticamente, se acerca con dos dedos para trabajar cómodo y no hay barras de desplazamiento por medio. Además puedes instalarla en la pantalla de inicio y usarla sin conexión.</div>
-        </details>
-        <details>
-          <summary>¿Se guardan mis jugadas en algún servidor?</summary>
-          <div class="answer">No. Todo el dibujo ocurre en tu propio navegador: no se envía nada a ningún servidor y no se recogen datos personales.</div>
-        </details>
-        <details>
-          <summary>¿Puedo exportar o guardar los esquemas?</summary>
-          <div class="answer">Sí. Puedes guardar la pizarra en tu propio navegador, descargar el fotograma como imagen PNG para el informe y exportar la pizarra completa a un archivo JSON para abrirla en otro dispositivo.</div>
-        </details>
-        <details>
-          <summary>¿Cómo se anima una jugada?</summary>
-          <div class="answer">Colocas la posición inicial, pulsas «+ Fotograma», mueves las fichas a la siguiente posición y repites. Al darle a reproducir, la pizarra interpola el movimiento entre fotogramas y dibuja la estela de cada jugador. Puedes ajustar la velocidad y activar el bucle.</div>
-        </details>
-        <details>
-          <summary>¿Qué material de entrenamiento puedo colocar?</summary>
-          <div class="answer">Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador rojo que aparece al seleccionarlas, o con los botones de 15° y 90°.</div>
-        </details>
-        <details>
-          <summary>¿Sirve para fútbol 7 y fútbol sala?</summary>
-          <div class="answer">Sí. Hay tres modalidades con sus medidas de reglamento: fútbol 11 (105 × 68 m), fútbol 7 (65 × 45 m) y fútbol sala (40 × 20 m), cada una con sus áreas, sus porterías y sus propias alineaciones. Si cambias de modalidad, lo que ya tengas colocado se reescala al campo nuevo.</div>
-        </details>
-        <details>
-          <summary>¿Puedo descargar la jugada animada en vídeo?</summary>
-          <div class="answer">Sí, y sin marca de agua. La pizarra graba la animación en el propio navegador y te descarga el archivo de vídeo, listo para mandarlo por WhatsApp al grupo del equipo. En la mayoría de aplicaciones esta función es de pago.</div>
-        </details>
-        <details>
-          <summary>¿Puedo rellenar una ficha del ejercicio con objetivos y consignas?</summary>
-          <div class="answer">Sí. Cada ejercicio tiene su ficha: título, categoría, momento del juego, duración, series, descanso, número de jugadores, porteros, espacio y material, más el objetivo, la descripción, las consignas, las normas y las variantes. Sale en una página A4 ordenada, con el dibujo de la pizarra incluido, lista para imprimir o guardar en PDF. Un botón la rellena sola contando lo que hay en el campo.</div>
-        </details>
-        <details>
-          <summary>¿Puedo llevarme la sesión impresa al campo?</summary>
-          <div class="answer">Sí. La hoja de sesión saca todos los fotogramas de la jugada en una sola página, con el título, la modalidad, la fecha y un recuadro en blanco para anotaciones. Sale lista para imprimir o para guardar en PDF desde el propio diálogo de impresión.</div>
-        </details>
-        <details>
-          <summary>¿Qué medidas tiene el campo?</summary>
-          <div class="answer">En fútbol 11, 105 × 68 metros a escala, con áreas, arcos de penalti y córners correctos. Puedes verlo completo, a medio campo o sin líneas para diseñar ejercicios libres, y cambiar a fútbol 7 o a fútbol sala.</div>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= CTA FINAL ================= -->
-  <section class="section" style="padding-top:clamp(56px,7vw,88px)">
-    <div class="wrap">
-      <div class="cta-final reveal">
-        <h2>El campo ya está pintado. Solo faltas tú.</h2>
-        <p>Abre la pizarra, coloca los once y dibuja la primera jugada. Tardarás menos en probarla que en leer esta frase.</p>
-        <a class="btn btn-primary btn-lg" href="app/">
-          Abrir la pizarra gratis
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+      <div style="margin-top:38px" class="reveal">
+        <a class="btn btn-primary btn-lg" href="app/">Abrir la pizarra</a>
       </div>
     </div>
   </section>
@@ -761,9 +511,9 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       <div class="foot">
         <a class="brand" href="./">
           <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-        <defs><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
+        <defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
           <stop stop-color="#E7204A"/><stop offset="1" stop-color="#AE0325"/></linearGradient></defs>
-        <rect width="32" height="32" rx="7" fill="url(#g2)"/>
+        <rect width="32" height="32" rx="7" fill="url(#g1)"/>
         <g stroke="#fff" stroke-width="1.5" fill="none" opacity=".8" stroke-linejoin="round">
           <rect x="4.5" y="3.5" width="23" height="25" rx="2"/><path d="M4.5 16h23"/>
           <path d="M11.5 3.5v3.6h9V3.5M11.5 28.5v-3.6h9v3.6"/></g>
@@ -773,29 +523,26 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       </svg>
           Pizarra Táctica
         </a>
-        <p>Pizarra táctica de fútbol online, gratuita y sin registro. Hecha para entrenadores, analistas y aficionados al juego.</p>
+        <p>Pizarra táctica de fútbol en el navegador, para diseñar jugadas y ejercicios de entrenamiento.</p>
       </div>
       <div class="foot">
-        <h4>Producto</h4>
+        <h4>La pizarra</h4>
         <ul>
-          <li><a href="app/">Abrir la pizarra</a></li>
-          <li><a href="#funciones">Funciones</a></li>
+          <li><a href="app/">Abrirla</a></li>
+          <li><a href="#que-hace">Qué hace</a></li>
           <li><a href="#como-funciona">Cómo funciona</a></li>
-          <li><a href="#casos">Para quién es</a></li>
         </ul>
       </div>
       <div class="foot">
-        <h4>Recursos</h4>
+        <h4>El sitio</h4>
         <ul>
-          <li><a href="#casos">Casos de uso</a></li>
-          <li><a href="#roadmap">Qué falta por hacer</a></li>
-          <li><a href="#faq">Preguntas frecuentes</a></li>
           <li><a href="sitemap.xml">Mapa del sitio</a></li>
+          <li><a href="llms.txt">Resumen para máquinas</a></li>
         </ul>
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© <span id="year">2026</span> Pizarra Táctica · Hecho para el fútbol de barrio.</span>
+      <span>© <span id="year">2026</span> Pizarra Táctica</span>
       <span>Sin cookies · Sin rastreo · Sin cuentas</span>
     </div>
   </div>
