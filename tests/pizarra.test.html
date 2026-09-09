@@ -269,16 +269,16 @@ async function run(w,d){
      ['ex-png','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
   d.querySelector('#dlg-export [data-close]').click();await raf();
 
-  // --- prioridad de formato: MP4 antes que WebM ---
-  var soportados=[];
+  // --- la exportación de vídeo siempre promete MP4, nunca WebM ---
   var realSupported=w.MediaRecorder.isTypeSupported;
-  w.MediaRecorder.isTypeSupported=function(t){ soportados.push(t); return /mp4/.test(t); };
+  w.MediaRecorder.isTypeSupported=function(t){ return /webm/.test(t); };   // navegador sin MP4 nativo
   d.getElementById('export').click();await wait(150);
   var fmt=d.getElementById('ex-video-fmt').textContent;
+  var deshab=d.getElementById('ex-video').disabled;
   w.MediaRecorder.isTypeSupported=realSupported;
   d.querySelector('#dlg-export [data-close]').click();await raf();
-  ok('se prefiere MP4 cuando el navegador lo admite',/MP4/.test(fmt),fmt);
-  ok('MP4 se consulta antes que WebM',soportados.length>0&&/mp4/.test(soportados[0]),soportados[0]||'nada');
+  ok('la exportación anuncia MP4 y nunca WebM',/MP4/.test(fmt)&&!/WebM/i.test(fmt),fmt);
+  ok('el vídeo sigue disponible sin MP4 nativo',!deshab);
 
   // --- GIF ---
   var gifBlob=null, realDL=w.URL.createObjectURL.bind(w.URL);
@@ -298,6 +298,124 @@ async function run(w,d){
       im.src=realDL(gifBlob);
     });
     ok('el navegador decodifica el GIF',okImg);
+  }
+
+  // --- MP4 propio: se fuerza el camino de WebCodecs y se valida el contenedor ---
+  // Este Chromium no trae H.264, así que se codifica VP8 de verdad y se inyecta un
+  // avcC: lo que se comprueba es el contenedor que escribimos nosotros.
+  if (typeof w.VideoEncoder !== 'undefined') {
+    var RealVE = w.VideoEncoder;
+    var realSup2 = w.MediaRecorder.isTypeSupported;
+    w.MediaRecorder.isTypeSupported = function(t2){ return /webm/.test(t2); };
+
+    var FakeVE = function(init){
+      var primero = true;
+      var real = new RealVE({
+        output: function(chunk, meta){
+          if (primero) {
+            primero = false;
+            init.output(chunk, { decoderConfig: { description: new Uint8Array(
+              [1,66,0,31,255,225,0,13,103,66,192,31,218,1,64,22,232,6,208,161,53,1,0,4,104,206,9,200]) } });
+          } else init.output(chunk, {});
+        },
+        error: init.error
+      });
+      this.configure = function(cfg){
+        real.configure({codec:'vp8', width:cfg.width, height:cfg.height,
+                        bitrate:cfg.bitrate, framerate:cfg.framerate});
+      };
+      this.encode = function(f,o){ real.encode(f,o); };
+      this.flush  = function(){ return real.flush(); };
+      this.close  = function(){ try{ real.close(); }catch(e){} };
+      Object.defineProperty(this,'encodeQueueSize',{get:function(){return real.encodeQueueSize;}});
+    };
+    FakeVE.isConfigSupported = function(cfg){ return Promise.resolve({supported:/^avc1/.test(cfg.codec)}); };
+    w.VideoEncoder = FakeVE;
+
+    var mp4Blob = null, realURL2 = w.URL.createObjectURL.bind(w.URL);
+    w.URL.createObjectURL = function(b3){ if(b3 && b3.type === 'video/mp4') mp4Blob = b3; return realURL2(b3); };
+
+    d.getElementById('export').click(); await wait(150);
+    d.getElementById('ex-video').click();
+    for (var espera=0; espera<40 && !mp4Blob; espera++) await wait(300);
+
+    w.URL.createObjectURL = realURL2;
+    w.VideoEncoder = RealVE;
+    w.MediaRecorder.isTypeSupported = realSup2;
+
+    ok('se genera un archivo MP4 sin MediaRecorder', !!mp4Blob,
+       mp4Blob ? Math.round(mp4Blob.size/1024)+' KB' : 'no se generó');
+
+    if (mp4Blob) {
+      var buf = await mp4Blob.arrayBuffer();
+      var dv = new DataView(buf);
+      function cajas(ini, fin){
+        var r = [], q = ini;
+        while (q + 8 <= fin) {
+          var size = dv.getUint32(q);
+          var type = String.fromCharCode(dv.getUint8(q+4),dv.getUint8(q+5),dv.getUint8(q+6),dv.getUint8(q+7));
+          if (size < 8 || q + size > fin) break;
+          r.push({type:type, start:q, size:size});
+          q += size;
+        }
+        return r;
+      }
+      function buscar(lista, t2){ for (var q=0;q<lista.length;q++) if (lista[q].type===t2) return lista[q]; return null; }
+      function dentro(b4){ return cajas(b4.start+8, b4.start+b4.size); }
+
+      var raiz = cajas(0, buf.byteLength);
+      var tipos = raiz.map(function(x){return x.type;}).join(',');
+      ok('el MP4 tiene ftyp, mdat y moov', tipos === 'ftyp,mdat,moov', tipos);
+
+      var moov = buscar(raiz,'moov'), mdat = buscar(raiz,'mdat');
+      var trak = moov && buscar(dentro(moov),'trak');
+      var mdia = trak && buscar(dentro(trak),'mdia');
+      var minf = mdia && buscar(dentro(mdia),'minf');
+      var stbl = minf && buscar(dentro(minf),'stbl');
+      var stsd = stbl && buscar(dentro(stbl),'stsd');
+      ok('la jerarquía moov/trak/mdia/minf/stbl/stsd es correcta', !!stsd);
+
+      if (stsd) {
+        var avc1 = cajas(stsd.start+16, stsd.start+stsd.size)[0];
+        ok('la muestra se declara como avc1', avc1 && avc1.type === 'avc1', avc1 ? avc1.type : 'nada');
+        var avcC = avc1 && buscar(cajas(avc1.start+8+78, avc1.start+avc1.size), 'avcC');
+        ok('lleva la configuración avcC del códec', !!avcC);
+
+        var stsz = buscar(dentro(stbl),'stsz');
+        var nMuestras = stsz ? dv.getUint32(stsz.start+16) : 0;
+        ok('hay muestras de vídeo en el índice', nMuestras > 10, nMuestras+' muestras');
+
+        var stco = buscar(dentro(stbl),'stco');
+        var offset = stco ? dv.getUint32(stco.start+16) : -1;
+        ok('el índice apunta al inicio real de los datos', offset === mdat.start + 8,
+           offset+' vs '+(mdat.start+8));
+      }
+    }
+  }
+
+  // --- el MP4 del camino nativo debe poder reproducirse de verdad ---
+  if (w.MediaRecorder.isTypeSupported('video/mp4')) {
+    var vidBlob = null, realURL3 = w.URL.createObjectURL.bind(w.URL);
+    w.URL.createObjectURL = function(b5){ if(b5 && /mp4/.test(b5.type)) vidBlob = b5; return realURL3(b5); };
+    d.getElementById('export').click(); await wait(150);
+    d.getElementById('ex-video').click();
+    for (var esp2=0; esp2<30 && !vidBlob; esp2++) await wait(300);
+    w.URL.createObjectURL = realURL3;
+
+    ok('el navegador graba en MP4 cuando puede', !!vidBlob,
+       vidBlob ? vidBlob.type+' · '+Math.round(vidBlob.size/1024)+' KB' : 'no se generó');
+    if (vidBlob) {
+      var meta = await new Promise(function(res){
+        var v = d.createElement('video');
+        v.preload = 'metadata'; v.muted = true;
+        v.onloadedmetadata = function(){ res({dur:v.duration, w:v.videoWidth, h:v.videoHeight}); };
+        v.onerror = function(){ res(null); };
+        v.src = realURL3(vidBlob);
+        setTimeout(function(){ res(null); }, 6000);
+      });
+      ok('el MP4 se abre y tiene imagen', !!meta && meta.w > 0 && meta.h > 0,
+         meta ? meta.w+'x'+meta.h+' · '+(meta.dur||0).toFixed(1)+' s' : 'no se pudo abrir');
+    }
   }
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));

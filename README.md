@@ -50,11 +50,15 @@ título, modalidad, fecha y un recuadro para anotaciones.
 fotograma, hoja de sesión imprimible, vídeo de la jugada, GIF animado y el archivo de la
 pizarra. Nada sale del dispositivo.
 
-**Vídeo y GIF.** La jugada animada se graba en el propio navegador y se descarga sin marca
-de agua. El vídeo prueba **MP4 antes que WebM**, que es lo que graba Safari y lo único que
-reproducen sin más la app de Fotos del iPhone y WhatsApp. Y para lo que sea, está el GIF:
-codificador propio (corte mediano para la paleta, LZW y codificación sólo del rectángulo
-que cambia entre fotogramas), que lo deja en torno a 300 KB en vez de un mega.
+**Vídeo.** Siempre sale **MP4**, sin marca de agua y sin pasar por ningún servidor. Hay dos
+caminos: si el navegador sabe grabar MP4 (Safari, Chrome reciente) se usa `MediaRecorder`;
+si no, se codifica H.264 cuadro a cuadro con **WebCodecs** y el contenedor MP4 lo escribe
+la propia aplicación —un empaquetador ISO BMFF propio, sin bibliotecas—. Y si el navegador
+no puede ninguna de las dos cosas, lo dice y ofrece el GIF en vez de colar un WebM que el
+móvil no abre.
+
+**GIF.** Codificador propio: corte mediano para la paleta, LZW y codificación sólo del
+rectángulo que cambia entre fotogramas, lo que lo deja en torno a 300 KB en vez de un mega.
 
 **Gestión.** Deshacer y rehacer, guardado con nombre en el dispositivo, autoguardado al
 recargar, exportación del fotograma a PNG (2400 px) y exportación e importación de la
@@ -151,12 +155,13 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 61 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 70 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la prioridad de MP4 sobre WebM, la generación y decodificación del GIF, deshacer y
-rehacer, formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
+la generación del GIF y su decodificación por el navegador, la escritura del contenedor
+MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
+formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento
