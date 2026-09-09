@@ -1,51 +1,86 @@
-name: Desplegar en GitHub Pages
+name: Publicar el sitio
 
-# Publica el sitio estático (landing + app) en GitHub Pages.
-# No hace falta configurar nada a mano: el paso "Configurar Pages" activa GitHub Pages
-# en el repositorio la primera vez que se ejecuta.
+# Este repositorio tiene GitHub Pages en modo "Deploy from a branch", sirviendo la
+# rama gh-pages. Para no tocar esa configuración ni pisar lo que ya hay publicado en
+# la raíz, el sitio se copia dentro de gh-pages/pizarra y queda en:
+#   https://samuaces.github.io/PRUEBAS/pizarra/
+#
+# Si algún día pasas Pages a "GitHub Actions" (Settings → Pages → Source), puedes
+# sustituir este workflow por el despliegue oficial y servir el sitio en la raíz.
 
 on:
   push:
-    # Ajusta esta lista si cambias la rama principal del repositorio.
-    # Hoy la rama por defecto de samuaces/PRUEBAS es "claude/football-tactics-board-ia4yQ".
     branches:
       - main
       - master
       - claude/football-tactics-board-ia4yQ
-  workflow_dispatch:   # permite lanzar el despliegue a mano desde cualquier rama
+    paths:
+      - 'index.html'
+      - '404.html'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - 'llms.txt'
+      - 'site.webmanifest'
+      - 'app/**'
+      - 'assets/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Un despliegue a la vez; no se cancela el que ya está en marcha.
 concurrency:
-  group: pages
+  group: publicar-sitio
   cancel-in-progress: false
 
+env:
+  CARPETA: pizarra
+  BASE: https://samuaces.github.io/PRUEBAS
+
 jobs:
-  deploy:
+  publicar:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Descargar el repositorio
+      - name: Descargar la rama con el código
         uses: actions/checkout@v4
-
-      # enablement: activa GitHub Pages en el repositorio si aún no lo está,
-      # así no hace falta tocar nada a mano en Settings.
-      - name: Configurar Pages
-        uses: actions/configure-pages@v5
         with:
-          enablement: true
+          path: fuente
 
-      - name: Empaquetar el sitio
-        uses: actions/upload-pages-artifact@v3
+      - name: Descargar la rama publicada
+        uses: actions/checkout@v4
         with:
-          path: .
+          ref: gh-pages
+          path: publicado
 
-      - name: Desplegar
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Copiar el sitio a su carpeta
+        run: |
+          set -euo pipefail
+          DESTINO="publicado/${CARPETA}"
+          rm -rf "$DESTINO"
+          mkdir -p "$DESTINO"
+          for f in index.html 404.html robots.txt sitemap.xml llms.txt site.webmanifest .nojekyll; do
+            [ -f "fuente/$f" ] && cp "fuente/$f" "$DESTINO/"
+          done
+          cp -r fuente/app fuente/assets "$DESTINO/"
+
+      - name: Ajustar las URLs absolutas a la subcarpeta
+        run: |
+          set -euo pipefail
+          grep -rlZ "${BASE}" "publicado/${CARPETA}" \
+            --include='*.html' --include='*.xml' --include='*.txt' \
+            --include='*.webmanifest' --include='*.js' 2>/dev/null \
+          | xargs -0 -r sed -i "s#${BASE}\([\"'/]\)#${BASE}/${CARPETA}\1#g; s#${BASE}\$#${BASE}/${CARPETA}#g"
+
+      - name: Publicar
+        working-directory: publicado
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Sin cambios que publicar."
+            exit 0
+          fi
+          git commit -m "Publicar el sitio desde ${GITHUB_SHA::7}"
+          git push
