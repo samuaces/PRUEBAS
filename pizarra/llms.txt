@@ -30,8 +30,9 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   (ondulada), línea libre, zonas sombreadas y textos. Ocho colores y tres grosores.
 - Animación por fotogramas: se guardan posiciones sucesivas y la pizarra interpola el
   movimiento, con estelas, control de velocidad y bucle.
-- Descarga de la jugada animada en vídeo, grabada en el propio navegador y sin marca
-  de agua.
+- Descarga de la jugada animada en vídeo (MP4 cuando el navegador lo admite, que es lo
+  que reproduce el iPhone) o como GIF animado, generados en el propio navegador y sin
+  marca de agua.
 - Regla para medir distancias reales sobre el campo.
 - Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
 - Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.

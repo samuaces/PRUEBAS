@@ -61,22 +61,13 @@
     <div class="group">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn" id="open" title="Abrir una pizarra guardada" aria-label="Abrir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/><path d="M3 7V5a2 2 0 0 1 2-2h3"/></svg><span class="hide-sm">Abrir</span></button>
-      <button class="tbtn" id="png" title="Descargar el fotograma como imagen" aria-label="Exportar PNG">
+      <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
-        <span class="hide-sm">PNG</span>
-      </button>
-      <button class="tbtn primary" id="video" title="Grabar la jugada animada en vídeo" aria-label="Exportar vídeo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
-        <span class="hide-sm">Vídeo</span>
+        <span class="hide-sm">Exportar</span>
       </button>
     </div>
 
     <div class="group">
-      <button class="tbtn hide-sm" id="json" title="Exportar la pizarra como archivo JSON">JSON</button>
-      <label class="tbtn hide-sm" title="Importar una pizarra en JSON">
-        Importar
-        <input type="file" id="import" accept="application/json,.json" class="sr">
-      </label>
       <button class="tbtn" id="help" title="Cómo se usa y atajos de teclado" aria-label="Ayuda">?</button>
     </div>
   </header>
@@ -312,6 +303,56 @@
     <button class="tbtn" data-close>Cancelar</button>
     <button class="tbtn primary" id="ask-ok">Aceptar</button>
   </div>
+</dialog>
+
+<dialog id="dlg-export" aria-labelledby="dlg-export-t">
+  <div class="dhead"><h3 id="dlg-export-t">Exportar</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="ex-group">Este fotograma</p>
+    <button class="ex" id="ex-png">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 3-2 4 4"/></svg>
+      </span>
+      <span class="ex-txt"><b>Imagen PNG</b><small>Para el informe o el grupo del equipo. 2400 px.</small></span>
+    </button>
+    <button class="ex" id="ex-sheet">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4H7z"/><path d="M7 16H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Hoja de sesión</b><small>Todos los fotogramas en una página, lista para imprimir o guardar en PDF.</small></span>
+    </button>
+
+    <p class="ex-group">La jugada animada</p>
+    <button class="ex" id="ex-video">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Vídeo</b><small id="ex-video-fmt">Máxima calidad.</small></span>
+    </button>
+    <button class="ex" id="ex-gif">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M14 10.5a2.5 2.5 0 1 0 0 3h.8v-1.4"/><path d="M8 9.8v4.4"/></svg>
+      </span>
+      <span class="ex-txt"><b>GIF animado</b><small>Lo abre todo: Fotos, WhatsApp, Telegram, correo.</small></span>
+    </button>
+
+    <p class="ex-group">La pizarra entera</p>
+    <button class="ex" id="ex-json">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2"/><path d="M15 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2"/></svg>
+      </span>
+      <span class="ex-txt"><b>Archivo de la pizarra</b><small>Para llevártela a otro dispositivo o guardar una copia.</small></span>
+    </button>
+    <label class="ex" id="ex-import">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M7.5 12.5L12 8l4.5 4.5"/><path d="M4 4h16"/></svg>
+      </span>
+      <span class="ex-txt"><b>Abrir un archivo de pizarra</b><small>Recupera una copia que hayas exportado.</small></span>
+      <input type="file" id="import" accept="application/json,.json" class="sr">
+    </label>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
 <dialog id="dlg-file" aria-labelledby="file-title">
