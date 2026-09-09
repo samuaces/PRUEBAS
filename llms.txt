@@ -1,0 +1,50 @@
+# Pizarra Táctica
+
+> Pizarra táctica de fútbol online, gratuita y sin registro, con material de
+> entrenamiento y animación de la jugada por fotogramas. Se ejecuta entera en el
+> navegador: no hay servidor, ni cuentas, ni recogida de datos.
+
+Proyecto estático (HTML, CSS y JavaScript sin dependencias) pensado para entrenadores,
+analistas y aficionados que necesitan diseñar una jugada o una sesión de entrenamiento.
+
+## Páginas
+
+- [Inicio](https://samuaces.github.io/PRUEBAS/): qué es, funciones, casos de uso y preguntas frecuentes.
+- [La pizarra](https://samuaces.github.io/PRUEBAS/app/): la aplicación en sí, lista para dibujar.
+- [Código fuente](https://github.com/samuaces/PRUEBAS): repositorio público.
+
+## Qué hace
+
+- Tres modalidades con medidas de reglamento: fútbol 11 (105 × 68 m), fútbol 7
+  (65 × 45 m) y fútbol sala (40 × 20 m, con el área en doble cuarto de círculo y
+  pista en lugar de césped). Cada una con sus áreas, porterías y alineaciones; al
+  cambiar de modalidad la jugada se reescala. Vistas: campo completo, medio campo o
+  superficie libre. En pantallas verticales el campo se gira solo y se acerca con
+  dos dedos.
+- Fichas de jugador local, visitante y comodín, con dorsal y nombre editables.
+- Formaciones predefinidas: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1, para
+  cualquiera de los dos equipos.
+- Material de entrenamiento colocable y orientable: conos, platos marcadores,
+  porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras de
+  agilidad, picas, maniquíes, aros y banderines.
+- Dibujo: flecha de pase (sólida), flecha de carrera (discontinua), conducción
+  (ondulada), línea libre, zonas sombreadas y textos. Ocho colores y tres grosores.
+- Animación por fotogramas: se guardan posiciones sucesivas y la pizarra interpola el
+  movimiento, con estelas, control de velocidad y bucle.
+- Descarga de la jugada animada en vídeo, grabada en el propio navegador y sin marca
+  de agua.
+- Regla para medir distancias reales sobre el campo.
+- Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
+- Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.
+- Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
+- Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
+  de la pizarra en JSON, deshacer y rehacer, y ajuste opcional a una rejilla de 0,5 m.
+
+## Qué NO hace todavía
+
+- No sincroniza nada en la nube ni permite compartir la pizarra por enlace.
+
+## Privacidad
+
+Sin cookies, sin analítica y sin llamadas a terceros. Todo ocurre en el dispositivo
+del usuario; lo guardado vive en el almacenamiento local de su navegador.

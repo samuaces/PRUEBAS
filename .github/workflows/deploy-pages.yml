@@ -1,0 +1,51 @@
+name: Desplegar en GitHub Pages
+
+# Publica el sitio estático (landing + app) en GitHub Pages.
+# No hace falta configurar nada a mano: el paso "Configurar Pages" activa GitHub Pages
+# en el repositorio la primera vez que se ejecuta.
+
+on:
+  push:
+    # Ajusta esta lista si cambias la rama principal del repositorio.
+    # Hoy la rama por defecto de samuaces/PRUEBAS es "claude/football-tactics-board-ia4yQ".
+    branches:
+      - main
+      - master
+      - claude/football-tactics-board-ia4yQ
+  workflow_dispatch:   # permite lanzar el despliegue a mano desde cualquier rama
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un despliegue a la vez; no se cancela el que ya está en marcha.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      # enablement: activa GitHub Pages en el repositorio si aún no lo está,
+      # así no hace falta tocar nada a mano en Settings.
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Empaquetar el sitio
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Desplegar
+        id: deployment
+        uses: actions/deploy-pages@v4

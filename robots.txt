@@ -1,0 +1,27 @@
+# robots.txt — Pizarra Táctica
+# Nota: los rastreadores solo leen el robots.txt de la RAÍZ del dominio.
+# Con un dominio propio (o un repo <usuario>.github.io) este archivo se aplica tal cual.
+# En una GitHub Page de proyecto (usuario.github.io/PRUEBAS/) queda como documentación:
+# el robots.txt efectivo es el de usuario.github.io/robots.txt.
+
+User-agent: *
+Allow: /
+Disallow: /tests/
+
+# Rastreadores de IA: permitidos a propósito (visibilidad en respuestas generativas).
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://samuaces.github.io/PRUEBAS/sitemap.xml

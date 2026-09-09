@@ -1,0 +1,2180 @@
+/* ============================================================================
+   Pizarra Táctica — motor de la pizarra
+   Todo se dibuja sobre un único <canvas> con un bucle de render, para que
+   arrastrar y animar vaya fluido en cualquier dispositivo.
+
+   Índice
+   1. Constantes y utilidades      6. Trazos
+   2. Documento e historial        7. Render
+   3. Vista y transformación       8. Interacción con el puntero
+   4. Campo                        9. Interfaz
+   5. Objetos y materiales        10. Fotogramas y animación
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     1. Constantes y utilidades
+     ====================================================================== */
+
+  // Modalidades, con las medidas de su reglamento. Todo lo demás se deriva de aquí.
+  var PITCHES = {
+    f11:    { L: 105, W: 68, label: 'Fútbol 11', goal: 7.32, goalD: 2.0,
+              circle: 9.15, spot: 11, box: [16.5, 40.32], small: [5.5, 18.32], corner: 1 },
+    f7:     { L: 65,  W: 45, label: 'Fútbol 7',  goal: 6,    goalD: 1.8,
+              circle: 6,    spot: 9,  box: [12, 24],      small: [6, 12],      corner: 0.75 },
+    futsal: { L: 40,  W: 20, label: 'Fútbol sala', goal: 3,  goalD: 1.2,
+              circle: 3,    spot: 6,  arc: 6, second: 10, corner: 0.25 }
+  };
+
+  function PITCH() { return PITCHES[doc.pitch] || PITCHES.f11; }
+
+  // El recuadro visible se calcula a partir de la modalidad y de la vista elegida.
+  function viewRect() {
+    var P = PITCH(), m = Math.max(2.5, P.L * 0.05);
+    return {
+      x0: -m, y0: -m,
+      x1: (doc.view === 'half' ? P.L / 2 : P.L) + m,
+      y1: P.W + m,
+      lines: doc.view !== 'blank'
+    };
+  }
+
+  var TEAM = { home: '#E03B2F', away: '#2E86DE', neutral: '#F1C40F' };
+
+  // Geometría de cada tipo de objeto, en metros.
+  // Como en cualquier pizarra táctica, las piezas se dibujan algo más grandes que
+  // en la realidad: si no, un cono junto a una ficha de jugador sería invisible.
+  var KIND = {
+    player:   { r: 1.45,               rot: false, label: 'Jugador' },
+    ball:     { r: 0.85,               rot: false, label: 'Balón' },
+    cone:     { r: 0.95,               rot: true,  label: 'Cono' },
+    disc:     { r: 1.00,               rot: true,  label: 'Plato' },
+    goal:     { w: 7.32, h: 2.0,       rot: true,  label: 'Portería' },
+    minigoal: { w: 4.5,  h: 1.8,       rot: true,  label: 'Portería pequeña' },
+    hurdle:   { w: 2.2,  h: 1.1,       rot: true,  label: 'Valla' },
+    ladder:   { w: 7.0,  h: 1.6,       rot: true,  label: 'Escalera' },
+    pole:     { r: 0.75,               rot: true,  label: 'Pica' },
+    dummy:    { w: 1.4,  h: 2.1,       rot: true,  label: 'Maniquí' },
+    ring:     { r: 1.2,                rot: true,  label: 'Aro' },
+    flag:     { r: 1.00,               rot: true,  label: 'Banderín' },
+    text:     { r: 1.2,                rot: true,  label: 'Texto' }
+  };
+
+  var COLORS = ['#FFFFFF', '#F1C40F', '#E03B2F', '#00E27E', '#4CC2FF', '#E67E22', '#B36BE0', '#1ABC9C'];
+
+  var FORMATIONS = {
+    '4-4-2':   [[5,34],[18,10],[16,26],[16,42],[18,58],[34,9],[31,26],[31,42],[34,59],[46,26],[46,42]],
+    '4-3-3':   [[5,34],[18,10],[16,26],[16,42],[18,58],[31,20],[28,34],[31,48],[46,11],[48,34],[46,57]],
+    '4-2-3-1': [[5,34],[18,10],[16,26],[16,42],[18,58],[28,26],[28,42],[40,12],[40,34],[40,56],[50,34]],
+    '3-5-2':   [[5,34],[17,20],[15,34],[17,48],[31,6],[31,22],[28,34],[31,46],[31,62],[46,26],[46,42]],
+    '5-3-2':   [[5,34],[16,7],[18,21],[16,34],[18,47],[16,61],[31,22],[31,34],[31,46],[45,26],[45,42]],
+    '4-1-4-1': [[5,34],[18,10],[16,26],[16,42],[18,58],[27,34],[39,10],[37,26],[37,42],[39,58],[49,34]]
+  };
+  var NUMBERS = {
+    '4-4-2':   [1,2,4,5,3,7,6,8,11,9,10],
+    '4-3-3':   [1,2,4,5,3,8,6,10,7,9,11],
+    '4-2-3-1': [1,2,4,5,3,6,8,7,10,11,9],
+    '3-5-2':   [1,4,5,3,2,8,6,10,7,9,11],
+    '5-3-2':   [1,2,4,5,3,6,8,6,10,9,11],
+    '4-1-4-1': [1,2,4,5,3,6,7,8,10,11,9]
+  };
+
+  // Fútbol 7 (65 x 45) y fútbol sala (40 x 20) tienen sus propios sistemas.
+  var FORMATIONS_F7 = {
+    '1-3-2-1': [[4,22.5],[13,8],[11,22.5],[13,37],[22,13],[22,32],[30,22.5]],
+    '1-2-3-1': [[4,22.5],[12,15],[12,30],[22,7],[21,22.5],[22,38],[30,22.5]],
+    '1-3-1-2': [[4,22.5],[13,8],[11,22.5],[13,37],[21,22.5],[29,15],[29,30]],
+    '1-1-3-2': [[4,22.5],[11,22.5],[20,7],[19,22.5],[20,38],[29,15],[29,30]]
+  };
+  var NUMBERS_F7 = {
+    '1-3-2-1': [1,2,4,3,8,6,9], '1-2-3-1': [1,2,3,7,8,11,9],
+    '1-3-1-2': [1,2,4,3,8,9,11], '1-1-3-2': [1,4,7,8,11,9,10]
+  };
+  var FORMATIONS_FS = {
+    '1-2-1 (rombo)': [[2.5,10],[8,5],[8,15],[13,10],[17,10]],
+    '2-2 (cuadrado)': [[2.5,10],[8,5.5],[8,14.5],[16,5.5],[16,14.5]],
+    '1-3-0':          [[2.5,10],[9,10],[16,4],[16,10],[16,16]],
+    '3-1':            [[2.5,10],[8,4],[8,10],[8,16],[16,10]]
+  };
+  var NUMBERS_FS = {
+    '1-2-1 (rombo)': [1,4,3,5,9], '2-2 (cuadrado)': [1,4,3,7,9],
+    '1-3-0': [1,5,7,9,11], '3-1': [1,2,4,3,9]
+  };
+
+  function formationSet() {
+    if (doc.pitch === 'f7') return { pos: FORMATIONS_F7, num: NUMBERS_F7 };
+    if (doc.pitch === 'futsal') return { pos: FORMATIONS_FS, num: NUMBERS_FS };
+    return { pos: FORMATIONS, num: NUMBERS };
+  }
+
+  var $  = function (s, c) { return (c || document).querySelector(s); };
+  var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+  var uid = function () { return Math.random().toString(36).slice(2, 9); };
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var clone = function (o) { return JSON.parse(JSON.stringify(o)); };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+  var ease = function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+
+  /* =========================================================================
+     2. Documento e historial
+     ====================================================================== */
+
+  function emptyFrame() { return { objects: [], strokes: [] }; }
+
+  var doc = { pitch: 'f11', view: 'full', frames: [emptyFrame()] };
+
+  var ui = {
+    frame: 0,
+    tool: 'select',          // select | pass | run | dribble | free | zone | eraser | place
+    place: null,             // { kind, team }
+    color: '#FFFFFF',
+    width: 0.32,             // grosor del trazo en metros
+    snap: false,
+    sel: null,               // id del objeto seleccionado
+    multi: [],               // ids seleccionados en grupo
+    playing: false,
+    speed: 1,
+    loop: false,
+    zoom: 1,           // acercamiento del usuario
+    panX: 0, panY: 0   // desplazamiento, en píxeles de pantalla
+  };
+
+  var hist = [], hi = -1;
+
+  function frame() { return doc.frames[ui.frame]; }
+
+  function commit() {
+    hist = hist.slice(0, hi + 1);
+    hist.push(JSON.stringify(doc));
+    if (hist.length > 80) hist.shift();
+    hi = hist.length - 1;
+    refreshHistoryButtons();
+    autosave();
+  }
+  function restore(json) {
+    doc = JSON.parse(json);
+    ui.frame = clamp(ui.frame, 0, doc.frames.length - 1);
+    ui.sel = null; ui.multi = [];
+    syncViewButtons();
+    buildFrames();
+    hideInspector();
+    resize();   // la vista puede haber cambiado: hay que recalcular la escala
+  }
+  function undo() { if (hi > 0) { hi--; restore(hist[hi]); refreshHistoryButtons(); autosave(); } }
+  function redo() { if (hi < hist.length - 1) { hi++; restore(hist[hi]); refreshHistoryButtons(); autosave(); } }
+  function refreshHistoryButtons() {
+    $('#undo').disabled = hi <= 0;
+    $('#redo').disabled = hi >= hist.length - 1;
+  }
+
+  var autosaveTimer;
+  function autosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function () {
+      try { localStorage.setItem('pt-autosave', JSON.stringify(doc)); } catch (e) {}
+    }, 400);
+  }
+
+  /* =========================================================================
+     3. Vista y transformación
+     ====================================================================== */
+
+  var canvas = $('#board'), ctx = canvas.getContext('2d');
+  var T = { s: 1, ox: 0, oy: 0 };   // metros -> píxeles CSS (ya con zoom aplicado)
+  var BASE = { s: 1, ox: 0, oy: 0 };// el campo entero encajado en la pantalla
+  var CW = 0, CH = 0;
+  var ZOOM_MIN = 1, ZOOM_MAX = 5;
+
+  function transformFor(w, h, view) {
+    var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+    var s = Math.min(w / vw, h / vh);
+    return { s: s, ox: (w - vw * s) / 2 - view.x0 * s, oy: (h - vh * s) / 2 - view.y0 * s };
+  }
+  // Ancho y alto del lienzo en coordenadas locales (con el campo girado se intercambian).
+  function localW() { return BASE.rot ? CH : CW; }
+  function localH() { return BASE.rot ? CW : CH; }
+
+  // Aplica el zoom y el desplazamiento del usuario sobre el encaje base.
+  function applyView() {
+    var z = ui.zoom, cx = localW() / 2, cy = localH() / 2;
+    T = {
+      s: BASE.s * z,
+      ox: (BASE.ox - cx) * z + cx + ui.panX,
+      oy: (BASE.oy - cy) * z + cy + ui.panY,
+      rot: BASE.rot
+    };
+    clampPan();
+    $('#zoom').hidden = ui.zoom <= 1.001;
+    draw();
+  }
+
+  // El campo no puede salirse del todo de la pantalla.
+  function clampPan() {
+    var view = viewRect();
+    var w = (view.x1 - view.x0) * T.s, h = (view.y1 - view.y0) * T.s;
+    var lw = localW(), lh = localH();
+    var maxX = Math.max(0, (w - lw) / 2), maxY = Math.max(0, (h - lh) / 2);
+    ui.panX = clamp(ui.panX, -maxX, maxX);
+    ui.panY = clamp(ui.panY, -maxY, maxY);
+    var cx = lw / 2, cy = lh / 2, z = ui.zoom;
+    T.ox = (BASE.ox - cx) * z + cx + ui.panX;
+    T.oy = (BASE.oy - cy) * z + cy + ui.panY;
+  }
+
+  function setZoom(z, fx, fy) {
+    var old = ui.zoom;
+    z = clamp(z, ZOOM_MIN, ZOOM_MAX);
+    if (Math.abs(z - old) < 1e-4) return;
+    // mantiene bajo los dedos el punto (fx, fy), en coordenadas locales
+    if (fx != null) {
+      var cx = localW() / 2, cy = localH() / 2;
+      ui.panX = fx - (fx - ui.panX - cx) * (z / old) - cx;
+      ui.panY = fy - (fy - ui.panY - cy) * (z / old) - cy;
+    }
+    ui.zoom = z;
+    if (z <= 1.001) { ui.zoom = 1; ui.panX = 0; ui.panY = 0; }
+    applyView();
+  }
+
+  function resetView() { ui.zoom = 1; ui.panX = 0; ui.panY = 0; applyView(); toast('Vista completa'); }
+
+  // Coordenadas locales (las que usa todo el dibujo) -> píxeles de pantalla.
+  function toScreen(x, y) {
+    var a = x * T.s + T.ox, b = y * T.s + T.oy;
+    return T.rot ? { x: CW - b, y: a } : { x: a, y: b };
+  }
+  // Píxeles de pantalla -> metros del campo.
+  function toMeters(sx, sy) {
+    var a = T.rot ? sy : sx, b = T.rot ? CW - sx : sy;
+    return { x: (a - T.ox) / T.s, y: (b - T.oy) / T.s };
+  }
+
+  function resize() {
+    var stage = canvas.parentNode;
+    // clientWidth/Height del contenedor: no lo influye el propio canvas, que va absoluto.
+    var pad = 8;
+    CW = Math.max(240, stage.clientWidth - pad * 2);
+    CH = Math.max(200, stage.clientHeight - pad * 2);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.style.width = CW + 'px';
+    canvas.style.height = CH + 'px';
+    canvas.width = Math.round(CW * dpr);
+    canvas.height = Math.round(CH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // En pantallas verticales giramos el campo 90°: aprovecha mucho mejor el móvil.
+    var view = viewRect();
+    var rot = CW < CH && (view.x1 - view.x0) > (view.y1 - view.y0);
+    BASE = rot ? transformFor(CH, CW, view) : transformFor(CW, CH, view);
+    BASE.rot = rot;
+    applyView();
+  }
+
+  /* =========================================================================
+     4. Campo
+     ====================================================================== */
+
+  function drawPitch(c, t, view) {
+    var P = PITCH(), u = t.s;
+
+    // fondo exterior
+    c.fillStyle = doc.pitch === 'futsal' ? '#111C26' : '#0A3D24';
+    c.fillRect(t.ox + view.x0 * u, t.oy + view.y0 * u, (view.x1 - view.x0) * u, (view.y1 - view.y0) * u);
+
+    // césped con franjas de siega
+    var bands = doc.pitch === 'futsal' ? 8 : 12, bw = P.L / bands;
+    for (var i = 0; i < bands; i++) {
+      c.fillStyle = i % 2 ? '#127A46' : '#0F6E3F';
+      c.fillRect(t.ox + i * bw * u, t.oy, bw * u + 1, P.W * u);
+    }
+    // el fútbol sala se juega sobre pista, no sobre hierba
+    if (doc.pitch === 'futsal') {
+      c.fillStyle = '#1D5B7E';
+      c.fillRect(t.ox, t.oy, P.L * u, P.W * u);
+      c.fillStyle = 'rgba(255,255,255,.045)';
+      for (var j = 0; j < bands; j++) if (j % 2) c.fillRect(t.ox + j * bw * u, t.oy, bw * u + 1, P.W * u);
+    }
+
+    // viñeta suave
+    var g = c.createRadialGradient(
+      t.ox + P.L / 2 * u, t.oy + P.W / 2 * u, P.W * 0.25 * u,
+      t.ox + P.L / 2 * u, t.oy + P.W / 2 * u, P.L * 0.72 * u);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,.26)');
+    c.fillStyle = g;
+    c.fillRect(t.ox + view.x0 * u, t.oy + view.y0 * u, (view.x1 - view.x0) * u, (view.y1 - view.y0) * u);
+
+    if (!view.lines) return;
+
+    c.save();
+    c.strokeStyle = 'rgba(255,255,255,.85)';
+    c.lineWidth = Math.max(1.2, Math.min(0.14, P.L / 750) * u);
+    c.lineJoin = 'round';
+
+    function rect(x, y, w, h) { c.strokeRect(t.ox + x * u, t.oy + y * u, w * u, h * u); }
+    function line(x1, y1, x2, y2) {
+      c.beginPath(); c.moveTo(t.ox + x1 * u, t.oy + y1 * u); c.lineTo(t.ox + x2 * u, t.oy + y2 * u); c.stroke();
+    }
+    function arc(cx, cy, r, a1, a2) {
+      c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, a1, a2); c.stroke();
+    }
+    function dot(cx, cy, r) {
+      c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, 0, 7);
+      c.fillStyle = 'rgba(255,255,255,.9)'; c.fill();
+    }
+
+    rect(0, 0, P.L, P.W);
+    line(P.L / 2, 0, P.L / 2, P.W);
+    arc(P.L / 2, P.W / 2, P.circle, 0, Math.PI * 2);
+    dot(P.L / 2, P.W / 2, P.L / 650);
+
+    var gy0 = (P.W - P.goal) / 2;
+
+    [0, 1].forEach(function (side) {
+      var sx = side ? P.L : 0, dir = side ? -1 : 1;
+
+      if (doc.pitch === 'futsal') {
+        // El área es un doble cuarto de círculo trazado desde cada poste.
+        var r = P.arc;
+        c.beginPath();
+        if (!side) {
+          c.arc(t.ox, t.oy + gy0 * u, r * u, -Math.PI / 2, 0);
+          c.lineTo(t.ox + r * u, t.oy + (gy0 + P.goal) * u);
+          c.arc(t.ox, t.oy + (gy0 + P.goal) * u, r * u, 0, Math.PI / 2);
+        } else {
+          c.arc(t.ox + P.L * u, t.oy + gy0 * u, r * u, Math.PI * 1.5, Math.PI, true);
+          c.lineTo(t.ox + (P.L - r) * u, t.oy + (gy0 + P.goal) * u);
+          c.arc(t.ox + P.L * u, t.oy + (gy0 + P.goal) * u, r * u, Math.PI, Math.PI / 2, true);
+        }
+        c.stroke();
+        dot(sx + dir * P.spot, P.W / 2, P.L / 650);
+        dot(sx + dir * P.second, P.W / 2, P.L / 650);
+      } else {
+        rect(side ? P.L - P.box[0] : 0, (P.W - P.box[1]) / 2, P.box[0], P.box[1]);
+        rect(side ? P.L - P.small[0] : 0, (P.W - P.small[1]) / 2, P.small[0], P.small[1]);
+        dot(sx + dir * P.spot, P.W / 2, P.L / 650);
+        // arco de penalti: sólo el tramo que queda fuera del área
+        if (P.circle > P.box[0] - P.spot) {
+          var a = Math.acos((P.box[0] - P.spot) / P.circle);
+          arc(sx + dir * P.spot, P.W / 2, P.circle,
+              side ? Math.PI - a : -a,
+              side ? Math.PI + a : a);
+        }
+      }
+
+      // portería
+      c.save();
+      c.lineWidth = Math.max(1.6, Math.min(0.2, P.L / 520) * u);
+      c.strokeStyle = 'rgba(255,255,255,.95)';
+      c.strokeRect(t.ox + (side ? P.L : -P.goalD) * u, t.oy + gy0 * u, P.goalD * u, P.goal * u);
+      c.restore();
+    });
+
+    // córners
+    var cr = P.corner;
+    arc(0, 0, cr, 0, Math.PI / 2);
+    arc(P.L, 0, cr, Math.PI / 2, Math.PI);
+    arc(P.L, P.W, cr, Math.PI, Math.PI * 1.5);
+    arc(0, P.W, cr, Math.PI * 1.5, Math.PI * 2);
+
+    c.restore();
+  }
+
+  /* =========================================================================
+     5. Objetos y materiales
+     ====================================================================== */
+
+  // Medidas reales del objeto: puede llevarlas propias (una portería de fútbol 7
+  // no mide lo mismo que una de fútbol 11).
+  var SYMBOLS = { player: 1, ball: 1, text: 1 };
+
+  function symbolScale() {
+    return clamp(Math.sqrt(PITCH().L / 105), 0.5, 1);
+  }
+
+  function dims(o) {
+    var k = KIND[o.kind], f = SYMBOLS[o.kind] ? symbolScale() : 1;
+    return {
+      r: k.r != null ? k.r * f : null,
+      w: (o.w || k.w) * (o.w ? 1 : f),
+      h: (o.h || k.h) * (o.h ? 1 : f),
+      rot: k.rot, label: k.label
+    };
+  }
+
+  function objColor(o) {
+    if (o.kind === 'player') return TEAM[o.team] || TEAM.home;
+    return o.color || '#F1C40F';
+  }
+
+  // Dibuja un objeto. `alpha` permite las entradas/salidas de la animación.
+  function drawObject(c, t, o, alpha) {
+    var u = t.s;
+    var X = o.x * u + t.ox, Y = o.y * u + t.oy;
+    var rot = (o.rot || 0) * Math.PI / 180;
+
+    c.save();
+    c.globalAlpha = alpha == null ? 1 : alpha;
+    c.translate(X, Y);
+    if (rot) c.rotate(rot);
+    if (o.kind !== 'player' && o.kind !== 'text') {
+      c.shadowColor = 'rgba(0,0,0,.5)';
+      c.shadowBlur = Math.max(2, u * 0.3);
+      c.shadowOffsetY = Math.max(1, u * 0.1);
+    }
+
+    switch (o.kind) {
+      case 'player':   drawPlayer(c, t, o); break;
+      case 'ball':     drawBall(c, u, dims(o).r); break;
+      case 'cone':     drawCone(c, u, o); break;
+      case 'disc':     drawDisc(c, u, o); break;
+      case 'goal':
+      case 'minigoal': var dg = dims(o); drawGoal(c, u, dg.w, dg.h); break;
+      case 'hurdle':   drawHurdle(c, u, o); break;
+      case 'ladder':   drawLadder(c, u, o); break;
+      case 'pole':     drawPole(c, u, o); break;
+      case 'dummy':    drawDummy(c, u); break;
+      case 'ring':     drawRing(c, u, o); break;
+      case 'flag':     drawFlag(c, u, o); break;
+      case 'text':     drawText(c, t, o); break;
+    }
+    c.restore();
+  }
+
+  function shadow(c, u, rx, ry, a) {
+    c.save();
+    c.fillStyle = 'rgba(0,0,0,' + (a || 0.3) + ')';
+    c.beginPath(); c.ellipse(0, ry * u * 0.45, rx * u, ry * u * 0.5, 0, 0, 7); c.fill();
+    c.restore();
+  }
+
+  function drawPlayer(c, t, o) {
+    var u = t.s, r = dims(o).r * u, col = objColor(o);
+    shadow(c, u, r / u * 0.95, 0.75, 0.35);
+    var g = c.createLinearGradient(0, -r, 0, r);
+    g.addColorStop(0, col);
+    g.addColorStop(1, shade(col, -0.28));
+    c.fillStyle = g;
+    c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
+    c.lineWidth = Math.max(1.4, 0.16 * u);
+    c.strokeStyle = 'rgba(255,255,255,.92)';
+    c.stroke();
+
+    c.save();
+    if (t.rot) c.rotate(-Math.PI / 2);   // dorsales siempre legibles
+    if (o.num != null && o.num !== '') {
+      c.fillStyle = '#fff';
+      c.font = '700 ' + (r * 1.05) + 'px Outfit, system-ui, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(String(o.num), 0, r * 0.06);
+    }
+    if (o.name) {
+      var fs = Math.max(9, r * 0.62);
+      c.font = '600 ' + fs + 'px InterVar, system-ui, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'top';
+      var w = c.measureText(o.name).width + fs * 0.7;
+      c.fillStyle = 'rgba(7,10,15,.72)';
+      roundRect(c, -w / 2, r + fs * 0.35, w, fs * 1.45, fs * 0.4); c.fill();
+      c.fillStyle = '#EAF1F8';
+      c.fillText(o.name, 0, r + fs * 0.62);
+    }
+    c.restore();
+  }
+
+  function drawBall(c, u, rm) {
+    var r = (rm || KIND.ball.r) * u;
+    shadow(c, u, rm || KIND.ball.r, 0.4, 0.4);
+    c.fillStyle = '#fff';
+    c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
+    c.lineWidth = Math.max(1, r * 0.16); c.strokeStyle = '#20303F'; c.stroke();
+    c.fillStyle = '#20303F';
+    c.beginPath();
+    for (var i = 0; i < 5; i++) {
+      var a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42);
+    }
+    c.closePath(); c.fill();
+  }
+
+  function drawCone(c, u, o) {
+    var col = o.color || '#F4820B', s = KIND.cone.r * u;
+    shadow(c, u, 0.5, 0.42, 0.38);
+    c.fillStyle = shade(col, -0.35);
+    c.beginPath(); c.ellipse(0, s * 0.1, s * 0.78, s * 0.3, 0, 0, 7); c.fill();
+    var g = c.createLinearGradient(-s * 0.5, 0, s * 0.5, 0);
+    g.addColorStop(0, shade(col, 0.16)); g.addColorStop(1, shade(col, -0.22));
+    c.fillStyle = g;
+    // un cono se dibuja de pie; el giro sólo desplaza la punta, como al inclinarlo
+    c.beginPath();
+    c.moveTo(-s * 0.55, s * 0.12); c.quadraticCurveTo(-s * 0.2, -s * 1.35, 0, -s * 1.5);
+    c.quadraticCurveTo(s * 0.2, -s * 1.35, s * 0.55, s * 0.12);
+    c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.75)';
+    c.fillRect(-s * 0.36, -s * 0.72, s * 0.72, s * 0.2);
+  }
+
+  function drawDisc(c, u, o) {
+    var r = KIND.disc.r * u, col = o.color || '#F1C40F';
+    c.fillStyle = shade(col, -0.15);
+    c.beginPath(); c.ellipse(0, 0, r, r * 0.42, 0, 0, 7); c.fill();
+    c.fillStyle = shade(col, 0.25);
+    c.beginPath(); c.ellipse(0, -r * 0.06, r * 0.62, r * 0.26, 0, 0, 7); c.fill();
+  }
+
+  function drawGoal(c, u, w, d) {
+    var W = w * u, D = d * u;
+    c.save();
+    c.translate(0, 0);
+    // red
+    c.fillStyle = 'rgba(255,255,255,.13)';
+    c.fillRect(-W / 2, -D / 2, W, D);
+    c.strokeStyle = 'rgba(255,255,255,.34)';
+    c.lineWidth = Math.max(0.6, u * 0.035);
+    c.beginPath();
+    for (var x = -W / 2; x <= W / 2 + 0.1; x += Math.max(4, u * 0.42)) { c.moveTo(x, -D / 2); c.lineTo(x, D / 2); }
+    for (var y = -D / 2; y <= D / 2 + 0.1; y += Math.max(4, u * 0.42)) { c.moveTo(-W / 2, y); c.lineTo(W / 2, y); }
+    c.stroke();
+    // marco
+    c.strokeStyle = '#FFFFFF';
+    c.lineWidth = Math.max(2, u * 0.16);
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(-W / 2, D / 2); c.lineTo(-W / 2, -D / 2); c.lineTo(W / 2, -D / 2); c.lineTo(W / 2, D / 2);
+    c.stroke();
+    c.restore();
+  }
+
+  function drawHurdle(c, u, o) {
+    var w = KIND.hurdle.w * u, h = KIND.hurdle.h * u, col = o.color || '#F1C40F';
+    shadow(c, u, KIND.hurdle.w * 0.5, 0.4, 0.32);
+    c.fillStyle = '#243244';
+    c.fillRect(-w / 2, -h / 2, w * 0.12, h);
+    c.fillRect(w / 2 - w * 0.12, -h / 2, w * 0.12, h);
+    c.fillStyle = col;
+    roundRect(c, -w / 2, -h * 0.19, w, h * 0.38, h * 0.16); c.fill();
+    c.fillStyle = 'rgba(0,0,0,.35)';
+    for (var i = 0; i < 4; i++) c.fillRect(-w / 2 + w * (0.14 + i * 0.2), -h * 0.19, w * 0.07, h * 0.38);
+  }
+
+  function drawLadder(c, u, o) {
+    var w = KIND.ladder.w * u, h = KIND.ladder.h * u, col = o.color || '#F1C40F';
+    c.fillStyle = 'rgba(0,0,0,.18)';
+    roundRect(c, -w / 2, -h / 2, w, h, h * 0.2); c.fill();
+    c.strokeStyle = col;
+    c.lineWidth = Math.max(1.4, u * 0.07);
+    c.strokeRect(-w / 2, -h / 2, w, h);
+    c.beginPath();
+    var rungs = 9;
+    for (var i = 1; i < rungs; i++) {
+      var x = -w / 2 + w * i / rungs;
+      c.moveTo(x, -h / 2); c.lineTo(x, h / 2);
+    }
+    c.stroke();
+  }
+
+  function drawPole(c, u, o) {
+    var r = KIND.pole.r * u, col = o.color || '#E03B2F';
+    shadow(c, u, KIND.pole.r * 1.1, 0.3, 0.35);
+    c.fillStyle = '#26364A';
+    c.beginPath(); c.arc(0, 0, r * 1.35, 0, 7); c.fill();
+    c.fillStyle = col;
+    c.beginPath(); c.arc(0, 0, r * 0.8, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.85)';
+    c.beginPath(); c.arc(-r * 0.22, -r * 0.22, r * 0.24, 0, 7); c.fill();
+  }
+
+  function drawDummy(c, u) {
+    var w = KIND.dummy.w * u, h = KIND.dummy.h * u;
+    shadow(c, u, KIND.dummy.w * 0.8, 0.5, 0.36);
+    c.fillStyle = '#2C3E56';
+    roundRect(c, -w / 2, -h / 2, w, h, w * 0.45); c.fill();
+    c.fillStyle = '#4A6482';
+    c.beginPath(); c.arc(0, -h * 0.26, w * 0.34, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.5)';
+    c.lineWidth = Math.max(1, u * 0.05);
+    c.beginPath(); c.moveTo(-w * 0.3, h * 0.06); c.lineTo(w * 0.3, h * 0.06); c.stroke();
+  }
+
+  function drawRing(c, u, o) {
+    var r = KIND.ring.r * u, col = o.color || '#4CC2FF';
+    c.strokeStyle = col;
+    c.lineWidth = Math.max(2, u * 0.13);
+    c.beginPath(); c.ellipse(0, 0, r, r * 0.72, 0, 0, 7); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.28)';
+    c.lineWidth = Math.max(1, u * 0.05);
+    c.beginPath(); c.ellipse(0, r * 0.12, r, r * 0.72, 0, 0, 7); c.stroke();
+  }
+
+  function drawFlag(c, u, o) {
+    var s = KIND.flag.r * u, col = o.color || '#E03B2F';
+    shadow(c, u, 0.3, 0.28, 0.3);
+    c.strokeStyle = '#DCE6F0';
+    c.lineWidth = Math.max(1.4, u * 0.07);
+    c.beginPath(); c.moveTo(0, s * 0.5); c.lineTo(0, -s * 2.2); c.stroke();
+    c.fillStyle = col;
+    c.beginPath();
+    c.moveTo(0, -s * 2.2); c.lineTo(s * 1.7, -s * 1.65); c.lineTo(0, -s * 1.05);
+    c.closePath(); c.fill();
+  }
+
+  function drawText(c, t, o) {
+    var u = t.s, fs = Math.max(11, 1.5 * u * symbolScale());
+    c.save();
+    if (t.rot) c.rotate(-Math.PI / 2);
+    c.font = '700 ' + fs + 'px Outfit, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    var txt = o.text || 'Texto';
+    var w = c.measureText(txt).width + fs * 0.9;
+    c.fillStyle = 'rgba(7,10,15,.78)';
+    roundRect(c, -w / 2, -fs * 0.85, w, fs * 1.7, fs * 0.45); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = o.color || '#FFFFFF';
+    c.fillText(txt, 0, fs * 0.05);
+    c.restore();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function shade(hex, amt) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var f = function (v) { return clamp(Math.round(amt > 0 ? v + (255 - v) * amt : v * (1 + amt)), 0, 255); };
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+  }
+
+  /* =========================================================================
+     6. Trazos
+     ====================================================================== */
+
+  function strokePath(c, t, pts) {
+    c.beginPath();
+    c.moveTo(pts[0].x * t.s + t.ox, pts[0].y * t.s + t.oy);
+    if (pts.length === 2) {
+      c.lineTo(pts[1].x * t.s + t.ox, pts[1].y * t.s + t.oy);
+      return;
+    }
+    for (var i = 1; i < pts.length - 1; i++) {
+      var a = pts[i], b = pts[i + 1];
+      c.quadraticCurveTo(a.x * t.s + t.ox, a.y * t.s + t.oy,
+                         (a.x + b.x) / 2 * t.s + t.ox, (a.y + b.y) / 2 * t.s + t.oy);
+    }
+    var last = pts[pts.length - 1];
+    c.lineTo(last.x * t.s + t.ox, last.y * t.s + t.oy);
+  }
+
+  function arrowHead(c, t, pts, w) {
+    var n = pts.length, b = pts[n - 1], a = pts[Math.max(0, n - 4)];
+    var ang = Math.atan2(b.y - a.y, b.x - a.x);
+    var L = Math.max(8, w * t.s * 3.1);
+    var X = b.x * t.s + t.ox, Y = b.y * t.s + t.oy;
+    c.beginPath();
+    c.moveTo(X, Y);
+    c.lineTo(X - L * Math.cos(ang - 0.42), Y - L * Math.sin(ang - 0.42));
+    c.lineTo(X - L * Math.cos(ang + 0.42), Y - L * Math.sin(ang + 0.42));
+    c.closePath();
+    c.fill();
+  }
+
+  // Convierte la polilínea en una onda, para la conducción de balón.
+  function wavy(pts, amp, len) {
+    var out = [], acc = 0;
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i];
+      var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      if (d < 1e-6) continue;
+      var nx = -dy / d, ny = dx / d, steps = Math.max(1, Math.round(d / 0.16));
+      for (var s = 0; s < steps; s++) {
+        var f = s / steps, o = Math.sin((acc + d * f) / len * Math.PI * 2) * amp;
+        out.push({ x: a.x + dx * f + nx * o, y: a.y + dy * f + ny * o });
+      }
+      acc += d;
+    }
+    out.push(pts[pts.length - 1]);
+    return out.length > 1 ? out : pts;
+  }
+
+  function drawStroke(c, t, st, alpha) {
+    if (!st.pts || st.pts.length < 2) return;
+    c.save();
+    c.globalAlpha = alpha == null ? 1 : alpha;
+    var w = Math.max(1.5, st.width * t.s);
+
+    if (st.tool === 'measure') { drawMeasure(c, t, st); c.restore(); return; }
+
+    if (st.tool === 'zone') {
+      var a = st.pts[0], b = st.pts[1];
+      var X = Math.min(a.x, b.x) * t.s + t.ox, Y = Math.min(a.y, b.y) * t.s + t.oy;
+      var W = Math.abs(b.x - a.x) * t.s, H = Math.abs(b.y - a.y) * t.s;
+      c.fillStyle = st.color; c.globalAlpha = (alpha == null ? 1 : alpha) * 0.2;
+      roundRect(c, X, Y, W, H, Math.min(14, Math.min(W, H) * 0.16)); c.fill();
+      c.globalAlpha = alpha == null ? 1 : alpha;
+      c.strokeStyle = st.color; c.lineWidth = Math.max(1.5, w * 0.7);
+      c.setLineDash([w * 2.4, w * 1.8]);
+      c.stroke();
+      c.restore();
+      return;
+    }
+
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.lineWidth = w;
+    c.strokeStyle = st.color;
+    c.fillStyle = st.color;
+    // halo oscuro para que el trazo se lea sobre el césped
+    c.save();
+    c.strokeStyle = 'rgba(0,0,0,.35)';
+    c.lineWidth = w + Math.max(2, w * 0.55);
+    strokePath(c, t, st.tool === 'dribble' ? wavy(st.pts, 0.42, 1.6) : st.pts);
+    c.stroke();
+    c.restore();
+
+    if (st.tool === 'run') c.setLineDash([w * 2.2, w * 1.7]);
+    strokePath(c, t, st.tool === 'dribble' ? wavy(st.pts, 0.42, 1.6) : st.pts);
+    c.stroke();
+    c.setLineDash([]);
+    if (st.tool !== 'free') arrowHead(c, t, st.pts, st.width);
+    c.restore();
+  }
+
+  // Regla: distancia real entre dos puntos del campo.
+  function drawMeasure(c, t, st) {
+    var a = st.pts[0], b = st.pts[st.pts.length - 1];
+    var ax = a.x * t.s + t.ox, ay = a.y * t.s + t.oy;
+    var bx = b.x * t.s + t.ox, by = b.y * t.s + t.oy;
+    var metres = Math.hypot(b.x - a.x, b.y - a.y);
+    var ang = Math.atan2(by - ay, bx - ax);
+    var tick = Math.max(6, t.s * 0.6);
+
+    c.lineCap = 'butt';
+    c.lineWidth = Math.max(2.6, t.s * 0.14);
+    c.strokeStyle = 'rgba(0,0,0,.45)';
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.lineWidth = Math.max(1.4, t.s * 0.08);
+    c.strokeStyle = st.color;
+    c.setLineDash([Math.max(5, t.s * 0.5), Math.max(4, t.s * 0.34)]);
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+    c.setLineDash([]);
+
+    // topes perpendiculares en los extremos
+    var nx = -Math.sin(ang) * tick, ny = Math.cos(ang) * tick;
+    c.beginPath();
+    c.moveTo(ax - nx, ay - ny); c.lineTo(ax + nx, ay + ny);
+    c.moveTo(bx - nx, by - ny); c.lineTo(bx + nx, by + ny);
+    c.stroke();
+
+    // etiqueta con la distancia, siempre derecha
+    var mx2 = (ax + bx) / 2, my2 = (ay + by) / 2;
+    var fs = Math.max(11, t.s * 0.95);
+    var txt = (metres < 10 ? metres.toFixed(1) : Math.round(metres)) .toString().replace('.', ',') + ' m';
+    c.save();
+    c.translate(mx2, my2);
+    if (t.rot) c.rotate(-Math.PI / 2);
+    c.font = '700 ' + fs + 'px Outfit, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    var wlab = c.measureText(txt).width + fs * 0.9;
+    c.fillStyle = 'rgba(7,10,15,.85)';
+    roundRect(c, -wlab / 2, -fs * 0.8, wlab, fs * 1.6, fs * 0.45); c.fill();
+    c.strokeStyle = st.color; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = st.color;
+    c.fillText(txt, 0, fs * 0.04);
+    c.restore();
+  }
+
+  /* =========================================================================
+     7. Render
+     ====================================================================== */
+
+  var anim = null;       // estado de reproducción
+  var recording = false; // grabando vídeo
+
+  function draw() {
+    var view = viewRect();
+    ctx.clearRect(0, 0, CW, CH);
+    ctx.save();
+    if (T.rot) { ctx.translate(CW, 0); ctx.rotate(Math.PI / 2); }
+    drawPitch(ctx, T, view);
+
+    if (anim) { drawAnimated(); ctx.restore(); return; }
+
+    var f = frame();
+    f.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(ctx, T, s); });
+    f.objects.forEach(function (o) { if (o.kind !== 'player' && o.kind !== 'ball' && o.kind !== 'text') drawObject(ctx, T, o); });
+    f.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(ctx, T, s); });
+    f.objects.forEach(function (o) { if (o.kind === 'player' || o.kind === 'ball' || o.kind === 'text') drawObject(ctx, T, o); });
+
+    if (drawing) drawStroke(ctx, T, drawing);
+    if (ui.multi.length) drawGroup(ctx, T);
+    if (ui.sel) drawSelection(ctx, T, byId(ui.sel));
+    if (drag && drag.mode === 'marquee') drawMarquee(ctx, T, drag);
+    ctx.restore();
+  }
+
+  var HANDLE_GAP = 34;   // píxeles entre la pieza y el tirador de giro
+  var HANDLE_R = 11;     // radio dibujado; el área sensible es mayor
+
+  // Semi-altura de la pieza, en metros: de ahí cuelga el tirador.
+  function objExtent(o) {
+    var d = dims(o);
+    return d.r != null ? d.r : d.h / 2;
+  }
+
+  function drawSelection(c, t, o) {
+    if (!o) return;
+    var k = dims(o), u = t.s;
+    c.save();
+    c.translate(o.x * u + t.ox, o.y * u + t.oy);
+    c.rotate((o.rot || 0) * Math.PI / 180);
+    c.strokeStyle = '#00E27E';
+    c.lineWidth = 2;
+    c.setLineDash([5, 4]);
+    if (k.r != null) {
+      c.beginPath(); c.arc(0, 0, k.r * u + 7, 0, 7); c.stroke();
+    } else {
+      c.strokeRect(-k.w * u / 2 - 6, -k.h * u / 2 - 6, k.w * u + 12, k.h * u + 12);
+    }
+    c.setLineDash([]);
+
+    if (k.rot) {
+      var d = objExtent(o) * u + HANDLE_GAP;
+      c.beginPath(); c.moveTo(0, -(objExtent(o) * u + 7)); c.lineTo(0, -d + HANDLE_R); c.stroke();
+      c.fillStyle = '#00E27E';
+      c.beginPath(); c.arc(0, -d, HANDLE_R, 0, 7); c.fill();
+      // icono de giro dentro del tirador
+      c.strokeStyle = '#04120B'; c.lineWidth = 1.8; c.lineCap = 'round';
+      c.beginPath(); c.arc(0, -d, HANDLE_R * 0.46, 0.5, 5.2); c.stroke();
+      c.beginPath();
+      c.moveTo(HANDLE_R * 0.16, -d - HANDLE_R * 0.56);
+      c.lineTo(HANDLE_R * 0.46, -d - HANDLE_R * 0.34);
+      c.lineTo(HANDLE_R * 0.12, -d - HANDLE_R * 0.12);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  // Recuadro que se arrastra sobre el campo para seleccionar varias piezas.
+  function drawMarquee(c, t, d) {
+    var x = Math.min(d.x0, d.x1) * t.s + t.ox, y = Math.min(d.y0, d.y1) * t.s + t.oy;
+    var w = Math.abs(d.x1 - d.x0) * t.s, h = Math.abs(d.y1 - d.y0) * t.s;
+    c.save();
+    c.fillStyle = 'rgba(0,226,126,.12)';
+    c.strokeStyle = '#00E27E';
+    c.lineWidth = 1.6;
+    c.setLineDash([6, 4]);
+    c.fillRect(x, y, w, h);
+    c.strokeRect(x, y, w, h);
+    c.restore();
+  }
+
+  function drawGroup(c, t) {
+    c.save();
+    c.strokeStyle = '#00E27E';
+    c.lineWidth = 2;
+    c.setLineDash([4, 4]);
+    ui.multi.forEach(function (id) {
+      var o = byId(id);
+      if (!o) return;
+      var k = dims(o), u = t.s;
+      c.save();
+      c.translate(o.x * u + t.ox, o.y * u + t.oy);
+      c.rotate((o.rot || 0) * Math.PI / 180);
+      if (k.r != null) { c.beginPath(); c.arc(0, 0, k.r * u + 6, 0, 7); c.stroke(); }
+      else c.strokeRect(-k.w * u / 2 - 5, -k.h * u / 2 - 5, k.w * u + 10, k.h * u + 10);
+      c.restore();
+    });
+    c.restore();
+  }
+
+  function rotateHandlePos(o) {
+    var k = dims(o);
+    if (!k || !k.rot) return null;
+    var a = (o.rot || 0) * Math.PI / 180;
+    var d = (objExtent(o) * T.s + HANDLE_GAP) / T.s;   // en metros, para reutilizar toScreen
+    return toScreen(o.x + Math.sin(a) * d, o.y - Math.cos(a) * d);
+  }
+
+  /* =========================================================================
+     8. Interacción con el puntero
+     ====================================================================== */
+
+  var drawing = null, drag = null;
+  var pointers = {}, gesture = null;
+
+  // Punto en coordenadas locales (sin deshacer el zoom): sirve para el pellizco.
+  function localPoint(e) {
+    var r = canvas.getBoundingClientRect();
+    var sx = e.clientX - r.left, sy = e.clientY - r.top;
+    return T.rot ? { x: sy, y: CW - sx } : { x: sx, y: sy };
+  }
+  function gestureState() {
+    var ids = Object.keys(pointers);
+    if (ids.length < 2) return null;
+    var a = pointers[ids[0]], b = pointers[ids[1]];
+    return {
+      d: Math.hypot(a.x - b.x, a.y - b.y),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2
+    };
+  }
+
+  function byId(id) {
+    var a = frame().objects;
+    for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i];
+    return null;
+  }
+
+  function hitObject(m) {
+    var a = frame().objects;
+    for (var i = a.length - 1; i >= 0; i--) {
+      var o = a[i], k = dims(o);
+      if (k.r != null) {
+        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + 0.35) return o;
+      } else {
+        var ang = -(o.rot || 0) * Math.PI / 180;
+        var dx = m.x - o.x, dy = m.y - o.y;
+        var lx = dx * Math.cos(ang) - dy * Math.sin(ang);
+        var ly = dx * Math.sin(ang) + dy * Math.cos(ang);
+        if (Math.abs(lx) <= k.w / 2 + 0.3 && Math.abs(ly) <= k.h / 2 + 0.3) return o;
+      }
+    }
+    return null;
+  }
+
+  function hitStroke(m) {
+    var a = frame().strokes;
+    for (var i = a.length - 1; i >= 0; i--) {
+      var s = a[i];
+      if (s.tool === 'zone') {
+        var p = s.pts;
+        if (m.x >= Math.min(p[0].x, p[1].x) && m.x <= Math.max(p[0].x, p[1].x) &&
+            m.y >= Math.min(p[0].y, p[1].y) && m.y <= Math.max(p[0].y, p[1].y)) return s;
+        continue;
+      }
+      for (var j = 1; j < s.pts.length; j++) {
+        if (distToSeg(m, s.pts[j - 1], s.pts[j]) < Math.max(0.9, s.width * 2)) return s;
+      }
+    }
+    return null;
+  }
+
+  function distToSeg(p, a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+    if (!l2) return Math.hypot(p.x - a.x, p.y - a.y);
+    var t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / l2, 0, 1);
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  }
+
+  function pointer(e) {
+    var r = canvas.getBoundingClientRect();
+    return toMeters(e.clientX - r.left, e.clientY - r.top);
+  }
+  function snap(v) { return ui.snap ? Math.round(v * 2) / 2 : v; }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (ui.playing) return;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    pointers[e.pointerId] = localPoint(e);
+
+    // Con dos dedos se navega, no se dibuja: se cancela lo que hubiera empezado.
+    if (Object.keys(pointers).length === 2) {
+      drawing = null;
+      drag = null;
+      var g = gestureState();
+      gesture = { d0: g.d, z0: ui.zoom, cx0: g.cx, cy0: g.cy, px0: ui.panX, py0: ui.panY };
+      draw();
+      return;
+    }
+    if (gesture) return;
+
+    var m = pointer(e);
+
+    // colocar material
+    if (ui.tool === 'place') {
+      placeObject(ui.place, snap(m.x), snap(m.y));
+      return;
+    }
+
+    if (ui.tool === 'eraser') {
+      var s = hitStroke(m);
+      if (s) { frame().strokes.splice(frame().strokes.indexOf(s), 1); commit(); draw(); }
+      else { var o = hitObject(m); if (o) { removeObject(o); } }
+      return;
+    }
+
+    if (ui.tool === 'select') {
+      // ¿tirador de rotación?
+      if (ui.sel) {
+        var sel = byId(ui.sel), h = sel && rotateHandlePos(sel);
+        if (h) {
+          var r = canvas.getBoundingClientRect();
+          if (Math.hypot(e.clientX - r.left - h.x, e.clientY - r.top - h.y) < 26) {
+            drag = { mode: 'rotate', o: sel };
+            hint('Gira la pieza · suelta para fijar');
+            return;
+          }
+        }
+      }
+      var hit = hitObject(m);
+      if (hit && ui.multi.indexOf(hit.id) >= 0) {
+        // arrastrar el grupo entero
+        drag = {
+          mode: 'group', moved: false,
+          items: ui.multi.map(function (id) {
+            var o = byId(id);
+            return o ? { o: o, dx: o.x - m.x, dy: o.y - m.y } : null;
+          }).filter(Boolean)
+        };
+        draw();
+        return;
+      }
+      if (hit) {
+        ui.multi = [];
+        ui.sel = hit.id;
+        drag = { mode: 'move', o: hit, dx: hit.x - m.x, dy: hit.y - m.y, moved: false };
+        showInspector(hit);
+      } else {
+        ui.sel = null;
+        ui.multi = [];
+        hideInspector();
+        drag = { mode: 'marquee', x0: m.x, y0: m.y, x1: m.x, y1: m.y, moved: false };
+      }
+      draw();
+      return;
+    }
+
+    // herramientas de dibujo
+    drawing = { id: uid(), tool: ui.tool, color: ui.color, width: ui.width, pts: [{ x: m.x, y: m.y }] };
+    if (ui.tool === 'zone' || ui.tool === 'measure') drawing.pts.push({ x: m.x, y: m.y });
+    draw();
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (ui.playing) return;
+    if (pointers[e.pointerId]) pointers[e.pointerId] = localPoint(e);
+
+    if (gesture) {
+      var g = gestureState();
+      if (!g) return;
+      ui.panX = gesture.px0 + (g.cx - gesture.cx0);
+      ui.panY = gesture.py0 + (g.cy - gesture.cy0);
+      var z = clamp(gesture.z0 * (g.d / Math.max(1, gesture.d0)), ZOOM_MIN, ZOOM_MAX);
+      var cx = localW() / 2, cy = localH() / 2;
+      ui.panX = g.cx - (g.cx - ui.panX - cx) * (z / ui.zoom) - cx;
+      ui.panY = g.cy - (g.cy - ui.panY - cy) * (z / ui.zoom) - cy;
+      ui.zoom = z;
+      applyView();
+      return;
+    }
+
+    var m = pointer(e);
+
+    if (drag) {
+      if (drag.mode === 'marquee') {
+        drag.x1 = m.x; drag.y1 = m.y;
+        drag.moved = true;
+        draw();
+        return;
+      }
+      if (drag.mode === 'group') {
+        drag.items.forEach(function (it) {
+          it.o.x = clamp(snap(m.x + it.dx), -6, PITCH().L + 6);
+          it.o.y = clamp(snap(m.y + it.dy), -6, PITCH().W + 6);
+        });
+        drag.moved = true;
+        draw();
+        return;
+      }
+      if (drag.mode === 'move') {
+        drag.o.x = clamp(snap(m.x + drag.dx), -6, PITCH().L + 6);
+        drag.o.y = clamp(snap(m.y + drag.dy), -6, PITCH().W + 6);
+        drag.moved = true;
+        moveInspector(drag.o);
+      } else {
+        var a = Math.atan2(m.x - drag.o.x, -(m.y - drag.o.y)) * 180 / Math.PI;
+        drag.o.rot = ui.snap ? Math.round(a / 15) * 15 : Math.round(a);
+        drag.moved = true;
+        hint('<b>' + ((drag.o.rot + 360) % 360) + '°</b>');
+      }
+      draw();
+      return;
+    }
+
+    if (drawing) {
+      if (drawing.tool === 'zone' || drawing.tool === 'measure') {
+        drawing.pts[1] = { x: m.x, y: m.y };
+      } else {
+        var last = drawing.pts[drawing.pts.length - 1];
+        if (Math.hypot(m.x - last.x, m.y - last.y) > 0.35) drawing.pts.push({ x: m.x, y: m.y });
+      }
+      draw();
+    }
+  });
+
+  function endPointer(e) {
+    if (e && e.pointerId != null) delete pointers[e.pointerId];
+    if (gesture) {
+      if (Object.keys(pointers).length < 2) {
+        gesture = null;
+        if (ui.zoom <= 1.001) { ui.zoom = 1; ui.panX = 0; ui.panY = 0; applyView(); }
+      }
+      return;
+    }
+    if (drag) {
+      if (drag.mode === 'marquee') {
+        var d0 = drag;
+        drag = null;
+        if (d0.moved && Math.abs(d0.x1 - d0.x0) > 1 && Math.abs(d0.y1 - d0.y0) > 1) selectInside(d0);
+        draw();
+        return;
+      }
+      if (drag.moved) commit();
+      if (drag.mode === 'rotate') hint('');
+      drag = null;
+    }
+    if (drawing) {
+      var ok = drawing.tool === 'zone'
+        ? Math.abs(drawing.pts[1].x - drawing.pts[0].x) > 1 && Math.abs(drawing.pts[1].y - drawing.pts[0].y) > 1
+        : drawing.tool === 'measure'
+          ? Math.hypot(drawing.pts[1].x - drawing.pts[0].x, drawing.pts[1].y - drawing.pts[0].y) > 1
+          : drawing.pts.length > 1;
+      if (ok) { frame().strokes.push(drawing); commit(); }
+      drawing = null;
+      draw();
+    }
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+
+  function selectInside(r) {
+    var x0 = Math.min(r.x0, r.x1), x1 = Math.max(r.x0, r.x1);
+    var y0 = Math.min(r.y0, r.y1), y1 = Math.max(r.y0, r.y1);
+    var ids = frame().objects.filter(function (o) {
+      return o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1;
+    }).map(function (o) { return o.id; });
+
+    if (ids.length === 1) { ui.multi = []; ui.sel = ids[0]; showInspector(byId(ids[0])); return; }
+    ui.multi = ids;
+    ui.sel = null;
+    if (ids.length) showGroupBar(); else hideInspector();
+  }
+
+  function showGroupBar() {
+    insp.innerHTML =
+      '<span class="name">' + ui.multi.length + ' seleccionados</span><span class="div"></span>' +
+      '<button class="ibtn" id="g-dup" aria-label="Duplicar la selección" title="Duplicar">' + icon('copy') + '</button>' +
+      '<button class="ibtn danger" id="g-del" aria-label="Eliminar la selección" title="Eliminar">' + icon('trash') + '</button>';
+    insp.classList.add('show');
+    $('#g-dup', insp).addEventListener('click', function () {
+      var copies = ui.multi.map(function (id) {
+        var o = byId(id); if (!o) return null;
+        var c = clone(o); c.id = uid(); c.x += 3; c.y += 3;
+        return c;
+      }).filter(Boolean);
+      copies.forEach(function (c) { frame().objects.push(c); });
+      ui.multi = copies.map(function (c) { return c.id; });
+      showGroupBar(); commit(); draw();
+    });
+    $('#g-del', insp).addEventListener('click', function () {
+      var a = frame().objects;
+      ui.multi.forEach(function (id) {
+        var o = byId(id), i = o ? a.indexOf(o) : -1;
+        if (i >= 0) a.splice(i, 1);
+      });
+      ui.multi = []; hideInspector(); commit(); draw();
+    });
+    hint('Arrastra cualquiera de las piezas para mover todo el grupo');
+  }
+
+  canvas.addEventListener('wheel', function (e) {
+    if (ui.playing) return;
+    e.preventDefault();
+    var p = localPoint(e);
+    setZoom(ui.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), p.x, p.y);
+  }, { passive: false });
+
+  canvas.addEventListener('dblclick', function (e) {
+    var o = hitObject(pointer(e));
+    if (o && o.kind === 'text') {
+      ask({ title: 'Editar texto', input: o.text || '', ok: 'Guardar' }).then(function (t) {
+        if (t === null) return;
+        o.text = t; commit(); draw();
+      });
+    }
+  });
+
+  /* =========================================================================
+     9. Interfaz
+     ====================================================================== */
+
+  function placeObject(spec, x, y) {
+    var o = { id: uid(), kind: spec.kind, x: x, y: y, rot: 0 };
+    if (spec.kind === 'player') {
+      o.team = spec.team;
+      o.num = nextNumber(spec.team);
+    } else if (spec.kind === 'text') {
+      o.text = '';
+      o.color = ui.color;
+    } else if (spec.kind !== 'ball' && spec.kind !== 'goal' && spec.kind !== 'minigoal' && spec.kind !== 'dummy') {
+      o.color = spec.color || null;
+    }
+    if (spec.kind === 'goal') {
+      var P = PITCH();
+      o.w = P.goal; o.h = Math.max(1.4, P.goalD);   // la de la modalidad activa
+    }
+    frame().objects.push(o);
+    ui.sel = o.id;
+    showInspector(o);
+    commit();
+    draw();
+
+    if (spec.kind === 'text') {
+      ask({ title: 'Texto sobre el campo', input: 'Presión alta', placeholder: 'Escribe aquí', ok: 'Colocar' })
+        .then(function (t) {
+          if (t === null || t === '') { removeObject(o); return; }
+          o.text = t; commit(); draw();
+        });
+    }
+  }
+
+  function nextNumber(team) {
+    var used = {};
+    frame().objects.forEach(function (o) { if (o.kind === 'player' && o.team === team) used[o.num] = 1; });
+    for (var n = 1; n <= 30; n++) if (!used[n]) return n;
+    return '';
+  }
+
+  function removeObject(o) {
+    var a = frame().objects, i = a.indexOf(o);
+    if (i < 0) return;
+    a.splice(i, 1);
+    if (ui.sel === o.id) { ui.sel = null; ui.multi = []; hideInspector(); }
+    commit(); draw();
+  }
+
+  /* --- inspector flotante --- */
+  var insp = $('#inspector');
+
+  function showInspector(o) {
+    var k = dims(o);
+    var html = '<span class="name">' + k.label + '</span><span class="div"></span>';
+
+    if (o.kind === 'player') {
+      html += '<input type="text" class="num" id="i-num" value="' + (o.num == null ? '' : o.num) + '" aria-label="Dorsal" maxlength="2">';
+      html += '<input type="text" id="i-name" value="' + (o.name || '').replace(/"/g, '&quot;') + '" placeholder="Nombre" aria-label="Nombre">';
+      html += '<span class="div"></span><span class="mini-sw">';
+      ['home', 'away', 'neutral'].forEach(function (t) {
+        html += '<button data-team="' + t + '" style="background:' + TEAM[t] + '" aria-label="Equipo ' + t + '" aria-pressed="' + (o.team === t) + '"></button>';
+      });
+      html += '</span>';
+    } else if (o.kind === 'text') {
+      html += '<input type="text" id="i-text" value="' + (o.text || '').replace(/"/g, '&quot;') + '" aria-label="Texto">';
+    }
+
+    if (k.rot) {
+      html += '<span class="div"></span>' +
+        '<button class="ibtn" data-rot="-15" aria-label="Girar 15 grados a la izquierda" title="Girar a la izquierda">' + icon('rotL') + '</button>' +
+        '<button class="ibtn" data-rot="15" aria-label="Girar 15 grados a la derecha" title="Girar a la derecha">' + icon('rotR') + '</button>' +
+        '<button class="ibtn" data-rot="90" aria-label="Girar 90 grados" title="Girar 90°">90°</button>' +
+        '<button class="ibtn" data-rot="reset" aria-label="Enderezar" title="Enderezar">0°</button>';
+    }
+
+    html += '<span class="div"></span>' +
+      '<button class="ibtn" id="i-dup" aria-label="Duplicar">' + icon('copy') + '</button>' +
+      '<button class="ibtn" id="i-front" aria-label="Traer al frente">' + icon('front') + '</button>' +
+      '<button class="ibtn danger" id="i-del" aria-label="Eliminar">' + icon('trash') + '</button>';
+
+    insp.innerHTML = html;
+    insp.classList.add('show');
+
+    var num = $('#i-num', insp);
+    if (num) num.addEventListener('input', function () { o.num = this.value.replace(/\D/g, '').slice(0, 2); draw(); });
+    if (num) num.addEventListener('change', commit);
+    var nm = $('#i-name', insp);
+    if (nm) { nm.addEventListener('input', function () { o.name = this.value.slice(0, 14); draw(); }); nm.addEventListener('change', commit); }
+    var tx = $('#i-text', insp);
+    if (tx) { tx.addEventListener('input', function () { o.text = this.value.slice(0, 28); draw(); }); tx.addEventListener('change', commit); }
+
+    $$('[data-team]', insp).forEach(function (b) {
+      b.addEventListener('click', function () {
+        o.team = b.dataset.team;
+        $$('[data-team]', insp).forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+        commit(); draw();
+      });
+    });
+    $$('[data-rot]', insp).forEach(function (b) {
+      b.addEventListener('click', function () {
+        o.rot = b.dataset.rot === 'reset'
+          ? 0
+          : ((o.rot || 0) + parseInt(b.dataset.rot, 10) + 360) % 360;
+        commit(); draw();
+      });
+    });
+    var dup = $('#i-dup', insp);
+    if (dup) dup.addEventListener('click', function () {
+      var c = clone(o); c.id = uid(); c.x += 2.5; c.y += 2.5;
+      frame().objects.push(c); ui.sel = c.id; showInspector(c); commit(); draw();
+    });
+    var front = $('#i-front', insp);
+    if (front) front.addEventListener('click', function () {
+      var a = frame().objects, i = a.indexOf(o);
+      if (i >= 0) { a.splice(i, 1); a.push(o); commit(); draw(); }
+    });
+    $('#i-del', insp).addEventListener('click', function () { removeObject(o); });
+  }
+  function moveInspector() { /* el inspector es fijo arriba: nada que recolocar */ }
+  function hideInspector() { insp.classList.remove('show'); insp.innerHTML = ''; }
+
+  function icon(n) {
+    var p = {
+      rotL: '<path d="M9 4L5 8l4 4"/><path d="M5 8h7a5 5 0 1 1-5 5"/>',
+      rotR: '<path d="M11 4l4 4-4 4"/><path d="M15 8H8a5 5 0 1 0 5 5"/>',
+      copy: '<rect x="6" y="6" width="9" height="9" rx="2"/><path d="M11 6V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/>',
+      front:'<rect x="3" y="3" width="9" height="9" rx="2"/><path d="M8 16h6a2 2 0 0 0 2-2V8"/>',
+      trash:'<path d="M3 5h14M8 5V3h4v2M6 5l1 12h6l1-12"/>'
+    }[n] || '';
+    return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+  }
+
+  /* --- herramientas --- */
+  function setTool(tool, place) {
+    ui.tool = tool;
+    ui.place = place || null;
+    if (tool !== 'select') { ui.sel = null; ui.multi = []; hideInspector(); }
+    $$('[data-tool]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.tool === tool && !place); });
+    $$('[data-place]').forEach(function (b) {
+      b.setAttribute('aria-pressed', !!(place && b.dataset.place === place.kind && (!place.team || b.dataset.team === place.team)));
+    });
+    canvas.className = tool === 'select' ? 'is-select' : '';
+    if (place) hint('Toca el campo para colocar <b>' + KIND[place.kind].label + '</b>'
+                    + (window.innerWidth <= 900 ? '' : ' · Esc para salir'));
+    else if (tool === 'measure') hint('Arrastra de un punto a otro para medir la distancia');
+    else if (tool !== 'select') hint('Arrastra sobre el campo para dibujar');
+    else hint('');
+    draw();
+  }
+
+  /* --- diálogos propios: prompt() y confirm() no funcionan dentro de un iframe --- */
+  function ask(opts) {
+    return new Promise(function (resolve) {
+      var dlg = $('#dlg-ask');
+      $('#ask-title', dlg).textContent = opts.title;
+      var field = $('#ask-field', dlg);
+      var msg = $('#ask-msg', dlg);
+      var input = $('#ask-input', dlg);
+      if (opts.input != null) {
+        field.hidden = false;
+        msg.hidden = true;
+        input.value = opts.input;
+        input.placeholder = opts.placeholder || '';
+      } else {
+        field.hidden = true;
+        msg.hidden = false;
+        msg.textContent = opts.message || '';
+      }
+      var okBtn = $('#ask-ok', dlg);
+      okBtn.textContent = opts.ok || 'Aceptar';
+      okBtn.classList.toggle('danger', !!opts.danger);
+
+      var done = false;
+      function finish(value) {
+        if (done) return;
+        done = true;
+        dlg.removeEventListener('close', onClose);
+        okBtn.removeEventListener('click', onOk);
+        input.removeEventListener('keydown', onKey);
+        if (dlg.open) dlg.close();
+        resolve(value);
+      }
+      function onOk() { finish(opts.input != null ? input.value.trim() : true); }
+      function onClose() { finish(null); }
+      function onKey(e) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } }
+
+      okBtn.addEventListener('click', onOk);
+      dlg.addEventListener('close', onClose);
+      input.addEventListener('keydown', onKey);
+      dlg.showModal();
+      if (opts.input != null) setTimeout(function () { input.select(); }, 30);
+    });
+  }
+
+  var hintTimer;
+  function hint(html) {
+    var el = $('#hint');
+    clearTimeout(hintTimer);
+    if (!html) { el.classList.remove('show'); return; }
+    el.innerHTML = html;
+    el.classList.add('show');
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+
+  /* --- formaciones --- */
+  function applyFormation(name, team) {
+    var set = formationSet(), pos = set.pos[name], nums = set.num[name] || [];
+    if (!pos) return;
+    var P = PITCH(), f = frame();
+    f.objects = f.objects.filter(function (o) { return !(o.kind === 'player' && o.team === team); });
+    pos.forEach(function (p, i) {
+      f.objects.push({
+        id: uid(), kind: 'player', team: team,
+        x: team === 'home' ? p[0] : P.L - p[0],
+        y: team === 'home' ? p[1] : P.W - p[1],
+        num: nums[i] != null ? nums[i] : i + 1, rot: 0
+      });
+    });
+    ui.sel = null; ui.multi = []; hideInspector();
+    commit(); draw();
+    toast('Formación ' + name + ' aplicada · ' + (team === 'home' ? 'local' : 'visitante'));
+  }
+
+  /* =========================================================================
+     10. Fotogramas y animación
+     ====================================================================== */
+
+  function buildFrames() {
+    var box = $('#frames');
+    box.innerHTML = '';
+    doc.frames.forEach(function (f, i) {
+      var b = document.createElement('button');
+      b.className = 'frame';
+      b.textContent = i + 1;
+      b.setAttribute('aria-pressed', i === ui.frame);
+      b.title = 'Fotograma ' + (i + 1);
+      b.addEventListener('click', function () { gotoFrame(i); });
+      box.appendChild(b);
+    });
+    var add = document.createElement('button');
+    add.className = 'frame add';
+    add.textContent = '+';
+    add.title = 'Añadir fotograma (duplica el actual)';
+    add.setAttribute('aria-label', 'Añadir fotograma');
+    add.addEventListener('click', addFrame);
+    box.appendChild(add);
+    $('#play').disabled = doc.frames.length < 2;
+    $('#delframe').disabled = doc.frames.length < 2;
+  }
+
+  function gotoFrame(i) {
+    stop();
+    ui.frame = clamp(i, 0, doc.frames.length - 1);
+    ui.sel = null; ui.multi = []; hideInspector();
+    buildFrames(); draw();
+  }
+  function addFrame() {
+    stop();
+    doc.frames.splice(ui.frame + 1, 0, clone(frame()));
+    ui.frame++;
+    ui.sel = null; ui.multi = []; hideInspector();
+    commit(); buildFrames(); draw();
+    toast('Fotograma ' + (ui.frame + 1) + ' añadido — mueve las fichas y pulsa reproducir');
+  }
+  function delFrame() {
+    if (doc.frames.length < 2) return;
+    stop();
+    doc.frames.splice(ui.frame, 1);
+    ui.frame = clamp(ui.frame, 0, doc.frames.length - 1);
+    ui.sel = null; ui.multi = []; hideInspector();
+    commit(); buildFrames(); draw();
+  }
+
+  function play() {
+    if (doc.frames.length < 2) return;
+    ui.playing = true;
+    ui.sel = null; ui.multi = []; hideInspector();
+    anim = { seg: 0, t0: performance.now() };
+    $('#play').innerHTML = icoPause();
+    $('#play').setAttribute('aria-label', 'Pausar');
+    $('#progress').classList.add('show');
+    hint('');
+    requestAnimationFrame(tick);
+  }
+  function stop() {
+    if (!ui.playing) return;
+    ui.playing = false; anim = null;
+    $('#play').innerHTML = icoPlay();
+    $('#play').setAttribute('aria-label', 'Reproducir');
+    $('#progress').classList.remove('show');
+    $('#progress i').style.width = '0%';
+    draw();
+  }
+
+  function segMs() { return 1500 / ui.speed; }
+
+  function tick(now) {
+    if (!ui.playing || !anim) return;
+    var d = segMs();
+    var t = clamp((now - anim.t0) / d, 0, 2);
+    if (t >= 1) {
+      anim.seg++;
+      anim.t0 = now;
+      t = 0;
+      if (anim.seg >= doc.frames.length - 1) {
+        if (ui.loop) { anim.seg = 0; }
+        else {
+          ui.frame = doc.frames.length - 1;
+          stop(); buildFrames(); draw();
+          return;
+        }
+      }
+    }
+    anim.t = t;
+    var total = (anim.seg + t) / (doc.frames.length - 1);
+    $('#progress i').style.width = (total * 100).toFixed(1) + '%';
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  function drawAnimated() {
+    drawAnimatedInto(ctx, T, anim.seg, ease(clamp(anim.t || 0, 0, 1)));
+  }
+
+  // Pinta el instante `e` (0..1) del tramo `seg` sobre el lienzo que se le pase.
+  // Lo usan tanto la reproducción en pantalla como la grabación de vídeo.
+  function drawAnimatedInto(c, t, seg, e) {
+    seg = clamp(seg | 0, 0, doc.frames.length - 1);
+    var A = doc.frames[seg], B = doc.frames[seg + 1] || A;
+    if (!A) return;
+
+    // zonas y trazos: fundido cruzado
+    A.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(c, t, s, 1 - e); });
+    B.strokes.forEach(function (s) { if (s.tool === 'zone') drawStroke(c, t, s, e); });
+
+    var mapB = {};
+    B.objects.forEach(function (o) { mapB[o.id] = o; });
+    var seen = {};
+    var list = [];
+
+    A.objects.forEach(function (a) {
+      seen[a.id] = 1;
+      var b = mapB[a.id];
+      if (b) {
+        list.push({ o: mix(a, b, e), alpha: 1, from: a });
+      } else {
+        list.push({ o: a, alpha: 1 - e });
+      }
+    });
+    B.objects.forEach(function (b) { if (!seen[b.id]) list.push({ o: b, alpha: e }); });
+
+    // estelas de movimiento
+    c.save();
+    c.lineCap = 'round';
+    list.forEach(function (it) {
+      if (!it.from || it.o.kind !== 'player' && it.o.kind !== 'ball') return;
+      if (Math.hypot(it.o.x - it.from.x, it.o.y - it.from.y) < 0.6) return;
+      c.strokeStyle = it.o.kind === 'ball' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.22)';
+      c.lineWidth = Math.max(2, t.s * 0.22);
+      c.beginPath();
+      c.moveTo(it.from.x * t.s + t.ox, it.from.y * t.s + t.oy);
+      c.lineTo(it.o.x * t.s + t.ox, it.o.y * t.s + t.oy);
+      c.stroke();
+    });
+    c.restore();
+
+    list.forEach(function (it) { if (it.o.kind !== 'player' && it.o.kind !== 'ball' && it.o.kind !== 'text') drawObject(c, t, it.o, it.alpha); });
+    A.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(c, t, s, 1 - e); });
+    B.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStroke(c, t, s, e); });
+    list.forEach(function (it) { if (it.o.kind === 'player' || it.o.kind === 'ball' || it.o.kind === 'text') drawObject(c, t, it.o, it.alpha); });
+  }
+
+  function mix(a, b, e) {
+    var o = clone(a);
+    o.x = lerp(a.x, b.x, e);
+    o.y = lerp(a.y, b.y, e);
+    var r1 = a.rot || 0, r2 = b.rot || 0, d = ((r2 - r1 + 540) % 360) - 180;
+    o.rot = r1 + d * e;
+    o.num = b.num != null ? b.num : a.num;
+    o.name = b.name || a.name;
+    o.team = b.team || a.team;
+    return o;
+  }
+
+  function icoPlay() { return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>'; }
+  function icoPause() { return '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg>'; }
+
+  /* =========================================================================
+     Guardar, abrir y exportar
+     ====================================================================== */
+
+  // Pinta un fotograma completo en un lienzo nuevo, a la anchura que se pida.
+  function renderFrame(index, W) {
+    var view = viewRect();
+    var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+    var H = Math.round(W * vh / vw);
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var c = cv.getContext('2d');
+    var t = transformFor(W, H, view);
+    var keepAnim = anim; anim = null;
+    drawPitch(c, t, view);
+    var f = doc.frames[clamp(index, 0, doc.frames.length - 1)];
+    f.strokes.forEach(function (s) { if (s.tool === 'zone') drawStrokeOn(c, t, s); });
+    f.objects.forEach(function (o) { if (o.kind !== 'player' && o.kind !== 'ball' && o.kind !== 'text') drawObjectOn(c, t, o); });
+    f.strokes.forEach(function (s) { if (s.tool !== 'zone') drawStrokeOn(c, t, s); });
+    f.objects.forEach(function (o) { if (o.kind === 'player' || o.kind === 'ball' || o.kind === 'text') drawObjectOn(c, t, o); });
+    anim = keepAnim;
+    return cv;
+  }
+
+  function exportPNG() {
+    renderFrame(ui.frame, 2400).toBlob(function (b) {
+      download(b, 'pizarra-tactica-' + (ui.frame + 1) + '.png');
+    });
+  }
+
+  // ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
+  function printSheet() {
+    ask({ title: 'Hoja de sesión', input: 'Sesión del martes', placeholder: 'Título de la sesión', ok: 'Preparar' })
+      .then(function (title) {
+        if (title === null) return;
+        var P = PITCH();
+        var imgs = doc.frames.map(function (f, i) {
+          return '<figure><img src="' + renderFrame(i, 1100).toDataURL('image/png') + '" alt="Fotograma ' + (i + 1) + '">' +
+                 '<figcaption>' + (doc.frames.length > 1 ? 'Fotograma ' + (i + 1) : 'Esquema') + '</figcaption></figure>';
+        }).join('');
+
+        var win = window.open('', '_blank');
+        if (!win) { toast('Permite las ventanas emergentes para imprimir la hoja'); return; }
+        win.document.write(
+          '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+          '<title>' + (title || 'Hoja de sesión') + '</title><style>' +
+          '@page{margin:14mm}' +
+          'body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#111}' +
+          'header{display:flex;justify-content:space-between;align-items:baseline;' +
+          'border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}' +
+          'h1{font-size:20px;margin:0}' +
+          'header span{font-size:12px;color:#555}' +
+          '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}' +
+          '.grid.one{grid-template-columns:1fr}' +
+          'figure{margin:0;break-inside:avoid}' +
+          'img{width:100%;display:block;border:1px solid #ccc;border-radius:4px}' +
+          'figcaption{font-size:11px;color:#555;margin-top:4px}' +
+          'footer{margin-top:18px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#666}' +
+          '.notes{margin-top:16px;border:1px solid #ccc;border-radius:4px;height:70px}' +
+          '</style></head><body>' +
+          '<header><h1>' + (title || 'Hoja de sesión') + '</h1>' +
+          '<span>' + PITCHES[doc.pitch].label + ' · ' + P.L + ' × ' + P.W + ' m · ' +
+          new Date().toLocaleDateString('es-ES') + '</span></header>' +
+          '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +
+          '<div class="notes"></div>' +
+          '<footer>Pizarra Táctica</footer>' +
+          '</body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(function () { win.print(); }, 400);
+        toast('Hoja de sesión preparada');
+      });
+  }
+
+  // Variantes que aceptan una transformación distinta a la de pantalla.
+  function drawObjectOn(c, t, o) {
+    var saveT = T; T = t; drawObject(c, t, o); T = saveT;
+  }
+  function drawStrokeOn(c, t, s) { drawStroke(c, t, s); }
+
+  // Si la pizarra está embebida en otra página, el navegador bloquea las descargas.
+  // En ese caso enseñamos el resultado para que se pueda guardar o copiar a mano.
+  function embedded() {
+    try { return window.self !== window.top; } catch (e) { return true; }
+  }
+
+  function download(blob, name) {
+    if (embedded()) { showFile(blob, name); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function showFile(blob, name) {
+    var dlg = $('#dlg-file');
+    var img = $('#file-img'), box = $('#file-text'), note = $('#file-note');
+    $('#file-title').textContent = name;
+    var video = $('#file-video');
+    video.hidden = true; video.removeAttribute('src');
+    if (/\.(webm|mp4)$/.test(name)) {
+      var vurl = URL.createObjectURL(blob);
+      video.src = vurl; video.hidden = false;
+      img.hidden = true; box.hidden = true;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Reproduce el vídeo y guárdalo con una pulsación larga.';
+      dlg.showModal();
+      return;
+    }
+    if (/\.png$/.test(name)) {
+      var url = URL.createObjectURL(blob);
+      img.src = url; img.hidden = false; box.hidden = true;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Pulsa y mantén sobre la imagen (o clic derecho) para guardarla.';
+      dlg.addEventListener('close', function once() {
+        dlg.removeEventListener('close', once);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+      });
+    } else {
+      blob.text().then(function (t) { box.value = t; });
+      img.hidden = true; box.hidden = false;
+      note.textContent = 'Aquí va embebida y el navegador no deja descargar. Copia este texto y guárdalo como archivo .json.';
+    }
+    dlg.showModal();
+  }
+
+  // ---- Vídeo de la jugada ----------------------------------------------------
+  // Se pinta la animación en un lienzo aparte, a resolución fija, y se graba con
+  // MediaRecorder. Sin servidores ni bibliotecas externas.
+  function canRecord() {
+    return typeof MediaRecorder !== 'undefined' &&
+           !!HTMLCanvasElement.prototype.captureStream &&
+           doc.frames.length > 1;
+  }
+
+  function pickMime() {
+    var opts = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+    for (var i = 0; i < opts.length; i++) {
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+    }
+    return '';
+  }
+
+  function exportVideo() {
+    if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para grabar la jugada'); return; }
+    if (!canRecord()) { toast('Este navegador no puede grabar vídeo'); return; }
+
+    var view = viewRect();
+    var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+    var W = 1280, H = Math.round(W * vh / vw);
+    if (H % 2) H += 1;
+
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var c = cv.getContext('2d');
+    var t = transformFor(W, H, view);
+
+    var mime = pickMime();
+    var stream = cv.captureStream(30);
+    var rec;
+    try {
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined);
+    } catch (err) { toast('Este navegador no puede grabar vídeo'); return; }
+
+    var chunks = [];
+    rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = function () {
+      var type = (mime || 'video/webm').split(';')[0];
+      var blob = new Blob(chunks, { type: type });
+      var ext = type.indexOf('mp4') > -1 ? 'mp4' : 'webm';
+      download(blob, 'jugada.' + ext);
+      recording = false;
+      $('#video').classList.remove('rec');
+      hint('');
+      toast('Vídeo listo');
+    };
+
+    var segs = doc.frames.length - 1;
+    var segMsRec = segMs();
+    var total = segs * segMsRec + 900;    // un respiro al final
+    var t0 = performance.now();
+
+    recording = true;
+    $('#video').classList.add('rec');
+    hint('Grabando la jugada…');
+    rec.start();
+
+    (function frameLoop(now) {
+      // La marca de tiempo de requestAnimationFrame corresponde al inicio del cuadro
+      // y puede ser anterior a t0: sin acotar, el primer cuadro pedía el tramo -1.
+      var el = clamp((now || performance.now()) - t0, 0, total);
+      var p = Math.min(el, segs * segMsRec) / segMsRec;
+      var seg = clamp(Math.floor(p), 0, segs - 1);
+      var e = ease(clamp(p - seg, 0, 1));
+
+      c.clearRect(0, 0, W, H);
+      drawPitch(c, t, view);
+      drawAnimatedInto(c, t, seg, e);
+
+      if (el < total) requestAnimationFrame(frameLoop);
+      else { try { rec.stop(); } catch (err) {} }
+    })();
+  }
+
+  function exportJSON() {
+    download(new Blob([JSON.stringify(doc)], { type: 'application/json' }), 'pizarra-tactica.json');
+  }
+
+  function importJSON(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var d = JSON.parse(fr.result);
+        if (!d.frames || !d.frames.length) throw 0;
+        doc = d; ui.frame = 0; ui.sel = null;
+        syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
+        toast('Pizarra importada');
+      } catch (e) { toast('El archivo no es una pizarra válida'); }
+    };
+    fr.readAsText(file);
+  }
+
+  function savedBoards() {
+    try { return JSON.parse(localStorage.getItem('pt-boards') || '{}'); } catch (e) { return {}; }
+  }
+  function writeBoards(o) {
+    try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
+  }
+  function saveBoard() {
+    ask({ title: 'Guardar pizarra', input: 'Salida de balón', placeholder: 'Nombre', ok: 'Guardar' })
+      .then(function (name) {
+        if (!name) return;
+        var all = savedBoards();
+        all[name] = { at: Date.now(), doc: doc };
+        if (writeBoards(all)) toast('Guardada como «' + name + '»');
+        else toast('No se ha podido guardar (almacenamiento lleno)');
+      });
+  }
+  function openDialog() {
+    var all = savedBoards(), box = $('#saved-list');
+    var names = Object.keys(all).sort(function (a, b) { return all[b].at - all[a].at; });
+    if (!names.length) {
+      box.innerHTML = '<p class="empty">Todavía no has guardado ninguna pizarra.</p>';
+    } else {
+      box.innerHTML = '';
+      names.forEach(function (n) {
+        var row = document.createElement('div');
+        row.className = 'saved-item';
+        var d = new Date(all[n].at);
+        row.innerHTML = '<span>' + n + '<br><small>' + d.toLocaleDateString('es-ES') + ' · ' +
+          all[n].doc.frames.length + ' fotograma(s)</small></span>';
+        var load = document.createElement('button');
+        load.className = 'tbtn'; load.textContent = 'Abrir';
+        load.addEventListener('click', function () {
+          doc = clone(all[n].doc); ui.frame = 0; ui.sel = null;
+          syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
+          $('#dlg-open').close(); toast('«' + n + '» abierta');
+        });
+        var del = document.createElement('button');
+        del.className = 'tbtn'; del.textContent = 'Borrar';
+        del.addEventListener('click', function () {
+          var a = savedBoards(); delete a[n]; writeBoards(a); openDialog();
+        });
+        row.appendChild(load); row.appendChild(del);
+        box.appendChild(row);
+      });
+    }
+    $('#dlg-open').showModal();
+  }
+
+  function syncViewButtons() {
+    $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === doc.view); });
+    $$('[data-pitch]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pitch === doc.pitch); });
+    buildFormationLists();
+  }
+
+  function buildFormationLists() {
+    var names = Object.keys(formationSet().pos);
+    [['#form-home', 'local'], ['#form-away', 'visitante']].forEach(function (pair) {
+      var sel = $(pair[0]);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Colocar equipo ' + pair[1] + '…</option>' +
+        names.map(function (n) { return '<option>' + n + '</option>'; }).join('');
+    });
+  }
+
+  // Las fichas y el material se reescalan al cambiar de modalidad, para que la
+  // jugada siga teniendo sentido en el campo nuevo.
+  function setPitch(kind) {
+    if (kind === doc.pitch) return;
+    var from = PITCHES[doc.pitch] || PITCHES.f11, to = PITCHES[kind];
+    var fx = to.L / from.L, fy = to.W / from.W;
+    doc.pitch = kind;
+    doc.frames.forEach(function (f) {
+      f.objects.forEach(function (o) {
+        o.x *= fx; o.y *= fy;
+        if (o.kind === 'goal') { o.w = to.goal; o.h = Math.max(1.4, to.goalD); }
+      });
+      f.strokes.forEach(function (st) {
+        st.pts.forEach(function (pt) { pt.x *= fx; pt.y *= fy; });
+      });
+    });
+    ui.sel = null; ui.multi = []; hideInspector();
+    ui.zoom = 1; ui.panX = 0; ui.panY = 0;
+    syncViewButtons(); commit(); resize();
+    toast(to.label + ' · ' + to.L + ' × ' + to.W + ' m');
+  }
+
+  /* =========================================================================
+     Cableado de la interfaz
+     ====================================================================== */
+
+  function wire() {
+    $$('[data-tool]').forEach(function (b) {
+      b.addEventListener('click', function () { setTool(b.dataset.tool); });
+    });
+    $$('[data-place]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        setTool('place', { kind: b.dataset.place, team: b.dataset.team, color: b.dataset.color });
+      });
+    });
+    $$('[data-color]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ui.color = b.dataset.color;
+        $$('[data-color]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      });
+    });
+    $$('[data-width]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ui.width = parseFloat(b.dataset.width);
+        $$('[data-width]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      });
+    });
+    $$('[data-view]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        doc.view = b.dataset.view;
+        syncViewButtons(); commit(); resize();
+      });
+    });
+    $$('[data-pitch]').forEach(function (b) {
+      b.addEventListener('click', function () { setPitch(b.dataset.pitch); });
+    });
+
+    $('#snap').addEventListener('change', function () { ui.snap = this.checked; });
+    $('#undo').addEventListener('click', undo);
+    $('#redo').addEventListener('click', redo);
+
+    $('#form-home').addEventListener('change', function () { if (this.value) { applyFormation(this.value, 'home'); this.value = ''; } });
+    $('#form-away').addEventListener('change', function () { if (this.value) { applyFormation(this.value, 'away'); this.value = ''; } });
+
+    $('#clear').addEventListener('click', function () {
+      ask({ title: 'Vaciar el fotograma', message: 'Se quitan las fichas, el material y los trazos de este fotograma. Podrás deshacerlo.', ok: 'Vaciar', danger: true })
+        .then(function (yes) {
+          if (!yes) return;
+          doc.frames[ui.frame] = emptyFrame();
+          ui.sel = null; ui.multi = []; hideInspector(); commit(); draw();
+        });
+    });
+    $('#reset').addEventListener('click', function () {
+      ask({ title: 'Empezar de cero', message: 'Se borra la pizarra entera, incluidos todos los fotogramas. Lo que hayas guardado con nombre se conserva.', ok: 'Empezar de cero', danger: true })
+        .then(function (yes) {
+          if (!yes) return;
+          doc = { pitch: doc.pitch, view: doc.view, frames: [emptyFrame()] };
+          ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
+          commit(); buildFrames(); draw();
+        });
+    });
+
+    $('#play').addEventListener('click', function () { ui.playing ? stop() : play(); });
+    $('#delframe').addEventListener('click', delFrame);
+    var loopBtn = $('#loop');
+    loopBtn.addEventListener('click', function () {
+      ui.loop = !ui.loop;
+      loopBtn.setAttribute('aria-pressed', String(ui.loop));
+      toast(ui.loop ? 'La animación se repetirá en bucle' : 'Bucle desactivado');
+    });
+
+    var SPEEDS = [0.5, 0.75, 1, 1.5, 2];
+    var speedBtn = $('#speed');
+    speedBtn.addEventListener('click', function () {
+      var i = SPEEDS.indexOf(ui.speed);
+      ui.speed = SPEEDS[(i + 1) % SPEEDS.length];
+      speedBtn.textContent = ui.speed.toFixed(1).replace('.0', '.0') + '×';
+    });
+
+    $('#png').addEventListener('click', exportPNG);
+    $('#sheet').addEventListener('click', printSheet);
+    $('#video').addEventListener('click', function () {
+      if (recording) return;
+      exportVideo();
+    });
+    $('#save').addEventListener('click', saveBoard);
+    $('#open').addEventListener('click', openDialog);
+    $('#json').addEventListener('click', exportJSON);
+    $('#json-sm').addEventListener('click', exportJSON);
+    $('#import').addEventListener('change', function () { if (this.files[0]) importJSON(this.files[0]); this.value = ''; });
+    $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
+    $('#zoom').addEventListener('click', resetView);
+    $$('[data-close]').forEach(function (b) {
+      b.addEventListener('click', function () { b.closest('dialog').close(); });
+    });
+
+    var aside = $('#aside'), scrim = $('#scrim');
+    var current = null;
+
+    function sheetOpen(id) {
+      current = id;
+      aside.classList.add('open');
+      scrim.classList.add('show');
+      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
+      var block = document.getElementById(id);
+      if (block) requestAnimationFrame(function () { aside.scrollTop = block.offsetTop - 30; });
+    }
+    function sheetClose() {
+      current = null;
+      aside.classList.remove('open');
+      scrim.classList.remove('show');
+      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
+    }
+
+    $$('.tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        if (current === t.dataset.section) sheetClose();
+        else sheetOpen(t.dataset.section);
+      });
+    });
+    scrim.addEventListener('click', sheetClose);
+    $('#sheet-grab').addEventListener('click', sheetClose);
+
+    // Elegir una herramienta o un material cierra la hoja y deja el campo libre.
+    aside.addEventListener('click', function (e) {
+      if (window.innerWidth <= 900 && e.target.closest('[data-tool],[data-place],[data-view],[data-width],.sw')) {
+        setTimeout(sheetClose, 130);
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+      var k = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
+      if (e.ctrlKey || e.metaKey) return;
+      if (k === 'escape') { ui.multi = []; setTool('select'); return; }
+      if (k === '+' || k === '=') { setZoom(ui.zoom * 1.25); return; }
+      if (k === '-') { setZoom(ui.zoom / 1.25); return; }
+      if (k === '0') { resetView(); return; }
+      if (k === ' ') { e.preventDefault(); ui.playing ? stop() : play(); return; }
+      if (k === 'delete' || k === 'backspace') {
+        e.preventDefault();
+        if (ui.multi.length) { $('#g-del', insp) && $('#g-del', insp).click(); }
+        else if (ui.sel) removeObject(byId(ui.sel));
+        return;
+      }
+      if (k === 'r' && ui.sel) {
+        var so = byId(ui.sel);
+        if (so && KIND[so.kind].rot) {
+          so.rot = ((so.rot || 0) + (e.shiftKey ? -15 : 15) + 360) % 360;
+          commit(); draw();
+        }
+        return;
+      }
+      var map = { v: 'select', a: 'pass', s: 'run', d: 'dribble', f: 'free', z: 'zone', e: 'eraser', m: 'measure' };
+      if (map[k]) { setTool(map[k]); }
+    });
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas.parentNode);
+
+    // Nada de zoom por pellizco ni por doble toque: se dibuja con el dedo.
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
+      document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+    });
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    // Y nada de menú contextual al mantener pulsado sobre el campo.
+    canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+
+  /* =========================================================================
+     Instalación en el dispositivo
+     ====================================================================== */
+
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function isStandalone() {
+    return window.navigator.standalone === true ||
+           (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  }
+
+  function setupInstall() {
+    var btn = $('#install'), deferred = null;
+
+    // iOS no ofrece aviso de instalación: hay que explicar el camino de Safari.
+    if (isIOS() && !isStandalone()) {
+      btn.hidden = false;
+      btn.lastChild.textContent = ' Instalar en el iPhone';
+      btn.addEventListener('click', function () { $('#dlg-ios').showModal(); });
+    }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.hidden = false;
+    });
+    btn.addEventListener('click', function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+    });
+    window.addEventListener('appinstalled', function () {
+      btn.hidden = true;
+      toast('Pizarra instalada. Ya puedes abrirla desde el icono.');
+    });
+
+    // Guarda la aplicación para poder abrirla sin conexión.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  }
+
+  /* =========================================================================
+     Arranque
+     ====================================================================== */
+
+  function seed() {
+    // Una disposición inicial para que la pizarra no aparezca vacía.
+    var f = frame();
+    FORMATIONS['4-3-3'].forEach(function (p, i) {
+      f.objects.push({ id: uid(), kind: 'player', team: 'home', x: p[0], y: p[1], num: NUMBERS['4-3-3'][i], rot: 0 });
+    });
+    f.objects.push({ id: uid(), kind: 'ball', x: 28, y: 34, rot: 0 });
+  }
+
+  function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
+
+  function start() {
+    wire();
+    setupInstall();
+    var saved = null;
+    try { saved = localStorage.getItem('pt-autosave'); } catch (e) {}
+    if (saved) {
+      try {
+        var d = JSON.parse(saved);
+        if (d && d.frames && d.frames.length) doc = d;
+      } catch (e) {}
+    }
+    ensurePitch();
+    if (!doc.frames[0].objects.length && doc.frames.length === 1) seed();
+    syncViewButtons();
+    buildFrames();
+    commit();
+    hi = 0; hist = [JSON.stringify(doc)];
+    refreshHistoryButtons();
+    resize();
+    setTool('select');
+    setTimeout(function () {
+      hint(window.innerWidth <= 900
+        ? 'Arrastra las fichas. Con <b>+</b> añades un fotograma y la jugada se anima.'
+        : 'Arrastra las fichas · pulsa <b>+</b> en la línea de tiempo y mueve la jugada para animarla');
+    }, 700);
+    setTimeout(function () { hint(''); }, 7000);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

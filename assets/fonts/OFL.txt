@@ -1,0 +1,12 @@
+Fuentes incluidas en este directorio
+====================================
+
+- outfit-latin-var.woff2 — Outfit, por Smartsheet Inc. (Rodrigo Fuenzalida, Jonathan Barnbrook)
+- inter-latin-var.woff2  — Inter, por Rasmus Andersson
+
+Ambas se distribuyen bajo la SIL Open Font License, Version 1.1, que permite su uso,
+estudio, modificación y redistribución (incluido el alojamiento propio en un sitio web)
+siempre que las fuentes no se vendan por sí solas y se conserve este aviso.
+
+Texto completo de la licencia: https://openfontlicense.org/open-font-license-official-text/
+Origen de los archivos: subconjuntos "latin" servidos por Google Fonts.
