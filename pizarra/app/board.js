@@ -1861,66 +1861,81 @@
   // cuadro de observaciones creciendo hasta el pie para que la página quede
   // llena en vez de dejar medio folio en blanco.
   var CARD_CSS = [
-    '@page{size:A4;margin:11mm}',
+    '@page{size:A4;margin:14mm}',
     '*{box-sizing:border-box}',
     ':root{--ink:#111821;--soft:#5C6879;--line:#D3DAE4;--hair:#E7ECF2;--wash:#F5F8FA;--acc:#0A7A4B}',
     'html,body{margin:0;padding:0}',
     'body{font:11.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;',
       'color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}',
     /* en pantalla no hay @page: se simulan los mismos márgenes para ver la hoja tal cual */
-    '@media screen{body{padding:11mm;background:#fff}}',
+    '@media screen{body{padding:14mm;background:#fff}}',
 
     /* la página como columna: lo que sobra se lo queda el cuadro de notas */
-    '.page{min-height:262mm;display:flex;flex-direction:column;gap:8px}',
+    '.page{min-height:266mm;display:flex;flex-direction:column;gap:10px}',
     '.spine{flex:none;height:4px;border-radius:3px;',
       'background:linear-gradient(90deg,var(--acc),#14A86A 55%,#9BDCC0)}',
 
     /* cabecera */
     'header{flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;',
-      'padding-bottom:9px;border-bottom:1px solid var(--line)}',
+      'padding-bottom:12px;border-bottom:1px solid var(--line)}',
     '.eyebrow{display:block;margin-bottom:5px;font-size:8px;font-weight:700;',
       'letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}',
     'h1{margin:0;font-size:23px;line-height:1.14;letter-spacing:-.015em;font-weight:700;text-wrap:balance}',
     '.chips{display:flex;gap:6px;flex:none}',
-    '.chip{border:1px solid var(--line);border-radius:7px;padding:5px 10px;background:var(--wash);max-width:44mm}',
+    '.chip{border:1px solid var(--line);border-radius:7px;padding:7px 12px;background:var(--wash);max-width:44mm}',
     '.chip small{display:block;margin-bottom:1px;font-size:7px;font-weight:700;',
       'letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}',
     '.chip b{display:block;font-size:11px;font-weight:600;line-height:1.3}',
 
     /* fila superior: esquema grande + datos y objetivo */
-    '.top{flex:none;display:grid;grid-template-columns:1.5fr 1fr;gap:8px;align-items:stretch}',
+    '.top{flex:none;display:grid;grid-template-columns:1.5fr 1fr;gap:10px;align-items:stretch}',
     '.shot{margin:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;',
       'border:1px solid var(--line);border-radius:9px;background:#fff}',
-    '.shot img{display:block;width:100%}',
-    '.shot figcaption{display:flex;justify-content:space-between;gap:10px;padding:5px 10px;',
+    /* el esquema se centra en lo que le toque de alto: así el marco cierra a la
+       misma altura que la columna de datos, sin franja blanca suelta al pie */
+    '.shot img{display:block;flex:1;min-height:0;width:100%;object-fit:contain}',
+    '.shot figcaption{display:flex;justify-content:space-between;gap:10px;padding:7px 13px;',
       'border-top:1px solid var(--hair);background:var(--wash);',
       'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}',
-    '.side{display:flex;flex-direction:column;gap:8px;min-width:0}',
+    '.side{display:flex;flex-direction:column;gap:10px;min-width:0}',
     '.side .panel{flex:1}',   /* el objetivo llega hasta abajo: las dos columnas casan */
 
     /* Maqueta ancha: si la ficha tiene poco texto, en vez de dejar medio folio
        de rayas se agranda el esquema a todo el ancho y los datos pasan debajo.
        La elige la propia página midiéndose antes de imprimir. */
     '.page.ancha .top{grid-template-columns:1fr}',
-    '.page.ancha .side{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch}',
+    '.page.ancha .side{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}',
+
+    /* Maqueta apretada: para una ficha muy llena, antes de partirla en dos
+       folios se estrecha el esquema y se recorta el aire, nunca el margen. */
+    '.page.compacta{gap:7px}',
+    '.page.compacta .top{grid-template-columns:1.24fr 1fr;gap:7px}',
+    '.page.compacta .side,.page.compacta .row,.page.compacta .seq{gap:7px}',
+    '.page.compacta .pbody{padding:8px 11px}',
+    '.page.compacta .panel > h2{padding:5px 11px}',
+    '.page.compacta .stat{padding:6px 11px}',
+    '.page.compacta .shot figcaption{padding:5px 11px}',
+    '.page.compacta .seq figcaption{padding:3px 8px}',
+    '.page.compacta .grow{min-height:12mm}',
+    '.page.compacta header{padding-bottom:9px}',
 
     /* los datos, en celdas con filete de un pelo */
     '.stats{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);',
       'border:1px solid var(--line);border-radius:9px;overflow:hidden}',
-    '.stat{background:#fff;padding:6px 9px;min-width:0}',
+    '.stat{background:#fff;padding:9px 13px;min-width:0}',
     '.stat.w{grid-column:1 / -1}',
-    '.stat b{display:block;margin-bottom:1px;font-size:7px;font-weight:700;',
+    '.stat b{display:block;margin-bottom:2px;font-size:7px;font-weight:700;',
       'letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}',
     '.stat span{display:block;font-size:11.5px;font-weight:600;line-height:1.35;font-variant-numeric:tabular-nums}',
 
     /* bloques */
     '.panel{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:#fff;',
       'border:1px solid var(--line);border-radius:9px;break-inside:avoid}',
-    '.panel > h2{margin:0;padding:5px 10px;background:var(--wash);border-bottom:1px solid var(--hair);',
+    '.panel > h2{margin:0;padding:7px 13px;background:var(--wash);border-bottom:1px solid var(--hair);',
       'font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}',
     '.panel.key{border-color:#BCE0CE}',
     '.panel.key > h2{background:#EAF6EF;border-bottom-color:#CFE8DA}',
-    '.pbody{flex:1;padding:8px 10px}',
+    '.pbody{flex:1;padding:11px 13px}',
     '.pbody p{margin:0 0 5px;hyphens:auto}',
     '.pbody p:last-child{margin-bottom:0}',
     '.pbody ol{margin:0;padding:0;list-style:none;counter-reset:i}',
@@ -1929,22 +1944,22 @@
     '.pbody li::before{content:counter(i);position:absolute;left:0;top:0;',
       'font-size:8.5px;font-weight:700;line-height:1.95;color:var(--acc)}',
 
-    '.row{flex:none;display:grid;gap:8px;align-items:stretch}',
+    '.row{flex:none;display:grid;gap:10px;align-items:stretch}',
 
     /* secuencia de la jugada */
-    '.seq{display:grid;gap:7px}',
+    '.seq{display:grid;gap:9px}',
     '.seq figure{margin:0;overflow:hidden;border:1px solid var(--hair);border-radius:6px;background:#fff}',
     '.seq img{display:block;width:100%}',
-    '.seq figcaption{padding:3px 7px;border-top:1px solid var(--hair);background:var(--wash);',
+    '.seq figcaption{padding:5px 9px;border-top:1px solid var(--hair);background:var(--wash);',
       'font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}',
 
     /* observaciones: se estira hasta el pie y va rayado para escribir a mano */
     '.grow{flex:1 1 auto;min-height:17mm}',
-    '.ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 20px,',
-      'var(--hair) 20px,var(--hair) 21px)}',
+    '.ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 22px,',
+      'var(--hair) 22px,var(--hair) 23px)}',
 
     'footer{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;',
-      'padding-top:6px;border-top:1px solid var(--hair);',
+      'padding-top:9px;border-top:1px solid var(--hair);',
       'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#96A2B2}'
   ].join('');
 
@@ -2038,24 +2053,29 @@
     setTimeout(function () { encajarCard(win); win.print(); }, 400);
   }
 
-  // La hoja se mide a sí misma: si con la maqueta normal iba a sobrar más de un
-  // palmo de folio, se pasa a la maqueta ancha (esquema a todo el ancho). Se
-  // comprueba después, y si con eso se pasa de página, se vuelve atrás.
+  // La hoja se mide a sí misma y elige maqueta. Si sobra más de un palmo de
+  // folio, se va a la ancha (esquema a todo el ancho); si no cabe, a la
+  // apretada. Los márgenes no se tocan en ningún caso.
   function encajarCard(win) {
     try {
       var pg = win.document.querySelector('.page');
       if (!pg) return;
-      var alto = function () {
+      var alto = function () {                       // alto real del contenido
         var previo = pg.style.minHeight;
         pg.style.minHeight = '0';
         var h = pg.getBoundingClientRect().height;
         pg.style.minHeight = previo;
         return h;
       };
-      var hueco = pg.getBoundingClientRect().height - alto();
-      if (hueco < 230) return;              // ya está bastante llena
+      // el hueco útil es el alto de la caja de impresión, no el de la caja ya
+      // estirada: hay que leerlo del min-height, que es lo que cabe en el folio
+      var folio = parseFloat(win.getComputedStyle(pg).minHeight) || 0;
+      if (!folio) return;
+
+      if (alto() > folio) { pg.classList.add('compacta'); return; }
+      if (folio - alto() < 230) return;              // ya está bastante llena
       pg.classList.add('ancha');
-      if (alto() > pg.getBoundingClientRect().height) pg.classList.remove('ancha');
+      if (alto() > folio) pg.classList.remove('ancha');
     } catch (e) {}
   }
 
