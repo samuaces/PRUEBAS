@@ -122,7 +122,19 @@
 
   function emptyFrame() { return { objects: [], strokes: [] }; }
 
-  var doc = { pitch: 'f11', view: 'full', frames: [emptyFrame()] };
+  // Ficha del ejercicio. Vive en el documento, así que se guarda, se exporta,
+  // se importa y entra en el historial igual que los fotogramas.
+  var CARD_FIELDS = ['titulo', 'categoria', 'momento', 'fecha', 'sesion',
+    'duracion', 'series', 'descanso', 'jugadores', 'porteros', 'espacio', 'material',
+    'objetivo', 'descripcion', 'consignas', 'normas', 'variantes'];
+
+  function emptyCard() {
+    var c = {};
+    CARD_FIELDS.forEach(function (k) { c[k] = ''; });
+    return c;
+  }
+
+  var doc = { pitch: 'f11', view: 'full', card: emptyCard(), frames: [emptyFrame()] };
 
   var ui = {
     frame: 0,
@@ -1670,9 +1682,283 @@
     });
   }
 
+  /* =========================================================================
+     Ficha del ejercicio
+     Un formulario que vive en el documento y se imprime en una página A4
+     limpia, con el dibujo de la pizarra arriba y el contenido debajo.
+     ====================================================================== */
+
+  function card() {
+    if (!doc.card) doc.card = emptyCard();
+    return doc.card;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Cada línea del textarea es un punto de la lista.
+  function lines(s) {
+    return String(s || '').split('\n')
+      .map(function (l) { return l.replace(/^\s*[-•·*]\s*/, '').trim(); })
+      .filter(Boolean);
+  }
+
+  function cardHasContent() {
+    var c = card();
+    return CARD_FIELDS.some(function (k) { return String(c[k] || '').trim(); });
+  }
+
+  // ---- Leer la pizarra para rellenar la ficha sola ----
+
+  var PLURAL = {
+    ball:     ['balón', 'balones'],
+    cone:     ['cono', 'conos'],
+    disc:     ['plato', 'platos'],
+    goal:     ['portería', 'porterías'],
+    minigoal: ['portería pequeña', 'porterías pequeñas'],
+    hurdle:   ['valla', 'vallas'],
+    ladder:   ['escalera', 'escaleras'],
+    pole:     ['pica', 'picas'],
+    dummy:    ['maniquí', 'maniquíes'],
+    ring:     ['aro', 'aros'],
+    flag:     ['banderín', 'banderines']
+  };
+
+  // El portero es el jugador más pegado a su línea de gol, dentro del área
+  // pequeña y centrado. Como mucho hay uno por portería.
+  function countKeepers(players) {
+    var P = PITCH();
+    var d = P.small ? P.small[0] : P.goal;                  // fondo del área pequeña
+    var w = (P.small ? P.small[1] : P.goal + 2) / 2;        // medio ancho
+    var n = 0;
+    [true, false].forEach(function (izq) {
+      var mejor = null;
+      players.forEach(function (o) {
+        if (Math.abs(o.y - P.W / 2) > w) return;
+        var dist = izq ? o.x : P.L - o.x;
+        if (dist > d || dist < 0) return;
+        if (!mejor || dist < mejor) mejor = dist;
+      });
+      if (mejor !== null) n++;
+    });
+    return n;
+  }
+
+  // Recorre todos los fotogramas y cuenta cada pieza una sola vez.
+  function boardStats() {
+    var seen = {}, teams = { home: 0, away: 0, neutral: 0 }, mats = {}, players = [];
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, any = false;
+
+    function extend(x, y) {
+      any = true;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+
+    doc.frames.forEach(function (f) {
+      f.objects.forEach(function (o) {
+        extend(o.x, o.y);
+        if (seen[o.id]) return;
+        seen[o.id] = true;
+        if (o.kind === 'player') {
+          teams[o.team] = (teams[o.team] || 0) + 1;
+          players.push(o);
+        } else if (o.kind !== 'text') {
+          mats[o.kind] = (mats[o.kind] || 0) + 1;
+        }
+      });
+      f.strokes.forEach(function (s) {
+        s.pts.forEach(function (p) { extend(p.x, p.y); });
+      });
+    });
+
+    return {
+      teams: teams, gk: countKeepers(players), mats: mats,
+      box: any ? { x0: minX, y0: minY, x1: maxX, y1: maxY } : null
+    };
+  }
+
+  function statsPlayers(st) {
+    var h = st.teams.home, a = st.teams.away, n = st.teams.neutral;
+    var out = '';
+    if (h && a) out = h + ' vs ' + a;
+    else if (h + a) out = (h + a) + ' jugador' + (h + a === 1 ? '' : 'es');
+    if (n) out += (out ? ' + ' : '') + n + ' comodín' + (n === 1 ? '' : 'es');
+    return out;
+  }
+
+  function statsMaterial(st) {
+    return Object.keys(PLURAL).filter(function (k) { return st.mats[k]; })
+      .map(function (k) {
+        var n = st.mats[k];
+        return n + ' ' + PLURAL[k][n === 1 ? 0 : 1];
+      }).join(', ');
+  }
+
+  function statsSpace(st) {
+    if (!st.box) return '';
+    var P = PITCH();
+    var w = Math.round(clamp(st.box.x1 - st.box.x0 + 6, 5, P.L));
+    var h = Math.round(clamp(st.box.y1 - st.box.y0 + 6, 5, P.W));
+    return w + ' × ' + h + ' m';
+  }
+
+  // ---- El formulario ----
+
+  var dlgCard;
+
+  function fieldEl(k) { return document.getElementById('f-' + k); }
+
+  function openCard() {
+    var c = card();
+    CARD_FIELDS.forEach(function (k) {
+      var el = fieldEl(k);
+      if (el) el.value = c[k] || '';
+    });
+    if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
+    if (!dlgCard) dlgCard = $('#dlg-card');
+    dlgCard.showModal();
+  }
+
+  function readCard() {
+    var c = card();
+    CARD_FIELDS.forEach(function (k) {
+      var el = fieldEl(k);
+      if (el) c[k] = el.value.trim();
+    });
+    return c;
+  }
+
+  function saveCard() {
+    readCard();
+    commit();
+    toast('Ficha guardada con la pizarra');
+  }
+
+  function autofillCard() {
+    var st = boardStats(), P = PITCH(), puesto = 0;
+    function set(k, v) {
+      var el = fieldEl(k);
+      if (!el || !v) return;
+      if (el.value.trim()) return;   // no se pisa lo que ya has escrito
+      el.value = v; puesto++;
+    }
+    set('jugadores', statsPlayers(st));
+    set('porteros', st.gk ? String(st.gk) : '');
+    set('material', statsMaterial(st));
+    set('espacio', doc.view === 'full' ? P.L + ' × ' + P.W + ' m' : statsSpace(st));
+    set('categoria', PITCHES[doc.pitch].label);
+    set('fecha', new Date().toLocaleDateString('es-ES'));
+    toast(puesto ? 'Rellenados ' + puesto + ' campos desde la pizarra' : 'No había nada nuevo que rellenar');
+  }
+
+  // ---- La página impresa ----
+
+  function printCard() {
+    var c = card();                       // lo que hay guardado, no lo que haya en el formulario
+    var P = PITCH(), M = PITCHES[doc.pitch];
+    var titulo = c.titulo || 'Ficha del ejercicio';
+
+    var meta = [c.categoria, c.momento, c.sesion, c.fecha].filter(Boolean)
+      .map(esc).join(' &nbsp;·&nbsp; ');
+
+    var datos = [
+      ['Duración', c.duracion], ['Series', c.series], ['Descanso', c.descanso],
+      ['Jugadores', c.jugadores], ['Porteros', c.porteros], ['Espacio', c.espacio],
+      ['Campo', M.label + ' · ' + P.L + ' × ' + P.W + ' m'], ['Material', c.material]
+    ].filter(function (r) { return r[1]; })
+     .map(function (r) { return '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>'; })
+     .join('');
+
+    function list(title, txt) {
+      var items = lines(txt);
+      if (!items.length) return '';
+      return '<section class="blk"><h2>' + title + '</h2><ul>' +
+        items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></section>';
+    }
+    function para(title, txt) {
+      if (!String(txt || '').trim()) return '';
+      return '<section class="blk"><h2>' + title + '</h2><p>' +
+        esc(txt).replace(/\n+/g, '</p><p>') + '</p></section>';
+    }
+
+    var principal = '<img class="main" src="' + renderFrame(ui.frame, 1400).toDataURL('image/png') +
+      '" alt="Esquema del ejercicio">' +
+      (doc.frames.length > 1 ? '<p class="cap">Fotograma ' + (ui.frame + 1) + ' de ' + doc.frames.length + '</p>' : '');
+
+    var extra = '';
+    if (doc.frames.length > 1) {
+      extra = '<section class="blk"><h2>Secuencia de la jugada</h2></section>' +
+        '<div class="seq">' + doc.frames.map(function (f, i) {
+        if (i === ui.frame) return '';
+        return '<figure><img src="' + renderFrame(i, 620).toDataURL('image/png') +
+          '" alt="Fotograma ' + (i + 1) + '"><figcaption>Fotograma ' + (i + 1) + '</figcaption></figure>';
+      }).join('') + '</div>';
+    }
+
+    var listas = list('Consignas', c.consignas) + list('Normas', c.normas) +
+                 list('Variantes y progresiones', c.variantes);
+
+    var win = window.open('', '_blank');
+    if (!win) { toast('Permite las ventanas emergentes para imprimir la ficha'); return; }
+    win.document.write(
+      '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+      '<title>' + esc(titulo) + '</title><style>' +
+      '@page{size:A4;margin:12mm}' +
+      '*{box-sizing:border-box}' +
+      'body{margin:0;font:12px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#14181F}' +
+      'header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;' +
+        'border-bottom:2.5px solid #14181F;padding-bottom:9px}' +
+      'h1{font-size:21px;line-height:1.2;margin:0;letter-spacing:-.01em}' +
+      '.meta{font-size:11px;color:#5A6472;text-align:right;white-space:nowrap}' +
+      '.cols{display:grid;grid-template-columns:1.32fr 1fr;gap:14px;margin-top:14px;align-items:start}' +
+      'img{display:block;width:100%;border:1px solid #C9D0DA;border-radius:5px}' +
+      'table{width:100%;border-collapse:collapse;font-size:11.5px}' +
+      'th,td{text-align:left;vertical-align:top;padding:5px 0;border-bottom:1px solid #E4E8EE}' +
+      'th{width:38%;font-weight:600;color:#5A6472;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding-right:8px}' +
+      'tr:last-child th,tr:last-child td{border-bottom:0}' +
+      '.blk{margin-top:13px;break-inside:avoid}' +
+      '.blk h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#0A7E4E;' +
+        'margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #D6DCE4}' +
+      '.blk p{margin:0 0 6px}' +
+      '.blk ul{margin:0;padding-left:16px}' +
+      '.blk li{margin-bottom:3px}' +
+      '.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}' +
+      '.tri .blk{margin-top:0}' +
+      '.seq{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:7px}' +
+      '.seq figure{margin:0;break-inside:avoid}' +
+      '.seq figcaption{font-size:9.5px;color:#5A6472;margin-top:3px}' +
+      '.cap{font-size:10px;color:#5A6472;margin:4px 0 0}' +
+      'footer{margin-top:16px;border-top:1px solid #D6DCE4;padding-top:7px;' +
+        'display:flex;justify-content:space-between;font-size:10px;color:#8A93A0}' +
+      '.notes{margin-top:13px;border:1px solid #D6DCE4;border-radius:5px;height:60px;position:relative}' +
+      '.notes span{position:absolute;top:5px;left:8px;font-size:9.5px;letter-spacing:.07em;' +
+        'text-transform:uppercase;color:#8A93A0}' +
+      '</style></head><body>' +
+      '<header><h1>' + esc(titulo) + '</h1>' +
+      (meta ? '<div class="meta">' + meta + '</div>' : '') + '</header>' +
+      '<div class="cols"><div>' + principal + '</div><div>' +
+      (datos ? '<table>' + datos + '</table>' : '') +
+      para('Objetivo', c.objetivo) +
+      '</div></div>' +
+      para('Descripción y desarrollo', c.descripcion) +
+      (listas ? '<div class="tri">' + listas + '</div>' : '') +
+      extra +
+      '<div class="notes"><span>Observaciones</span></div>' +
+      '<footer><span>Pizarra Táctica</span><span>' +
+      esc(c.fecha || new Date().toLocaleDateString('es-ES')) + '</span></footer>' +
+      '</body></html>');
+    win.document.close();
+    win.focus();
+    setTimeout(function () { win.print(); }, 400);
+  }
+
   // ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
   function printSheet() {
-    ask({ title: 'Hoja de sesión', input: 'Sesión del martes', placeholder: 'Título de la sesión', ok: 'Preparar' })
+    ask({ title: 'Hoja de sesión', input: card().titulo || 'Sesión del martes',
+          placeholder: 'Título de la sesión', ok: 'Preparar' })
       .then(function (title) {
         if (title === null) return;
         var P = PITCH();
@@ -2464,7 +2750,7 @@
       ask({ title: 'Empezar de cero', message: 'Se borra la pizarra entera, incluidos todos los fotogramas. Lo que hayas guardado con nombre se conserva.', ok: 'Empezar de cero', danger: true })
         .then(function (yes) {
           if (!yes) return;
-          doc = { pitch: doc.pitch, view: doc.view, frames: [emptyFrame()] };
+          doc = { pitch: doc.pitch, view: doc.view, card: emptyCard(), frames: [emptyFrame()] };
           ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
           commit(); buildFrames(); draw();
         });
@@ -2502,6 +2788,10 @@
     }
     $('#export').addEventListener('click', function () { if (!recording) openExport(); });
     $('#ex-png').addEventListener('click', exportar(exportPNG));
+    $('#ex-card').addEventListener('click', exportar(function () {
+      // Si la ficha está vacía, primero se rellena; si ya tiene contenido, se imprime.
+      if (cardHasContent()) printCard(); else openCard();
+    }));
     $('#ex-sheet').addEventListener('click', exportar(printSheet));
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));
@@ -2512,6 +2802,14 @@
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';
+    });
+    $('#card-edit').addEventListener('click', function () { sheetClose(); openCard(); });
+    $('#f-auto').addEventListener('click', autofillCard);
+    $('#f-guardar').addEventListener('click', function () { saveCard(); $('#dlg-card').close(); });
+    $('#f-imprimir').addEventListener('click', function () {
+      saveCard();
+      $('#dlg-card').close();
+      setTimeout(printCard, 120);
     });
     $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
     $('#zoom').addEventListener('click', resetView);

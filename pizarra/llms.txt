@@ -35,6 +35,11 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   como GIF animado. Todo se genera en el navegador y sin marca de agua.
 - Regla para medir distancias reales sobre el campo.
 - Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
+- Ficha del ejercicio: un formulario con título, categoría, momento del juego, duración,
+  series, descanso, jugadores, porteros, espacio, material, objetivo, descripción,
+  consignas, normas y variantes, que se imprime en una página A4 con el dibujo de la
+  pizarra. Un botón rellena solos los jugadores, el material y el espacio contando lo
+  que hay en el campo. La ficha se guarda dentro de la pizarra.
 - Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.
 - Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
 - Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
