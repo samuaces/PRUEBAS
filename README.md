@@ -51,10 +51,12 @@ el objetivo destacado, el desarrollo, y consignas, normas y progresiones numerad
 columnas. Si la jugada tiene varios fotogramas, añade la secuencia en miniatura, y al pie
 queda un cuadro rayado de observaciones que se estira hasta llenar el folio.
 
-Antes de imprimir, la hoja **se mide a sí misma**: si con la maqueta normal iba a sobrar más
-de un palmo de papel, se pasa sola a una maqueta ancha con el esquema a todo el ancho y los
-datos debajo; y si con eso se pasara de página, vuelve atrás. Cabe en un folio en los tres
-casos, comprobado imprimiendo a PDF. El botón **Rellenar desde la pizarra** lee el campo y pone solo los
+Antes de imprimir, la hoja **se mide a sí misma** y elige entre tres maquetas: la normal;
+la **ancha**, con el esquema a todo el ancho y los datos debajo, cuando iba a sobrar más de
+un palmo de papel; y la **apretada**, que estrecha el esquema y recorta el aire cuando la
+ficha viene muy llena. Lo que no se toca en ningún caso son los márgenes: 14 mm por los
+cuatro lados. Cabe en un folio en los tres casos, comprobado imprimiendo a PDF con
+Chromium. El botón **Rellenar desde la pizarra** lee el campo y pone solo los
 jugadores (`11 vs 11`), los porteros, el material (`4 conos, 2 porterías pequeñas`) y el
 espacio, sin pisar nada de lo que ya hayas escrito. La ficha viaja dentro del documento: se
 guarda, se exporta en JSON y entra en deshacer y rehacer.
