@@ -105,6 +105,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 │   ├── img/                       favicon, iconos PWA e imagen Open Graph 1200×630
 │   └── js/site.js                 JS de la landing (tema, menú, aparición progresiva)
 ├── dist/pizarra-tactica.html      La pizarra entera en un archivo (node tools/build-single.mjs)
+├── tools/                         build-single.mjs (archivo único) y build-icons.mjs (marca e iconos)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
 ├── tests/                         Batería de pruebas de la pizarra en el navegador
 └── .github/workflows/deploy-pages.yml
@@ -150,15 +151,28 @@ y crea un archivo `CNAME` en la raíz con tu dominio. Los enlaces internos son r
 
 ## Diseño
 
-Tema propio **"Stadium Night"**:
+Tema propio **"Stadium Night"**, con la marca en rojo carmesí:
 
 | Rol | Oscuro | Claro |
 |---|---|---|
 | Fondo | `#070A0F` | `#FFFFFF` |
 | Superficie | `#101823` | `#FFFFFF` |
 | Texto | `#E8EEF6` | `#0B1420` |
-| Acento (césped) | `#00E27E` | `#00A85B` |
-| Acento secundario | `#4CC2FF` | `#0A6FCB` |
+| Marca (rellenos) | `#E11A41` | `#C2072F` |
+| Marca (texto sobre oscuro) | `#FF5C7A` | `#8A0524` |
+| Degradado de la marca | `#E7204A` → `#AE0325` | igual |
+
+El fondo se queda en un gris casi negro **neutro**, no teñido de rojo: es sobre lo
+que se juzga el color del césped y de las fichas, y una base cálida las falsearía.
+El rojo va donde tiene que llamar —marca, botón principal, estado activo, selección
+sobre el campo— y el césped sigue siendo verde, porque es la superficie de juego y
+no un color corporativo. En el lienzo, la selección y el tirador de giro pasaron de
+verde a rojo (`#FF2E55`): sobre hierba se ven bastante mejor.
+
+La marca es un campo visto en vertical con una flecha de progresión. Hay dos
+versiones del mismo dibujo: la completa (con mosaico y barras) para los iconos
+grandes, y la simple (campo y flecha) para la pestaña y las cabeceras, que es lo
+único que sobrevive a 16 píxeles. Ambas se generan con `node tools/build-icons.mjs`.
 
 Tipografías **Outfit** (titulares) e **Inter** (texto), autoalojadas en formato variable
 `woff2` (subconjunto latino, ~80 KB) y precargadas. Cero peticiones a terceros. La landing

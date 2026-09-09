@@ -49,8 +49,8 @@
   --bg:#070A0F; --bg-2:#0B1017; --surface:#101823; --surface-2:#16202D;
   --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.16);
   --text:#E8EEF6; --muted:#93A4B8;
-  --brand:#00E27E; --brand-ink:#04120B; --brand-2:#4CC2FF; --warm:#FF6B4A;
-  --glow:0 0 0 1px rgba(0,226,126,.18), 0 24px 70px -28px rgba(0,226,126,.55);
+  --brand:#E11A41; --brand-ink:#FFFFFF; --brand-2:#FF7A93; --warm:#FF8A3D;
+  --glow:0 0 0 1px rgba(225,26,65,.20), 0 24px 70px -28px rgba(225,26,65,.55);
   --shadow:0 30px 60px -30px rgba(0,0,0,.85);
   --radius:16px; --radius-lg:24px;
   --maxw:1160px;
@@ -61,8 +61,8 @@
   --bg:#FFFFFF; --bg-2:#F4F8FC; --surface:#FFFFFF; --surface-2:#F1F6FB;
   --line:rgba(9,20,34,.10); --line-strong:rgba(9,20,34,.18);
   --text:#0B1420; --muted:#4F6076;
-  --brand:#00A85B; --brand-ink:#FFFFFF; --brand-2:#0A6FCB; --warm:#D9482A;
-  --glow:0 0 0 1px rgba(0,168,91,.18), 0 24px 70px -34px rgba(0,168,91,.45);
+  --brand:#C2072F; --brand-ink:#FFFFFF; --brand-2:#8A0524; --warm:#C4501C;
+  --glow:0 0 0 1px rgba(194,7,47,.20), 0 24px 70px -34px rgba(194,7,47,.45);
   --shadow:0 24px 50px -30px rgba(11,20,32,.35);
 }
 
@@ -109,7 +109,7 @@ p{margin:0}
 .btn:hover{transform:translateY(-2px)}
 .btn:active{transform:translateY(0)}
 .btn-primary{background:linear-gradient(180deg,var(--brand),color-mix(in srgb,var(--brand) 80%,#000));color:var(--brand-ink);box-shadow:var(--glow)}
-.btn-primary:hover{box-shadow:0 0 0 1px rgba(0,226,126,.3),0 26px 60px -22px rgba(0,226,126,.75)}
+.btn-primary:hover{box-shadow:0 0 0 1px rgba(225,26,65,.32),0 26px 60px -22px rgba(225,26,65,.75)}
 .btn-ghost{background:var(--surface);border-color:var(--line);color:var(--text)}
 .btn-ghost:hover{border-color:var(--line-strong);background:var(--surface-2)}
 .btn-sm{padding:10px 16px;font-size:15px;border-radius:11px}
@@ -202,7 +202,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 .roadmap .tag{font-family:var(--ff-display);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   padding:4px 9px;border-radius:100px;flex:none;margin-top:2px}
 .tag.live{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
-.tag.soon{background:color-mix(in srgb,var(--brand-2) 16%,transparent);color:var(--brand-2)}
+.tag.soon{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--line)}
 .roadmap b{display:block;font-family:var(--ff-display);font-size:16px}
 .roadmap span{color:var(--muted);font-size:14.5px}
 
@@ -346,7 +346,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
         {"@type":"Question","name":"¿Cómo se anima una jugada?",
          "acceptedAnswer":{"@type":"Answer","text":"Colocas la posición inicial, pulsas «+ Fotograma», mueves las fichas a la siguiente posición y repites. Al darle a reproducir, la pizarra interpola el movimiento entre fotogramas y dibuja la estela de cada jugador. Puedes ajustar la velocidad y activar el bucle."}},
         {"@type":"Question","name":"¿Qué material de entrenamiento puedo colocar?",
-         "acceptedAnswer":{"@type":"Answer","text":"Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador verde que aparece al seleccionarlas, o con los botones de 15° y 90°."}},
+         "acceptedAnswer":{"@type":"Answer","text":"Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador rojo que aparece al seleccionarlas, o con los botones de 15° y 90°."}},
         {"@type":"Question","name":"¿Sirve para fútbol 7 y fútbol sala?",
          "acceptedAnswer":{"@type":"Answer","text":"Sí. Hay tres modalidades con sus medidas de reglamento: fútbol 11 (105 × 68 m), fútbol 7 (65 × 45 m) y fútbol sala (40 × 20 m), cada una con sus áreas, sus porterías y sus propias alineaciones. Si cambias de modalidad, lo que ya tengas colocado se reescala al campo nuevo."}},
         {"@type":"Question","name":"¿Puedo descargar la jugada animada en vídeo?",
@@ -370,14 +370,15 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
   <div class="wrap nav">
     <a class="brand" href="./" aria-label="Pizarra Táctica, inicio">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-        <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E7B45"/>
-        <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#g1)"/>
-        <path d="M16 3v26M3 16h5M24 16h5" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/>
-        <circle cx="16" cy="16" r="5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/>
-        <circle cx="16" cy="16" r="2.6" fill="#fff"/>
         <defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
-          <stop stop-color="#00E27E" stop-opacity=".55"/><stop offset="1" stop-color="#4CC2FF" stop-opacity=".25"/>
-        </linearGradient></defs>
+          <stop stop-color="#E7204A"/><stop offset="1" stop-color="#AE0325"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#g1)"/>
+        <g stroke="#fff" stroke-width="1.5" fill="none" opacity=".8" stroke-linejoin="round">
+          <rect x="4.5" y="3.5" width="23" height="25" rx="2"/><path d="M4.5 16h23"/>
+          <path d="M11.5 3.5v3.6h9V3.5M11.5 28.5v-3.6h9v3.6"/></g>
+        <path d="M7.6 23.4 L13.4 17 L16.6 20.2 L22.4 12.4" stroke="#fff" stroke-width="2.7" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
       Pizarra Táctica
     </a>
@@ -713,7 +714,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
         </details>
         <details>
           <summary>¿Qué material de entrenamiento puedo colocar?</summary>
-          <div class="answer">Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador verde que aparece al seleccionarlas, o con los botones de 15° y 90°.</div>
+          <div class="answer">Conos, platos marcadores, porterías reglamentarias, porterías pequeñas, vallas de agilidad, escaleras, picas, maniquíes, aros y banderines. Todas se giran arrastrando el tirador rojo que aparece al seleccionarlas, o con los botones de 15° y 90°.</div>
         </details>
         <details>
           <summary>¿Sirve para fútbol 7 y fútbol sala?</summary>
@@ -760,11 +761,16 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       <div class="foot">
         <a class="brand" href="./">
           <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-            <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E7B45"/>
-            <path d="M16 3v26M3 16h5M24 16h5" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/>
-            <circle cx="16" cy="16" r="5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/>
-            <circle cx="16" cy="16" r="2.6" fill="#fff"/>
-          </svg>
+        <defs><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
+          <stop stop-color="#E7204A"/><stop offset="1" stop-color="#AE0325"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#g2)"/>
+        <g stroke="#fff" stroke-width="1.5" fill="none" opacity=".8" stroke-linejoin="round">
+          <rect x="4.5" y="3.5" width="23" height="25" rx="2"/><path d="M4.5 16h23"/>
+          <path d="M11.5 3.5v3.6h9V3.5M11.5 28.5v-3.6h9v3.6"/></g>
+        <path d="M7.6 23.4 L13.4 17 L16.6 20.2 L22.4 12.4" stroke="#fff" stroke-width="2.7" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
+      </svg>
           Pizarra Táctica
         </a>
         <p>Pizarra táctica de fútbol online, gratuita y sin registro. Hecha para entrenadores, analistas y aficionados al juego.</p>
