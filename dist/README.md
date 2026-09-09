@@ -9,4 +9,8 @@ tipografías incorporadas. No hace ninguna petición a internet.
   del repositorio (que además trae la landing y la instalación como aplicación).
 
 Se genera a partir de `app/`. Si tocas `app/index.html`, `app/board.css` o `app/board.js`,
-vuelve a generarlo para que este archivo no se quede atrás.
+vuelve a generarlo para que este archivo no se quede atrás:
+
+```bash
+node tools/build-single.mjs
+```

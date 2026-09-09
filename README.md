@@ -43,12 +43,22 @@ suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 selecciona todas las piezas de dentro; a partir de ahí se mueven, duplican o borran en
 bloque. Es lo que permite recolocar una línea entera de un arrastre.
 
+**Ficha del ejercicio.** Un formulario dentro de la pizarra —título, categoría, momento del
+juego, sesión, duración, series, descanso, jugadores, porteros, espacio, material, objetivo,
+descripción, consignas, normas y variantes— que se imprime en una página A4 ordenada: el
+dibujo del ejercicio arriba, la tabla de datos al lado, el desarrollo debajo y las consignas,
+normas y progresiones a tres columnas. Si la jugada tiene varios fotogramas, añade la
+secuencia en miniatura. El botón **Rellenar desde la pizarra** lee el campo y pone solo los
+jugadores (`11 vs 11`), los porteros, el material (`4 conos, 2 porterías pequeñas`) y el
+espacio, sin pisar nada de lo que ya hayas escrito. La ficha viaja dentro del documento: se
+guarda, se exporta en JSON y entra en deshacer y rehacer.
+
 **Hoja de sesión.** Saca todos los fotogramas de la jugada en una página imprimible, con
 título, modalidad, fecha y un recuadro para anotaciones.
 
 **Exportar.** Un solo botón abre una hoja con todo lo que se puede sacar: imagen PNG del
-fotograma, hoja de sesión imprimible, vídeo de la jugada, GIF animado y el archivo de la
-pizarra. Nada sale del dispositivo.
+fotograma, ficha del ejercicio, hoja de sesión imprimible, vídeo de la jugada, GIF animado y
+el archivo de la pizarra. Nada sale del dispositivo.
 
 **Vídeo.** Siempre sale **MP4**, sin marca de agua y sin pasar por ningún servidor. Hay dos
 caminos: si el navegador sabe grabar MP4 (Safari, Chrome reciente) se usa `MediaRecorder`;
@@ -86,6 +96,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 │   ├── fonts/                     Outfit e Inter autoalojadas (OFL) + licencia
 │   ├── img/                       favicon, iconos PWA e imagen Open Graph 1200×630
 │   └── js/site.js                 JS de la landing (tema, menú, aparición progresiva)
+├── dist/pizarra-tactica.html      La pizarra entera en un archivo (node tools/build-single.mjs)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
 ├── tests/                         Batería de pruebas de la pizarra en el navegador
 └── .github/workflows/deploy-pages.yml
@@ -102,8 +113,9 @@ DOM: es lo que permite arrastrar veinte fichas y animar la jugada sin tirones.
   solo recalcula esa transformación.
 - **Modalidades como datos.** `PITCHES` define las medidas de cada una y el dibujo del
   campo se deriva de ahí, así que añadir una nueva es cuestión de una entrada más.
-- **Documento y fotogramas.** `doc = { view, frames: [{ objects, strokes }] }`. Editar
-  siempre actúa sobre el fotograma actual.
+- **Documento y fotogramas.** `doc = { view, card, frames: [{ objects, strokes }] }`. Editar
+  siempre actúa sobre el fotograma actual, y la ficha del ejercicio vive en el mismo
+  documento, así que se guarda, se exporta y se deshace con todo lo demás.
 - **Historial.** Instantáneas JSON del documento completo (hasta 80), lo que hace que
   deshacer y rehacer sean triviales y no puedan desincronizarse.
 - **Animación.** Entre dos fotogramas se emparejan los objetos por identificador y se
@@ -155,12 +167,12 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 70 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 83 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la generación del GIF y su decodificación por el navegador, la escritura del contenedor
-MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
+la ficha del ejercicio y su impresión, la generación del GIF y su decodificación por el
+navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 

@@ -262,11 +262,60 @@ async function run(w,d){
      opened?String(opened.html.length)+' caracteres':'no se abrió');
   ok('la hoja se manda a imprimir',!!opened&&opened.printed===true);
 
+  // --- ficha del ejercicio ---
+  d.getElementById('card-edit').click();await wait(120);
+  var dlgF=d.getElementById('dlg-card');
+  ok('la ficha del ejercicio se abre desde la pizarra',dlgF.open);
+  ok('la ficha trae la fecha de hoy puesta',/\d{1,2}\/\d{1,2}\/\d{4}/.test(d.getElementById('f-fecha').value),
+     d.getElementById('f-fecha').value);
+
+  // dos jugadores y dos conos, para que el relleno automático tenga qué contar
+  var antesJ=d.getElementById('f-jugadores').value;
+  d.getElementById('f-auto').click();await raf();
+  ok('rellenar desde la pizarra cuenta los jugadores',
+     d.getElementById('f-jugadores').value!==antesJ&&/\d/.test(d.getElementById('f-jugadores').value),
+     d.getElementById('f-jugadores').value);
+  ok('rellenar desde la pizarra deduce el espacio',/m$/.test(d.getElementById('f-espacio').value),
+     d.getElementById('f-espacio').value);
+  ok('cuenta como mucho un portero por portería',
+     Number(d.getElementById('f-porteros').value||0)<=2,d.getElementById('f-porteros').value);
+
+  d.getElementById('f-titulo').value='Salida de balón bajo presión';
+  d.getElementById('f-objetivo').value='Progresar desde portería con pase interior.';
+  d.getElementById('f-consignas').value='Perfil abierto al recibir\nPrimer pase al lado contrario';
+  d.getElementById('f-normas').value='Máximo dos toques';
+  d.getElementById('f-guardar').click();await wait(150);
+  ok('guardar la ficha cierra el formulario',!dlgF.open);
+
+  // la ficha viaja dentro del documento: sobrevive a deshacer y rehacer
+  d.getElementById('undo').click();await wait(60);
+  d.getElementById('redo').click();await wait(60);
+  d.getElementById('card-edit').click();await wait(120);
+  ok('la ficha se guarda con la pizarra',
+     d.getElementById('f-titulo').value==='Salida de balón bajo presión',
+     d.getElementById('f-titulo').value);
+  ok('rellenar no pisa lo que ya has escrito',
+     (d.getElementById('f-auto').click(),d.getElementById('f-titulo').value==='Salida de balón bajo presión'));
+
+  var fichaOut=null,oldOpen2=w.open;
+  w.open=function(){ fichaOut={html:'',document:{write:function(h){fichaOut.html+=h;},close:function(){}},
+    focus:function(){},print:function(){fichaOut.printed=true;}}; return fichaOut; };
+  d.getElementById('f-imprimir').click();await wait(900);
+  w.open=oldOpen2;
+  ok('la ficha se imprime',!!fichaOut&&fichaOut.printed===true);
+  ok('la ficha lleva el dibujo de la pizarra',!!fichaOut&&/<img class="main" src="data:image\/png/.test(fichaOut.html));
+  ok('la ficha lleva el título y el objetivo',
+     !!fichaOut&&/Salida de balón bajo presión/.test(fichaOut.html)&&/pase interior/.test(fichaOut.html));
+  ok('cada consigna es un punto de la lista',
+     !!fichaOut&&(fichaOut.html.match(/<li>/g)||[]).length>=3,
+     fichaOut?(fichaOut.html.match(/<li>/g)||[]).length+' puntos':'sin ficha');
+  ok('la ficha recoge las medidas del campo',!!fichaOut&&/105 × 68 m/.test(fichaOut.html));
+
   // --- hoja de exportación ---
   d.getElementById('export').click();await wait(150);
   ok('el botón de exportar abre la hoja de opciones',d.getElementById('dlg-export').open);
-  ok('la hoja ofrece imagen, hoja, vídeo, GIF y archivo',
-     ['ex-png','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
+  ok('la hoja ofrece imagen, ficha, hoja, vídeo, GIF y archivo',
+     ['ex-png','ex-card','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
   d.querySelector('#dlg-export [data-close]').click();await raf();
 
   // --- la exportación de vídeo siempre promete MP4, nunca WebM ---

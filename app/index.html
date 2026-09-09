@@ -213,6 +213,10 @@
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
             Instalar en este dispositivo
           </button>
+          <button class="row-btn" id="card-edit">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4"/></svg>
+            Ficha del ejercicio
+          </button>
           <button class="row-btn" id="sheet">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8v4H6z"/><path d="M6 13H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2"/><path d="M6 12h8v5H6z"/></svg>
             Hoja de sesión para imprimir
@@ -316,6 +320,12 @@
       </span>
       <span class="ex-txt"><b>Imagen PNG</b><small>Para el informe o el grupo del equipo. 2400 px.</small></span>
     </button>
+    <button class="ex" id="ex-card">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      </span>
+      <span class="ex-txt"><b>Ficha del ejercicio</b><small>Una página con el dibujo, los objetivos, las consignas y las normas.</small></span>
+    </button>
     <button class="ex" id="ex-sheet">
       <span class="ex-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4H7z"/><path d="M7 16H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/></svg>
@@ -353,6 +363,76 @@
     </label>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-card" class="wide" aria-labelledby="dlg-card-t">
+  <div class="dhead"><h3 id="dlg-card-t">Ficha del ejercicio</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="form-group">Identificación</p>
+    <div class="form-grid">
+      <label class="field wide"><span>Título del ejercicio</span>
+        <input type="text" id="f-titulo" maxlength="70" placeholder="Salida de balón bajo presión"></label>
+      <label class="field"><span>Categoría o equipo</span>
+        <input type="text" id="f-categoria" maxlength="40" placeholder="Alevín A"></label>
+      <label class="field"><span>Momento del juego</span>
+        <select id="f-momento">
+          <option value="">Sin especificar</option>
+          <option>Calentamiento</option>
+          <option>Ataque organizado</option>
+          <option>Defensa organizada</option>
+          <option>Transición ofensiva</option>
+          <option>Transición defensiva</option>
+          <option>Balón parado</option>
+          <option>Técnica individual</option>
+          <option>Físico-técnico</option>
+          <option>Partido condicionado</option>
+        </select></label>
+      <label class="field"><span>Fecha</span>
+        <input type="text" id="f-fecha" maxlength="24" placeholder="dd/mm/aaaa"></label>
+      <label class="field"><span>Sesión</span>
+        <input type="text" id="f-sesion" maxlength="30" placeholder="Sesión 12 · microciclo 4"></label>
+    </div>
+
+    <p class="form-group">Organización
+      <button type="button" class="mini-btn" id="f-auto">Rellenar desde la pizarra</button>
+    </p>
+    <div class="form-grid">
+      <label class="field"><span>Duración</span>
+        <input type="text" id="f-duracion" maxlength="20" placeholder="15 min"></label>
+      <label class="field"><span>Series y repeticiones</span>
+        <input type="text" id="f-series" maxlength="30" placeholder="4 × 3 min"></label>
+      <label class="field"><span>Descanso</span>
+        <input type="text" id="f-descanso" maxlength="20" placeholder="1 min entre series"></label>
+      <label class="field"><span>Jugadores</span>
+        <input type="text" id="f-jugadores" maxlength="30" placeholder="5 vs 5"></label>
+      <label class="field"><span>Porteros</span>
+        <input type="text" id="f-porteros" maxlength="20" placeholder="2"></label>
+      <label class="field"><span>Espacio</span>
+        <input type="text" id="f-espacio" maxlength="30" placeholder="40 × 30 m"></label>
+      <label class="field wide"><span>Material</span>
+        <input type="text" id="f-material" maxlength="120" placeholder="8 conos, 2 minigoles, 6 balones"></label>
+    </div>
+
+    <p class="form-group">Contenido</p>
+    <div class="form-grid">
+      <label class="field wide"><span>Objetivo</span>
+        <textarea id="f-objetivo" rows="2" maxlength="300" placeholder="Qué queremos mejorar con este ejercicio."></textarea></label>
+      <label class="field wide"><span>Descripción y desarrollo</span>
+        <textarea id="f-descripcion" rows="4" maxlength="900" placeholder="Cómo se organiza y cómo se juega."></textarea></label>
+      <label class="field wide"><span>Consignas <small>una por línea</small></span>
+        <textarea id="f-consignas" rows="4" maxlength="700" placeholder="Perfil abierto al recibir&#10;Primer pase al lado contrario de la presión"></textarea></label>
+      <label class="field wide"><span>Normas <small>una por línea</small></span>
+        <textarea id="f-normas" rows="3" maxlength="700" placeholder="Máximo dos toques&#10;Gol solo tras cinco pases"></textarea></label>
+      <label class="field wide"><span>Variantes y progresiones <small>una por línea</small></span>
+        <textarea id="f-variantes" rows="3" maxlength="700" placeholder="Añadir un comodín ofensivo&#10;Reducir el espacio cinco metros"></textarea></label>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cerrar</button>
+    <button class="tbtn" id="f-guardar">Guardar</button>
+    <button class="tbtn primary" id="f-imprimir">Guardar e imprimir</button>
+  </div>
 </dialog>
 
 <dialog id="dlg-file" aria-labelledby="file-title">
@@ -409,6 +489,11 @@
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Para girar una pieza:</b> tócala y arrastra el tirador verde que aparece
       encima, o usa los botones de giro de la barra que sale al seleccionarla.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y
+      material, y sale una página lista para imprimir con el dibujo de la pizarra. El botón
+      «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio.
     </p>
     <div class="kbd">
       <b>V</b><span>Seleccionar y mover</span>
