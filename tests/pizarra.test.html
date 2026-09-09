@@ -85,12 +85,13 @@ async function run(w,d){
   d.querySelector('[data-view="full"]').click();await wait(150);
   var threw=null,got=false,old=w.HTMLCanvasElement.prototype.toBlob;
   w.HTMLCanvasElement.prototype.toBlob=function(cb){got=true;try{cb(new w.Blob(['x']));}catch(e){}};
-  try{d.getElementById('png').click();}catch(e){threw=e.message;}
+  try{d.getElementById('ex-png').click();}catch(e){threw=e.message;}
+  await wait(450);
   w.HTMLCanvasElement.prototype.toBlob=old;
   ok('exportar a PNG no lanza errores',!threw&&got,threw||'');
   // La pizarra corre dentro de un iframe, donde el navegador bloquea las descargas:
   // debe recurrir al diálogo que muestra el archivo para copiarlo a mano.
-  d.getElementById('json').click(); await wait(150);
+  d.getElementById('ex-json').click(); await wait(500);
   var fdlg=d.getElementById('dlg-file');
   ok('exportar a JSON embebido abre el diálogo de archivo',fdlg.open);
   ok('el diálogo trae el JSON de la pizarra',
@@ -213,12 +214,12 @@ async function run(w,d){
   w.MediaRecorder.isTypeSupported=function(){return true;};
   if(!w.HTMLCanvasElement.prototype.captureStream)
     w.HTMLCanvasElement.prototype.captureStream=function(){return {};};
-  d.getElementById('video').click();
-  await wait(120);
+  d.getElementById('ex-video').click();
+  await wait(220);
   ok('grabar la jugada arranca el grabador',started);
-  ok('el botón de vídeo se marca mientras graba',d.getElementById('video').classList.contains('rec'));
+  ok('el botón de exportar se marca mientras graba',d.getElementById('export').classList.contains('rec'));
   await wait(4200);
-  ok('la grabación termina sola',stopped&&!d.getElementById('video').classList.contains('rec'));
+  ok('la grabación termina sola',stopped&&!d.getElementById('export').classList.contains('rec'));
   w.MediaRecorder=RealRec;
 
   // --- selección múltiple ---
@@ -252,7 +253,7 @@ async function run(w,d){
   var opened=null,oldOpen=w.open;
   w.open=function(){ opened={html:'',document:{write:function(h){opened.html+=h;},close:function(){}},
     focus:function(){},print:function(){opened.printed=true;}}; return opened; };
-  d.getElementById('sheet').click();await wait(150);
+  d.getElementById('ex-sheet').click();await wait(400);
   ok('la hoja de sesión pide un título',d.getElementById('dlg-ask').open);
   d.getElementById('ask-ok').click();
   await wait(900);
@@ -260,6 +261,44 @@ async function run(w,d){
   ok('la hoja se genera con los fotogramas',!!opened&&/data:image\/png/.test(opened.html),
      opened?String(opened.html.length)+' caracteres':'no se abrió');
   ok('la hoja se manda a imprimir',!!opened&&opened.printed===true);
+
+  // --- hoja de exportación ---
+  d.getElementById('export').click();await wait(150);
+  ok('el botón de exportar abre la hoja de opciones',d.getElementById('dlg-export').open);
+  ok('la hoja ofrece imagen, hoja, vídeo, GIF y archivo',
+     ['ex-png','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
+  d.querySelector('#dlg-export [data-close]').click();await raf();
+
+  // --- prioridad de formato: MP4 antes que WebM ---
+  var soportados=[];
+  var realSupported=w.MediaRecorder.isTypeSupported;
+  w.MediaRecorder.isTypeSupported=function(t){ soportados.push(t); return /mp4/.test(t); };
+  d.getElementById('export').click();await wait(150);
+  var fmt=d.getElementById('ex-video-fmt').textContent;
+  w.MediaRecorder.isTypeSupported=realSupported;
+  d.querySelector('#dlg-export [data-close]').click();await raf();
+  ok('se prefiere MP4 cuando el navegador lo admite',/MP4/.test(fmt),fmt);
+  ok('MP4 se consulta antes que WebM',soportados.length>0&&/mp4/.test(soportados[0]),soportados[0]||'nada');
+
+  // --- GIF ---
+  var gifBlob=null, realDL=w.URL.createObjectURL.bind(w.URL);
+  w.URL.createObjectURL=function(b2){ if(b2&&b2.type==='image/gif') gifBlob=b2; return realDL(b2); };
+  d.getElementById('export').click();await wait(150);
+  d.getElementById('ex-gif').click();
+  await wait(4000);
+  w.URL.createObjectURL=realDL;
+  ok('el GIF se genera',!!gifBlob,gifBlob?Math.round(gifBlob.size/1024)+' KB':'no se generó');
+  if(gifBlob){
+    var head=new Uint8Array(await gifBlob.slice(0,6).arrayBuffer());
+    ok('el GIF tiene una cabecera válida',String.fromCharCode.apply(null,head)==='GIF89a');
+    var okImg=await new Promise(function(res){
+      var im=new w.Image();
+      im.onload=function(){res(im.naturalWidth>0&&im.naturalHeight>0);};
+      im.onerror=function(){res(false);};
+      im.src=realDL(gifBlob);
+    });
+    ok('el navegador decodifica el GIF',okImg);
+  }
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }

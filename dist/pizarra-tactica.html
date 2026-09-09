@@ -259,6 +259,22 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
   background:var(--brand);color:var(--brand-ink);font-family:var(--ff-display);font-size:13px}
 .ios-steps span b{color:var(--text)}
 
+.ex-group{margin:16px 0 8px;font-family:var(--ff-display);font-size:11px;font-weight:700;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.ex-group:first-child{margin-top:0}
+.ex{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text);text-align:left;
+  margin-bottom:7px;transition:.15s;cursor:pointer}
+.ex:hover{border-color:var(--brand);background:var(--surface-2)}
+.ex:disabled{opacity:.4;cursor:not-allowed}
+.ex:disabled:hover{border-color:var(--line);background:var(--surface)}
+.ex-ico{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--brand) 13%,transparent);color:var(--brand)}
+.ex-ico svg{width:20px;height:20px}
+.ex-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ex-txt b{font-family:var(--ff-display);font-size:14px}
+.ex-txt small{font-size:11.5px;line-height:1.4;color:var(--muted)}
+
 .saved{display:grid;gap:7px}
 .saved-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2)}
 .saved-item span{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -367,22 +383,13 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
     <div class="group">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn" id="open" title="Abrir una pizarra guardada" aria-label="Abrir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/><path d="M3 7V5a2 2 0 0 1 2-2h3"/></svg><span class="hide-sm">Abrir</span></button>
-      <button class="tbtn" id="png" title="Descargar el fotograma como imagen" aria-label="Exportar PNG">
+      <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
-        <span class="hide-sm">PNG</span>
-      </button>
-      <button class="tbtn primary" id="video" title="Grabar la jugada animada en vídeo" aria-label="Exportar vídeo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
-        <span class="hide-sm">Vídeo</span>
+        <span class="hide-sm">Exportar</span>
       </button>
     </div>
 
     <div class="group">
-      <button class="tbtn hide-sm" id="json" title="Exportar la pizarra como archivo JSON">JSON</button>
-      <label class="tbtn hide-sm" title="Importar una pizarra en JSON">
-        Importar
-        <input type="file" id="import" accept="application/json,.json" class="sr">
-      </label>
       <button class="tbtn" id="help" title="Cómo se usa y atajos de teclado" aria-label="Ayuda">?</button>
     </div>
   </header>
@@ -618,6 +625,56 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
     <button class="tbtn" data-close>Cancelar</button>
     <button class="tbtn primary" id="ask-ok">Aceptar</button>
   </div>
+</dialog>
+
+<dialog id="dlg-export" aria-labelledby="dlg-export-t">
+  <div class="dhead"><h3 id="dlg-export-t">Exportar</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="ex-group">Este fotograma</p>
+    <button class="ex" id="ex-png">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 3-2 4 4"/></svg>
+      </span>
+      <span class="ex-txt"><b>Imagen PNG</b><small>Para el informe o el grupo del equipo. 2400 px.</small></span>
+    </button>
+    <button class="ex" id="ex-sheet">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4H7z"/><path d="M7 16H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Hoja de sesión</b><small>Todos los fotogramas en una página, lista para imprimir o guardar en PDF.</small></span>
+    </button>
+
+    <p class="ex-group">La jugada animada</p>
+    <button class="ex" id="ex-video">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Vídeo</b><small id="ex-video-fmt">Máxima calidad.</small></span>
+    </button>
+    <button class="ex" id="ex-gif">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M14 10.5a2.5 2.5 0 1 0 0 3h.8v-1.4"/><path d="M8 9.8v4.4"/></svg>
+      </span>
+      <span class="ex-txt"><b>GIF animado</b><small>Lo abre todo: Fotos, WhatsApp, Telegram, correo.</small></span>
+    </button>
+
+    <p class="ex-group">La pizarra entera</p>
+    <button class="ex" id="ex-json">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2"/><path d="M15 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2"/></svg>
+      </span>
+      <span class="ex-txt"><b>Archivo de la pizarra</b><small>Para llevártela a otro dispositivo o guardar una copia.</small></span>
+    </button>
+    <label class="ex" id="ex-import">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M7.5 12.5L12 8l4.5 4.5"/><path d="M4 4h16"/></svg>
+      </span>
+      <span class="ex-txt"><b>Abrir un archivo de pizarra</b><small>Recupera una copia que hayas exportado.</small></span>
+      <input type="file" id="import" accept="application/json,.json" class="sr">
+    </label>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
 <dialog id="dlg-file" aria-labelledby="file-title">
@@ -1494,14 +1551,49 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
      ====================================================================== */
 
   var anim = null;       // estado de reproducción
-  var recording = false; // grabando vídeo
+  var recording = false; // grabando vídeo o GIF
+
+  // Arrastrar dispara muchos más eventos que cuadros pinta la pantalla: se agrupan
+  // en uno solo por cuadro y así el dedo no va por delante del dibujo.
+  var drawPending = false;
+  function requestDraw() {
+    if (drawPending) return;
+    drawPending = true;
+    requestAnimationFrame(function () { drawPending = false; draw(); });
+  }
+
+  // El campo (césped, franjas, viñeta y todas las líneas) es lo más caro de pintar
+  // y no cambia mientras arrastras una ficha: se guarda en un lienzo aparte y se
+  // vuelve a calcular sólo si cambia la vista, el zoom o el tamaño de la ventana.
+  var pitchLayer = { key: '', cv: null };
+
+  function pitchCanvas() {
+    var view = viewRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    var key = [doc.pitch, doc.view, CW, CH, T.s, T.ox, T.oy, T.rot, dpr].join('|');
+    if (pitchLayer.key === key && pitchLayer.cv) return pitchLayer.cv;
+
+    var cv = pitchLayer.cv || document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(CW * dpr));
+    cv.height = Math.max(1, Math.round(CH * dpr));
+    var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, CW, CH);
+    c.save();
+    if (T.rot) { c.translate(CW, 0); c.rotate(Math.PI / 2); }
+    drawPitch(c, T, view);
+    c.restore();
+
+    pitchLayer.key = key;
+    pitchLayer.cv = cv;
+    return cv;
+  }
 
   function draw() {
-    var view = viewRect();
     ctx.clearRect(0, 0, CW, CH);
+    ctx.drawImage(pitchCanvas(), 0, 0, CW, CH);
     ctx.save();
     if (T.rot) { ctx.translate(CW, 0); ctx.rotate(Math.PI / 2); }
-    drawPitch(ctx, T, view);
 
     if (anim) { drawAnimated(); ctx.restore(); return; }
 
@@ -1780,7 +1872,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
       if (drag.mode === 'marquee') {
         drag.x1 = m.x; drag.y1 = m.y;
         drag.moved = true;
-        draw();
+        requestDraw();
         return;
       }
       if (drag.mode === 'group') {
@@ -1789,7 +1881,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
           it.o.y = clamp(snap(m.y + it.dy), -6, PITCH().W + 6);
         });
         drag.moved = true;
-        draw();
+        requestDraw();
         return;
       }
       if (drag.mode === 'move') {
@@ -1803,7 +1895,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
         drag.moved = true;
         hint('<b>' + ((drag.o.rot + 360) % 360) + '°</b>');
       }
-      draw();
+      requestDraw();
       return;
     }
 
@@ -1814,7 +1906,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
         var last = drawing.pts[drawing.pts.length - 1];
         if (Math.hypot(m.x - last.x, m.y - last.y) > 0.35) drawing.pts.push({ x: m.x, y: m.y });
       }
-      draw();
+      requestDraw();
     }
   });
 
@@ -2415,7 +2507,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
       dlg.showModal();
       return;
     }
-    if (/\.png$/.test(name)) {
+    if (/\.(png|gif)$/.test(name)) {
       var url = URL.createObjectURL(blob);
       img.src = url; img.hidden = false; box.hidden = true;
       note.textContent = 'Aquí va embebida y el navegador no deja descargar. Pulsa y mantén sobre la imagen (o clic derecho) para guardarla.';
@@ -2440,13 +2532,271 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
            doc.frames.length > 1;
   }
 
+  // MP4 primero: es lo que graba Safari y lo único que reproducen sin más la app
+  // de Fotos del iPhone y WhatsApp. WebM queda como último recurso.
   function pickMime() {
-    var opts = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+    var opts = [
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
     for (var i = 0; i < opts.length; i++) {
       if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
     }
     return '';
   }
+
+  /* =========================================================================
+     Codificador GIF (sin dependencias)
+     Un GIF lo abre cualquier cosa: Fotos del iPhone, WhatsApp, Telegram, correo.
+     Paleta global por corte mediano y compresión LZW, como manda GIF89a.
+     ====================================================================== */
+
+  // Reduce los colores de la jugada a una paleta de como mucho `maxColors`.
+  function medianCut(samples, maxColors) {
+    function stats(list) {
+      var lo = [255, 255, 255], hi = [0, 0, 0];
+      for (var i = 0; i < list.length; i += 3) {
+        for (var c = 0; c < 3; c++) {
+          var v = list[i + c];
+          if (v < lo[c]) lo[c] = v;
+          if (v > hi[c]) hi[c] = v;
+        }
+      }
+      return [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
+    }
+
+    var boxes = [{ list: samples, range: stats(samples) }];
+
+    while (boxes.length < maxColors) {
+      var bi = -1, best = 0;
+      for (var i = 0; i < boxes.length; i++) {
+        var r = Math.max(boxes[i].range[0], boxes[i].range[1], boxes[i].range[2]);
+        if (r > best && boxes[i].list.length > 3) { best = r; bi = i; }
+      }
+      if (bi < 0) break;
+
+      var box = boxes[bi];
+      var ch = box.range.indexOf(Math.max(box.range[0], box.range[1], box.range[2]));
+      var triples = [];
+      for (var j = 0; j < box.list.length; j += 3) {
+        triples.push([box.list[j], box.list[j + 1], box.list[j + 2]]);
+      }
+      triples.sort(function (a, b) { return a[ch] - b[ch]; });
+
+      var mid = triples.length >> 1, a1 = [], a2 = [];
+      for (var k = 0; k < triples.length; k++) {
+        var t = triples[k], dst = k < mid ? a1 : a2;
+        dst.push(t[0], t[1], t[2]);
+      }
+      if (!a1.length || !a2.length) break;
+      boxes.splice(bi, 1, { list: a1, range: stats(a1) }, { list: a2, range: stats(a2) });
+    }
+
+    return boxes.map(function (b) {
+      var n = b.list.length / 3, r = 0, g = 0, bl = 0;
+      for (var i = 0; i < b.list.length; i += 3) {
+        r += b.list[i]; g += b.list[i + 1]; bl += b.list[i + 2];
+      }
+      return [Math.round(r / n), Math.round(g / n), Math.round(bl / n)];
+    });
+  }
+
+  function GifWriter(w, h, palette, delayCs) {
+    var out = [];
+    var bits = Math.max(1, Math.ceil(Math.log(palette.length) / Math.LN2));
+    var size = 1 << bits;
+
+    function byte(b) { out.push(b & 255); }
+    function word(v) { byte(v); byte(v >> 8); }
+    function text(t) { for (var i = 0; i < t.length; i++) byte(t.charCodeAt(i)); }
+
+    text('GIF89a');
+    word(w); word(h);
+    byte(0xF0 | (bits - 1));            // hay tabla global de color
+    byte(0); byte(0);
+    for (var i = 0; i < size; i++) {
+      var c = palette[i] || [0, 0, 0];
+      byte(c[0]); byte(c[1]); byte(c[2]);
+    }
+    byte(0x21); byte(0xFF); byte(11); text('NETSCAPE2.0');   // repetir siempre
+    byte(3); byte(1); word(0); byte(0);
+
+    // x,y,fw,fh delimitan la zona que cambia respecto al fotograma anterior.
+    // Con disposal 1 ("dejar tal cual") el resto de la imagen se conserva, que es
+    // lo que permite que un GIF de una jugada pese una fracción de lo normal.
+    this.addFrame = function (indices, x, y, fw, fh) {
+      byte(0x21); byte(0xF9); byte(4); byte(0x04);
+      word(delayCs); byte(0); byte(0);
+      byte(0x2C); word(x || 0); word(y || 0); word(fw || w); word(fh || h); byte(0);
+      lzw(indices, bits);
+    };
+
+    this.finish = function () {
+      byte(0x3B);
+      return new Uint8Array(out);
+    };
+
+    function lzw(px, minBits) {
+      var codeSize = Math.max(2, minBits);
+      byte(codeSize);
+
+      var clear = 1 << codeSize, eoi = clear + 1;
+      var dict, next, cur;
+      var block = [], acc = 0, accBits = 0;
+
+      function flush() {
+        if (!block.length) return;
+        byte(block.length);
+        for (var i = 0; i < block.length; i++) byte(block[i]);
+        block = [];
+      }
+      function emit(code, len) {
+        acc |= code << accBits;
+        accBits += len;
+        while (accBits >= 8) {
+          block.push(acc & 255);
+          acc >>= 8;
+          accBits -= 8;
+          if (block.length === 255) flush();
+        }
+      }
+      function reset() { dict = new Map(); next = eoi + 1; cur = codeSize + 1; }
+
+      reset();
+      emit(clear, cur);
+
+      var prev = px[0];
+      for (var i = 1; i < px.length; i++) {
+        var k = px[i], key = prev * 4096 + k;
+        var hit = dict.get(key);
+        if (hit !== undefined) { prev = hit; continue; }
+        emit(prev, cur);
+        dict.set(key, next++);
+        if (next >= (1 << cur)) {
+          if (cur < 12) cur++;
+          else { emit(clear, cur); reset(); }
+        }
+        prev = k;
+      }
+      emit(prev, cur);
+      emit(eoi, cur);
+      if (accBits > 0) { block.push(acc & 255); if (block.length === 255) flush(); }
+      flush();
+      byte(0);
+    }
+  }
+
+  // Convierte una imagen RGBA al índice de paleta más cercano, con caché.
+  function quantize(data, palette, cache) {
+    var n = data.length / 4, idx = new Uint8Array(n);
+    for (var i = 0; i < n; i++) {
+      var r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+      var key = (r << 16) | (g << 8) | b;
+      var hit = cache.get(key);
+      if (hit === undefined) {
+        var bestD = Infinity, bestI = 0;
+        for (var p = 0; p < palette.length; p++) {
+          var c = palette[p];
+          var dr = r - c[0], dg = g - c[1], db = b - c[2];
+          var d = dr * dr + dg * dg + db * db;
+          if (d < bestD) { bestD = d; bestI = p; }
+        }
+        hit = bestI;
+        cache.set(key, hit);
+      }
+      idx[i] = hit;
+    }
+    return idx;
+  }
+
+  // Genera el GIF pintando la animación fotograma a fotograma en un lienzo aparte.
+  function exportGif() {
+    if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para exportar la jugada'); return; }
+
+    var view = viewRect();
+    var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
+    var W = 520, H = Math.round(W * vh / vw);
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var c = cv.getContext('2d', { willReadFrequently: true });
+    var t = transformFor(W, H, view);
+
+    var FPS = 10, segs = doc.frames.length - 1;
+    var total = Math.round(segs * (segMs() / 1000) * FPS);
+    var pause = Math.round(FPS * 0.5);          // medio segundo quieto al final
+
+    recording = true;
+    setExportBusy(true, 'Preparando el GIF…');
+
+    var shots = [];
+    for (var f = 0; f <= total + pause; f++) {
+      var p = Math.min(f, total) / Math.max(1, total) * segs;
+      var seg = clamp(Math.floor(p), 0, segs - 1);
+      c.clearRect(0, 0, W, H);
+      drawPitch(c, t, view);
+      drawAnimatedInto(c, t, seg, ease(clamp(p - seg, 0, 1)));
+      shots.push(c.getImageData(0, 0, W, H).data);
+    }
+
+    // paleta común a toda la secuencia, para que no parpadee entre fotogramas
+    var samples = [];
+    shots.forEach(function (d, i) {
+      var step = (i % 3 === 0) ? 40 : 160;      // se muestrea más el primero de cada tres
+      for (var q = 0; q < d.length; q += 4 * step) samples.push(d[q], d[q + 1], d[q + 2]);
+    });
+    var palette = medianCut(samples, 255);
+
+    var gif = new GifWriter(W, H, palette, Math.round(100 / FPS));
+    var cache = new Map();
+    var prev = null;
+
+    shots.forEach(function (d) {
+      var idx = quantize(d, palette, cache);
+      if (!prev) {
+        gif.addFrame(idx, 0, 0, W, H);
+        prev = idx;
+        return;
+      }
+      // rectángulo mínimo que ha cambiado
+      var x0 = W, y0 = H, x1 = -1, y1 = -1;
+      for (var y = 0; y < H; y++) {
+        var row = y * W;
+        for (var x = 0; x < W; x++) {
+          if (idx[row + x] !== prev[row + x]) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 < 0) { x0 = y0 = 0; x1 = y1 = 0; }   // sin cambios: un píxel basta
+      var fw = x1 - x0 + 1, fh = y1 - y0 + 1;
+      var sub = new Uint8Array(fw * fh);
+      for (var yy = 0; yy < fh; yy++) {
+        sub.set(idx.subarray((y0 + yy) * W + x0, (y0 + yy) * W + x0 + fw), yy * fw);
+      }
+      gif.addFrame(sub, x0, y0, fw, fh);
+      prev = idx;
+    });
+
+    var blob = new Blob([gif.finish()], { type: 'image/gif' });
+    recording = false;
+    setExportBusy(false);
+    download(blob, 'jugada.gif');
+    toast('GIF listo · ' + Math.round(blob.size / 1024) + ' KB');
+  }
+
+  function setExportBusy(on, msg) {
+    var b = $('#export');
+    if (b) b.classList.toggle('rec', !!on);
+    hint(on ? (msg || 'Trabajando…') : '');
+  }
+
+
 
   function exportVideo() {
     if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para grabar la jugada'); return; }
@@ -2477,8 +2827,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
       var ext = type.indexOf('mp4') > -1 ? 'mp4' : 'webm';
       download(blob, 'jugada.' + ext);
       recording = false;
-      $('#video').classList.remove('rec');
-      hint('');
+      setExportBusy(false);
       toast('Vídeo listo');
     };
 
@@ -2488,7 +2837,7 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
     var t0 = performance.now();
 
     recording = true;
-    $('#video').classList.add('rec');
+    setExportBusy(true, 'Grabando la jugada…');
     hint('Grabando la jugada…');
     rec.start();
 
@@ -2690,17 +3039,33 @@ dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
       speedBtn.textContent = ui.speed.toFixed(1).replace('.0', '.0') + '×';
     });
 
-    $('#png').addEventListener('click', exportPNG);
-    $('#sheet').addEventListener('click', printSheet);
-    $('#video').addEventListener('click', function () {
-      if (recording) return;
-      exportVideo();
-    });
+    var dlgExport = $('#dlg-export');
+    function openExport() {
+      var varios = doc.frames.length > 1;
+      $('#ex-video').disabled = !varios || !canRecord();
+      $('#ex-gif').disabled = !varios;
+      $('#ex-video-fmt').textContent = !varios
+        ? 'Necesita al menos dos fotogramas.'
+        : !canRecord() ? 'Este navegador no puede grabar vídeo.'
+        : (pickMime().indexOf('mp4') > -1 ? 'MP4, el que reproduce cualquier móvil.' : 'WebM: si tu móvil no lo abre, usa el GIF.');
+      dlgExport.showModal();
+    }
+    function exportar(fn) {
+      return function () { dlgExport.close(); setTimeout(fn, 120); };
+    }
+    $('#export').addEventListener('click', function () { if (!recording) openExport(); });
+    $('#ex-png').addEventListener('click', exportar(exportPNG));
+    $('#ex-sheet').addEventListener('click', exportar(printSheet));
+    $('#ex-video').addEventListener('click', exportar(exportVideo));
+    $('#ex-gif').addEventListener('click', exportar(exportGif));
+    $('#ex-json').addEventListener('click', exportar(exportJSON));
     $('#save').addEventListener('click', saveBoard);
     $('#open').addEventListener('click', openDialog);
-    $('#json').addEventListener('click', exportJSON);
     $('#json-sm').addEventListener('click', exportJSON);
-    $('#import').addEventListener('change', function () { if (this.files[0]) importJSON(this.files[0]); this.value = ''; });
+    $('#import').addEventListener('change', function () {
+      if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
+      this.value = '';
+    });
     $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
     $('#zoom').addEventListener('click', resetView);
     $$('[data-close]').forEach(function (b) {

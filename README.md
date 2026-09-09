@@ -46,9 +46,15 @@ bloque. Es lo que permite recolocar una línea entera de un arrastre.
 **Hoja de sesión.** Saca todos los fotogramas de la jugada en una página imprimible, con
 título, modalidad, fecha y un recuadro para anotaciones.
 
-**Vídeo.** La jugada animada se graba en el propio navegador (MediaRecorder sobre un
-lienzo aparte a 1280 px) y se descarga como archivo de vídeo, sin marca de agua y sin
-pasar por ningún servidor.
+**Exportar.** Un solo botón abre una hoja con todo lo que se puede sacar: imagen PNG del
+fotograma, hoja de sesión imprimible, vídeo de la jugada, GIF animado y el archivo de la
+pizarra. Nada sale del dispositivo.
+
+**Vídeo y GIF.** La jugada animada se graba en el propio navegador y se descarga sin marca
+de agua. El vídeo prueba **MP4 antes que WebM**, que es lo que graba Safari y lo único que
+reproducen sin más la app de Fotos del iPhone y WhatsApp. Y para lo que sea, está el GIF:
+codificador propio (corte mediano para la paleta, LZW y codificación sólo del rectángulo
+que cambia entre fotogramas), que lo deja en torno a 300 KB en vez de un mega.
 
 **Gestión.** Deshacer y rehacer, guardado con nombre en el dispositivo, autoguardado al
 recargar, exportación del fotograma a PNG (2400 px) y exportación e importación de la
@@ -99,6 +105,11 @@ DOM: es lo que permite arrastrar veinte fichas y animar la jugada sin tirones.
 - **Animación.** Entre dos fotogramas se emparejan los objetos por identificador y se
   interpola posición y ángulo con una curva `easeInOutCubic`; los que solo existen en uno
   de los dos entran o salen con un fundido, y los trazos se cruzan con otro fundido.
+- **El campo se pinta una vez.** Césped, franjas, viñeta y líneas van a un lienzo aparte
+  que sólo se recalcula si cambia la vista, el zoom o el tamaño de la ventana; arrastrar
+  una ficha no vuelve a dibujar el campo.
+- **Un redibujado por cuadro.** Los eventos de arrastre llegan mucho más rápido de lo que
+  la pantalla pinta, así que se agrupan en un único `requestAnimationFrame`.
 
 ## Publicar en GitHub Pages
 
@@ -140,11 +151,12 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 54 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 61 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
-modalidades de campo, la selección múltiple, la hoja de sesión, deshacer y rehacer,
-formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
+modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
+la prioridad de MP4 sobre WebM, la generación y decodificación del GIF, deshacer y
+rehacer, formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento
