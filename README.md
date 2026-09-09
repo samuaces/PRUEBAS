@@ -45,10 +45,16 @@ bloque. Es lo que permite recolocar una línea entera de un arrastre.
 
 **Ficha del ejercicio.** Un formulario dentro de la pizarra —título, categoría, momento del
 juego, sesión, duración, series, descanso, jugadores, porteros, espacio, material, objetivo,
-descripción, consignas, normas y variantes— que se imprime en una página A4 ordenada: el
-dibujo del ejercicio arriba, la tabla de datos al lado, el desarrollo debajo y las consignas,
-normas y progresiones a tres columnas. Si la jugada tiene varios fotogramas, añade la
-secuencia en miniatura. El botón **Rellenar desde la pizarra** lee el campo y pone solo los
+descripción, consignas, normas y variantes— que se imprime en una página A4 maquetada por
+bloques: cabecera con etiquetas, el esquema del ejercicio en su marco, los datos en celdas,
+el objetivo destacado, el desarrollo, y consignas, normas y progresiones numeradas a tres
+columnas. Si la jugada tiene varios fotogramas, añade la secuencia en miniatura, y al pie
+queda un cuadro rayado de observaciones que se estira hasta llenar el folio.
+
+Antes de imprimir, la hoja **se mide a sí misma**: si con la maqueta normal iba a sobrar más
+de un palmo de papel, se pasa sola a una maqueta ancha con el esquema a todo el ancho y los
+datos debajo; y si con eso se pasara de página, vuelve atrás. Cabe en un folio en los tres
+casos, comprobado imprimiendo a PDF. El botón **Rellenar desde la pizarra** lee el campo y pone solo los
 jugadores (`11 vs 11`), los porteros, el material (`4 conos, 2 porterías pequeñas`) y el
 espacio, sin pisar nada de lo que ya hayas escrito. La ficha viaja dentro del documento: se
 guarda, se exporta en JSON y entra en deshacer y rehacer.
@@ -167,7 +173,7 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 83 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 84 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,

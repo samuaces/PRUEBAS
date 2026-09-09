@@ -303,7 +303,11 @@ async function run(w,d){
   d.getElementById('f-imprimir').click();await wait(900);
   w.open=oldOpen2;
   ok('la ficha se imprime',!!fichaOut&&fichaOut.printed===true);
-  ok('la ficha lleva el dibujo de la pizarra',!!fichaOut&&/<img class="main" src="data:image\/png/.test(fichaOut.html));
+  ok('la ficha lleva el dibujo de la pizarra',
+     !!fichaOut&&/<figure class="shot"><img src="data:image\/png/.test(fichaOut.html));
+  ok('la ficha se maqueta por bloques delimitados',
+     !!fichaOut&&/class="page"/.test(fichaOut.html)&&(fichaOut.html.match(/class="panel/g)||[]).length>=4,
+     fichaOut?(fichaOut.html.match(/class="panel/g)||[]).length+' bloques':'sin ficha');
   ok('la ficha lleva el título y el objetivo',
      !!fichaOut&&/Salida de balón bajo presión/.test(fichaOut.html)&&/pase interior/.test(fichaOut.html));
   ok('cada consigna es un punto de la lista',

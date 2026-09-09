@@ -2730,103 +2730,207 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   // ---- La página impresa ----
 
+  // Una hoja A4 montada como una ficha de verdad: cada cosa en su bloque, con
+  // sus filetes y su cabecera; márgenes iguales por los cuatro lados; y el
+  // cuadro de observaciones creciendo hasta el pie para que la página quede
+  // llena en vez de dejar medio folio en blanco.
+  var CARD_CSS = [
+    '@page{size:A4;margin:11mm}',
+    '*{box-sizing:border-box}',
+    ':root{--ink:#111821;--soft:#5C6879;--line:#D3DAE4;--hair:#E7ECF2;--wash:#F5F8FA;--acc:#0A7A4B}',
+    'html,body{margin:0;padding:0}',
+    'body{font:11.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;',
+      'color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    /* en pantalla no hay @page: se simulan los mismos márgenes para ver la hoja tal cual */
+    '@media screen{body{padding:11mm;background:#fff}}',
+
+    /* la página como columna: lo que sobra se lo queda el cuadro de notas */
+    '.page{min-height:262mm;display:flex;flex-direction:column;gap:8px}',
+    '.spine{flex:none;height:4px;border-radius:3px;',
+      'background:linear-gradient(90deg,var(--acc),#14A86A 55%,#9BDCC0)}',
+
+    /* cabecera */
+    'header{flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;',
+      'padding-bottom:9px;border-bottom:1px solid var(--line)}',
+    '.eyebrow{display:block;margin-bottom:5px;font-size:8px;font-weight:700;',
+      'letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}',
+    'h1{margin:0;font-size:23px;line-height:1.14;letter-spacing:-.015em;font-weight:700;text-wrap:balance}',
+    '.chips{display:flex;gap:6px;flex:none}',
+    '.chip{border:1px solid var(--line);border-radius:7px;padding:5px 10px;background:var(--wash);max-width:44mm}',
+    '.chip small{display:block;margin-bottom:1px;font-size:7px;font-weight:700;',
+      'letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}',
+    '.chip b{display:block;font-size:11px;font-weight:600;line-height:1.3}',
+
+    /* fila superior: esquema grande + datos y objetivo */
+    '.top{flex:none;display:grid;grid-template-columns:1.5fr 1fr;gap:8px;align-items:stretch}',
+    '.shot{margin:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;',
+      'border:1px solid var(--line);border-radius:9px;background:#fff}',
+    '.shot img{display:block;width:100%}',
+    '.shot figcaption{display:flex;justify-content:space-between;gap:10px;padding:5px 10px;',
+      'border-top:1px solid var(--hair);background:var(--wash);',
+      'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}',
+    '.side{display:flex;flex-direction:column;gap:8px;min-width:0}',
+    '.side .panel{flex:1}',   /* el objetivo llega hasta abajo: las dos columnas casan */
+
+    /* Maqueta ancha: si la ficha tiene poco texto, en vez de dejar medio folio
+       de rayas se agranda el esquema a todo el ancho y los datos pasan debajo.
+       La elige la propia página midiéndose antes de imprimir. */
+    '.page.ancha .top{grid-template-columns:1fr}',
+    '.page.ancha .side{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:stretch}',
+
+    /* los datos, en celdas con filete de un pelo */
+    '.stats{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);',
+      'border:1px solid var(--line);border-radius:9px;overflow:hidden}',
+    '.stat{background:#fff;padding:6px 9px;min-width:0}',
+    '.stat.w{grid-column:1 / -1}',
+    '.stat b{display:block;margin-bottom:1px;font-size:7px;font-weight:700;',
+      'letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}',
+    '.stat span{display:block;font-size:11.5px;font-weight:600;line-height:1.35;font-variant-numeric:tabular-nums}',
+
+    /* bloques */
+    '.panel{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:#fff;',
+      'border:1px solid var(--line);border-radius:9px;break-inside:avoid}',
+    '.panel > h2{margin:0;padding:5px 10px;background:var(--wash);border-bottom:1px solid var(--hair);',
+      'font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}',
+    '.panel.key{border-color:#BCE0CE}',
+    '.panel.key > h2{background:#EAF6EF;border-bottom-color:#CFE8DA}',
+    '.pbody{flex:1;padding:8px 10px}',
+    '.pbody p{margin:0 0 5px;hyphens:auto}',
+    '.pbody p:last-child{margin-bottom:0}',
+    '.pbody ol{margin:0;padding:0;list-style:none;counter-reset:i}',
+    '.pbody li{counter-increment:i;position:relative;padding-left:15px;margin-bottom:4px;line-height:1.45}',
+    '.pbody li:last-child{margin-bottom:0}',
+    '.pbody li::before{content:counter(i);position:absolute;left:0;top:0;',
+      'font-size:8.5px;font-weight:700;line-height:1.95;color:var(--acc)}',
+
+    '.row{flex:none;display:grid;gap:8px;align-items:stretch}',
+
+    /* secuencia de la jugada */
+    '.seq{display:grid;gap:7px}',
+    '.seq figure{margin:0;overflow:hidden;border:1px solid var(--hair);border-radius:6px;background:#fff}',
+    '.seq img{display:block;width:100%}',
+    '.seq figcaption{padding:3px 7px;border-top:1px solid var(--hair);background:var(--wash);',
+      'font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}',
+
+    /* observaciones: se estira hasta el pie y va rayado para escribir a mano */
+    '.grow{flex:1 1 auto;min-height:17mm}',
+    '.ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 20px,',
+      'var(--hair) 20px,var(--hair) 21px)}',
+
+    'footer{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;',
+      'padding-top:6px;border-top:1px solid var(--hair);',
+      'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#96A2B2}'
+  ].join('');
+
   function printCard() {
     var c = card();                       // lo que hay guardado, no lo que haya en el formulario
     var P = PITCH(), M = PITCHES[doc.pitch];
     var titulo = c.titulo || 'Ficha del ejercicio';
+    var fecha = c.fecha || new Date().toLocaleDateString('es-ES');
 
-    var meta = [c.categoria, c.momento, c.sesion, c.fecha].filter(Boolean)
-      .map(esc).join(' &nbsp;·&nbsp; ');
+    // --- cabecera: identificación a la izquierda, etiquetas a la derecha ---
+    var chips = [['Categoría', c.categoria], ['Momento', c.momento], ['Sesión', c.sesion]]
+      .filter(function (r) { return r[1]; })
+      .map(function (r) {
+        return '<span class="chip"><small>' + esc(r[0]) + '</small><b>' + esc(r[1]) + '</b></span>';
+      }).join('');
 
-    var datos = [
-      ['Duración', c.duracion], ['Series', c.series], ['Descanso', c.descanso],
-      ['Jugadores', c.jugadores], ['Porteros', c.porteros], ['Espacio', c.espacio],
-      ['Campo', M.label + ' · ' + P.L + ' × ' + P.W + ' m'], ['Material', c.material]
-    ].filter(function (r) { return r[1]; })
-     .map(function (r) { return '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>'; })
-     .join('');
-
-    function list(title, txt) {
-      var items = lines(txt);
-      if (!items.length) return '';
-      return '<section class="blk"><h2>' + title + '</h2><ul>' +
-        items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></section>';
+    // --- datos de organización, en celdas ---
+    function stat(k, v, ancho) {
+      return '<div class="stat' + (ancho ? ' w' : '') + '"><b>' + esc(k) + '</b><span>' + esc(v) + '</span></div>';
     }
-    function para(title, txt) {
-      if (!String(txt || '').trim()) return '';
-      return '<section class="blk"><h2>' + title + '</h2><p>' +
-        esc(txt).replace(/\n+/g, '</p><p>') + '</p></section>';
+    var medias = [['Duración', c.duracion], ['Series', c.series], ['Descanso', c.descanso],
+                  ['Jugadores', c.jugadores], ['Porteros', c.porteros], ['Espacio', c.espacio]]
+                 .filter(function (r) { return r[1]; });
+    var anchas = [['Campo', M.label + ' · ' + P.L + ' × ' + P.W + ' m'], ['Material', c.material]]
+                 .filter(function (r) { return r[1]; });
+    var datos = medias.map(function (r, i) {
+      // una celda suelta al final ocupa la fila entera, para no dejar un hueco
+      return stat(r[0], r[1], i === medias.length - 1 && medias.length % 2 === 1);
+    }).concat(anchas.map(function (r) { return stat(r[0], r[1], true); })).join('');
+
+    // --- bloques de contenido ---
+    function panel(title, inner, cls) {
+      return inner ? '<section class="panel' + (cls ? ' ' + cls : '') + '"><h2>' + title + '</h2>' +
+        '<div class="pbody">' + inner + '</div></section>' : '';
+    }
+    function ol(txt) {
+      var it = lines(txt);
+      return it.length ? '<ol>' + it.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ol>' : '';
+    }
+    function pp(txt) {
+      var t = String(txt || '').trim();
+      return t ? '<p>' + esc(t).replace(/\n+/g, '</p><p>') + '</p>' : '';
     }
 
-    var principal = '<img class="main" src="' + renderFrame(ui.frame, 1400).toDataURL('image/png') +
-      '" alt="Esquema del ejercicio">' +
-      (doc.frames.length > 1 ? '<p class="cap">Fotograma ' + (ui.frame + 1) + ' de ' + doc.frames.length + '</p>' : '');
+    // --- el esquema ---
+    var pie = doc.frames.length > 1
+      ? ['Esquema · fotograma ' + (ui.frame + 1) + ' de ' + doc.frames.length, M.label]
+      : ['Esquema del ejercicio', M.label];
+    var shot = '<figure class="shot"><img src="' + renderFrame(ui.frame, 1400).toDataURL('image/png') +
+      '" alt="Esquema del ejercicio"><figcaption><span>' + esc(pie[0]) + '</span><span>' +
+      esc(pie[1]) + '</span></figcaption></figure>';
 
-    var extra = '';
-    if (doc.frames.length > 1) {
-      extra = '<section class="blk"><h2>Secuencia de la jugada</h2></section>' +
-        '<div class="seq">' + doc.frames.map(function (f, i) {
-        if (i === ui.frame) return '';
+    // --- consignas, normas y variantes, a tantas columnas como haya ---
+    var bloques = [panel('Consignas', ol(c.consignas)), panel('Normas', ol(c.normas)),
+                   panel('Variantes y progresiones', ol(c.variantes))].filter(Boolean);
+    var fila = bloques.length
+      ? '<div class="row" style="grid-template-columns:repeat(' + bloques.length + ',1fr)">' +
+        bloques.join('') + '</div>'
+      : '';
+
+    // --- secuencia de la jugada, si tiene varios fotogramas ---
+    var otros = doc.frames.map(function (f, i) { return i; })
+      .filter(function (i) { return i !== ui.frame; }).slice(0, 8);
+    var seq = otros.length ? panel('Secuencia de la jugada',
+      '<div class="seq" style="grid-template-columns:repeat(' + Math.min(otros.length, 4) + ',1fr)">' +
+      otros.map(function (i) {
         return '<figure><img src="' + renderFrame(i, 620).toDataURL('image/png') +
           '" alt="Fotograma ' + (i + 1) + '"><figcaption>Fotograma ' + (i + 1) + '</figcaption></figure>';
-      }).join('') + '</div>';
-    }
-
-    var listas = list('Consignas', c.consignas) + list('Normas', c.normas) +
-                 list('Variantes y progresiones', c.variantes);
+      }).join('') + '</div>') : '';
 
     var win = window.open('', '_blank');
     if (!win) { toast('Permite las ventanas emergentes para imprimir la ficha'); return; }
     win.document.write(
       '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-      '<title>' + esc(titulo) + '</title><style>' +
-      '@page{size:A4;margin:12mm}' +
-      '*{box-sizing:border-box}' +
-      'body{margin:0;font:12px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#14181F}' +
-      'header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;' +
-        'border-bottom:2.5px solid #14181F;padding-bottom:9px}' +
-      'h1{font-size:21px;line-height:1.2;margin:0;letter-spacing:-.01em}' +
-      '.meta{font-size:11px;color:#5A6472;text-align:right;white-space:nowrap}' +
-      '.cols{display:grid;grid-template-columns:1.32fr 1fr;gap:14px;margin-top:14px;align-items:start}' +
-      'img{display:block;width:100%;border:1px solid #C9D0DA;border-radius:5px}' +
-      'table{width:100%;border-collapse:collapse;font-size:11.5px}' +
-      'th,td{text-align:left;vertical-align:top;padding:5px 0;border-bottom:1px solid #E4E8EE}' +
-      'th{width:38%;font-weight:600;color:#5A6472;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding-right:8px}' +
-      'tr:last-child th,tr:last-child td{border-bottom:0}' +
-      '.blk{margin-top:13px;break-inside:avoid}' +
-      '.blk h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#0A7E4E;' +
-        'margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #D6DCE4}' +
-      '.blk p{margin:0 0 6px}' +
-      '.blk ul{margin:0;padding-left:16px}' +
-      '.blk li{margin-bottom:3px}' +
-      '.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}' +
-      '.tri .blk{margin-top:0}' +
-      '.seq{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:7px}' +
-      '.seq figure{margin:0;break-inside:avoid}' +
-      '.seq figcaption{font-size:9.5px;color:#5A6472;margin-top:3px}' +
-      '.cap{font-size:10px;color:#5A6472;margin:4px 0 0}' +
-      'footer{margin-top:16px;border-top:1px solid #D6DCE4;padding-top:7px;' +
-        'display:flex;justify-content:space-between;font-size:10px;color:#8A93A0}' +
-      '.notes{margin-top:13px;border:1px solid #D6DCE4;border-radius:5px;height:60px;position:relative}' +
-      '.notes span{position:absolute;top:5px;left:8px;font-size:9.5px;letter-spacing:.07em;' +
-        'text-transform:uppercase;color:#8A93A0}' +
-      '</style></head><body>' +
-      '<header><h1>' + esc(titulo) + '</h1>' +
-      (meta ? '<div class="meta">' + meta + '</div>' : '') + '</header>' +
-      '<div class="cols"><div>' + principal + '</div><div>' +
-      (datos ? '<table>' + datos + '</table>' : '') +
-      para('Objetivo', c.objetivo) +
+      '<title>' + esc(titulo) + '</title><style>' + CARD_CSS + '</style></head><body><div class="page">' +
+      '<div class="spine"></div>' +
+      '<header><div><span class="eyebrow">Ficha de entrenamiento · ' + esc(fecha) + '</span>' +
+      '<h1>' + esc(titulo) + '</h1></div>' +
+      (chips ? '<div class="chips">' + chips + '</div>' : '') + '</header>' +
+      '<div class="top">' + shot + '<div class="side">' +
+      (datos ? '<div class="stats">' + datos + '</div>' : '') +
+      panel('Objetivo', pp(c.objetivo), 'key') +
       '</div></div>' +
-      para('Descripción y desarrollo', c.descripcion) +
-      (listas ? '<div class="tri">' + listas + '</div>' : '') +
-      extra +
-      '<div class="notes"><span>Observaciones</span></div>' +
-      '<footer><span>Pizarra Táctica</span><span>' +
-      esc(c.fecha || new Date().toLocaleDateString('es-ES')) + '</span></footer>' +
-      '</body></html>');
+      panel('Descripción y desarrollo', pp(c.descripcion)) +
+      fila + seq +
+      '<section class="panel grow"><h2>Observaciones</h2><div class="pbody ruled"></div></section>' +
+      '<footer><span>Pizarra Táctica</span><span>' + esc(fecha) + '</span></footer>' +
+      '</div></body></html>');
     win.document.close();
     win.focus();
-    setTimeout(function () { win.print(); }, 400);
+    setTimeout(function () { encajarCard(win); win.print(); }, 400);
+  }
+
+  // La hoja se mide a sí misma: si con la maqueta normal iba a sobrar más de un
+  // palmo de folio, se pasa a la maqueta ancha (esquema a todo el ancho). Se
+  // comprueba después, y si con eso se pasa de página, se vuelve atrás.
+  function encajarCard(win) {
+    try {
+      var pg = win.document.querySelector('.page');
+      if (!pg) return;
+      var alto = function () {
+        var previo = pg.style.minHeight;
+        pg.style.minHeight = '0';
+        var h = pg.getBoundingClientRect().height;
+        pg.style.minHeight = previo;
+        return h;
+      };
+      var hueco = pg.getBoundingClientRect().height - alto();
+      if (hueco < 230) return;              // ya está bastante llena
+      pg.classList.add('ancha');
+      if (alto() > pg.getBoundingClientRect().height) pg.classList.remove('ancha');
+    } catch (e) {}
   }
 
   // ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
