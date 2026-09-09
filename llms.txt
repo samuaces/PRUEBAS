@@ -11,7 +11,6 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
 
 - [Inicio](https://samuaces.github.io/PRUEBAS/): qué es, funciones, casos de uso y preguntas frecuentes.
 - [La pizarra](https://samuaces.github.io/PRUEBAS/app/): la aplicación en sí, lista para dibujar.
-- [Código fuente](https://github.com/samuaces/PRUEBAS): repositorio público.
 
 ## Qué hace
 
