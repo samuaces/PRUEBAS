@@ -1,7 +1,8 @@
 name: Desplegar en GitHub Pages
 
 # Publica el sitio estático (landing + app) en GitHub Pages.
-# Requisito previo, una sola vez: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# No hace falta configurar nada a mano: el paso "Configurar Pages" activa GitHub Pages
+# en el repositorio la primera vez que se ejecuta.
 
 on:
   push:
@@ -33,8 +34,12 @@ jobs:
       - name: Descargar el repositorio
         uses: actions/checkout@v4
 
+      # enablement: activa GitHub Pages en el repositorio si aún no lo está,
+      # así no hace falta tocar nada a mano en Settings.
       - name: Configurar Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Empaquetar el sitio
         uses: actions/upload-pages-artifact@v3
