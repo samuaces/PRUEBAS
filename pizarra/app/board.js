@@ -2040,34 +2040,177 @@
 
 
 
-  function exportVideo() {
-    if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para grabar la jugada'); return; }
-    if (!canRecord()) { toast('Este navegador no puede grabar vídeo'); return; }
+  /* =========================================================================
+     Empaquetador MP4 (ISO BMFF) para vídeo H.264
+     Cuando el navegador no sabe grabar MP4 por sí solo, se codifica con
+     WebCodecs y se arma aquí el contenedor. Sin bibliotecas externas.
+     ====================================================================== */
 
+  function mp4Bytes(str) {
+    var a = [];
+    for (var i = 0; i < str.length; i++) a.push(str.charCodeAt(i) & 255);
+    return a;
+  }
+  function u32(v) { return [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]; }
+  function u16(v) { return [(v >>> 8) & 255, v & 255]; }
+
+  function mp4Box(type, parts) {
+    var payload = [];
+    for (var i = 0; i < parts.length; i++) payload = payload.concat(parts[i]);
+    return u32(payload.length + 8).concat(mp4Bytes(type), payload);
+  }
+  function mp4Full(type, version, flags, parts) {
+    return mp4Box(type, [[version, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]].concat(parts));
+  }
+
+  var MP4_MATRIX = u32(0x00010000).concat(u32(0), u32(0),
+                                          u32(0), u32(0x00010000), u32(0),
+                                          u32(0), u32(0), u32(0x40000000));
+
+  // samples: [{ data: Uint8Array, key: boolean }] · todos con la misma duración
+  function buildMp4(width, height, timescale, delta, samples, avcC) {
+    var count = samples.length, duration = count * delta;
+    var sizes = [], keys = [], dataLen = 0;
+    samples.forEach(function (s2, i) {
+      sizes = sizes.concat(u32(s2.data.length));
+      dataLen += s2.data.length;
+      if (s2.key) keys = keys.concat(u32(i + 1));
+    });
+
+    var ftyp = mp4Box('ftyp', [mp4Bytes('isom'), u32(512),
+                               mp4Bytes('isom'), mp4Bytes('iso2'), mp4Bytes('avc1'), mp4Bytes('mp41')]);
+    var mdatOffset = ftyp.length + 8;   // los datos empiezan tras la cabecera de mdat
+
+    var avc1 = mp4Box('avc1', [
+      [0, 0, 0, 0, 0, 0], u16(1),
+      u16(0), u16(0), u32(0), u32(0), u32(0),
+      u16(width), u16(height),
+      u32(0x00480000), u32(0x00480000),
+      u32(0), u16(1),
+      new Array(32).fill(0),
+      u16(0x0018), [0xFF, 0xFF],
+      mp4Box('avcC', [Array.prototype.slice.call(avcC)])
+    ]);
+
+    var stbl = mp4Box('stbl', [
+      mp4Full('stsd', 0, 0, [u32(1), avc1]),
+      mp4Full('stts', 0, 0, [u32(1), u32(count), u32(delta)]),
+      mp4Full('stss', 0, 0, [u32(keys.length / 4), keys]),
+      mp4Full('stsc', 0, 0, [u32(1), u32(1), u32(count), u32(1)]),
+      mp4Full('stsz', 0, 0, [u32(0), u32(count), sizes]),
+      mp4Full('stco', 0, 0, [u32(1), u32(mdatOffset)])
+    ]);
+
+    var minf = mp4Box('minf', [
+      mp4Full('vmhd', 0, 1, [u16(0), u16(0), u16(0), u16(0)]),
+      mp4Box('dinf', [mp4Full('dref', 0, 0, [u32(1), mp4Full('url ', 0, 1, [])])]),
+      stbl
+    ]);
+
+    var mdia = mp4Box('mdia', [
+      mp4Full('mdhd', 0, 0, [u32(0), u32(0), u32(timescale), u32(duration), u16(0x55C4), u16(0)]),
+      mp4Full('hdlr', 0, 0, [u32(0), mp4Bytes('vide'), u32(0), u32(0), u32(0), mp4Bytes('VideoHandler'), [0]]),
+      minf
+    ]);
+
+    var trak = mp4Box('trak', [
+      mp4Full('tkhd', 0, 3, [u32(0), u32(0), u32(1), u32(0), u32(duration),
+                             u32(0), u32(0), u16(0), u16(0), u16(0), u16(0),
+                             MP4_MATRIX, u32(width * 65536), u32(height * 65536)]),
+      mdia
+    ]);
+
+    var moov = mp4Box('moov', [
+      mp4Full('mvhd', 0, 0, [u32(0), u32(0), u32(timescale), u32(duration),
+                             u32(0x00010000), u16(0x0100), u16(0), u32(0), u32(0),
+                             MP4_MATRIX, u32(0), u32(0), u32(0), u32(0), u32(0), u32(0), u32(2)]),
+      trak
+    ]);
+
+    var out = new Uint8Array(ftyp.length + 8 + dataLen + moov.length);
+    var at = 0;
+    out.set(ftyp, at); at += ftyp.length;
+    out.set(u32(dataLen + 8), at); at += 4;
+    out.set(mp4Bytes('mdat'), at); at += 4;
+    samples.forEach(function (s2) { out.set(s2.data, at); at += s2.data.length; });
+    out.set(moov, at);
+    return new Blob([out], { type: 'video/mp4' });
+  }
+
+  // ¿Puede este navegador codificar H.264 con WebCodecs?
+  function pickAvc(width, height, fps) {
+    if (typeof VideoEncoder === 'undefined') return Promise.resolve(null);
+    var perfiles = ['avc1.42001f', 'avc1.42E01E', 'avc1.4D401F', 'avc1.640028'];
+    var i = 0;
+    function siguiente() {
+      if (i >= perfiles.length) return Promise.resolve(null);
+      var codec = perfiles[i++];
+      return VideoEncoder.isConfigSupported({
+        codec: codec, width: width, height: height, bitrate: 5000000, framerate: fps
+      }).then(function (r) {
+        return (r && r.supported) ? codec : siguiente();
+      }, function () { return siguiente(); });
+    }
+    return siguiente();
+  }
+
+  /* =========================================================================
+     Exportar la jugada en vídeo
+     ====================================================================== */
+
+  // Prepara el lienzo y la transformación con los que se pinta la animación.
+  function videoStage(width) {
     var view = viewRect();
     var vw = view.x1 - view.x0, vh = view.y1 - view.y0;
-    var W = 1280, H = Math.round(W * vh / vw);
+    var W = width - (width % 2);
+    var H = Math.round(W * vh / vw);
     if (H % 2) H += 1;
-
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
-    var c = cv.getContext('2d');
-    var t = transformFor(W, H, view);
+    return { cv: cv, c: cv.getContext('2d'), t: transformFor(W, H, view), view: view, W: W, H: H };
+  }
+
+  function paintAt(st, p, segs) {
+    var seg = clamp(Math.floor(p), 0, segs - 1);
+    st.c.clearRect(0, 0, st.W, st.H);
+    drawPitch(st.c, st.t, st.view);
+    drawAnimatedInto(st.c, st.t, seg, ease(clamp(p - seg, 0, 1)));
+  }
+
+  function exportVideo() {
+    if (doc.frames.length < 2) { toast('Añade al menos dos fotogramas para grabar la jugada'); return; }
 
     var mime = pickMime();
-    var stream = cv.captureStream(30);
+    // 1) El navegador sabe grabar MP4 él solo (Safari, Chrome reciente).
+    if (mime && mime.indexOf('mp4') > -1 && canRecord()) { recordVideo(mime); return; }
+
+    // 2) Si no, se codifica H.264 con WebCodecs y se empaqueta el MP4 aquí.
+    var st = videoStage(1280), FPS = 30;
+    pickAvc(st.W, st.H, FPS).then(function (codec) {
+      if (codec) { encodeMp4(st, codec, FPS); return; }
+      // 3) Sin MP4 posible: se dice claramente en vez de colar un WebM.
+      ask({
+        title: 'Este navegador no puede hacer MP4',
+        message: 'Ni sabe grabar en MP4 ni codificar H.264. El GIF animado se ve en cualquier sitio y es la mejor alternativa aquí. ' +
+                 'Si necesitas MP4, abre la pizarra en Safari o en Chrome.',
+        ok: 'Exportar en GIF'
+      }).then(function (si) { if (si) exportGif(); });
+    });
+  }
+
+  // --- Camino 1: grabación en tiempo real -------------------------------------
+  function recordVideo(mime) {
+    var st = videoStage(1280);
     var rec;
     try {
-      rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined);
+      rec = new MediaRecorder(st.cv.captureStream(30), { mimeType: mime, videoBitsPerSecond: 6000000 });
     } catch (err) { toast('Este navegador no puede grabar vídeo'); return; }
 
     var chunks = [];
     rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
     rec.onstop = function () {
-      var type = (mime || 'video/webm').split(';')[0];
-      var blob = new Blob(chunks, { type: type });
-      var ext = type.indexOf('mp4') > -1 ? 'mp4' : 'webm';
-      download(blob, 'jugada.' + ext);
+      var type = mime.split(';')[0];
+      download(new Blob(chunks, { type: type }), 'jugada.' + (type.indexOf('mp4') > -1 ? 'mp4' : 'webm'));
       recording = false;
       setExportBusy(false);
       toast('Vídeo listo');
@@ -2075,29 +2218,92 @@
 
     var segs = doc.frames.length - 1;
     var segMsRec = segMs();
-    var total = segs * segMsRec + 900;    // un respiro al final
+    var total = segs * segMsRec + 900;      // un respiro al final
     var t0 = performance.now();
 
     recording = true;
     setExportBusy(true, 'Grabando la jugada…');
-    hint('Grabando la jugada…');
     rec.start();
 
     (function frameLoop(now) {
       // La marca de tiempo de requestAnimationFrame corresponde al inicio del cuadro
       // y puede ser anterior a t0: sin acotar, el primer cuadro pedía el tramo -1.
       var el = clamp((now || performance.now()) - t0, 0, total);
-      var p = Math.min(el, segs * segMsRec) / segMsRec;
-      var seg = clamp(Math.floor(p), 0, segs - 1);
-      var e = ease(clamp(p - seg, 0, 1));
-
-      c.clearRect(0, 0, W, H);
-      drawPitch(c, t, view);
-      drawAnimatedInto(c, t, seg, e);
-
+      paintAt(st, Math.min(el, segs * segMsRec) / segMsRec, segs);
       if (el < total) requestAnimationFrame(frameLoop);
       else { try { rec.stop(); } catch (err) {} }
     })();
+  }
+
+  // --- Camino 2: codificación cuadro a cuadro con WebCodecs -------------------
+  function encodeMp4(st, codec, FPS) {
+    var segs = doc.frames.length - 1;
+    var total = Math.round(segs * (segMs() / 1000) * FPS);
+    var last = total + Math.round(FPS * 0.6);      // fija el final medio segundo
+    var samples = [], avcC = null, fallo = null;
+
+    recording = true;
+    setExportBusy(true, 'Preparando el vídeo…');
+
+    var enc = new VideoEncoder({
+      output: function (chunk, meta) {
+        if (!avcC && meta && meta.decoderConfig && meta.decoderConfig.description) {
+          avcC = new Uint8Array(meta.decoderConfig.description);
+        }
+        var d = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(d);
+        samples.push({ data: d, key: chunk.type === 'key' });
+      },
+      error: function (e) { fallo = e && e.message ? e.message : 'error de codificación'; }
+    });
+
+    try {
+      enc.configure({
+        codec: codec, width: st.W, height: st.H,
+        bitrate: 5000000, framerate: FPS, avc: { format: 'avc' }
+      });
+    } catch (e) {
+      recording = false; setExportBusy(false);
+      toast('No se ha podido preparar el vídeo');
+      return;
+    }
+
+    var i = 0;
+    function paso() {
+      if (fallo) { terminar(); return; }
+      var lote = 0;
+      while (i <= last && lote < 6 && enc.encodeQueueSize < 8) {
+        paintAt(st, Math.min(i, total) / Math.max(1, total) * segs, segs);
+        var vf = new VideoFrame(st.cv, {
+          timestamp: Math.round(i * 1000000 / FPS),
+          duration: Math.round(1000000 / FPS)
+        });
+        enc.encode(vf, { keyFrame: i % (FPS * 2) === 0 });
+        vf.close();
+        i++; lote++;
+      }
+      if (i <= last) {
+        setExportBusy(true, 'Codificando… ' + Math.round(i / last * 100) + '%');
+        setTimeout(paso, 0);
+      } else {
+        enc.flush().then(terminar, terminar);
+      }
+    }
+
+    function terminar() {
+      try { enc.close(); } catch (e) {}
+      recording = false;
+      setExportBusy(false);
+      if (fallo || !samples.length || !avcC) {
+        toast('No se ha podido codificar el vídeo');
+        return;
+      }
+      var blob = buildMp4(st.W, st.H, 90000, Math.round(90000 / FPS), samples, avcC);
+      download(blob, 'jugada.mp4');
+      toast('Vídeo MP4 listo · ' + Math.round(blob.size / 1024) + ' KB');
+    }
+
+    paso();
   }
 
   function exportJSON() {
@@ -2284,12 +2490,11 @@
     var dlgExport = $('#dlg-export');
     function openExport() {
       var varios = doc.frames.length > 1;
-      $('#ex-video').disabled = !varios || !canRecord();
+      $('#ex-video').disabled = !varios;
       $('#ex-gif').disabled = !varios;
-      $('#ex-video-fmt').textContent = !varios
-        ? 'Necesita al menos dos fotogramas.'
-        : !canRecord() ? 'Este navegador no puede grabar vídeo.'
-        : (pickMime().indexOf('mp4') > -1 ? 'MP4, el que reproduce cualquier móvil.' : 'WebM: si tu móvil no lo abre, usa el GIF.');
+      $('#ex-video-fmt').textContent = varios
+        ? 'MP4, el que reproduce cualquier móvil.'
+        : 'Necesita al menos dos fotogramas.';
       dlgExport.showModal();
     }
     function exportar(fn) {
