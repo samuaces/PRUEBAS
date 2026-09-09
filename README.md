@@ -1,11 +1,11 @@
 # Pizarra Táctica ⚽
 
 Pizarra táctica de fútbol en el navegador, con material de entrenamiento y animación de
-la jugada por fotogramas. Más una landing page optimizada para buscadores.
+la jugada por fotogramas. Más una portada breve que la presenta y lleva a ella.
 
 Todo estático: HTML, CSS y JavaScript sin dependencias, sin build y sin servidor.
 
-- **Landing:** `index.html`
+- **Portada:** `index.html`
 - **Aplicación:** `app/index.html` + `app/board.css` + `app/board.js`
 
 ## Qué hace la pizarra
@@ -93,7 +93,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 
 ```
 .
-├── index.html                     Landing page (CSS crítico embebido, JSON-LD, OG)
+├── index.html                     Portada: qué hace, cómo funciona y el enlace a la pizarra
 ├── app/
 │   ├── index.html                 Interfaz de la pizarra
 │   ├── board.css                  Tema e interfaz
@@ -103,7 +103,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 ├── assets/
 │   ├── fonts/                     Outfit e Inter autoalojadas (OFL) + licencia
 │   ├── img/                       favicon, iconos PWA e imagen Open Graph 1200×630
-│   └── js/site.js                 JS de la landing (tema, menú, aparición progresiva)
+│   └── js/site.js                 JS de la portada (tema, menú, aparición progresiva)
 ├── dist/pizarra-tactica.html      La pizarra entera en un archivo (node tools/build-single.mjs)
 ├── tools/                         build-single.mjs (archivo único) y build-icons.mjs (marca e iconos)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
@@ -175,7 +175,7 @@ grandes, y la simple (campo y flecha) para la pestaña y las cabeceras, que es l
 único que sobrevive a 16 píxeles. Ambas se generan con `node tools/build-icons.mjs`.
 
 Tipografías **Outfit** (titulares) e **Inter** (texto), autoalojadas en formato variable
-`woff2` (subconjunto latino, ~80 KB) y precargadas. Cero peticiones a terceros. La landing
+`woff2` (subconjunto latino, ~80 KB) y precargadas. Cero peticiones a terceros. La portada
 tiene tema claro y oscuro con conmutador; la pizarra es siempre oscura.
 
 ## Trabajar en local
@@ -200,8 +200,8 @@ Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento
 
-- La landing se pinta con una sola petición: CSS embebido y JS diferido.
-- Sin JavaScript, la landing se ve y se navega igual.
+- La portada se pinta con una sola petición: CSS embebido y JS diferido.
+- Sin JavaScript, la portada se ve y se navega igual.
 - Sin cookies, sin analítica y sin llamadas externas. Lo que guardas en la pizarra vive en
   el `localStorage` de tu navegador y no viaja a ningún sitio.
 

@@ -19,7 +19,7 @@ aquí, más el trabajo manual que solo puedes hacer tú.
 |---|---|---|
 | `<title>` y `meta description` únicos | `index.html`, `app/index.html` | Son el titular y el texto que Google enseña en los resultados. Determinan el porcentaje de clic. |
 | `link rel="canonical"` | ambas páginas | Evita que el mismo contenido se indexe con varias URLs y se canibalice a sí mismo. |
-| Datos estructurados JSON-LD | `index.html` | `SoftwareApplication`, `FAQPage`, `WebSite` y `WebPage`. Habilitan resultados enriquecidos (precio, preguntas desplegables) que ocupan más espacio en la SERP. |
+| Datos estructurados JSON-LD | `index.html` | `SoftwareApplication`, `WebSite` y `WebPage`. El `FAQPage` se retiró al quitar la FAQ visible: el marcado sin contenido visible es motivo de penalización. |
 | Open Graph + Twitter Card + imagen 1200×630 | `index.html`, `assets/img/og-image.png` | Cada vez que alguien pega el enlace en WhatsApp, X o LinkedIn se ve una tarjeta con imagen. Multiplica el clic frente a un enlace pelado. |
 | `sitemap.xml` | raíz | Lista de URLs para enviar a Search Console y acelerar la indexación. |
 | `robots.txt` | raíz | Permite el rastreo, incluidos los bots de IA (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `OAI-SearchBot`). |
@@ -28,7 +28,7 @@ aquí, más el trabajo manual que solo puedes hacer tú.
 | Fuentes autoalojadas + CSS crítico embebido | `assets/fonts/`, `<style>` en línea | La página se pinta con **una sola petición HTML**: sin CSS externo, sin CDN, sin bloqueo de renderizado. Es lo que mueve el LCP de los Core Web Vitals. |
 | Cero dependencias y cero rastreo | todo el proyecto | Nada de jQuery, de fuentes de Google en caliente ni de scripts de terceros: menos peso, menos latencia y ningún banner de cookies. |
 | Sin valoraciones ni testimonios inventados | `index.html` | Marcar `AggregateRating` falso es motivo de acción manual por *spam de datos estructurados*. Por eso aquí no hay ninguno. |
-| La FAQ visible coincide con la del marcado | `index.html` | Google exige que el contenido de `FAQPage` esté visible en la página; si no coincide, ignora el marcado o penaliza. |
+| El marcado solo describe lo que se ve | `index.html` | Google exige que los datos estructurados reflejen contenido visible; por eso no hay `FAQPage` mientras la portada no tenga preguntas. |
 | Página 404 útil | `404.html` | Recupera al visitante perdido en lugar de expulsarlo. |
 | `site.webmanifest` + iconos | raíz, `assets/img/` | Instalable en el móvil y con icono propio en la pestaña. |
 
@@ -54,10 +54,18 @@ Solicitar indexación". Sin esto puedes tardar semanas en aparecer; con esto, ho
 Bing importa la configuración de Google en dos clics, y Bing es quien alimenta a ChatGPT.
 
 ### Paso 4 — Decidir por qué búsqueda quieres competir
-La landing está escrita alrededor de *"pizarra táctica de fútbol online gratis"*. Es una
-búsqueda con intención clara y competencia asumible. Comprueba en Search Console qué
-consultas te empiezan a traer impresiones y reescribe los `<h2>` y los párrafos hacia
-las que tengan impresiones pero pocos clics: ahí está el crecimiento fácil.
+La portada apunta a *"pizarra táctica de fútbol online"*: intención clara y competencia
+asumible. Comprueba en Search Console qué consultas te traen impresiones y reescribe los
+`<h2>` y los párrafos hacia las que tengan impresiones pero pocos clics: ahí está el
+crecimiento fácil.
+
+> **Aviso desde el rediseño de la portada.** La portada es ahora una presentación breve
+> —qué hace y cómo funciona—, no un texto largo de captación. Se quitaron la FAQ, los casos
+> de uso, la hoja de ruta y la guía extensa, que eran el grueso del texto indexable, y con
+> ellos el marcado `FAQPage`. Lo técnico (title, description, canonical, Open Graph,
+> sitemap, `SoftwareApplication`, rendimiento) sigue intacto, pero **con menos texto se
+> compite por menos búsquedas**. Si algún día quieres tráfico de buscadores en serio, el
+> camino no es volver a alargar la portada: es el paso 5, páginas propias por tema.
 
 ### Paso 5 — Más páginas, no más trucos
 Una sola URL compite por un puñado de búsquedas. Diez páginas útiles compiten por cientos.
@@ -103,7 +111,7 @@ existir para el buscador, y recuperarse cuesta meses.
 ## 4. Comprobaciones antes de dar por bueno un cambio
 
 - **PageSpeed Insights** (`pagespeed.web.dev`): objetivo, verde en las tres métricas.
-- **Prueba de resultados enriquecidos** de Google: debe detectar `SoftwareApplication` y `FAQPage`.
+- **Prueba de resultados enriquecidos** de Google: debe detectar `SoftwareApplication`.
 - **Validador de Schema.org** (`validator.schema.org`): cero errores.
 - **Depurador de tarjetas** de Facebook / X: comprueba que la imagen OG carga.
 - **Lighthouse** en el navegador: apartados de accesibilidad y SEO al 100.
