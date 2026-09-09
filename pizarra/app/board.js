@@ -61,6 +61,10 @@
     text:     { r: 1.2,                rot: true,  label: 'Texto' }
   };
 
+  // Colores corporativos que se pintan en el lienzo. El rojo destaca sobre el
+  // césped mucho más que el verde de antes, que se confundía con el campo.
+  var SEL = '#FF2E55';
+
   var COLORS = ['#FFFFFF', '#F1C40F', '#E03B2F', '#00E27E', '#4CC2FF', '#E67E22', '#B36BE0', '#1ABC9C'];
 
   var FORMATIONS = {
@@ -879,7 +883,7 @@
     c.save();
     c.translate(o.x * u + t.ox, o.y * u + t.oy);
     c.rotate((o.rot || 0) * Math.PI / 180);
-    c.strokeStyle = '#00E27E';
+    c.strokeStyle = SEL;
     c.lineWidth = 2;
     c.setLineDash([5, 4]);
     if (k.r != null) {
@@ -892,10 +896,10 @@
     if (k.rot) {
       var d = objExtent(o) * u + HANDLE_GAP;
       c.beginPath(); c.moveTo(0, -(objExtent(o) * u + 7)); c.lineTo(0, -d + HANDLE_R); c.stroke();
-      c.fillStyle = '#00E27E';
+      c.fillStyle = SEL;
       c.beginPath(); c.arc(0, -d, HANDLE_R, 0, 7); c.fill();
       // icono de giro dentro del tirador
-      c.strokeStyle = '#04120B'; c.lineWidth = 1.8; c.lineCap = 'round';
+      c.strokeStyle = '#FFFFFF'; c.lineWidth = 1.8; c.lineCap = 'round';
       c.beginPath(); c.arc(0, -d, HANDLE_R * 0.46, 0.5, 5.2); c.stroke();
       c.beginPath();
       c.moveTo(HANDLE_R * 0.16, -d - HANDLE_R * 0.56);
@@ -911,8 +915,8 @@
     var x = Math.min(d.x0, d.x1) * t.s + t.ox, y = Math.min(d.y0, d.y1) * t.s + t.oy;
     var w = Math.abs(d.x1 - d.x0) * t.s, h = Math.abs(d.y1 - d.y0) * t.s;
     c.save();
-    c.fillStyle = 'rgba(0,226,126,.12)';
-    c.strokeStyle = '#00E27E';
+    c.fillStyle = 'rgba(255,46,85,.14)';
+    c.strokeStyle = SEL;
     c.lineWidth = 1.6;
     c.setLineDash([6, 4]);
     c.fillRect(x, y, w, h);
@@ -922,7 +926,7 @@
 
   function drawGroup(c, t) {
     c.save();
-    c.strokeStyle = '#00E27E';
+    c.strokeStyle = SEL;
     c.lineWidth = 2;
     c.setLineDash([4, 4]);
     ui.multi.forEach(function (id) {
@@ -1863,7 +1867,7 @@
   var CARD_CSS = [
     '@page{size:A4;margin:14mm}',
     '*{box-sizing:border-box}',
-    ':root{--ink:#111821;--soft:#5C6879;--line:#D3DAE4;--hair:#E7ECF2;--wash:#F5F8FA;--acc:#0A7A4B}',
+    ':root{--ink:#111821;--soft:#5C6879;--line:#D3DAE4;--hair:#E7ECF2;--wash:#F5F8FA;--acc:#B3082B}',
     'html,body{margin:0;padding:0}',
     'body{font:11.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;',
       'color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}',
@@ -1873,7 +1877,7 @@
     /* la página como columna: lo que sobra se lo queda el cuadro de notas */
     '.page{min-height:266mm;display:flex;flex-direction:column;gap:10px}',
     '.spine{flex:none;height:4px;border-radius:3px;',
-      'background:linear-gradient(90deg,var(--acc),#14A86A 55%,#9BDCC0)}',
+      'background:linear-gradient(90deg,var(--acc),#E11A41 55%,#F6AABA)}',
 
     /* cabecera */
     'header{flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;',
@@ -1933,8 +1937,8 @@
       'border:1px solid var(--line);border-radius:9px;break-inside:avoid}',
     '.panel > h2{margin:0;padding:7px 13px;background:var(--wash);border-bottom:1px solid var(--hair);',
       'font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}',
-    '.panel.key{border-color:#BCE0CE}',
-    '.panel.key > h2{background:#EAF6EF;border-bottom-color:#CFE8DA}',
+    '.panel.key{border-color:#EFC6D0}',
+    '.panel.key > h2{background:#FDF1F4;border-bottom-color:#F3D8DF}',
     '.pbody{flex:1;padding:11px 13px}',
     '.pbody p{margin:0 0 5px;hyphens:auto}',
     '.pbody p:last-child{margin-bottom:0}',
