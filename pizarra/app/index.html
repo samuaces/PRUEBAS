@@ -562,14 +562,39 @@
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
 
-    <p class="form-group">Quién eres</p>
-    <p class="block-note" style="margin:0 0 10px">Firma los ejercicios que compartas. Se queda
-      en este dispositivo: no hay que registrarse en ningún sitio ni dar ningún correo.</p>
-    <div class="form-grid">
-      <label class="field"><span>Tu nombre</span>
-        <input type="text" id="cfg-nombre" maxlength="60" placeholder="Samu" autocomplete="name"></label>
-      <label class="field"><span>Club <small>opcional</small></span>
-        <input type="text" id="cfg-club" maxlength="60" placeholder="CD Ejemplo"></label>
+    <p class="form-group">Tu cuenta</p>
+    <div id="cuenta-fuera">
+      <p class="block-note" style="margin:0 0 10px">Con cuenta, lo que compartas se sube solo a
+        la biblioteca común, firmado con tu nombre, y tus ejercicios te siguen a cualquier
+        dispositivo. Sin cuenta la pizarra funciona igual.</p>
+      <div class="form-grid">
+        <label class="field wide"><span>Tu correo</span>
+          <input type="email" id="cuenta-email" autocomplete="email" inputmode="email"
+                 placeholder="entrenador@club.com"></label>
+        <label class="field"><span>Contraseña <small>mínimo 6 caracteres</small></span>
+          <input type="password" id="cuenta-clave" autocomplete="current-password"
+                 placeholder="••••••"></label>
+        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-alta-nombre" maxlength="60" placeholder="Samu"></label>
+      </div>
+      <button type="button" class="tbtn primary" id="cuenta-entrar"
+              style="margin-top:10px">Entrar o crear cuenta</button>
+      <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+    </div>
+
+    <div id="cuenta-dentro" hidden>
+      <p class="block-note" style="margin:0 0 10px">Has entrado como
+        <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
+      <div class="form-grid">
+        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
+        <label class="field"><span>Club <small>opcional</small></span>
+          <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
+      </div>
+      <div class="lib-linea" style="margin-top:10px">
+        <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
+        <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+      </div>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>

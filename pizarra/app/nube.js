@@ -57,7 +57,9 @@
      'Ese enlace ya se ha usado o ha caducado. Pide otro y ábrelo en este mismo móvil.'],
     [/signups? not allowed|disabled/i,
      'El proyecto no admite cuentas nuevas ahora mismo.'],
-    [/user already registered/i, 'Ese correo ya tiene cuenta: pide el enlace de entrada.'],
+    [/user already registered/i, 'Ese correo ya tiene cuenta. Escribe su contraseña para entrar.'],
+    [/invalid login credentials/i, 'Ese correo y esa contraseña no coinciden.'],
+    [/password.*(6|short|least)/i, 'La contraseña tiene que tener al menos 6 caracteres.'],
     [/failed to fetch|networkerror|load failed/i,
      'No hay manera de llegar al servidor. Puede ser tu conexión.']
   ];
@@ -202,21 +204,49 @@
 
   /* ---- acciones -------------------------------------------------------- */
 
-  // La dirección de vuelta va en la QUERY, no en el cuerpo. Metida en el
-  // cuerpo (que es como se le pasa a la librería de Supabase, no a su API)
-  // el servidor la ignora sin decir nada y manda el enlace a la dirección
-  // por defecto del proyecto, que casi nunca es la de la aplicación.
-  function entra(email, volverA) {
+  // Registro y entrada por contraseña. Sin enlaces por correo: el correo del
+  // plan gratuito de Supabase deja mandar dos o tres al día y como puerta de
+  // entrada era inservible. Aquí se entra al instante o se dice por qué no.
+  function entra(email, clave) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    var vuelta = volverA || location.href.split('#')[0];
-    return fetch(BASE + '/auth/v1/otp?redirect_to=' + encodeURIComponent(vuelta), {
+    return fetch(BASE + '/auth/v1/token?grant_type=password', {
+      method: 'POST', headers: cabeceras(false),
+      body: JSON.stringify({ email: String(email || '').trim(), password: String(clave || '') })
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return r.json().then(function (d) { guardaTokens(d); avisa(); return true; });
+    });
+  }
+
+  function registra(email, clave, nombre) {
+    if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    return fetch(BASE + '/auth/v1/signup', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
-        email: String(email || '').trim(),
-        create_user: true,
-        gotrue_meta_security: {}
+        email: String(email || '').trim(), password: String(clave || ''),
+        data: { nombre: String(nombre || '').trim() }
       })
-    }).then(function (r) { return r.ok ? true : fallo(r); });
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return r.json().then(function (d) {
+        if (d && d.access_token) { guardaTokens(d); avisa(); return { dentro: true }; }
+        // El proyecto exige confirmar el correo: hay que apagarlo en el panel.
+        var e = new Error('Tu proyecto de Supabase exige confirmar el correo, y su ' +
+                          'servicio de correo apenas manda unos pocos al día. Apaga ' +
+                          '«Confirm email» en Authentication → Providers → Email.');
+        e.confirmacion = true;
+        throw e;
+      });
+    });
+  }
+
+  // Entra si la cuenta existe, y si no, la crea. Para quien la usa es un botón.
+  function entraOCrea(email, clave, nombre) {
+    return entra(email, clave).then(function () { return { dentro: true, nueva: false }; },
+      function (e) {
+        if (!/credential|invalid login|not found/i.test(e.crudo || e.message)) throw e;
+        return registra(email, clave, nombre).then(function () { return { dentro: true, nueva: true }; });
+      });
   }
 
   function sale() {
@@ -312,7 +342,7 @@
     vuelta: function () { var v = vuelta; vuelta = null; return v; },
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
-    entra: entra, sale: sale, perfil: perfil,
+    entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura
