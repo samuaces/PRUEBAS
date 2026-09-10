@@ -250,17 +250,22 @@ async function run(w,d){
   ok('se puede borrar el grupo entero',!d.getElementById('inspector').classList.contains('show'));
 
   // --- hoja de sesión ---
-  var opened=null,oldOpen=w.open;
-  w.open=function(){ opened={html:'',document:{write:function(h){opened.html+=h;},close:function(){}},
-    focus:function(){},print:function(){opened.printed=true;}}; return opened; };
+  // Ya no se abre una pestaña nueva: la bloquean el iPhone y los navegadores
+  // que van dentro de otra aplicación, y el botón se quedaba muerto.
   d.getElementById('ex-sheet').click();await wait(400);
   ok('la hoja de sesión pide un título',d.getElementById('dlg-ask').open);
   d.getElementById('ask-ok').click();
-  await wait(900);
-  w.open=oldOpen;
-  ok('la hoja se genera con los fotogramas',!!opened&&/data:image\/png/.test(opened.html),
-     opened?String(opened.html.length)+' caracteres':'no se abrió');
-  ok('la hoja se manda a imprimir',!!opened&&opened.printed===true);
+  await wait(2400);
+  var hojaM=[].filter.call(d.querySelectorAll('iframe'),function(m){
+    return m.getAttribute('title')==='Hoja para imprimir'&&!m.id;})[0];
+  ok('la hoja se genera con los fotogramas',
+     !!hojaM&&hojaM.contentDocument.querySelectorAll('img').length>0,
+     hojaM?'marco listo':'no se preparó');
+  ok('la hoja sale a tamaño de folio',!!hojaM&&/210mm/.test(hojaM.style.width),
+     hojaM?hojaM.style.width:'-');
+  if(hojaM&&hojaM.parentNode)hojaM.parentNode.removeChild(hojaM);
+  if(d.getElementById('dlg-hoja').open)d.getElementById('dlg-hoja').close();
+  await wait(200);
 
   // --- ficha del ejercicio ---
   d.getElementById('card-edit').click();await wait(120);
@@ -297,44 +302,64 @@ async function run(w,d){
   ok('rellenar no pisa lo que ya has escrito',
      (d.getElementById('f-auto').click(),d.getElementById('f-titulo').value==='Salida de balón bajo presión'));
 
-  // una ficha ya rellenada tiene que poder volver a abrirse desde Exportar,
-  // que en el móvil es el único camino a mano
+  // una ficha ya rellenada tiene que poder volver a abrirse; el botón de la
+  // barra de arriba es ahora el único camino, y no imprime sola
   d.querySelector('#dlg-card [data-close]').click();await wait(150);
   var imprimio=false,oldOpen3=w.open;
   w.open=function(){ imprimio=true; return {document:{write:function(){},close:function(){}},
     focus:function(){},print:function(){}}; };
-  d.getElementById('export').click();await wait(150);
-  var nota=d.getElementById('ex-card-nota').textContent;
-  d.getElementById('ex-card').click();await wait(400);
+  d.getElementById('card-edit').click();await wait(400);
   w.open=oldOpen3;
-  ok('la ficha rellenada se vuelve a abrir desde Exportar, no se imprime sola',
+  ok('la ficha rellenada se vuelve a abrir, no se imprime sola',
      d.getElementById('dlg-card').open&&!imprimio,
      'diálogo '+d.getElementById('dlg-card').open+' · imprimió '+imprimio);
-  ok('la hoja de exportación avisa de que la ficha ya está rellenada',/rellenada/.test(nota),nota);
+  ok('la ficha conserva lo que ya tenía escrito',
+     d.getElementById('f-titulo').value==='Salida de balón bajo presión',
+     d.getElementById('f-titulo').value);
 
-  var fichaOut=null,oldOpen2=w.open;
-  w.open=function(){ fichaOut={html:'',document:{write:function(h){fichaOut.html+=h;},close:function(){}},
-    focus:function(){},print:function(){fichaOut.printed=true;}}; return fichaOut; };
-  d.getElementById('f-imprimir').click();await wait(900);
+  // La ficha se imprime desde un marco de folio del propio documento, sin
+  // abrir pestañas: las bloquean el iPhone y los navegadores incrustados.
+  var emerg=0,oldOpen2=w.open;
+  w.open=function(){ emerg++; return null; };
+  d.getElementById('f-imprimir').click();await wait(2600);
   w.open=oldOpen2;
-  ok('la ficha se imprime',!!fichaOut&&fichaOut.printed===true);
+  var fichaM=[].filter.call(d.querySelectorAll('iframe'),function(m){
+    return m.getAttribute('title')==='Hoja para imprimir'&&!m.id;})[0];
+  var fh=fichaM?fichaM.contentDocument.documentElement.innerHTML:'';
+  ok('imprimir la ficha no abre ninguna pestaña nueva',emerg===0,emerg+' intentos');
+  ok('la ficha se prepara para imprimir',!!fichaM);
   ok('la ficha lleva el dibujo de la pizarra',
-     !!fichaOut&&/<figure class="shot"><img src="data:image\/png/.test(fichaOut.html));
+     !!fichaM&&!!fichaM.contentDocument.querySelector('.shot img[src^="data:image/png"]'));
   ok('la ficha se maqueta por bloques delimitados',
-     !!fichaOut&&/class="page"/.test(fichaOut.html)&&(fichaOut.html.match(/class="panel/g)||[]).length>=4,
-     fichaOut?(fichaOut.html.match(/class="panel/g)||[]).length+' bloques':'sin ficha');
+     !!fichaM&&!!fichaM.contentDocument.querySelector('.page')&&
+     fichaM.contentDocument.querySelectorAll('.panel').length>=4,
+     fichaM?fichaM.contentDocument.querySelectorAll('.panel').length+' bloques':'sin ficha');
   ok('la ficha lleva el título y el objetivo',
-     !!fichaOut&&/Salida de balón bajo presión/.test(fichaOut.html)&&/pase interior/.test(fichaOut.html));
+     /Salida de balón bajo presión/.test(fh)&&/pase interior/.test(fh));
   ok('cada consigna es un punto de la lista',
-     !!fichaOut&&(fichaOut.html.match(/<li>/g)||[]).length>=3,
-     fichaOut?(fichaOut.html.match(/<li>/g)||[]).length+' puntos':'sin ficha');
-  ok('la ficha recoge las medidas del campo',!!fichaOut&&/105 × 68 m/.test(fichaOut.html));
+     !!fichaM&&fichaM.contentDocument.querySelectorAll('li').length>=3,
+     fichaM?fichaM.contentDocument.querySelectorAll('li').length+' puntos':'sin ficha');
+  ok('la ficha recoge las medidas del campo',/105 × 68 m/.test(fh));
+  var medida=(function(){
+     if(!fichaM)return {ok:false,det:'sin ficha'};
+     var pg=fichaM.contentDocument.querySelector('.page');
+     var folio=parseFloat(fichaM.contentWindow.getComputedStyle(pg).minHeight);
+     var previo=pg.style.minHeight;pg.style.minHeight='0';
+     var natural=pg.getBoundingClientRect().height;pg.style.minHeight=previo;
+     return {ok:natural<=folio+2,
+       det:pg.className+' · '+Math.round(natural)+' de '+Math.round(folio)+
+           ' · '+fichaM.contentDocument.images.length+' imgs'};})();
+  ok('la ficha cabe en una sola página',medida.ok,medida.det);
+  if(fichaM&&fichaM.parentNode)fichaM.parentNode.removeChild(fichaM);
+  if(d.getElementById('dlg-hoja').open)d.getElementById('dlg-hoja').close();
+  await wait(200);
 
   // --- hoja de exportación ---
   d.getElementById('export').click();await wait(150);
   ok('el botón de exportar abre la hoja de opciones',d.getElementById('dlg-export').open);
-  ok('la hoja ofrece imagen, ficha, hoja, vídeo, GIF y archivo',
-     ['ex-png','ex-card','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
+  ok('la hoja ofrece imagen, hoja de sesión, vídeo, GIF y archivo',
+     ['ex-png','ex-sheet','ex-video','ex-gif','ex-json'].every(function(i){return !!d.getElementById(i);}));
+  ok('la ficha ya no se repite dentro de Exportar',!d.getElementById('ex-card'));
   d.querySelector('#dlg-export [data-close]').click();await raf();
 
   // --- la exportación de vídeo siempre promete MP4, nunca WebM ---
@@ -510,12 +535,18 @@ async function run(w,d){
 
   q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(250);
   d.querySelectorAll('.lib-tab')[1].click();await wait(300);
-  ok('la pestaña de las tuyas explica que están vacías',
-     !!d.querySelector('.lib-vacio')&&/Guardar/.test(d.querySelector('.lib-vacio').textContent));
-  ok('lo guardado no se mezcla con lo general',
-     /^0 ejercicios/.test(d.getElementById('lib-cuenta').textContent),
+  var titulos=function(){return [].map.call(d.querySelectorAll('.lib-card b'),
+    function(b){return b.textContent;});};
+  ok('lo que guardas aparece en «Mías»',
+     titulos().indexOf('Salida de balón bajo presión')>=0,titulos().join(' · '));
+  ok('en «Mías» solo está lo tuyo, no el catálogo',
+     d.querySelectorAll('.lib-card').length===1,
      d.getElementById('lib-cuenta').textContent);
   d.querySelectorAll('.lib-tab')[0].click();await wait(300);
+  ok('y lo tuyo no se cuela en la biblioteca general',
+     titulos().indexOf('Salida de balón bajo presión')<0&&
+     d.querySelectorAll('.lib-card').length===total,
+     d.getElementById('lib-cuenta').textContent);
   var selP=d.getElementById('lib-pitch');
   selP.value='futsal';selP.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
   var soloSala=[].every.call(d.querySelectorAll('.lib-tags'),function(t){return /sala/i.test(t.textContent);});
@@ -534,8 +565,16 @@ async function run(w,d){
      /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
      d.getElementById('lib-nota').textContent);
   // --- sin servidor configurado, la nube no se nota ---
-  ok('sin nube configurada no aparece nada de cuentas',
-     d.getElementById('cfg-cuenta-bloque').hidden&&d.getElementById('compartir').hidden);
+  ok('sin nube configurada no se pide ninguna cuenta',
+     d.getElementById('cfg-cuenta-bloque').hidden);
+  // Compartir se ve siempre: si desaparece, quien lo busca cree que la
+  // aplicación no le deja compartir. Sin servidor, lo explica.
+  ok('el botón de compartir sigue estando',!d.getElementById('compartir').hidden);
+  d.getElementById('compartir').click();await wait(350);
+  ok('y sin servidor explica por qué no se puede todavía',
+     d.getElementById('dlg-ask').open&&/no está encendida/.test(d.getElementById('ask-title').textContent),
+     d.getElementById('ask-title').textContent);
+  d.querySelector('#dlg-ask [data-close]').click();await wait(200);
 
   // abrir un ejercicio trae pizarra y ficha
   d.getElementById('lib-pitch').value='futsal';
@@ -695,6 +734,90 @@ async function run(w,d){
   ok('cerrar se dice igual en todas partes',
      cierres.filter(function(t){return t!=='Cerrar'&&t!=='Cancelar';}).length===0,
      cierres.join(' · '));
+
+  // --- cada cosa en un solo sitio ---
+  // Había dos «Ajustes» a la vez en el móvil (el engranaje y una fila del
+  // panel), la ficha estaba en el panel y dentro de Exportar, y la hoja de
+  // sesión salía dos veces.
+  function cuantos(fn){return [].filter.call(d.querySelectorAll('button,label'),fn).length;}
+  ok('los ajustes están en un solo sitio',
+     cuantos(function(b){return /^ajustes$/i.test((b.textContent||'').trim())||
+       /^ajustes$/i.test(b.getAttribute('aria-label')||'');})===1);
+  ok('la ayuda está en un solo sitio',
+     cuantos(function(b){return /cómo se usa/i.test((b.textContent||'').trim());})===1);
+  ok('la ficha está en un solo sitio',
+     cuantos(function(b){return /^ficha( del ejercicio)?$/i.test((b.textContent||'').trim());})===1);
+  ok('la hoja de sesión está en un solo sitio',
+     cuantos(function(b){return /hoja de sesión/i.test((b.textContent||'').trim());})===1);
+  ok('la ficha tiene sitio propio en la barra de arriba',
+     !!d.querySelector('.topbar #card-edit'));
+
+  // --- ningún botón muerto en el panel ni en la barra ---
+  // «Hoja de sesión para imprimir» llevaba tiempo en el panel sin un solo
+  // oyente detrás: se pulsaba y no pasaba nada. Se comprueba contra el motor.
+  var motor=await fetch('../app/board.js').then(function(r){return r.text();});
+  var huerfanos=[].filter.call(
+    d.querySelectorAll('.topbar button[id], .aside .row-btn[id]'),
+    function(b){return motor.indexOf("'#"+b.id+"'")<0&&motor.indexOf('"#'+b.id+'"')<0;})
+    .map(function(b){return '#'+b.id;});
+  ok('ningún botón de la barra o del panel se queda sin oyente',
+     huerfanos.length===0,huerfanos.join(', '));
+
+  // --- la hoja del móvil no se mete debajo de la barra de pestañas ---
+  var marco2=w.frameElement;marco2.style.width='390px';await wait(650);
+  d.querySelectorAll('.tab')[2].click();await wait(500);
+  var caja=d.getElementById('aside').getBoundingClientRect();
+  var barra=d.querySelector('.tabbar').getBoundingClientRect();
+  ok('la hoja se apoya encima de la barra, no debajo',caja.bottom<=barra.top+0.5,
+     Math.round(caja.bottom-barra.top)+' px de solape');
+  var selVis=d.getElementById('form-away').getBoundingClientRect();
+  ok('el último control de la sección se ve entero',selVis.bottom<=caja.bottom+0.5,
+     Math.round(selVis.bottom-caja.bottom)+' px fuera');
+  d.getElementById('scrim').click();await wait(300);
+  marco2.style.width='1200px';await wait(550);
+
+  // --- guardar la ficha guarda el ejercicio ---
+  // Antes se rellenaba la ficha, se le daba a Guardar y en la biblioteca no
+  // había nada: la ficha se quedaba dentro del documento y ya está.
+  w.localStorage.removeItem('pt-boards');
+  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('f-titulo').value='Prueba de guardado';
+  d.getElementById('f-guardar').click();await wait(500);
+  var guardadas=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
+  ok('guardar la ficha deja el ejercicio en la biblioteca',
+     !!guardadas['Prueba de guardado'],Object.keys(guardadas).join(','));
+  ok('y guarda la pizarra entera con ella',
+     !!(guardadas['Prueba de guardado']&&guardadas['Prueba de guardado'].doc.frames.length));
+  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('f-guardar').click();await wait(500);
+  ok('volver a guardarla no crea una copia',
+     Object.keys(JSON.parse(w.localStorage.getItem('pt-boards')||'{}')).length===1);
+  ok('el nombre que propone Guardar es el de la ficha',
+     (function(){d.getElementById('save').click();
+      var v=d.getElementById('ask-input').value;
+      d.querySelector('#dlg-ask [data-close]').click();
+      return v==='Prueba de guardado';})());
+  await wait(300);
+  w.localStorage.removeItem('pt-boards');
+
+  // --- imprimir sin ventanas emergentes ---
+  // En el iPhone y dentro de otras aplicaciones las bloquean, y el botón se
+  // quedaba muerto. Ahora se imprime desde un marco del propio documento.
+  var emergentes=0,abrirReal=w.open;
+  w.open=function(){emergentes++;return abrirReal.apply(w,arguments);};
+  d.getElementById('export').click();await wait(300);
+  d.getElementById('ex-sheet').click();await wait(400);
+  d.getElementById('ask-ok').click();await wait(2500);
+  var marcoImp=[].filter.call(d.querySelectorAll('iframe'),function(m){
+    return m.getAttribute('title')==='Hoja para imprimir'&&!m.id;})[0];
+  ok('imprimir no abre ninguna ventana emergente',emergentes===0,emergentes+' intentos');
+  ok('la hoja de sesión se prepara en un marco de folio',!!marcoImp);
+  ok('y lleva dentro el dibujo de la pizarra',
+     !!marcoImp&&marcoImp.contentDocument.querySelectorAll('img').length>0);
+  w.open=abrirReal;
+  if(marcoImp&&marcoImp.parentNode)marcoImp.parentNode.removeChild(marcoImp);
+  if(d.getElementById('dlg-hoja').open)d.getElementById('dlg-hoja').close();
+  await wait(200);
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }

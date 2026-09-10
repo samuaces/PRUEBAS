@@ -113,6 +113,12 @@ el objetivo destacado, el desarrollo, y consignas, normas y progresiones numerad
 columnas. Si la jugada tiene varios fotogramas, añade la secuencia en miniatura, y al pie
 queda un cuadro rayado de observaciones que se estira hasta llenar el folio.
 
+No se abre una pestaña nueva para imprimir: la hoja se compone en un marco de tamaño folio
+dentro del propio documento. Las ventanas emergentes las bloquean el iPhone, los navegadores
+que van dentro de otra aplicación y los marcos con permisos recortados, y allí el botón se
+quedaba muerto. Si hasta eso está capado, la hoja se enseña dentro de la aplicación para
+poder guardarla desde el navegador.
+
 Antes de imprimir, la hoja **se mide a sí misma** y elige entre tres maquetas: la normal;
 la **ancha**, con el esquema a todo el ancho y los datos debajo, cuando iba a sobrar más de
 un palmo de papel; y la **apretada**, que estrecha el esquema y recorta el aire cuando la
@@ -283,15 +289,18 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-Dos baterías, 178 comprobaciones, que se lanzan juntas con `node tests/run-headless.mjs`.
+Dos baterías, 199 comprobaciones, que se lanzan juntas con `node tests/run-headless.mjs`.
 
-`tests/pizarra.test.html` son 128 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` son 149 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
 la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la consistencia entre menús, que cada material se dibuje como lo que es, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
-formaciones y la exportación.
+formaciones y la exportación. Entre ellas, las que evitan que vuelvan tres averías
+concretas: que ningún botón de la barra o del panel se quede sin oyente detrás (la hoja de
+sesión llevaba tiempo así), que la hoja del móvil se apoye encima de la barra de pestañas y
+no debajo, y que guardar la ficha deje de verdad el ejercicio en la biblioteca.
 
 `tests/nube.test.html` son otras 50 sobre la biblioteca común, con un Supabase de mentira
 delante: que se recoja la sesión del enlace del correo y se limpie la dirección, que el testigo

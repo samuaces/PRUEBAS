@@ -65,6 +65,7 @@
     <div class="group">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
+      <button class="tbtn" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
       <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
@@ -75,7 +76,6 @@
       <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
-      <button class="tbtn" id="help" title="Cómo se usa y atajos de teclado" aria-label="Ayuda">?</button>
     </div>
   </header>
 
@@ -223,29 +223,13 @@
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
             Instalar en este dispositivo
           </button>
-          <button class="row-btn sm-only" id="cfg-sm">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.6v1.8M10 15.6v1.8M17.4 10h-1.8M4.4 10H2.6M15.2 4.8l-1.3 1.3M6.1 13.9l-1.3 1.3M15.2 15.2l-1.3-1.3M6.1 6.1L4.8 4.8"/></svg>
-            Ajustes
-          </button>
-          <button class="row-btn sm-only" id="help-sm">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
-            Cómo se usa
-          </button>
-          <button class="row-btn" id="card-edit">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4"/></svg>
-            Ficha del ejercicio
-          </button>
-          <button class="row-btn" id="compartir" hidden>
+          <button class="row-btn" id="compartir">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
             Compartir en la biblioteca
           </button>
-          <button class="row-btn" id="sheet">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8v4H6z"/><path d="M6 13H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2"/><path d="M6 12h8v5H6z"/></svg>
-            Hoja de sesión para imprimir
-          </button>
-          <button class="row-btn sm-only" id="json-sm">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
-            Exportar en JSON
+          <button class="row-btn" id="help">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
+            Cómo se usa
           </button>
           <button class="row-btn" id="clear">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
@@ -344,12 +328,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 3-2 4 4"/></svg>
       </span>
       <span class="ex-txt"><b>Imagen PNG</b><small>Para el informe o el grupo del equipo. 2400 px.</small></span>
-    </button>
-    <button class="ex" id="ex-card">
-      <span class="ex-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-      </span>
-      <span class="ex-txt"><b>Ficha del ejercicio</b><small id="ex-card-nota">Una página con el dibujo, los objetivos, las consignas y las normas.</small></span>
     </button>
     <button class="ex" id="ex-sheet">
       <span class="ex-ico">
@@ -617,6 +595,20 @@
         </div>
       </div>
     </div>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<!-- Cuando el navegador no deja imprimir solo (el iPhone dentro de otra
+     aplicación, un marco con permisos recortados), al menos la hoja se ve. -->
+<dialog id="dlg-hoja" class="wide" aria-labelledby="dlg-hoja-t">
+  <div class="dhead"><h3 id="dlg-hoja-t">Tu hoja</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="block-note" style="margin:0 0 12px">Este navegador no deja lanzar la impresión
+      desde la página. La hoja está lista aquí debajo: imprímela o guárdala en PDF con el botón
+      de compartir del navegador.</p>
+    <iframe id="hoja-marco" title="Hoja para imprimir"></iframe>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>

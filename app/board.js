@@ -1925,10 +1925,22 @@
     return c;
   }
 
+  // Guardar la ficha guarda el ejercicio entero. Antes solo se quedaba dentro
+  // del documento abierto: rellenabas la ficha, le dabas a Guardar, y al ir a
+  // la biblioteca no había nada. Si la ficha tiene título, ese es el nombre, y
+  // volver a guardar actualiza la misma entrada en vez de llenarlo de copias.
   function saveCard() {
     readCard();
     commit();
-    toast('Ficha guardada con la pizarra');
+    var titulo = (doc.card && doc.card.titulo || '').trim();
+    if (!titulo) { toast('Ficha guardada · ponle un título para tenerla en la biblioteca'); return; }
+    var todas = savedBoards();
+    var nueva = !todas[titulo];
+    todas[titulo] = { at: Date.now(), doc: doc };
+    if (!writeBoards(todas)) { toast('Ficha guardada, pero no cabe en el almacenamiento del navegador'); return; }
+    delete libMini['mia:' + titulo];
+    toast(nueva ? '«' + titulo + '» guardado en tu biblioteca'
+                : '«' + titulo + '» actualizado en tu biblioteca');
   }
 
   function autofillCard() {
@@ -2017,6 +2029,12 @@
     '.page.compacta .seq figcaption{padding:3px 8px}',
     '.page.compacta .grow{min-height:12mm}',
     '.page.compacta header{padding-bottom:9px}',
+    /* Tercer nivel, para las fichas más cargadas: el esquema se estrecha, los
+       cuerpos se aprietan y el cuadro de observaciones se reduce al mínimo.
+       Sigue siendo legible, y sobre todo sigue cabiendo en un folio. */
+    '.page.aprieta{gap:6px}',
+    '.page.aprieta .pbody{padding:7px 10px}',
+    '.page.aprieta .grow{min-height:9mm}',
 
     /* los datos, en celdas con filete de un pelo */
     '.stats{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);',
@@ -2131,9 +2149,7 @@
           '" alt="Fotograma ' + (i + 1) + '"><figcaption>Fotograma ' + (i + 1) + '</figcaption></figure>';
       }).join('') + '</div>') : '';
 
-    var win = window.open('', '_blank');
-    if (!win) { toast('Permite las ventanas emergentes para imprimir la ficha'); return; }
-    win.document.write(
+    imprime(
       '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
       '<title>' + esc(titulo) + '</title><style>' + CARD_CSS + '</style></head><body><div class="page">' +
       '<div class="spine"></div>' +
@@ -2148,15 +2164,104 @@
       fila + seq +
       '<section class="panel grow"><h2>Observaciones</h2><div class="pbody ruled"></div></section>' +
       '<footer><span>Pizarra Táctica</span><span>' + esc(fecha) + '</span></footer>' +
-      '</div></body></html>');
-    win.document.close();
-    win.focus();
-    setTimeout(function () { encajarCard(win); win.print(); }, 400);
+      '</div></body></html>',
+      encajarCard);
   }
 
   // La hoja se mide a sí misma y elige maqueta. Si sobra más de un palmo de
   // folio, se va a la ancha (esquema a todo el ancho); si no cabe, a la
   // apretada. Los márgenes no se tocan en ningún caso.
+  /* -------------------------------------------------------------------------
+     Imprimir sin ventana emergente.
+
+     Abrir una pestaña nueva parecía lo natural, pero lo bloquean el iPhone, los
+     navegadores que van dentro de otra aplicación y los marcos con permisos
+     recortados: allí el botón no hacía nada. Se imprime desde un iframe oculto
+     del propio documento, que funciona en todos ellos y además le da a la hoja
+     un ancho de folio exacto, así que la maqueta se mide siempre igual.
+
+     Si hasta eso está capado, queda el último recurso: enseñar la hoja dentro
+     de la aplicación para que se pueda imprimir o guardar desde el navegador.
+     ------------------------------------------------------------------------- */
+  var marcoImpresion = null;
+
+  function imprime(html, antes) {
+    if (marcoImpresion && marcoImpresion.parentNode) marcoImpresion.parentNode.removeChild(marcoImpresion);
+    var m = document.createElement('iframe');
+    marcoImpresion = m;
+    m.setAttribute('aria-hidden', 'true');
+    m.setAttribute('title', 'Hoja para imprimir');
+    // Tamaño de folio: así lo que se mide es lo que se imprime.
+    m.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:0;' +
+                      'visibility:hidden';
+    document.body.appendChild(m);
+
+    var win = m.contentWindow;
+    try {
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    } catch (e) { verHoja(html); return; }
+
+    // Hay que esperar a que las imágenes estén dentro: la hoja se mide a sí
+    // misma para elegir maqueta, y midiéndola sin el dibujo salen las cuentas
+    // mal y se va a dos páginas.
+    esperaImagenes(win, function () {
+      // Si el navegador abre el diálogo de impresión avisa antes; es la única
+      // manera de saber si la llamada ha servido de algo o la han ignorado.
+      var arranco = false;
+      var apunta = function () { arranco = true; };
+      try {
+        if (antes) antes(win);
+        win.addEventListener('beforeprint', apunta);
+        window.addEventListener('beforeprint', apunta);
+        win.focus();
+        win.print();
+      } catch (e) {}
+
+      setTimeout(function () {
+        window.removeEventListener('beforeprint', apunta);
+        if (!arranco) verHoja(html);          // aquí no se puede imprimir solo
+        // El marco se queda un rato: quitarlo antes de tiempo corta la
+        // impresión a medias en algunos navegadores.
+        setTimeout(function () {
+          if (m.parentNode) m.parentNode.removeChild(m);
+          if (marcoImpresion === m) marcoImpresion = null;
+        }, 60000);
+      }, 1200);
+    });
+  }
+
+  // Llama de vuelta cuando todas las imágenes de la hoja están cargadas, o al
+  // segundo y medio como mucho: más vale imprimir algo que no imprimir nada.
+  function esperaImagenes(win, sigue) {
+    var listo = false;
+    function ya() { if (listo) return; listo = true; setTimeout(sigue, 60); }
+    var tope = setTimeout(ya, 1500);
+    try {
+      var imgs = [].slice.call(win.document.images);
+      var faltan = imgs.filter(function (i) { return !i.complete; }).length;
+      if (!faltan) { clearTimeout(tope); ya(); return; }
+      imgs.forEach(function (i) {
+        if (i.complete) return;
+        var hecho = function () {
+          if (--faltan <= 0) { clearTimeout(tope); ya(); }
+        };
+        i.addEventListener('load', hecho);
+        i.addEventListener('error', hecho);
+      });
+    } catch (e) { clearTimeout(tope); ya(); }
+  }
+
+  // Último recurso: la hoja dentro de la aplicación, para verla y poder
+  // imprimirla o guardarla con el botón del propio navegador.
+  function verHoja(html) {
+    var d = $('#dlg-hoja');
+    if (!d) { toast('Este navegador no deja imprimir desde aquí'); return; }
+    $('#hoja-marco').srcdoc = html;
+    if (!d.open) d.showModal();
+  }
+
   function encajarCard(win) {
     try {
       var pg = win.document.querySelector('.page');
@@ -2173,11 +2278,39 @@
       var folio = parseFloat(win.getComputedStyle(pg).minHeight) || 0;
       if (!folio) return;
 
-      if (alto() > folio) { pg.classList.add('compacta'); return; }
+      if (alto() > folio) {
+        // Se aprieta por pasos y se comprueba que cada paso ha servido: antes
+        // se daba por buena la primera maqueta y las fichas más cargadas se
+        // iban a una segunda página con cuatro líneas sueltas.
+        pg.classList.add('compacta');
+        if (alto() > folio) pg.classList.add('aprieta');
+        if (alto() > folio) recortaImagenes(pg, alto, folio);
+        return;
+      }
       if (folio - alto() < 230) return;              // ya está bastante llena
       pg.classList.add('ancha');
       if (alto() > folio) pg.classList.remove('ancha');
     } catch (e) {}
+  }
+
+  // Último ajuste, y el más fino: en vez de encoger la ficha entera a ojo con
+  // otra clase, se mide lo que sobra y se le quita exactamente eso al dibujo.
+  // Así el esquema se queda lo más grande que quepa, no lo más pequeño.
+  function recortaImagenes(pg, alto, folio) {
+    var seq = [].slice.call(pg.querySelectorAll('.seq img'));
+    var shot = pg.querySelector('.shot img');
+    function encoge(img, suelo) {
+      for (var i = 0; i < 4 && alto() > folio; i++) {
+        var h = img.getBoundingClientRect().height;
+        var nuevo = Math.max(suelo, h - (alto() - folio) - 4);
+        if (nuevo >= h) break;
+        img.style.maxHeight = nuevo + 'px';
+        if (nuevo === suelo) break;
+      }
+    }
+    // primero la secuencia, que es lo accesorio; después el esquema principal
+    seq.forEach(function (i) { if (alto() > folio) encoge(i, 60); });
+    if (shot && alto() > folio) encoge(shot, 150);
   }
 
   /* =========================================================================
@@ -2331,7 +2464,16 @@
 
   // Compartir la pizarra que tienes abierta.
   function comparteActual() {
-    if (!hayNube) return;
+    // El botón está siempre: si desapareciera sin más, quien lo busca piensa
+    // que la aplicación no le deja compartir. Mejor decir por qué.
+    if (!hayNube) {
+      ask({ title: 'La biblioteca común todavía no está encendida',
+            message: 'Compartir ejercicios con otros entrenadores necesita servidor, y este ' +
+                     'todavía no está configurado. Mientras tanto, lo que guardes se queda en ' +
+                     'este dispositivo y puedes llevártelo con Exportar → Archivo de la pizarra.',
+            ok: 'Entendido' });
+      return;
+    }
     if (!yo) { $('#dlg-cfg').showModal(); pintaCuenta(); toast('Entra con tu correo para compartir'); return; }
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirla');
@@ -2746,9 +2888,7 @@
                  '<figcaption>' + (doc.frames.length > 1 ? 'Fotograma ' + (i + 1) : 'Esquema') + '</figcaption></figure>';
         }).join('');
 
-        var win = window.open('', '_blank');
-        if (!win) { toast('Permite las ventanas emergentes para imprimir la hoja'); return; }
-        win.document.write(
+        imprime(
           '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
           '<title>' + (title || 'Hoja de sesión') + '</title><style>' +
           '@page{margin:14mm}' +
@@ -2772,9 +2912,6 @@
           '<div class="notes"></div>' +
           '<footer>Pizarra Táctica</footer>' +
           '</body></html>');
-        win.document.close();
-        win.focus();
-        setTimeout(function () { win.print(); }, 400);
         toast('Hoja de sesión preparada');
       });
   }
@@ -3396,13 +3533,22 @@
     try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
   }
   function saveBoard() {
-    ask({ title: 'Guardar pizarra', input: 'Salida de balón', placeholder: 'Nombre', ok: 'Guardar' })
+    // El nombre que propone es el de la ficha, si la hay: es el que el
+    // entrenador ya ha escrito y por el que va a buscarla después.
+    ask({ title: 'Guardar pizarra', input: (doc.card && doc.card.titulo || '').trim(),
+          placeholder: 'Nombre del ejercicio', ok: 'Guardar' })
       .then(function (name) {
-        if (!name) return;
+        if (name === null) return;                       // ha cancelado
+        if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
         var all = savedBoards();
+        var nueva = !all[name];
         all[name] = { at: Date.now(), doc: doc };
-        if (writeBoards(all)) toast('Guardada como «' + name + '»');
-        else toast('No se ha podido guardar (almacenamiento lleno)');
+        if (!writeBoards(all)) {
+          toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
+          return;
+        }
+        delete libMini['mia:' + name];
+        toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
       });
   }
   function syncViewButtons() {
@@ -3528,9 +3674,6 @@
       $('#ex-video-fmt').textContent = varios
         ? 'MP4, el que reproduce cualquier móvil.'
         : 'Necesita al menos dos fotogramas.';
-      $('#ex-card-nota').textContent = cardHasContent()
-        ? 'Ya la tienes rellenada: ábrela para cambiarla o imprimirla.'
-        : 'Una página con el dibujo, los objetivos, las consignas y las normas.';
       dlgExport.showModal();
     }
     function exportar(fn) {
@@ -3540,14 +3683,12 @@
     $('#ex-png').addEventListener('click', exportar(exportPNG));
     // La ficha siempre se abre para editarla: imprimir sin verla dejaba la ficha
     // ya rellenada sin manera de volver a tocarla desde aquí.
-    $('#ex-card').addEventListener('click', exportar(openCard));
     $('#ex-sheet').addEventListener('click', exportar(printSheet));
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));
     $('#ex-json').addEventListener('click', exportar(exportJSON));
     $('#save').addEventListener('click', saveBoard);
     $('#open').addEventListener('click', openLibrary);
-    $('#json-sm').addEventListener('click', exportJSON);
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';
@@ -3589,12 +3730,9 @@
     });
 
     // ---- Cuenta y biblioteca común ----
+    // Compartir se ve siempre; si no hay servidor, lo explica al pulsarlo.
+    $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
     if (hayNube) {
-      var compartir = $('#compartir');
-      if (compartir) {
-        compartir.hidden = false;
-        compartir.addEventListener('click', function () { sheetClose(); comparteActual(); });
-      }
       $('#cuenta-entrar').addEventListener('click', function () {
         var correo = $('#cuenta-email').value.trim();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { toast('Escribe un correo válido'); return; }
@@ -3685,8 +3823,6 @@
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
     $('#cfg').addEventListener('click', abreAjustes);
-    $('#cfg-sm').addEventListener('click', function () { sheetClose(); abreAjustes(); });
-    $('#help-sm').addEventListener('click', function () { sheetClose(); $('#dlg-help').showModal(); });
     $$('[data-cfg-pitch]').forEach(function (b) {
       b.addEventListener('click', function () {
         var p = prefs(); p.pitch = b.dataset.cfgPitch; guardaPrefs(p);
@@ -3698,7 +3834,7 @@
       var p = prefs(); p.categoria = this.value.trim(); guardaPrefs(p);
     });
 
-    $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
+    $('#help').addEventListener('click', function () { sheetClose(); $('#dlg-help').showModal(); });
     $('#zoom').addEventListener('click', resetView);
     $$('[data-close]').forEach(function (b) {
       b.addEventListener('click', function () { b.closest('dialog').close(); });
