@@ -47,6 +47,39 @@
     return h;
   }
 
+  /* Toda llamada lleva reloj. Sin él, un proyecto dormido o un móvil con dos
+     rayas dejan la promesa colgando lo que el navegador quiera —minutos— y la
+     biblioteca se queda en «Trayendo…» sin decir nunca nada. Con reloj, a los
+     12 segundos se corta y se cuenta lo que pasa. */
+  var ESPERA = 12000;
+  function traer(url, opts) {
+    opts = opts || {};
+    if (typeof AbortController !== 'function') return fetch(url, opts);
+    var ac = new AbortController();
+    var reloj = setTimeout(function () { ac.abort(); }, opts.espera || ESPERA);
+    opts.signal = ac.signal;
+    return fetch(url, opts).then(
+      function (r) { clearTimeout(reloj); return r; },
+      function (e) {
+        clearTimeout(reloj);
+        if (e && e.name === 'AbortError') {
+          throw new Error('El servidor tarda demasiado en contestar. Vuelve a intentarlo en un momento.');
+        }
+        throw e;
+      }
+    );
+  }
+
+  // Un cuerpo que no sea JSON (una página de error de un intermediario, por
+  // ejemplo) no debe salir como un error de sintaxis incomprensible.
+  function comoJSON(r) {
+    return r.text().then(function (t) {
+      if (!t) return null;
+      try { return JSON.parse(t); }
+      catch (e) { throw new Error('El servidor ha contestado algo que no se entiende.'); }
+    });
+  }
+
   // Los errores de Supabase vienen en inglés y en JSON. Aquí se traducen a algo
   // que se entienda y que diga qué hacer, no a un tecnicismo en otro idioma.
   var TRADUCE = [
@@ -94,12 +127,12 @@
 
   function refresca() {
     if (!ses || !ses.refresh_token) return Promise.reject(new Error('Sin sesión'));
-    return fetch(BASE + '/auth/v1/token?grant_type=refresh_token', {
+    return traer(BASE + '/auth/v1/token?grant_type=refresh_token', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({ refresh_token: ses.refresh_token })
     }).then(function (r) {
       if (!r.ok) { guardaSes(null); avisa(); return fallo(r); }
-      return r.json().then(guardaTokens);
+      return comoJSON(r).then(guardaTokens);
     });
   }
 
@@ -115,7 +148,7 @@
     return seguir.then(function () {
       var h = cabeceras(necesitaSesion);
       if (opts.headers) Object.keys(opts.headers).forEach(function (k) { h[k] = opts.headers[k]; });
-      return fetch(BASE + ruta, {
+      return traer(BASE + ruta, {
         method: opts.method || 'GET', headers: h,
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
@@ -126,7 +159,7 @@
       }
       if (!r.ok) return fallo(r);
       if (r.status === 204) return null;
-      return r.text().then(function (t) { return t ? JSON.parse(t) : null; });
+      return comoJSON(r);
     });
   }
 
@@ -214,18 +247,18 @@
   // entrada era inservible. Aquí se entra al instante o se dice por qué no.
   function entra(email, clave) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    return fetch(BASE + '/auth/v1/token?grant_type=password', {
+    return traer(BASE + '/auth/v1/token?grant_type=password', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({ email: String(email || '').trim(), password: String(clave || '') })
     }).then(function (r) {
       if (!r.ok) return fallo(r);
-      return r.json().then(function (d) { guardaTokens(d); avisa(); return true; });
+      return comoJSON(r).then(function (d) { guardaTokens(d); avisa(); return true; });
     });
   }
 
   function registra(email, clave, nombre) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    return fetch(BASE + '/auth/v1/signup', {
+    return traer(BASE + '/auth/v1/signup', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
         email: String(email || '').trim(), password: String(clave || ''),
@@ -233,7 +266,7 @@
       })
     }).then(function (r) {
       if (!r.ok) return fallo(r);
-      return r.json().then(function (d) {
+      return comoJSON(r).then(function (d) {
         if (d && d.access_token) { guardaTokens(d); avisa(); return { dentro: true }; }
         // El proyecto exige confirmar el correo: hay que apagarlo en el panel.
         var e = new Error('Tu proyecto de Supabase exige confirmar el correo, y su ' +
