@@ -8,8 +8,9 @@
    dormido y la pizarra funciona igual que siempre, solo con su biblioteca de
    siempre y lo que guardes en el navegador. Nada se rompe por no tener cuenta.
 
-   Se entra por correo, sin contraseña: Supabase manda un enlace, al volver
-   trae la sesión en la dirección y aquí se recoge y se guarda.
+   Se entra con correo y contraseña, al instante. Nada de enlaces por correo:
+   el servicio gratuito de Supabase manda dos o tres al día y como puerta de
+   entrada dejaba la aplicación inservible en cuanto se agotaban.
    =========================================================================== */
 (function () {
   'use strict';
@@ -61,7 +62,11 @@
     [/invalid login credentials/i, 'Ese correo y esa contraseña no coinciden.'],
     [/password.*(6|short|least)/i, 'La contraseña tiene que tener al menos 6 caracteres.'],
     [/failed to fetch|networkerror|load failed/i,
-     'No hay manera de llegar al servidor. Puede ser tu conexión.']
+     'No hay manera de llegar al servidor. Puede ser tu conexión.'],
+    [/doc_razonable|too large|payload/i,
+     'Este ejercicio pesa demasiado para subirlo. Prueba a quitarle fotogramas.'],
+    [/violates check constraint|check constraint/i,
+     'Algún dato de la ficha no le cuadra al servidor. Revisa la duración y el título.']
   ];
   function enCristiano(m) {
     for (var i = 0; i < TRADUCE.length; i++) if (TRADUCE[i][0].test(m)) return TRADUCE[i][1];
@@ -278,15 +283,20 @@
       if (!p) throw new Error('Entra con tu correo primero');
       var c = doc.card || {};
       var min = /(\d+)/.exec(c.duracion || '');
+      // La base de datos solo admite de 1 a 240 minutos: un «0 min» escrito por
+      // despiste hacía fallar la subida entera con un error indescifrable.
+      var minutos = min ? Math.max(1, Math.min(240, Number(min[1]))) : null;
+      if (min && Number(min[1]) === 0) minutos = null;
+      var titulo = String(c.titulo || opciones.titulo || '').trim().slice(0, 120);
       var fila = {
         autor: p.id,
-        titulo: (c.titulo || opciones.titulo || 'Ejercicio sin título').slice(0, 120),
+        titulo: titulo || 'Ejercicio sin título',
         pitch: doc.pitch || 'f11',
         vista: doc.view || 'full',
-        momento: (c.momento || '').slice(0, 40),
-        categoria: (c.categoria || '').slice(0, 40),
-        minutos: min ? Math.min(240, Number(min[1])) : null,
-        objetivo: (c.objetivo || '').slice(0, 400),
+        momento: String(c.momento || '').trim().slice(0, 40),
+        categoria: String(c.categoria || '').trim().slice(0, 40),
+        minutos: minutos,
+        objetivo: String(c.objetivo || '').trim().slice(0, 400),
         ficha: c,
         doc: doc,
         publicado: opciones.publicado !== false

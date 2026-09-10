@@ -50,9 +50,9 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   su nombre y su club— y las del propio usuario: lo guardado en ese navegador y, si ha entrado
   con su correo, lo que haya subido. Compartir es voluntario: lo que sube un entrenador es
   suyo y privado hasta que le da a compartir, y puede retirarlo cuando quiera.
-- Cuentas por correo, sin contraseña: se pide un enlace y se entra al abrirlo. Hace falta
-  solo para compartir y para recuperar lo tuyo desde otro dispositivo; para dibujar, imprimir
-  fichas y ver la biblioteca común, no. El correo no se enseña a nadie: lo público es el
+- Cuentas con correo y contraseña, sin confirmación ni enlaces: se crean al instante. Hacen
+  falta solo para compartir y para recuperar lo tuyo desde otro dispositivo; para dibujar,
+  imprimir fichas y ver la biblioteca común, no. El correo no se enseña a nadie: lo público es el
   nombre y el club. Con tres reportes de tres personas distintas un ejercicio deja de verse.
   El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y

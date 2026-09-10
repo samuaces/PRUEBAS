@@ -173,15 +173,13 @@
 
   /* Ajustes del usuario. Viven aparte del documento: no son de una pizarra
      concreta, son de quien la usa. */
-  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '', nombre: '', club: '' };
+  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '' };
 
   function prefs() {
     var p;
     try { p = JSON.parse(localStorage.getItem('pt-prefs') || '{}'); } catch (e) { p = {}; }
     if (!PITCHES[p.pitch]) p.pitch = PREFS_POR_DEFECTO.pitch;
-    ['categoria', 'nombre', 'club'].forEach(function (k) {
-      if (typeof p[k] !== 'string') p[k] = '';
-    });
+    if (typeof p.categoria !== 'string') p.categoria = '';
     return p;
   }
   function guardaPrefs(p) {
@@ -1798,10 +1796,7 @@
       .filter(Boolean);
   }
 
-  function cardHasContent() {
-    var c = card();
-    return CARD_FIELDS.some(function (k) { return String(c[k] || '').trim(); });
-  }
+
 
   // ---- Leer la pizarra para rellenar la ficha sola ----
 
@@ -2437,7 +2432,6 @@
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
-    $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
   }
 
   // Quién eres, para saber qué puedes hacer.
@@ -2506,18 +2500,7 @@
 
   // Compartir no pide cuenta: como mucho, tu nombre la primera vez, para que
   // el ejercicio vaya firmado. Se guarda y no se vuelve a preguntar.
-  function firmaYComparte() {
-    var p = prefs();
-    if (p.nombre) { comparteSinNube(); return; }
-    ask({ title: 'Firma tu ejercicio', input: '',
-          placeholder: 'Tu nombre, para que sepan de quién es',
-          ok: 'Compartir' })
-      .then(function (nombre) {
-        if (nombre === null) return;
-        if (nombre) { p.nombre = nombre.slice(0, 60); guardaPrefs(p); pintaCuenta(); }
-        comparteSinNube();
-      });
-  }
+
 
   function comparteActual() {
     if (!doc.card || !doc.card.titulo) {
@@ -2548,7 +2531,14 @@
       .then(function (si) {
         if (!si) return;
         toast('Subiendo…');
-        nube.publica(clone(doc), { publicado: true }).then(function () {
+        // Si ya lo habías compartido, se actualiza en vez de duplicarse: nadie
+        // quiere ver el mismo ejercicio tres veces en la biblioteca común.
+        nube.mios().then(function (filas) {
+          var ya = (filas || []).filter(function (f) {
+            return sinAcentos(f.titulo) === sinAcentos(doc.card.titulo);
+          })[0];
+          return nube.publica(clone(doc), { publicado: true, id: ya && ya.id });
+        }).then(function () {
           nubeMios = []; nubeLista = [];
           toast('Compartido. Ya está en la biblioteca de todos');
           cargaNube();
