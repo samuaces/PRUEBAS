@@ -28,7 +28,12 @@ predefinidas para ambos equipos: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1 e
 11; 1-3-2-1, 1-2-3-1, 1-3-1-2 y 1-1-3-2 en fútbol 7; rombo, cuadrado, 1-3-0 y 3-1 en sala.
 
 **Materiales.** Conos, platos marcadores, porterías reglamentarias, porterías pequeñas,
-vallas de agilidad, escaleras de agilidad, picas, maniquíes, aros y banderines. Se
+vallas de agilidad, escaleras de agilidad, picas, maniquíes, aros y banderines. Cada uno se
+dibuja como lo que es: el plato, plano y con su hueco central, no como un cono pequeño; la
+pica, un palo de metro y medio con sus franjas sobre una peana, no un punto de color; la
+valla, una U invertida apoyada en dos pies; el maniquí, un torso con hombros sobre su base.
+Los iconos del panel repiten el mismo dibujo, para que lo que eliges y lo que aparece en el
+campo sean la misma pieza. Se
 colocan tocando el campo tantas veces como haga falta, y los alargados se giran con el
 tirador de la selección o con los botones de 15° y 90°.
 
@@ -232,11 +237,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 119 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 123 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la consistencia entre menús, la generación del GIF y su decodificación por el
+la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la consistencia entre menús, que cada material se dibuje como lo que es, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.

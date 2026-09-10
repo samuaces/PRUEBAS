@@ -586,7 +586,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <svg viewBox="0 0 32 32"><ellipse cx="16" cy="25" rx="10" ry="3.4" fill="#8A4406"/><path d="M16 5l7 19H9z" fill="#F4820B"/><rect x="11.6" y="15" width="8.8" height="2.6" fill="#fff" opacity=".8"/></svg>
           </button>
           <button class="mat" data-place="disc" title="Plato marcador" aria-label="Plato marcador">
-            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="18" rx="12" ry="5.6" fill="#C9A20B"/><ellipse cx="16" cy="16.4" rx="7.4" ry="3.4" fill="#F1C40F"/></svg>
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="19.4" rx="12" ry="4" fill="#C9A20B"/><ellipse cx="16" cy="18" rx="12" ry="4" fill="#F1C40F"/><ellipse cx="16" cy="18" rx="6.6" ry="2.1" fill="#C9A20B"/></svg>
           </button>
           <button class="mat" data-place="goal" title="Portería reglamentaria" aria-label="Portería">
             <svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="12" fill="#fff" opacity=".14"/><path d="M4 22V10h24v12" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><g stroke="#fff" stroke-opacity=".45" stroke-width="1"><path d="M9 10v12M14 10v12M19 10v12M24 10v12M4 14h24M4 18h24"/></g></svg>
@@ -595,16 +595,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <svg viewBox="0 0 32 32"><rect x="9" y="13" width="14" height="8" fill="#fff" opacity=".14"/><path d="M9 21v-8h14v8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
           <button class="mat" data-place="hurdle" title="Valla de agilidad" aria-label="Valla">
-            <svg viewBox="0 0 32 32"><rect x="4" y="9" width="3" height="14" rx="1" fill="#243244"/><rect x="25" y="9" width="3" height="14" rx="1" fill="#243244"/><rect x="4" y="13.6" width="24" height="4.8" rx="2" fill="#F1C40F"/><g fill="rgba(0,0,0,.4)"><rect x="9" y="13.6" width="2.4" height="4.8"/><rect x="15" y="13.6" width="2.4" height="4.8"/><rect x="21" y="13.6" width="2.4" height="4.8"/></g></svg>
+            <svg viewBox="0 0 32 32"><g fill="#243244"><rect x="3" y="22" width="8" height="3" rx="1.5"/><rect x="21" y="22" width="8" height="3" rx="1.5"/></g><path d="M7 24V10h18v14" fill="none" stroke="#F1C40F" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <button class="mat" data-place="ladder" title="Escalera de agilidad" aria-label="Escalera de agilidad">
             <svg viewBox="0 0 32 32"><rect x="3" y="11" width="26" height="10" fill="none" stroke="#F1C40F" stroke-width="2"/><g stroke="#F1C40F" stroke-width="1.6"><path d="M9.5 11v10M16 11v10M22.5 11v10"/></g></svg>
           </button>
           <button class="mat" data-place="pole" title="Pica / poste" aria-label="Pica">
-            <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="#26364A"/><circle cx="16" cy="16" r="5.4" fill="#E03B2F"/><circle cx="13.6" cy="13.6" r="1.8" fill="#fff" opacity=".85"/></svg>
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="26" rx="7" ry="2.6" fill="#26364A"/><rect x="14.2" y="5" width="3.6" height="21" rx="1.6" fill="#E03B2F"/><rect x="14.2" y="10" width="3.6" height="3.4" fill="#fff"/><rect x="14.2" y="17.6" width="3.6" height="3.4" fill="#fff"/></svg>
           </button>
           <button class="mat" data-place="dummy" title="Maniquí" aria-label="Maniquí">
-            <svg viewBox="0 0 32 32"><rect x="10" y="6" width="12" height="20" rx="6" fill="#2C3E56"/><circle cx="16" cy="12" r="4" fill="#4A6482"/></svg>
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="27" rx="8" ry="2.6" fill="#1B2837"/><path d="M10.6 27V15q0-3 3-3.4h4.8q3 .4 3 3.4v12z" fill="#3D5878"/><circle cx="16" cy="8.4" r="3.6" fill="#4A6482"/><rect x="10.6" y="19" width="10.8" height="1.6" fill="#fff" opacity=".4"/></svg>
           </button>
           <button class="mat" data-place="ring" title="Aro" aria-label="Aro">
             <svg viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="11" ry="8" fill="none" stroke="#4CC2FF" stroke-width="3"/></svg>
@@ -1614,12 +1614,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.fillRect(-s * 0.36, -s * 0.72, s * 0.72, s * 0.2);
   }
 
+  // Un plato marcador es plano: dos centímetros de alto y un hueco en medio.
+  // Dibujado con cúpula parecía un cono pequeño, que es justo lo que no es.
   function drawDisc(c, u, o) {
     var r = KIND.disc.r * u, col = o.color || '#F1C40F';
-    c.fillStyle = shade(col, -0.15);
-    c.beginPath(); c.ellipse(0, 0, r, r * 0.42, 0, 0, 7); c.fill();
-    c.fillStyle = shade(col, 0.25);
-    c.beginPath(); c.ellipse(0, -r * 0.06, r * 0.62, r * 0.26, 0, 0, 7); c.fill();
+    shadow(c, u, KIND.disc.r * 0.85, 0.24, 0.3);
+    c.fillStyle = shade(col, -0.32);                    // el canto
+    c.beginPath(); c.ellipse(0, r * 0.07, r, r * 0.3, 0, 0, 7); c.fill();
+    c.fillStyle = col;                                  // la cara de arriba
+    c.beginPath(); c.ellipse(0, 0, r, r * 0.3, 0, 0, 7); c.fill();
+    c.fillStyle = shade(col, -0.16);                    // el hundido central
+    c.beginPath(); c.ellipse(0, 0, r * 0.56, r * 0.16, 0, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.55)';
+    c.lineWidth = Math.max(1, u * 0.04);
+    c.beginPath(); c.ellipse(0, 0, r * 0.97, r * 0.29, 0, Math.PI * 1.06, Math.PI * 1.94); c.stroke();
   }
 
   function drawGoal(c, u, w, d) {
@@ -1645,16 +1653,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.restore();
   }
 
+  // Una valla de agilidad es una U invertida apoyada en dos pies.
   function drawHurdle(c, u, o) {
     var w = KIND.hurdle.w * u, h = KIND.hurdle.h * u, col = o.color || '#F1C40F';
-    shadow(c, u, KIND.hurdle.w * 0.5, 0.4, 0.32);
-    c.fillStyle = '#243244';
-    c.fillRect(-w / 2, -h / 2, w * 0.12, h);
-    c.fillRect(w / 2 - w * 0.12, -h / 2, w * 0.12, h);
-    c.fillStyle = col;
-    roundRect(c, -w / 2, -h * 0.19, w, h * 0.38, h * 0.16); c.fill();
-    c.fillStyle = 'rgba(0,0,0,.35)';
-    for (var i = 0; i < 4; i++) c.fillRect(-w / 2 + w * (0.14 + i * 0.2), -h * 0.19, w * 0.07, h * 0.38);
+    shadow(c, u, KIND.hurdle.w * 0.48, 0.32, 0.3);
+    var gr = Math.max(1.8, h * 0.17);
+    c.fillStyle = '#243244';                            // los pies
+    roundRect(c, -w / 2, h * 0.16, w * 0.24, gr, gr * 0.5); c.fill();
+    roundRect(c, w / 2 - w * 0.24, h * 0.16, w * 0.24, gr, gr * 0.5); c.fill();
+    c.strokeStyle = col;                                // montantes y travesaño
+    c.lineWidth = gr;
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(-w / 2 + gr, h * 0.2);
+    c.lineTo(-w / 2 + gr, -h * 0.4);
+    c.lineTo(w / 2 - gr, -h * 0.4);
+    c.lineTo(w / 2 - gr, h * 0.2);
+    c.stroke();
   }
 
   function drawLadder(c, u, o) {
@@ -1673,27 +1688,46 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.stroke();
   }
 
+  // Una pica es un palo de metro y medio clavado en su peana. Vista desde
+  // arriba era un punto rojo indistinguible de cualquier otra cosa.
   function drawPole(c, u, o) {
-    var r = KIND.pole.r * u, col = o.color || '#E03B2F';
-    shadow(c, u, KIND.pole.r * 1.1, 0.3, 0.35);
-    c.fillStyle = '#26364A';
-    c.beginPath(); c.arc(0, 0, r * 1.35, 0, 7); c.fill();
-    c.fillStyle = col;
-    c.beginPath(); c.arc(0, 0, r * 0.8, 0, 7); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.85)';
-    c.beginPath(); c.arc(-r * 0.22, -r * 0.22, r * 0.24, 0, 7); c.fill();
+    var s = KIND.pole.r * u, col = o.color || '#E03B2F', alto = s * 2.2;
+    shadow(c, u, KIND.pole.r * 0.75, 0.24, 0.34);
+    c.fillStyle = '#26364A';                            // peana
+    c.beginPath(); c.ellipse(0, 0, s * 0.92, s * 0.34, 0, 0, 7); c.fill();
+    var an = Math.max(1.6, s * 0.32);
+    var g = c.createLinearGradient(-an / 2, 0, an / 2, 0);
+    g.addColorStop(0, shade(col, 0.2)); g.addColorStop(1, shade(col, -0.28));
+    c.fillStyle = g;
+    c.fillRect(-an / 2, -alto, an, alto);
+    c.fillStyle = 'rgba(255,255,255,.85)';              // las franjas
+    c.fillRect(-an / 2, -alto * 0.74, an, alto * 0.15);
+    c.fillRect(-an / 2, -alto * 0.38, an, alto * 0.15);
+    c.fillStyle = shade(col, 0.2);                      // punta
+    c.beginPath(); c.arc(0, -alto, an / 2, 0, 7); c.fill();
   }
 
+  // Un maniquí es un torso con hombros sobre una peana, no una cápsula.
   function drawDummy(c, u) {
     var w = KIND.dummy.w * u, h = KIND.dummy.h * u;
-    shadow(c, u, KIND.dummy.w * 0.8, 0.5, 0.36);
-    c.fillStyle = '#2C3E56';
-    roundRect(c, -w / 2, -h / 2, w, h, w * 0.45); c.fill();
+    shadow(c, u, KIND.dummy.w * 0.7, 0.34, 0.34);
+    c.fillStyle = '#1B2837';
+    c.beginPath(); c.ellipse(0, h * 0.46, w * 0.55, w * 0.2, 0, 0, 7); c.fill();
+    var g = c.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, '#3D5878'); g.addColorStop(1, '#223449');
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(-w * 0.46, h * 0.44);
+    c.lineTo(-w * 0.4, -h * 0.08);
+    c.quadraticCurveTo(-w * 0.38, -h * 0.24, -w * 0.18, -h * 0.27);
+    c.lineTo(w * 0.18, -h * 0.27);
+    c.quadraticCurveTo(w * 0.38, -h * 0.24, w * 0.4, -h * 0.08);
+    c.lineTo(w * 0.46, h * 0.44);
+    c.closePath(); c.fill();
     c.fillStyle = '#4A6482';
-    c.beginPath(); c.arc(0, -h * 0.26, w * 0.34, 0, 7); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.5)';
-    c.lineWidth = Math.max(1, u * 0.05);
-    c.beginPath(); c.moveTo(-w * 0.3, h * 0.06); c.lineTo(w * 0.3, h * 0.06); c.stroke();
+    c.beginPath(); c.arc(0, -h * 0.37, w * 0.25, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.4)';
+    c.fillRect(-w * 0.4, h * 0.04, w * 0.8, Math.max(1, h * 0.045));
   }
 
   function drawRing(c, u, o) {
@@ -2066,12 +2100,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return null;
   }
 
+  // Las piezas que se dibujan de pie —cono, pica y banderín— ocupan en pantalla
+  // bastante más que su base, así que se dejan tocar con un poco más de margen.
+  var DE_PIE = { cone: 1, pole: 1, flag: 1 };
+
   function hitObject(m) {
     var a = frame().objects;
     for (var i = a.length - 1; i >= 0; i--) {
       var o = a[i], k = dims(o);
       if (k.r != null) {
-        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + 0.35) return o;
+        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + (DE_PIE[o.kind] ? 0.75 : 0.35)) return o;
       } else {
         var ang = -(o.rot || 0) * Math.PI / 180;
         var dx = m.x - o.x, dy = m.y - o.y;

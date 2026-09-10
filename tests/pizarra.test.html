@@ -625,6 +625,39 @@ async function run(w,d){
   ok('en pantalla ancha el panel las enseña todas',
      [].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;}).length>=6);
 
+  // --- cada material se dibuja como lo que es ---
+  d.querySelector('[data-pitch="f11"]').click();await wait(250);   // en sala la pista es azul
+  d.querySelector('[data-view="area"]').click();await wait(200);
+  d.getElementById('clear').click();await wait(250);
+  d.getElementById('ask-ok').click();await wait(400);
+  function alto(x,y,s){  // cuánto se pinta por encima del punto donde se coloca
+    var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width),n=0;
+    var im=c.getImageData(Math.round((x-s)*dpr),Math.round((y-2.2*s)*dpr),
+                          Math.round(2*s*dpr),Math.round(1.6*s*dpr)).data;
+    // el césped es verde dominante; una pieza tiene rojo o azul a la altura del verde
+    for(var i=0;i<im.length;i+=4){var r=im[i],g=im[i+1],b=im[i+2];
+      if((r>g*0.9||b>g*0.9)&&r+g+b>150)n++;}   // ni césped ni fondo oscuro
+    return n;}
+  var X=cv.clientWidth*0.32,Y=cv.clientHeight*0.55,X2=cv.clientWidth*0.55;
+  d.querySelector('[data-place="pole"]').click();
+  pointerAt(w,cv,X,Y,'pointerdown');pointerAt(w,cv,X,Y,'pointerup');await wait(200);
+  d.querySelector('[data-place="disc"]').click();
+  pointerAt(w,cv,X2,Y,'pointerdown');pointerAt(w,cv,X2,Y,'pointerup');await wait(200);
+  // sin nada seleccionado: el anillo de selección también pinta por encima
+  d.querySelector('[data-tool="select"]').click();await raf();
+  pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerdown');
+  pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerup');await wait(250);
+  var aPica=alto(X,Y,26),aPlato=alto(X2,Y,26);
+  ok('la pica se dibuja de pie, no como un punto',aPica>60,aPica+' px pintados encima');
+  ok('el plato se dibuja plano, no como un cono',aPlato<40,aPlato+' px pintados encima');
+  ok('la pica se ve bastante más alta que el plato',aPica>aPlato*3,aPica+' contra '+aPlato);
+  pointerAt(w,cv,X,Y-16,'pointerdown');pointerAt(w,cv,X,Y-16,'pointerup');await raf();
+  ok('la pica se puede seleccionar tocando el palo',
+     d.getElementById('inspector').classList.contains('show'));
+  d.getElementById('clear').click();await wait(250);
+  d.getElementById('ask-ok').click();await wait(300);
+  d.querySelector('[data-view="full"]').click();await wait(200);
+
   // --- consistencia entre menús ---
   var comps = w.getComputedStyle;
   d.getElementById('card-edit').click();await wait(300);
