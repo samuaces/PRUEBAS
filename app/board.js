@@ -2570,7 +2570,8 @@
   function bibliotecaItems() {
     var items = CATALOGO.map(function (ej) {
       return { id: 'cat:' + ej.id, origen: 'catalogo', fuente: 'app', nombre: ej.card.titulo,
-               pitch: ej.pitch, card: ej.card, doc: null, ej: ej };
+               pitch: ej.pitch, card: ej.card, doc: null, ej: ej,
+               autor: ej.autor || '', club: ej.club || '' };
     });
     items = items.concat(nubeLista);
 
@@ -2743,7 +2744,11 @@
 
   // De quién es cada ejercicio, dicho en dos palabras.
   function firmaItem(it) {
-    if (it.fuente === 'app') return 'Del catálogo';
+    // Si el ejercicio viene firmado, se firma. Da igual que lleve ya tiempo en
+    // la biblioteca común: el que lo montó merece aparecer.
+    if (it.fuente === 'app') {
+      return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'Del catálogo';
+    }
     if (it.fuente === 'local') return 'Tuya, en este dispositivo';
     if (!it.publicado) return 'Tuyo, sin compartir';
     if (it.mio) return 'Tuyo, compartido';
