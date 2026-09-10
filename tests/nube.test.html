@@ -30,6 +30,7 @@ var servidor = {
       aperturas: 3, creado: '2026-09-01', entrenadores: { nombre: 'Marta', club: 'CF Prueba' } }
   ],
   caduca: false,          // para probar la renovación del testigo
+  correoSaturado: false,  // Supabase corta los envíos en el plan gratuito
   reportes: []
 };
 
@@ -58,6 +59,7 @@ window.fetch = function (url, opts) {
   // --- GoTrue ---
   if (ruta.indexOf('/auth/v1/otp') === 0) {
     if (!cuerpo || !cuerpo.email) return da(400, { message: 'falta el correo' });
+    if (servidor.correoSaturado) return da(429, { message: 'email rate limit exceeded' });
     return da(200, {});
   }
   if (ruta.indexOf('/auth/v1/token?grant_type=refresh_token') === 0) {
@@ -269,6 +271,17 @@ function ultima(fragmento) {
   ok('y la dirección de vuelta es la de la aplicación',
      decodeURIComponent((/redirect_to=([^&]+)/.exec(ultima('/auth/v1/otp').url) || [])[1] || '')
        .indexOf('nube.test.html') > 0);
+
+  // Supabase corta los correos a los pocos envíos: el aviso tiene que decirlo
+  // en cristiano, no soltar el mensaje del servidor en inglés.
+  servidor.correoSaturado = true;
+  var saturado = await N.entra('otro@club.com').then(function () { return null; },
+                                                     function (e) { return e; });
+  ok('el límite de correos se explica en cristiano',
+     !!saturado && /pocos correos por hora/.test(saturado.message), saturado && saturado.message);
+  ok('y se guarda el mensaje original por si hace falta',
+     !!saturado && /rate limit/.test(saturado.crudo || ''));
+  servidor.correoSaturado = false;
 
   await N.sale();
   ok('salir cierra la sesión', !N.dentro());

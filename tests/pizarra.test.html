@@ -574,11 +574,13 @@ async function run(w,d){
      conNube?'con servidor':'sin servidor');
   d.getElementById('compartir').click();await wait(500);
   if(conNube){
-    // sin sesión iniciada manda a Ajustes a entrar; nunca se queda quieto
-    ok('con servidor, compartir lleva a entrar con tu correo',
-       d.getElementById('dlg-cfg').open||d.getElementById('dlg-ask').open,
-       'ajustes '+d.getElementById('dlg-cfg').open);
-    if(d.getElementById('dlg-cfg').open)d.querySelector('#dlg-cfg [data-close]').click();
+    // sin sesión iniciada NO se bloquea: se puede mandar igual. El correo de
+    // Supabase falla a menudo (límite de envíos) y no puede ser una puerta.
+    ok('con servidor pero sin sesión, compartir sigue siendo posible',
+       d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
+       d.getElementById('ask-title').textContent);
+    ok('y explica que con cuenta se sube solo',
+       /sin cuenta/.test(d.getElementById('ask-msg').textContent));
   } else {
     ok('sin servidor no se queda muerto: prepara el ejercicio para mandarlo',
        d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
