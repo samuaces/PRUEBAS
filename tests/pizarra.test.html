@@ -493,6 +493,8 @@ async function run(w,d){
   ok('la biblioteca se abre con ejercicios',lib.open&&total>=6,total+' ejercicios');
   ok('cada ejercicio trae su miniatura dibujada',
      [].every.call(d.querySelectorAll('.lib-card img'),function(i){return /^data:image\/png/.test(i.src);}));
+  ok('la biblioteca abre por la general, no por las tuyas',
+     d.querySelectorAll('.lib-tab')[0].getAttribute('aria-pressed')==='true');
   ok('la primera vista es la de tu modalidad, sin mezclar',
      d.getElementById('lib-pitch').value==='f11'&&
      [].every.call(d.querySelectorAll('.lib-tags'),function(t){return /Fútbol 11/.test(t.textContent);}),
@@ -507,6 +509,13 @@ async function run(w,d){
   ok('el buscador filtra por texto',conTexto>0&&conTexto<total,conTexto+' de '+total);
 
   q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(250);
+  d.querySelectorAll('.lib-tab')[1].click();await wait(300);
+  ok('la pestaña de las tuyas explica que están vacías',
+     !!d.querySelector('.lib-vacio')&&/Guardar/.test(d.querySelector('.lib-vacio').textContent));
+  ok('lo guardado no se mezcla con lo general',
+     /^0 ejercicios/.test(d.getElementById('lib-cuenta').textContent),
+     d.getElementById('lib-cuenta').textContent);
+  d.querySelectorAll('.lib-tab')[0].click();await wait(300);
   var selP=d.getElementById('lib-pitch');
   selP.value='futsal';selP.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
   var soloSala=[].every.call(d.querySelectorAll('.lib-tags'),function(t){return /sala/i.test(t.textContent);});
@@ -520,6 +529,10 @@ async function run(w,d){
   d.getElementById('lib-limpiar').click();await wait(300);
   ok('quitar filtros vuelve a tu modalidad, no a todo',
      d.querySelectorAll('.lib-card').length===total&&d.getElementById('lib-pitch').value==='f11');
+  ok('la biblioteca general dice de dónde sale y de cuándo es',
+     /se actualiza sola/.test(d.getElementById('lib-nota').textContent)&&
+     /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
+     d.getElementById('lib-nota').textContent);
 
   // abrir un ejercicio trae pizarra y ficha
   d.getElementById('lib-pitch').value='futsal';

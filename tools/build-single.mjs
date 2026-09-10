@@ -47,10 +47,14 @@ const cuerpo = html.slice(desde, hasta).trimEnd()
   .replace(/<a href="\.\.\/"[^>]*>[^<]*<\/a>/, '');   // aquí no hay landing a la que volver
 const motor = js;
 
+// La biblioteca va incrustada: aquí no hay servidor del que traerla.
+const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');
+
 const salida =
   cabecera + '\n' +
   '<style>\n' + caras + '\n' + css + '\n</style>\n' +
   cuerpo + '\n' +
+  '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +
   '<script>\n' + motor + '\n</script>';
 
 writeFileSync(join(raiz, 'dist/pizarra-tactica.html'), salida);

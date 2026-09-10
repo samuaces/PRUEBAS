@@ -477,7 +477,7 @@
       case 'hurdle':   drawHurdle(c, u, o); break;
       case 'ladder':   drawLadder(c, u, o); break;
       case 'pole':     drawPole(c, u, o); break;
-      case 'dummy':    drawDummy(c, u); break;
+      case 'dummy':    drawDummy(c, u, o); break;
       case 'ring':     drawRing(c, u, o); break;
       case 'flag':     drawFlag(c, u, o); break;
       case 'text':     drawText(c, t, o); break;
@@ -650,27 +650,35 @@
     c.beginPath(); c.arc(0, -alto, an / 2, 0, 7); c.fill();
   }
 
-  // Un maniquí es un torso con hombros sobre una peana, no una cápsula.
-  function drawDummy(c, u) {
-    var w = KIND.dummy.w * u, h = KIND.dummy.h * u;
-    shadow(c, u, KIND.dummy.w * 0.7, 0.34, 0.34);
-    c.fillStyle = '#1B2837';
-    c.beginPath(); c.ellipse(0, h * 0.46, w * 0.55, w * 0.2, 0, 0, 7); c.fill();
+  // Un maniquí de barrera: la silueta amarilla de siempre, con los brazos
+  // cruzados sobre el pecho y su peana negra.
+  function drawDummy(c, u, o) {
+    var w = KIND.dummy.w * u, h = KIND.dummy.h * u, col = (o && o.color) || '#F5C518';
+    shadow(c, u, KIND.dummy.w * 0.66, 0.32, 0.34);
+    c.fillStyle = '#161C24';                               // peana
+    c.beginPath(); c.ellipse(0, h * 0.47, w * 0.58, w * 0.2, 0, 0, 7); c.fill();
     var g = c.createLinearGradient(-w / 2, 0, w / 2, 0);
-    g.addColorStop(0, '#3D5878'); g.addColorStop(1, '#223449');
+    g.addColorStop(0, shade(col, 0.14));
+    g.addColorStop(0.55, col);
+    g.addColorStop(1, shade(col, -0.3));
     c.fillStyle = g;
-    c.beginPath();
-    c.moveTo(-w * 0.46, h * 0.44);
-    c.lineTo(-w * 0.4, -h * 0.08);
-    c.quadraticCurveTo(-w * 0.38, -h * 0.24, -w * 0.18, -h * 0.27);
-    c.lineTo(w * 0.18, -h * 0.27);
-    c.quadraticCurveTo(w * 0.38, -h * 0.24, w * 0.4, -h * 0.08);
-    c.lineTo(w * 0.46, h * 0.44);
+    c.beginPath();                                         // tronco con hombros
+    c.moveTo(-w * 0.34, h * 0.46);
+    c.lineTo(-w * 0.44, -h * 0.06);
+    c.quadraticCurveTo(-w * 0.46, -h * 0.22, -w * 0.2, -h * 0.26);
+    c.lineTo(w * 0.2, -h * 0.26);
+    c.quadraticCurveTo(w * 0.46, -h * 0.22, w * 0.44, -h * 0.06);
+    c.lineTo(w * 0.34, h * 0.46);
     c.closePath(); c.fill();
-    c.fillStyle = '#4A6482';
-    c.beginPath(); c.arc(0, -h * 0.37, w * 0.25, 0, 7); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.4)';
-    c.fillRect(-w * 0.4, h * 0.04, w * 0.8, Math.max(1, h * 0.045));
+    c.beginPath();                                         // cabeza
+    c.arc(0, -h * 0.37, w * 0.23, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,.42)';                     // los brazos cruzados
+    c.lineWidth = Math.max(1.2, h * 0.045);
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(-w * 0.34, -h * 0.1); c.lineTo(w * 0.3, h * 0.02);
+    c.moveTo(w * 0.34, -h * 0.1); c.lineTo(-w * 0.3, h * 0.02);
+    c.stroke();
   }
 
   function drawRing(c, u, o) {
@@ -2161,351 +2169,63 @@
 
   /* =========================================================================
      Catálogo de ejercicios
-     Diez ejercicios reales, cada uno con su ficha rellena y su pizarra
-     montada. Sirven para dos cosas: rellenar la ficha desde una plantilla y
-     dar contenido a la biblioteca. Van dentro del archivo, así que los tiene
-     igual cualquiera que abra la aplicación, también sin conexión.
+     Ya no vive escrito aquí dentro, sino en assets/biblioteca.json, para que
+     pueda crecer sin volver a publicar la aplicación. Se carga al arrancar,
+     se guarda una copia en el navegador y, sin conexión, se usa esa copia.
+     Las versiones de un solo archivo lo traen incrustado.
      ====================================================================== */
 
-  // Atajos para montar una pizarra sin escribir un objeto entero cada vez.
-  function jug(team, num, x, y) {
-    return { id: uid(), kind: 'player', team: team, num: String(num), x: x, y: y, rot: 0 };
-  }
-  function mat(kind, x, y, rot) {
-    return { id: uid(), kind: kind, x: x, y: y, rot: rot || 0 };
-  }
-  function bal(x, y) { return { id: uid(), kind: 'ball', x: x, y: y, rot: 0 }; }
-  function tra(tool, color, pts) {
-    return { id: uid(), tool: tool, color: color, width: 0.32,
-             pts: pts.map(function (p) { return { x: p[0], y: p[1] }; }) };
-  }
-  // Cuatro conos marcando un cuadrado, que es media vida de los ejercicios.
-  function cuadro(x0, y0, x1, y1, kind) {
-    return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(function (p) {
-      return mat(kind || 'cone', p[0], p[1]);
+  var CATALOGO = [];
+  var catalogoInfo = { fecha: '', ejercicios: 0, deCache: false };
+
+  function aplicaCatalogo(datos, deCache) {
+    if (!datos || !datos.ejercicios || !datos.ejercicios.length) return false;
+    CATALOGO = datos.ejercicios.filter(function (e) {
+      return e && e.id && PITCHES[e.pitch] && e.card && e.objects;
     });
+    catalogoInfo = { fecha: datos.actualizado || '', ejercicios: CATALOGO.length, deCache: !!deCache };
+    return true;
   }
 
-  var BLANCO = '#FFFFFF', AMARILLO = '#F1C40F', VERDE = '#00E27E', AZUL = '#4CC2FF';
+  // '2026-09-10' se lee mejor como '10/9/2026'
+  function fechaCorta(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    return m ? Number(m[3]) + '/' + Number(m[2]) + '/' + m[1] : iso;
+  }
 
-  var CATALOGO = [
-    {
-      id: 'rondo-4v2', pitch: 'f11', view: 'area',
-      card: {
-        titulo: 'Rondo 4 contra 2', momento: 'Calentamiento',
-        duracion: '12 min', series: '4 × 2 min', descanso: '45 s entre series',
-        jugadores: '4 vs 2', porteros: '', espacio: '19 × 18 m',
-        material: '4 conos, 1 balón',
-        objetivo: 'Mejorar la velocidad de circulación y la orientación del cuerpo antes de recibir.',
-        descripcion: 'Cuatro jugadores en los lados del cuadrado y dos dentro presionando. Los de fuera se mueven por su línea, nunca la abandonan.\nEl que pierde el balón entra al centro y sale el que lleve más tiempo dentro.',
-        consignas: 'Perfil abierto antes de que llegue el balón\nMirar el centro antes de recibir\nPasar al pie contrario a la presión\nSi te presionan dos, juega en corto al de al lado',
-        normas: 'Máximo dos toques\nUn toque en la última serie\nSi el balón sale, entra el que lo perdió',
-        variantes: 'Añadir un comodín interior\nAmpliar a 5 contra 2 y reducir el espacio\nGol interior: pase entre los dos defensores'
-      },
-      monta: function () {
-        return {
-          objects: cuadro(43, 25, 62, 43).concat([
-            jug('home', 4, 52.5, 24.4), jug('home', 6, 62.6, 34),
-            jug('home', 8, 52.5, 43.6), jug('home', 10, 42.4, 34),
-            jug('away', 5, 49, 31), jug('away', 9, 56, 37),
-            bal(54, 24.9)
-          ]),
-          strokes: [
-            tra('pass', AMARILLO, [[54, 24.9], [61.6, 33]]),
-            tra('run', BLANCO, [[49, 31], [56, 27]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'salida-presion', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Salida de balón bajo presión alta', momento: 'Ataque organizado',
-        duracion: '18 min', series: '4 × 3 min', descanso: '1 min entre series',
-        jugadores: '7 vs 5', porteros: '1', espacio: 'Medio campo',
-        material: '2 porterías pequeñas, 6 balones',
-        objetivo: 'Progresar desde portería superando la primera línea de presión con pase interior al pivote.',
-        descripcion: 'El equipo azul saca desde portería con portero, cuatro defensas y dos pivotes. El rojo presiona con tres delanteros y dos interiores.\nEl azul suma al superar la línea de medios con el balón controlado; el rojo, al robar y marcar en cualquiera de las porterías pequeñas.',
-        consignas: 'Centrales amplios, por fuera del área\nEl pivote se ofrece entre líneas, nunca a la espalda del central\nPrimer pase al lado contrario de la presión\nSi presionan al portero, ampliar el campo con los laterales',
-        normas: 'Máximo dos toques en zona de creación\nEl portero no puede jugar en largo\nFuera de juego en la línea de medios',
-        variantes: 'Quitar un pivote: salida 6 contra 5\nObligar a que el primer pase sea al lateral\nEl rojo empieza la presión desde más atrás'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('home', 1, 5, 34),
-            jug('home', 2, 18, 8), jug('home', 4, 16, 25),
-            jug('home', 5, 16, 43), jug('home', 3, 18, 60),
-            jug('home', 6, 29, 34), jug('home', 8, 38, 22),
-            jug('away', 9, 25, 34), jug('away', 7, 26, 17), jug('away', 11, 26, 51),
-            jug('away', 6, 36, 27), jug('away', 8, 36, 41),
-            mat('minigoal', 48, 18, 90), mat('minigoal', 48, 50, 90),
-            bal(6.3, 34.8)
-          ],
-          strokes: [
-            tra('pass', AMARILLO, [[6.3, 34.8], [16, 25]]),
-            tra('pass', BLANCO, [[16, 25], [29, 34]]),
-            tra('run', BLANCO, [[29, 34], [37, 33]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'finalizacion-centro', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Finalización tras centro lateral', momento: 'Ataque organizado',
-        duracion: '20 min', series: '3 × 5 min', descanso: '2 min entre series',
-        jugadores: '5 + portero', porteros: '1', espacio: 'Medio campo',
-        material: '6 conos, 10 balones',
-        objetivo: 'Atacar el área con tres alturas distintas y llegar al remate con ventaja sobre el defensa.',
-        descripcion: 'El extremo conduce por fuera de los conos y centra. Dos delanteros atacan primer palo y punto de penalti; un tercero llega desde atrás al borde del área.\nSe alternan las bandas y se cambia el rol en cada repetición.',
-        consignas: 'El centro sale antes de llegar a la línea de fondo\nPrimer palo ataca al espacio, segundo espera medio metro\nLa llegada desde atrás no entra hasta que sale el centro\nRematar a portería en el primer contacto',
-        normas: 'Un solo toque para rematar\nEl centro tiene que ir raso o a media altura\nSi el balón se para en el área, se anula la jugada',
-        variantes: 'Añadir un defensa central que dispute el remate\nCentro desde atrás en vez de línea de fondo\nPremiar el gol de cabeza con dos puntos'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('away', 1, 3.5, 34),
-            jug('home', 7, 34, 6), jug('home', 9, 12, 27),
-            jug('home', 10, 14, 41), jug('home', 8, 22, 34),
-            mat('cone', 30, 3), mat('cone', 24, 3), mat('cone', 18, 3.5),
-            mat('disc', 16.5, 24), mat('disc', 16.5, 44),
-            bal(35, 7)
-          ],
-          strokes: [
-            tra('dribble', AMARILLO, [[35, 7], [26, 5], [19, 5]]),
-            tra('pass', BLANCO, [[19, 5], [11, 26]]),
-            tra('run', BLANCO, [[12, 27], [7, 30]]),
-            tra('run', BLANCO, [[14, 41], [9, 38]]),
-            tra('run', BLANCO, [[22, 34], [16, 34]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'transicion-3v2', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Transición ofensiva 3 contra 2', momento: 'Transición ofensiva',
-        duracion: '15 min', series: '6 × 90 s', descanso: '1 min entre series',
-        jugadores: '3 vs 2 + portero', porteros: '1', espacio: 'Medio campo',
-        material: '8 balones',
-        objetivo: 'Decidir rápido en superioridad: fijar al defensa antes de soltar el balón.',
-        descripcion: 'Tres atacantes salen desde el medio campo contra dos defensas y portero. Seis segundos para terminar la jugada.\nSi los defensas roban, la jugada acaba y empieza la siguiente.',
-        consignas: 'Conducir hacia el defensa hasta obligarle a saltar\nAbrir el campo: los tres nunca en la misma línea\nEl último pase, siempre al pie que sigue jugando\nSi no hay ventaja clara, tirar',
-        normas: 'Seis segundos por jugada\nNo se puede pasar hacia atrás\nGol de primeras vale doble',
-        variantes: 'Reducir a cinco segundos\nEmpezar con el balón en el suelo y en carrera\nAñadir un tercer defensa que entra tarde'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('away', 1, 3.5, 34),
-            jug('home', 7, 30, 18), jug('home', 9, 32, 34), jug('home', 11, 30, 50),
-            jug('away', 4, 17, 28), jug('away', 5, 17, 41),
-            bal(33, 35)
-          ],
-          strokes: [
-            tra('dribble', AMARILLO, [[33, 35], [24, 34]]),
-            tra('pass', BLANCO, [[24, 34], [16, 20]]),
-            tra('run', BLANCO, [[30, 18], [15, 19]]),
-            tra('run', BLANCO, [[30, 50], [16, 46]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'posicion-6v6', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Juego de posición 6 contra 6 + 3', momento: 'Ataque organizado',
-        duracion: '24 min', series: '4 × 5 min', descanso: '90 s entre series',
-        jugadores: '6 vs 6 + 3 comodines', porteros: '', espacio: '40 × 34 m',
-        material: '8 conos, 4 platos, 6 balones',
-        objetivo: 'Mantener el balón con superioridad permanente y cambiar de orientación cuando la presión se acumula.',
-        descripcion: 'Espacio dividido en tres pasillos. Los comodines juegan siempre con quien tiene el balón y no pueden ser presionados con más de un jugador.\nDiez pases seguidos valen punto; cambiar de pasillo también.',
-        consignas: 'Antes de recibir, mirar el pasillo contrario\nEl comodín se ofrece siempre en línea de pase, nunca a la espalda\nSi el rival salta, jugar por dentro; si se cierra, cambiar de banda\nApoyos a tres metros, no a diez',
-        normas: 'Dos toques\nEl comodín, un toque\nDiez pases o cambio de pasillo: un punto',
-        variantes: 'Quitar un comodín\nPremiar solo el cambio de orientación\nAñadir dos porterías pequeñas en los fondos'
-      },
-      monta: function () {
-        var o = cuadro(8, 17, 48, 51).concat(cuadro(21.3, 17, 34.6, 51, 'disc'));
-        return {
-          objects: o.concat([
-            jug('home', 2, 12, 23), jug('home', 4, 12, 45), jug('home', 6, 24, 34),
-            jug('home', 8, 32, 24), jug('home', 10, 34, 45), jug('home', 7, 45, 34),
-            jug('away', 3, 18, 20), jug('away', 5, 18, 48), jug('away', 9, 28, 29),
-            jug('away', 11, 28, 40), jug('away', 8, 39, 24), jug('away', 6, 40, 45),
-            jug('neutral', 1, 9.5, 34), jug('neutral', 2, 28, 15.4), jug('neutral', 3, 28, 52.6),
-            bal(13.2, 23.8)
-          ]),
-          strokes: [
-            tra('pass', AMARILLO, [[13.2, 23.8], [23, 33]]),
-            tra('pass', BLANCO, [[24, 34], [28, 16.4]]),
-            tra('run', BLANCO, [[12, 45], [20, 47]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'circuito-conduccion', pitch: 'f11', view: 'area',
-      card: {
-        titulo: 'Circuito de conducción y agilidad', momento: 'Físico-técnico',
-        duracion: '16 min', series: '8 pasadas por jugador', descanso: 'Vuelta andando',
-        jugadores: 'Grupo entero en dos filas', porteros: '',
-        espacio: '30 × 20 m', material: '1 escalera, 3 vallas, 3 picas, 2 conos, 1 portería pequeña',
-        objetivo: 'Encadenar coordinación, conducción en zigzag y finalización sin perder la velocidad.',
-        descripcion: 'Escalera con apoyos rápidos, tres vallas a pies juntos, conducción en zigzag entre las picas y remate a la portería pequeña.\nDos filas trabajando en paralelo para que nadie espere más de veinte segundos.',
-        consignas: 'En la escalera, la mirada arriba y los brazos activos\nSalir de la última valla ya en carrera\nConducir con el pie de fuera entre las picas\nRematar sin ajustar el paso',
-        normas: 'No se toca ninguna pica\nSi se pierde el balón, se repite la pasada\nSe cronometra la última serie',
-        variantes: 'Cambiar el zigzag por conducción libre a máxima velocidad\nAñadir un pase de pared antes del remate\nCompetición por parejas a la mejor de tres'
-      },
-      monta: function () {
-        return {
-          objects: [
-            mat('ladder', 44, 34, 0),
-            mat('hurdle', 51, 34, 0), mat('hurdle', 54, 34, 0), mat('hurdle', 57, 34, 0),
-            mat('pole', 61, 30), mat('pole', 63.5, 38), mat('pole', 66, 30),
-            mat('cone', 40, 30), mat('cone', 40, 38),
-            mat('minigoal', 68.5, 34, 90),
-            jug('home', 7, 38.5, 30), jug('home', 9, 38.5, 38),
-            bal(58.4, 34.6)
-          ],
-          strokes: [
-            tra('run', BLANCO, [[40, 34], [49, 34]]),
-            tra('dribble', AMARILLO, [[58.4, 34.6], [61, 32.5], [63.5, 36], [66, 32.5], [68, 34]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'presion-tras-perdida', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Presión tras pérdida en cinco segundos', momento: 'Transición defensiva',
-        duracion: '18 min', series: '5 × 3 min', descanso: '1 min entre series',
-        jugadores: '6 vs 6', porteros: '1', espacio: 'Medio campo',
-        material: '2 porterías pequeñas, 6 balones',
-        objetivo: 'Recuperar el balón en los cinco segundos siguientes a la pérdida, antes de que el rival salga de la zona.',
-        descripcion: 'El equipo que pierde el balón tiene cinco segundos para recuperarlo. Si lo consigue en ese tiempo, punto directo.\nSi el rival aguanta esos cinco segundos, puede atacar libre a las porterías pequeñas.',
-        consignas: 'El más cercano salta al balón, sin esperar\nLos dos de al lado cierran las líneas de pase interiores\nOrientar la presión hacia la banda\nSi se supera la presión, replegar todos por detrás del balón',
-        normas: 'Cinco segundos para recuperar\nRecuperación en zona alta: dos puntos\nSalir de la presión con tres pases: un punto para el rival',
-        variantes: 'Bajar a tres segundos\nProhibir la falta táctica\nAñadir un comodín que ayuda al que tiene el balón'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('away', 1, 3.5, 34),
-            jug('home', 6, 30, 34), jug('home', 8, 26, 20), jug('home', 10, 26, 48),
-            jug('home', 4, 40, 24), jug('home', 5, 40, 44), jug('home', 2, 44, 34),
-            jug('away', 9, 24, 30), jug('away', 7, 22, 16), jug('away', 11, 22, 50),
-            jug('away', 6, 34, 27), jug('away', 8, 34, 41),
-            mat('minigoal', 50, 20, 90), mat('minigoal', 50, 48, 90),
-            bal(25.4, 30.8)
-          ],
-          strokes: [
-            tra('run', BLANCO, [[30, 34], [26, 31]]),
-            tra('run', BLANCO, [[26, 20], [23, 24]]),
-            tra('run', BLANCO, [[26, 48], [23, 43]]),
-            tra('zone', VERDE, [[17, 13], [35, 55]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'corner-primer-palo', pitch: 'f11', view: 'half',
-      card: {
-        titulo: 'Córner al primer palo con bloqueo', momento: 'Balón parado',
-        duracion: '12 min', series: '10 lanzamientos', descanso: 'Entre bloques',
-        jugadores: '6 atacantes y 5 defensores', porteros: '1', espacio: 'Área grande',
-        material: '10 balones',
-        objetivo: 'Ganar el primer palo con un bloqueo previo y rematar el balón antes que el defensa.',
-        descripcion: 'Tres atacantes salen en bloque desde el punto de penalti. El primero bloquea al defensa de referencia y los otros dos atacan primer palo y segundo.\nUn cuarto atacante espera el rechace en el borde del área.',
-        consignas: 'El bloqueo se hace sin brazos, ganando la posición\nEl remate va al primer palo, siempre hacia portería\nEl del rechace no entra al área hasta el saque\nEl saque, tenso y a la altura de la cabeza',
-        normas: 'Gol de cabeza vale doble\nSi el balón pasa el primer palo sin tocar, se repite\nDefensa gana el punto si despeja fuera del área',
-        variantes: 'Córner en corto con apoyo\nSacar al segundo palo con carrera cruzada\nDefensa mixta en vez de al hombre'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('away', 1, 3.4, 34),
-            jug('home', 7, 1.8, 1.8),
-            jug('home', 9, 12, 26), jug('home', 10, 13.5, 32.5), jug('home', 4, 15, 39),
-            jug('home', 8, 21, 34), jug('home', 5, 10, 47),
-            jug('away', 4, 7, 25), jug('away', 5, 7.5, 32),
-            jug('away', 6, 9.5, 39), jug('away', 2, 6.5, 45), jug('away', 3, 16, 30),
-            bal(1.8, 1.8)
-          ],
-          strokes: [
-            tra('pass', AMARILLO, [[1.8, 1.8], [6.5, 23]]),
-            tra('run', BLANCO, [[12, 26], [7.5, 22.5]]),
-            tra('run', BLANCO, [[13.5, 32.5], [10, 28]]),
-            tra('run', BLANCO, [[15, 39], [12.5, 44]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'f7-superioridad', pitch: 'f7', view: 'half',
-      card: {
-        titulo: 'Fútbol 7: superioridad 4 contra 3', momento: 'Partido condicionado',
-        duracion: '16 min', series: '4 × 3 min', descanso: '1 min entre series',
-        jugadores: '4 vs 3 + portero', porteros: '1', espacio: 'Medio campo de fútbol 7',
-        material: '2 porterías pequeñas, 6 balones',
-        objetivo: 'Aprovechar el jugador de más buscando siempre el pase al que está libre.',
-        descripcion: 'Cuatro atacantes contra tres defensas y portero. Si los defensas roban, atacan a las dos porterías pequeñas del medio campo.\nCada dos minutos rota un atacante a defensa.',
-        consignas: 'Buscar al libre antes de conducir\nAbrir el campo hasta las bandas\nEl que recibe entre líneas, gira si puede\nRematar dentro del área, no desde fuera',
-        normas: 'Tres toques máximo\nGol tras cambio de banda: doble\nLos defensas no pueden salir del medio campo',
-        variantes: 'Pasar a 4 contra 4 con portero\nLimitar a dos toques\nAñadir un comodín ofensivo en banda'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('away', 1, 3, 22.5),
-            jug('home', 7, 22, 6), jug('home', 9, 20, 18),
-            jug('home', 10, 20, 28), jug('home', 11, 22, 39),
-            jug('away', 2, 12, 16), jug('away', 3, 12, 29), jug('away', 4, 16, 22.5),
-            mat('minigoal', 30, 10, 90), mat('minigoal', 30, 35, 90),
-            bal(21, 18.8)
-          ],
-          strokes: [
-            tra('pass', AMARILLO, [[21, 18.8], [22, 6]]),
-            tra('run', BLANCO, [[20, 28], [12, 25]]),
-            tra('pass', BLANCO, [[22, 6], [9, 14]])
-          ]
-        };
-      }
-    },
-    {
-      id: 'futsal-3-1', pitch: 'futsal', view: 'full',
-      card: {
-        titulo: 'Fútbol sala: ataque en 3-1 con pivote', momento: 'Ataque organizado',
-        duracion: '14 min', series: '4 × 2,5 min', descanso: '1 min entre series',
-        jugadores: '4 vs 4 + porteros', porteros: '2', espacio: 'Pista completa',
-        material: '6 balones',
-        objetivo: 'Atacar en 3-1 fijando al defensor del pivote para abrir el pase interior o la segunda jugada.',
-        descripcion: 'Tres jugadores en la primera línea y el pivote fijo de espaldas. Circulación rápida de banda a banda hasta encontrar el pase al pivote.\nSi entra el balón al pivote, los dos alas atacan los palos.',
-        consignas: 'El pivote se mueve al lado contrario del balón\nPase al pivote siempre al pie de fuera\nTras el pase, cortar por delante para arrastrar\nSi no hay pivote, cambio de orientación rápido',
-        normas: 'Máximo tres toques\nGol tras pase del pivote: doble\nProhibido el uno contra uno en la primera línea',
-        variantes: 'Añadir un segundo pivote\nJugar con portero-jugador en superioridad\nLimitar el ataque a diez segundos'
-      },
-      monta: function () {
-        return {
-          objects: [
-            jug('home', 1, 2, 10), jug('away', 1, 38, 10),
-            jug('home', 4, 14, 3), jug('home', 5, 12, 10), jug('home', 7, 14, 17),
-            jug('home', 9, 28, 10),
-            jug('away', 2, 22, 4), jug('away', 3, 22, 16),
-            jug('away', 4, 26, 10), jug('away', 5, 31, 10),
-            bal(13, 10.8)
-          ],
-          strokes: [
-            tra('pass', AMARILLO, [[13, 10.8], [14, 3]]),
-            tra('pass', BLANCO, [[14, 3], [27.4, 9.4]]),
-            tra('run', BLANCO, [[14, 17], [30, 15]]),
-            tra('run', BLANCO, [[14, 3], [26, 4]])
-          ]
-        };
-      }
+  function cacheCatalogo(datos) {
+    try { localStorage.setItem('pt-catalogo', JSON.stringify(datos)); } catch (e) {}
+  }
+  function leeCacheCatalogo() {
+    try { return JSON.parse(localStorage.getItem('pt-catalogo') || 'null'); } catch (e) { return null; }
+  }
+
+  // Primero lo que ya tengamos (incrustado o en caché) para no arrancar en
+  // blanco, y después se intenta traer la versión de la red.
+  function cargaCatalogo() {
+    var yaHay = false;
+    if (typeof window !== 'undefined' && window.__BIBLIOTECA__) {
+      yaHay = aplicaCatalogo(window.__BIBLIOTECA__, false);
     }
-  ];
+    if (!yaHay) yaHay = aplicaCatalogo(leeCacheCatalogo(), true);
+
+    if (typeof fetch !== 'function') return Promise.resolve();
+    return fetch('../assets/biblioteca.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var actual = leeCacheCatalogo();
+        if (!yaHay || !actual || (d.version || 0) >= (actual.version || 0)) {
+          if (aplicaCatalogo(d, false)) {
+            cacheCatalogo(d);
+            llenaSelectorPlantillas();
+            if ($('#dlg-lib') && $('#dlg-lib').open) pintaBiblioteca();
+          }
+        }
+      })
+      .catch(function () {});
+  }
+;
 
   /* =========================================================================
      Biblioteca
@@ -2515,11 +2235,10 @@
 
   // Documento completo de una entrada del catálogo.
   function docDeCatalogo(ej) {
-    var m = ej.monta();
     var c = emptyCard();
     CARD_FIELDS.forEach(function (k) { if (ej.card[k]) c[k] = ej.card[k]; });
     return { pitch: ej.pitch, view: ej.view, card: c,
-             frames: [{ objects: m.objects, strokes: m.strokes || [] }] };
+             frames: [{ objects: clone(ej.objects), strokes: clone(ej.strokes || []) }] };
   }
 
   // Todo lo que hay: catálogo + lo tuyo, con los datos que usan los filtros.
@@ -2599,7 +2318,7 @@
   // Los filtros arrancan en la modalidad predeterminada: mezclar fútbol 11,
   // fútbol 7 y sala en la misma lista no le sirve a nadie.
   function filtrosPorDefecto() {
-    return { q: '', origen: '', pitch: prefs().pitch, momento: '', duracion: '' };
+    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '' };
   }
   var libFiltros = filtrosPorDefecto();
 
@@ -2608,9 +2327,11 @@
     var vistos = filtraBiblioteca(items, libFiltros);
     var grid = $('#lib-grid'), cuenta = $('#lib-cuenta');
 
-    var base = libFiltros.pitch
-      ? items.filter(function (i) { return i.pitch === libFiltros.pitch; })
-      : items;
+    // el total contra el que se compara es el de la pestaña y la modalidad
+    var base = items.filter(function (i) {
+      return (!libFiltros.origen || i.origen === libFiltros.origen) &&
+             (!libFiltros.pitch || i.pitch === libFiltros.pitch);
+    });
     var modo = libFiltros.pitch ? ' de ' + PITCHES[libFiltros.pitch].label.toLowerCase() : '';
     var palabra = function (n) { return n === 1 ? ' ejercicio' : ' ejercicios'; };
     cuenta.textContent = vistos.length === base.length
@@ -2618,12 +2339,24 @@
       : vistos.length + ' de ' + base.length + palabra(base.length) + modo;
 
     var porDefecto = filtrosPorDefecto();
-    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.origen || libFiltros.momento ||
+    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.momento ||
                                  libFiltros.duracion || libFiltros.pitch !== porDefecto.pitch);
+    $$('.lib-tab').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
+    });
+    $('#lib-nota').textContent = libFiltros.origen === 'catalogo'
+      ? 'Viene con la aplicación y se actualiza sola' +
+        (catalogoInfo.fecha ? ' · al día del ' + fechaCorta(catalogoInfo.fecha) : '') +
+        (catalogoInfo.deCache ? ' · sin conexión, versión guardada' : '')
+      : 'Lo que guardas se queda en este dispositivo';
 
     grid.innerHTML = '';
     if (!vistos.length) {
-      grid.innerHTML = '<p class="empty">Ningún ejercicio encaja con esos filtros.</p>';
+      var hayFiltros = libFiltros.q || libFiltros.momento || libFiltros.duracion;
+      grid.innerHTML = libFiltros.origen === 'mia' && !hayFiltros
+        ? '<div class="lib-vacio"><b>Todavía no has guardado ninguna</b>' +
+          'Monta un ejercicio, dale a Guardar y aparecerá aquí, solo en este dispositivo.</div>'
+        : '<p class="empty">Ningún ejercicio encaja con esos filtros.</p>';
       return;
     }
 
@@ -2686,7 +2419,7 @@
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
     libFiltros = filtrosPorDefecto();
     $('#lib-q').value = '';
-    $('#lib-origen').value = ''; $('#lib-momento').value = ''; $('#lib-duracion').value = '';
+    $('#lib-momento').value = ''; $('#lib-duracion').value = '';
     $('#lib-pitch').value = libFiltros.pitch;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
@@ -3594,7 +3327,13 @@
       clearTimeout(libTeclas);
       libTeclas = setTimeout(pintaBiblioteca, 120);   // sin repintar en cada tecla
     });
-    [['#lib-origen', 'origen'], ['#lib-pitch', 'pitch'],
+    $$('.lib-tab').forEach(function (b) {
+      b.addEventListener('click', function () {
+        libFiltros.origen = b.dataset.origen;
+        pintaBiblioteca();
+      });
+    });
+    [['#lib-pitch', 'pitch'],
      ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion']].forEach(function (par) {
       $(par[0]).addEventListener('change', function () {
         libFiltros[par[1]] = this.value;
@@ -3603,9 +3342,11 @@
     });
     $('#lib-limpiar').addEventListener('click', function () {
       // vuelve a tu modalidad, no a todas mezcladas
+      var origen = libFiltros.origen;
       libFiltros = filtrosPorDefecto();
+      libFiltros.origen = origen;                 // la pestaña donde estás no se toca
       $('#lib-q').value = '';
-      ['#lib-origen', '#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      ['#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
       $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
     });
@@ -3831,6 +3572,7 @@
 
   function start() {
     wire();
+    cargaCatalogo();
     setupInstall();
     var saved = null;
     try { saved = localStorage.getItem('pt-autosave'); } catch (e) {}

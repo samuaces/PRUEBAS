@@ -69,10 +69,21 @@ Los mismos diez sirven de **plantilla** desde la ficha: un selector rellena tít
 descripción, consignas, normas, variantes y todos los datos de organización, y deja intactas
 la categoría, la fecha y la sesión, que son tuyas.
 
-Ojo con el alcance: el catálogo es **el mismo para todo el mundo porque viaja dentro del
-archivo**, no porque haya un servidor detrás. Lo que guarda cada usuario se queda en su
-navegador. Compartir ejercicios entre usuarios necesitaría un servidor, y eso son cuentas,
-moderación y datos saliendo del dispositivo.
+La biblioteca tiene **dos pestañas**: la general y las tuyas.
+
+- **Biblioteca general.** Ya no vive escrita dentro de `board.js`, sino en
+  `assets/biblioteca.json`, que la aplicación se descarga al arrancar. Añadir un ejercicio es
+  editar ese archivo: aparece en la biblioteca y entre las plantillas **sin volver a publicar
+  la aplicación**. Se guarda una copia en el navegador, así que sin conexión sigue estando, y
+  las versiones de un solo archivo (`dist/` y el artifact) la llevan incrustada al construirse.
+  El service worker la pide siempre a la red primero —es lo único que crece— y cae a la copia
+  guardada si no hay.
+- **Mías.** Las pizarras que hayas guardado tú, que no salen de tu navegador.
+
+Y aquí el límite que conviene tener claro: **la biblioteca general la actualiza quien mantiene
+el repositorio, no los propios entrenadores**. Para que un entrenador publique su ejercicio y
+lo vean los demás hace falta un servidor que acepte escrituras, y con él identidad, moderación
+y datos saliendo del dispositivo. Ver «Biblioteca compartida» más abajo.
 
 **Un solo lenguaje en los menús.** Los diálogos compartían anatomía pero no piezas: había
 cinco estilos de campo de formulario, dos clases distintas para el mismo rótulo de sección,
@@ -149,6 +160,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 ├── 404.html                       Página de error
 ├── robots.txt · sitemap.xml · llms.txt · site.webmanifest · .nojekyll
 ├── assets/
+│   ├── biblioteca.json            El catálogo de ejercicios, editable sin tocar código
 │   ├── fonts/                     Outfit e Inter autoalojadas (OFL) + licencia
 │   ├── img/                       favicon, iconos PWA e imagen Open Graph 1200×630
 │   └── js/site.js                 JS de la portada (tema, menú, aparición progresiva)
@@ -158,6 +170,24 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 ├── tests/                         Batería de pruebas de la pizarra en el navegador
 └── .github/workflows/deploy-pages.yml
 ```
+
+## Biblioteca compartida: qué faltaría
+
+Hoy el sitio es estático: GitHub Pages sirve archivos y no ejecuta nada. Eso basta para que la
+biblioteca general **crezca** (editando `assets/biblioteca.json`), pero no para que **cualquiera
+la haga crecer**. Para eso hay dos caminos, de menos a más:
+
+1. **Por pull request.** Un entrenador exporta su ejercicio en JSON desde la propia pizarra y
+   lo manda; se añade al archivo y en el siguiente despliegue lo tiene todo el mundo. Coste:
+   cero euros y un rato de revisión por ejercicio. Es lo que ya se puede hacer hoy.
+2. **Con servidor.** Una base de datos y una API con un botón de «publicar» en la aplicación.
+   Hace falta identidad (aunque sea anónima, para poder borrar o bloquear), una cola de
+   revisión —todo lo que se sube lo ve todo el mundo— y un cambio en la promesa de privacidad
+   de la aplicación, que hoy es que nada sale del dispositivo. Supabase o Cloudflare tienen
+   plan gratuito de sobra para empezar. Semanas de trabajo, no horas.
+
+El cliente ya está preparado para lo segundo: la biblioteca se pinta a partir de una lista de
+ejercicios que llega de fuera, así que cambiar el archivo por una API es sustituir una URL.
 
 ## Cómo funciona por dentro
 
@@ -237,7 +267,7 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 123 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 127 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,

@@ -186,7 +186,7 @@
             <svg viewBox="0 0 32 32"><ellipse cx="16" cy="26" rx="7" ry="2.6" fill="#26364A"/><rect x="14.2" y="5" width="3.6" height="21" rx="1.6" fill="#E03B2F"/><rect x="14.2" y="10" width="3.6" height="3.4" fill="#fff"/><rect x="14.2" y="17.6" width="3.6" height="3.4" fill="#fff"/></svg>
           </button>
           <button class="mat" data-place="dummy" title="Maniquí" aria-label="Maniquí">
-            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="27" rx="8" ry="2.6" fill="#1B2837"/><path d="M10.6 27V15q0-3 3-3.4h4.8q3 .4 3 3.4v12z" fill="#3D5878"/><circle cx="16" cy="8.4" r="3.6" fill="#4A6482"/><rect x="10.6" y="19" width="10.8" height="1.6" fill="#fff" opacity=".4"/></svg>
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="27.4" rx="8.4" ry="2.6" fill="#161C24"/><path d="M11.6 27.6V15q0-3.2 3-3.6h2.8q3 .4 3 3.6v12.6z" fill="#F5C518"/><circle cx="16" cy="8.2" r="3.4" fill="#F5C518"/><g stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-linecap="round"><path d="M11.8 15.4l8.4 2.2M20.2 15.4l-8.4 2.2"/></g></svg>
           </button>
           <button class="mat" data-place="ring" title="Aro" aria-label="Aro">
             <svg viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="11" ry="8" fill="none" stroke="#4CC2FF" stroke-width="3"/></svg>
@@ -517,15 +517,14 @@
   <div class="dhead"><h3 id="dlg-lib-t">Biblioteca</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
   <div class="dbody">
+    <div class="seg pasos" role="tablist" aria-label="Origen de los ejercicios">
+      <button type="button" class="lib-tab" data-origen="catalogo" aria-pressed="true">Biblioteca general</button>
+      <button type="button" class="lib-tab" data-origen="mia" aria-pressed="false">Mías</button>
+    </div>
     <div class="lib-filtros">
       <input type="search" id="lib-q" placeholder="Buscar por título, objetivo, material…"
              autocomplete="off" aria-label="Buscar en la biblioteca">
       <div class="lib-selects">
-        <select id="lib-origen" aria-label="Origen">
-          <option value="">Todos</option>
-          <option value="catalogo">Del catálogo</option>
-          <option value="mia">Tuyas</option>
-        </select>
         <select id="lib-pitch" aria-label="Modalidad">
           <option value="">Cualquier modalidad</option>
           <option value="f11">Fútbol 11</option>
@@ -555,6 +554,7 @@
         <span class="lib-cuenta" id="lib-cuenta"></span>
         <button type="button" class="mini-btn" id="lib-limpiar" hidden>Quitar filtros</button>
       </div>
+      <p class="lib-nota" id="lib-nota"></p>
     </div>
     <div class="lib-grid" id="lib-grid"></div>
   </div>
