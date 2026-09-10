@@ -121,7 +121,11 @@
       });
       return { entrado: true };
     }
-    return { error: p.get('error_description') || p.get('error') || 'El enlace ya no vale' };
+    var cod = p.get('error_code') || '';
+    var desc = p.get('error_description') || p.get('error') || '';
+    return { error: /expired|invalid/i.test(cod + ' ' + desc)
+      ? 'Ese enlace ya se ha usado o ha caducado. Pide otro y ábrelo en este mismo móvil.'
+      : (desc || 'No se ha podido entrar') };
   }
 
   /* ---- perfil ---------------------------------------------------------- */
@@ -180,15 +184,19 @@
 
   /* ---- acciones -------------------------------------------------------- */
 
+  // La dirección de vuelta va en la QUERY, no en el cuerpo. Metida en el
+  // cuerpo (que es como se le pasa a la librería de Supabase, no a su API)
+  // el servidor la ignora sin decir nada y manda el enlace a la dirección
+  // por defecto del proyecto, que casi nunca es la de la aplicación.
   function entra(email, volverA) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    return fetch(BASE + '/auth/v1/otp', {
+    var vuelta = volverA || location.href.split('#')[0];
+    return fetch(BASE + '/auth/v1/otp?redirect_to=' + encodeURIComponent(vuelta), {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
         email: String(email || '').trim(),
         create_user: true,
-        gotrue_meta_security: {},
-        options: { email_redirect_to: volverA || location.href.split('#')[0] }
+        gotrue_meta_security: {}
       })
     }).then(function (r) { return r.ok ? true : fallo(r); });
   }
