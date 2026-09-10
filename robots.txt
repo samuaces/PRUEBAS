@@ -1,6 +1,8 @@
 # robots.txt — Pizarra Táctica
-# Los rastreadores solo leen el robots.txt de la RAÍZ del dominio. La web se
-# sirve en klym.xyz y este archivo queda en la raíz, así que se aplica tal cual.
+# Los rastreadores solo leen el robots.txt de la RAÍZ del dominio. Cuando la web
+# pase al dominio propio, este archivo quedará en la raíz y se aplicará tal cual;
+# mientras se sirva desde un subdirectorio de github.io, vale como documentación.
+# La línea Sitemap la ajusta tools/publicar.mjs al publicar, según dónde vaya.
 
 User-agent: *
 Allow: /
