@@ -193,8 +193,8 @@ en [`supabase/README.md`](supabase/README.md)—, y se hace una vez en unos diez
 Cómo queda repartido:
 
 - **Sin cuenta** se usa la pizarra entera y se ve la biblioteca común. No se manda nada.
-- **Con cuenta** —correo, sin contraseña: llega un enlace y listo— se comparten ejercicios y se
-  recuperan desde cualquier dispositivo.
+- **Con cuenta** —correo y contraseña, sin confirmación ni enlaces— se comparten ejercicios y
+  se recuperan desde cualquier dispositivo.
 - Lo que subes es **tuyo y privado** hasta que le das a compartir. Que nadie más pueda leerlo,
   editarlo ni borrarlo lo garantiza la base de datos (`row level security`), no la aplicación.
 - El correo **no se expone nunca**: vive en `auth.users`, que la aplicación no puede leer. Lo

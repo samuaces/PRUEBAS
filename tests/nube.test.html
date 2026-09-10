@@ -236,6 +236,21 @@ function ultima(fragmento) {
   ok('compartir sí va con tu sesión',
      ultima('/rest/v1/ejercicios').cabeceras.Authorization === 'Bearer t-1');
 
+  // Un «0 min» escrito por despiste hacía fallar la subida entera: la base de
+  // datos solo admite de 1 a 240 minutos.
+  await N.publica({ pitch: 'f11', card: { titulo: 'Cero', duracion: '0 min' }, frames: [] }, {});
+  ok('una duración de cero no se manda como cero',
+     ultima('/rest/v1/ejercicios').cuerpo.minutos === null,
+     String(ultima('/rest/v1/ejercicios').cuerpo.minutos));
+  await N.publica({ pitch: 'f11', card: { titulo: 'Larga', duracion: '900 min' }, frames: [] }, {});
+  ok('y una desmesurada se recorta al tope',
+     ultima('/rest/v1/ejercicios').cuerpo.minutos === 240,
+     String(ultima('/rest/v1/ejercicios').cuerpo.minutos));
+  await N.publica({ pitch: 'f11', card: { titulo: '   Con espacios   ' }, frames: [] }, {});
+  ok('el título se manda sin espacios de sobra',
+     ultima('/rest/v1/ejercicios').cuerpo.titulo === 'Con espacios',
+     JSON.stringify(ultima('/rest/v1/ejercicios').cuerpo.titulo));
+
   var sinTitulo = await N.publica({ pitch: 'f11', card: {}, frames: [] }, {});
   ok('sin título no se queda en blanco', ultima('/rest/v1/ejercicios').cuerpo.titulo.length > 0,
      ultima('/rest/v1/ejercicios').cuerpo.titulo);
