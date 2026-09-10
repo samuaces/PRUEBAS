@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revisión de tu Supabase · Pizarra Táctica</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+
+</head>
+<body>
+<style>
+:root{
+  --ground:#F1F3EF; --surface:#FFFFFF; --surface-2:#E9EDE8;
+  --ink:#12181A; --muted:#5C6B66; --line:#DCE3DC;
+  --accion:#D31843; --accion-tinta:#FFFFFF;
+  --bien:#1B7A4B; --bien-fondo:#E4F1E8;
+  --mal:#B3261E; --mal-fondo:#FBE9E7;
+  --espera:#8A5A00; --espera-fondo:#FBF0DA;
+  --display:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --texto:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1311; --surface:#151E1A; --surface-2:#1D2823;
+    --ink:#E7EFEA; --muted:#94A79E; --line:#25332C;
+    --accion:#FF3D62; --accion-tinta:#1A0409;
+    --bien:#3CC583; --bien-fondo:#132A20;
+    --mal:#FF6B5E; --mal-fondo:#2C1614;
+    --espera:#E8C071; --espera-fondo:#2A2214;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1311; --surface:#151E1A; --surface-2:#1D2823;
+  --ink:#E7EFEA; --muted:#94A79E; --line:#25332C;
+  --accion:#FF3D62; --accion-tinta:#1A0409;
+  --bien:#3CC583; --bien-fondo:#132A20;
+  --mal:#FF6B5E; --mal-fondo:#2C1614;
+  --espera:#E8C071; --espera-fondo:#2A2214;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--texto);
+  font-size:16px;line-height:1.6;margin:0;padding:0 20px;-webkit-text-size-adjust:100%}
+.hoja{max-width:660px;margin:0 auto;padding-block:36px 60px}
+
+.eyebrow{font-family:var(--display);font-weight:700;font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--bien);margin:0 0 10px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,6.5vw,36px);
+  line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+.entradilla{color:var(--muted);margin:0 0 8px;max-width:52ch}
+.proyecto{font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  word-break:break-all;margin:0}
+
+/* veredicto */
+.veredicto{border-radius:14px;padding:18px 20px;margin:26px 0 22px;
+  border:1px solid var(--line);background:var(--surface)}
+.veredicto.bien{background:var(--bien-fondo);border-color:var(--bien)}
+.veredicto.mal{background:var(--mal-fondo);border-color:var(--mal)}
+.veredicto h2{font-family:var(--display);font-weight:800;font-size:20px;margin:0 0 6px;
+  letter-spacing:-.01em}
+.veredicto.bien h2{color:var(--bien)}
+.veredicto.mal h2{color:var(--mal)}
+.veredicto p{margin:0;font-size:15px}
+
+/* la lista */
+ul.checks{list-style:none;margin:0;padding:0;
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+ul.checks li{display:grid;grid-template-columns:26px 1fr;gap:12px;
+  padding:14px 16px;border-top:1px solid var(--line)}
+ul.checks li:first-child{border-top:0}
+.marca{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  margin-top:2px;background:var(--surface-2);color:var(--muted);
+  font-family:var(--display);font-weight:800;font-size:13px}
+li.ok .marca{background:var(--bien);color:#fff}
+li.no .marca{background:var(--mal);color:#fff}
+li.esperando .marca{background:var(--espera-fondo);color:var(--espera)}
+.check-tit{font-weight:600;margin:0}
+.check-det{margin:3px 0 0;font-size:13.5px;color:var(--muted)}
+.check-det code{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);
+  padding:1px 5px;border-radius:5px;word-break:break-word}
+.arreglo{margin:8px 0 0;font-size:13.5px;padding:9px 12px;border-radius:0 8px 8px 0;
+  background:var(--mal-fondo);border-left:3px solid var(--mal)}
+
+.acciones{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+button{font:inherit;cursor:pointer;border:0;border-radius:9px;transition:opacity .15s}
+button:focus-visible{outline:3px solid var(--accion);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accion);
+  color:var(--accion-tinta);font-family:var(--display);font-weight:700;font-size:15px;
+  padding:12px 18px;min-height:46px}
+.btn:hover{opacity:.88}
+.btn.suave{background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  font-weight:600;font-size:14px}
+.pie{margin-top:30px;padding-top:22px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="hoja">
+  <p class="eyebrow">Pizarra Táctica · biblioteca común</p>
+  <h1>Revisión de tu Supabase</h1>
+  <p class="entradilla">Esta página habla con tu proyecto desde tu propio navegador y comprueba
+    que todo lo del montaje está en su sitio. No hace falta que toques nada: se ejecuta sola.</p>
+  <p class="proyecto" id="proyecto"></p>
+
+  <div class="veredicto" id="veredicto">
+    <h2 id="veredicto-tit">Comprobando…</h2>
+    <p id="veredicto-txt">Un momento, estoy preguntándole a tu proyecto.</p>
+  </div>
+
+  <ul class="checks" id="checks"></ul>
+
+  <div class="acciones">
+    <button class="btn" id="copiar" type="button">Copiar el resultado</button>
+    <button class="btn suave" id="repetir" type="button">Volver a comprobar</button>
+  </div>
+
+  <p class="pie">La clave que usa esta página es la <b>publicable</b>, la que va dentro de
+    cualquier navegador. No hay nada secreto aquí.</p>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function(){
+  'use strict';
+  // Las claves se leen de config.js, para que esta página no se quede
+  // desfasada si algún día cambian.
+  var cfg = window.PT_NUBE || {};
+  var URL_ = String(cfg.url || '').replace(/\/+$/, '');
+  var KEY  = String(cfg.key || '');
+  document.getElementById('proyecto').textContent = URL_ || '(sin configurar)';
+
+  var lista = document.getElementById('checks');
+  var resultados = [];
+
+  function fila(tit){
+    var li = document.createElement('li');
+    li.className = 'esperando';
+    li.innerHTML = '<span class="marca">·</span><div><p class="check-tit"></p>' +
+                   '<p class="check-det">comprobando…</p></div>';
+    li.querySelector('.check-tit').textContent = tit;
+    lista.appendChild(li);
+    return li;
+  }
+  function marca(li, ok, det, arreglo){
+    li.className = ok ? 'ok' : 'no';
+    li.querySelector('.marca').textContent = ok ? '✓' : '✕';
+    li.querySelector('.check-det').innerHTML = det;
+    if (!ok && arreglo){
+      var p = document.createElement('p');
+      p.className = 'arreglo';
+      p.innerHTML = arreglo;
+      li.querySelector('div').appendChild(p);
+    }
+    resultados.push((ok ? 'OK   ' : 'FALLA') + ' · ' +
+      li.querySelector('.check-tit').textContent + ' — ' +
+      li.querySelector('.check-det').textContent);
+  }
+
+  // Si una comprobación falla, las demás tienen que seguir: antes bastaba un
+  // error de red en la primera para que no se ejecutara ninguna otra.
+  async function protegido(li, fn, arreglo){
+    try { return await fn(); }
+    catch(e){
+      marca(li, false, 'No se ha podido preguntar: <code>' +
+        String((e && e.message) || e) + '</code>', arreglo || '');
+      return null;
+    }
+  }
+
+  function pide(ruta, opts){
+    opts = opts || {};
+    return fetch(URL_ + ruta, {
+      method: opts.method || 'GET',
+      headers: Object.assign({ apikey: KEY, Authorization: 'Bearer ' + KEY,
+                               'Content-Type': 'application/json' }, opts.headers || {}),
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function(r){
+      return r.text().then(function(t){
+        var d = null; try { d = t ? JSON.parse(t) : null; } catch(e){ d = t; }
+        return { estado: r.status, datos: d };
+      });
+    });
+  }
+  function motivo(r){
+    if (!r.datos) return 'código ' + r.estado;
+    return (r.datos.message || r.datos.error_description || r.datos.error ||
+            r.datos.hint || ('código ' + r.estado));
+  }
+
+  async function comprobar(){
+    lista.innerHTML = ''; resultados = [];
+    var veredicto = document.getElementById('veredicto');
+    veredicto.className = 'veredicto';
+    document.getElementById('veredicto-tit').textContent = 'Comprobando…';
+    document.getElementById('veredicto-txt').textContent =
+      'Un momento, estoy preguntándole a tu proyecto.';
+
+    var fallos = 0, criticos = 0;
+    function falla(critico){ fallos++; if (critico) criticos++; }
+
+    if (!URL_ || !KEY){
+      var l0 = fila('La pizarra sabe a qué proyecto llamar');
+      marca(l0, false, 'app/config.js está sin rellenar.', '');
+      falla(true);
+    }
+
+    // 1 · el proyecto contesta
+    var li = fila('El proyecto está despierto y contesta');
+    var vivo = await protegido(li, async function(){
+      var r = await pide('/rest/v1/');
+      if (r.estado >= 200 && r.estado < 500){
+        marca(li, true, 'Responde correctamente.'); return true;
+      }
+      falla(true);
+      marca(li, false, 'Contesta con ' + r.estado + '.',
+        'Si el proyecto lleva una semana sin usarse, Supabase lo pausa. ' +
+        'Entra en el panel y dale a <b>Restore</b>.');
+      return false;
+    }, 'Comprueba que el proyecto no está pausado y que la dirección es correcta.');
+    if (vivo === null) falla(true);
+
+    // 2 · las tablas del paso 3
+    var tablas = [['ejercicios', 'los ejercicios compartidos'], ['entrenadores', 'los perfiles']];
+    for (var i = 0; i < tablas.length; i++){
+      (function(t){
+        var li2 = fila('La tabla de ' + t[1] + ' existe');
+        tablas[i].li = li2;
+      })(tablas[i]);
+    }
+    for (var j = 0; j < tablas.length; j++){
+      var t = tablas[j], li2 = t.li;
+      /* jshint loopfunc:true */
+      var res = await protegido(li2, (function(t, li2){ return async function(){
+        var r2 = await pide('/rest/v1/' + t[0] + '?select=id&limit=1');
+        if (r2.estado === 200){
+          marca(li2, true, 'Creada y accesible.'); return true;
+        }
+        marca(li2, false, 'No responde: <code>' + motivo(r2) + '</code>',
+          'El paso 3 no llegó a ejecutarse. Vuelve al SQL Editor, pega el código ' +
+          'otra vez y dale a <b>Run</b>.');
+        return false;
+      }; })(t, li2),
+      'El paso 3 no llegó a ejecutarse. Vuelve al SQL Editor y pega el código otra vez.');
+      if (res !== true) falla(true);
+    }
+
+    // 3 · el enlace entre ejercicio y autor
+    var li3 = fila('Cada ejercicio sabe de qué entrenador es');
+    var r3ok = await protegido(li3, async function(){
+      var r3 = await pide('/rest/v1/ejercicios?select=id,entrenadores(nombre)&limit=1');
+      if (r3.estado === 200){
+        marca(li3, true, 'La relación entre ejercicio y autor está bien puesta.'); return true;
+      }
+      marca(li3, false, 'No se puede leer el autor: <code>' + motivo(r3) + '</code>',
+        'Suele significar que el código del paso 3 se pegó a medias. Ejecútalo entero.');
+      return false;
+    });
+    if (r3ok !== true) falla(false);
+
+    // 4 · lo privado sigue privado
+    var li4 = fila('Sin cuenta no se puede escribir nada');
+    var r4ok = await protegido(li4, async function(){
+      var r4 = await pide('/rest/v1/ejercicios', { method: 'POST',
+        body: { titulo: 'prueba de seguridad', pitch: 'f11', doc: {} } });
+      var txt = JSON.stringify(r4.datos || '');
+      if (r4.estado === 401 || r4.estado === 403 ||
+          /row-level security|permission denied|violates/i.test(txt)){
+        marca(li4, true, 'Rechazado, como tiene que ser. Nadie puede colar ejercicios sin entrar.');
+        return true;
+      }
+      if (r4.estado === 200 || r4.estado === 201){
+        marca(li4, false, '¡Se ha podido escribir sin cuenta! Los permisos no están puestos.',
+          'Ejecuta otra vez el código del paso 3 entero: la parte de los permisos, ' +
+          'que va al final, no llegó a aplicarse.');
+        return 'grave';
+      }
+      marca(li4, false, 'Respuesta inesperada: <code>' + motivo(r4) + '</code>', '');
+      return false;
+    });
+    if (r4ok === 'grave') falla(true); else if (r4ok !== true) falla(false);
+
+    // 5 · los reportes no los ve cualquiera
+    var li5 = fila('Los reportes no los puede leer cualquiera');
+    var r5ok = await protegido(li5, async function(){
+      var r5 = await pide('/rest/v1/reportes?select=id&limit=1');
+      if (r5.estado === 401 || r5.estado === 403){
+        marca(li5, true, 'Cerrados a quien no tiene cuenta.'); return true;
+      }
+      if (r5.estado === 200 && Array.isArray(r5.datos) && r5.datos.length === 0){
+        marca(li5, true, 'No devuelve nada sin cuenta, que es lo correcto.'); return true;
+      }
+      marca(li5, false, 'Responde <code>' + motivo(r5) + '</code>',
+        'Vuelve a ejecutar el código del paso 3.');
+      return false;
+    });
+    if (r5ok !== true) falla(false);
+
+    // 6 · la entrada por correo
+    var li6 = fila('Se puede entrar con el correo');
+    var r6ok = await protegido(li6, async function(){
+      var r6 = await pide('/auth/v1/settings');
+      if (r6.estado !== 200 || !r6.datos){
+        marca(li6, false, 'No se puede leer la configuración: <code>' + motivo(r6) + '</code>', '');
+        return false;
+      }
+      var d = r6.datos;
+      var correoOn = !(d.external && d.external.email === false);
+      if (correoOn && d.disable_signup !== true){
+        marca(li6, true, 'Encendida, y admite cuentas nuevas.'); return true;
+      }
+      if (correoOn){
+        marca(li6, false, 'El correo está encendido, pero no deja crear cuentas nuevas.',
+          'En <b>Authentication → Sign In / Providers</b>, activa ' +
+          '<b>Allow new users to sign up</b>.');
+        return false;
+      }
+      marca(li6, false, 'La entrada por correo está apagada.',
+        'En <b>Authentication → Sign In / Providers</b>, enciende <b>Email</b>.');
+      return false;
+    });
+    if (r6ok !== true) falla(false);
+
+    // 7 · lo que no se puede ver desde fuera
+    var li7 = fila('A dónde vuelve el enlace del correo');
+    li7.className = 'esperando';
+    li7.querySelector('.marca').textContent = '?';
+    li7.querySelector('.check-det').innerHTML =
+      'Supabase no deja consultar esto desde fuera, así que no se puede comprobar aquí. ' +
+      'Es el <b>paso 4</b>: si no está puesto, todo lo demás funciona pero el enlace del ' +
+      'correo lleva a una página en blanco. Lo sabremos al probar la entrada.';
+    resultados.push('?     · A dónde vuelve el enlace del correo — no se puede ver desde fuera (paso 4)');
+
+    // veredicto
+    var v = document.getElementById('veredicto');
+    var vt = document.getElementById('veredicto-tit');
+    var vp = document.getElementById('veredicto-txt');
+    if (criticos){
+      v.className = 'veredicto mal';
+      vt.textContent = 'Falta algo importante';
+      vp.textContent = 'Mira los puntos en rojo: ahí está lo que hay que repetir. ' +
+                       'Cópiame el resultado y te digo exactamente qué hacer.';
+    } else if (fallos){
+      v.className = 'veredicto mal';
+      vt.textContent = 'Casi, pero hay detalles';
+      vp.textContent = 'Lo importante está bien. Quedan cosas menores marcadas en rojo.';
+    } else {
+      v.className = 'veredicto bien';
+      vt.textContent = 'Está todo bien montado';
+      vp.textContent = 'Las tablas están, los permisos protegen lo que tienen que proteger ' +
+                       'y se puede entrar por correo. Solo queda probarlo de verdad.';
+    }
+  }
+
+  document.getElementById('repetir').addEventListener('click', comprobar);
+  document.getElementById('copiar').addEventListener('click', function(){
+    var t = 'Revisión de ' + URL_ + '\n\n' + resultados.join('\n');
+    var b = this, previo = b.textContent;
+    function fin(ok){ b.textContent = ok ? '¡Copiado! Pégamelo en el chat' : 'No he podido copiar';
+      setTimeout(function(){ b.textContent = previo; }, 2400); }
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(t).then(function(){ fin(true); }, function(){ fin(false); });
+    else fin(false);
+  });
+
+  comprobar();
+})();
+</script>
+</body>
+</html>
