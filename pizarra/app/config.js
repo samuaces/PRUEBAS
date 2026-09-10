@@ -17,6 +17,6 @@
    diez ejercicios y lo que guardes en este dispositivo, sin cuentas ni red.
    =========================================================================== */
 window.PT_NUBE = {
-  url: '',
-  key: ''
+  url: 'https://bbxiuzknxdeuovoytrha.supabase.co',
+  key: 'sb_publishable_aF2ad0cjxXPZjViR8o-e1g_z5LFdSun'
 };
