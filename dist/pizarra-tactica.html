@@ -1024,14 +1024,39 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
 
-    <p class="form-group">Quién eres</p>
-    <p class="block-note" style="margin:0 0 10px">Firma los ejercicios que compartas. Se queda
-      en este dispositivo: no hay que registrarse en ningún sitio ni dar ningún correo.</p>
-    <div class="form-grid">
-      <label class="field"><span>Tu nombre</span>
-        <input type="text" id="cfg-nombre" maxlength="60" placeholder="Samu" autocomplete="name"></label>
-      <label class="field"><span>Club <small>opcional</small></span>
-        <input type="text" id="cfg-club" maxlength="60" placeholder="CD Ejemplo"></label>
+    <p class="form-group">Tu cuenta</p>
+    <div id="cuenta-fuera">
+      <p class="block-note" style="margin:0 0 10px">Con cuenta, lo que compartas se sube solo a
+        la biblioteca común, firmado con tu nombre, y tus ejercicios te siguen a cualquier
+        dispositivo. Sin cuenta la pizarra funciona igual.</p>
+      <div class="form-grid">
+        <label class="field wide"><span>Tu correo</span>
+          <input type="email" id="cuenta-email" autocomplete="email" inputmode="email"
+                 placeholder="entrenador@club.com"></label>
+        <label class="field"><span>Contraseña <small>mínimo 6 caracteres</small></span>
+          <input type="password" id="cuenta-clave" autocomplete="current-password"
+                 placeholder="••••••"></label>
+        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-alta-nombre" maxlength="60" placeholder="Samu"></label>
+      </div>
+      <button type="button" class="tbtn primary" id="cuenta-entrar"
+              style="margin-top:10px">Entrar o crear cuenta</button>
+      <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+    </div>
+
+    <div id="cuenta-dentro" hidden>
+      <p class="block-note" style="margin:0 0 10px">Has entrado como
+        <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
+      <div class="form-grid">
+        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
+        <label class="field"><span>Club <small>opcional</small></span>
+          <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
+      </div>
+      <div class="lib-linea" style="margin-top:10px">
+        <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
+        <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+      </div>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
@@ -1171,7 +1196,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      'Ese enlace ya se ha usado o ha caducado. Pide otro y ábrelo en este mismo móvil.'],
     [/signups? not allowed|disabled/i,
      'El proyecto no admite cuentas nuevas ahora mismo.'],
-    [/user already registered/i, 'Ese correo ya tiene cuenta: pide el enlace de entrada.'],
+    [/user already registered/i, 'Ese correo ya tiene cuenta. Escribe su contraseña para entrar.'],
+    [/invalid login credentials/i, 'Ese correo y esa contraseña no coinciden.'],
+    [/password.*(6|short|least)/i, 'La contraseña tiene que tener al menos 6 caracteres.'],
     [/failed to fetch|networkerror|load failed/i,
      'No hay manera de llegar al servidor. Puede ser tu conexión.']
   ];
@@ -1316,21 +1343,49 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   /* ---- acciones -------------------------------------------------------- */
 
-  // La dirección de vuelta va en la QUERY, no en el cuerpo. Metida en el
-  // cuerpo (que es como se le pasa a la librería de Supabase, no a su API)
-  // el servidor la ignora sin decir nada y manda el enlace a la dirección
-  // por defecto del proyecto, que casi nunca es la de la aplicación.
-  function entra(email, volverA) {
+  // Registro y entrada por contraseña. Sin enlaces por correo: el correo del
+  // plan gratuito de Supabase deja mandar dos o tres al día y como puerta de
+  // entrada era inservible. Aquí se entra al instante o se dice por qué no.
+  function entra(email, clave) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    var vuelta = volverA || location.href.split('#')[0];
-    return fetch(BASE + '/auth/v1/otp?redirect_to=' + encodeURIComponent(vuelta), {
+    return fetch(BASE + '/auth/v1/token?grant_type=password', {
+      method: 'POST', headers: cabeceras(false),
+      body: JSON.stringify({ email: String(email || '').trim(), password: String(clave || '') })
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return r.json().then(function (d) { guardaTokens(d); avisa(); return true; });
+    });
+  }
+
+  function registra(email, clave, nombre) {
+    if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    return fetch(BASE + '/auth/v1/signup', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
-        email: String(email || '').trim(),
-        create_user: true,
-        gotrue_meta_security: {}
+        email: String(email || '').trim(), password: String(clave || ''),
+        data: { nombre: String(nombre || '').trim() }
       })
-    }).then(function (r) { return r.ok ? true : fallo(r); });
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return r.json().then(function (d) {
+        if (d && d.access_token) { guardaTokens(d); avisa(); return { dentro: true }; }
+        // El proyecto exige confirmar el correo: hay que apagarlo en el panel.
+        var e = new Error('Tu proyecto de Supabase exige confirmar el correo, y su ' +
+                          'servicio de correo apenas manda unos pocos al día. Apaga ' +
+                          '«Confirm email» en Authentication → Providers → Email.');
+        e.confirmacion = true;
+        throw e;
+      });
+    });
+  }
+
+  // Entra si la cuenta existe, y si no, la crea. Para quien la usa es un botón.
+  function entraOCrea(email, clave, nombre) {
+    return entra(email, clave).then(function () { return { dentro: true, nueva: false }; },
+      function (e) {
+        if (!/credential|invalid login|not found/i.test(e.crudo || e.message)) throw e;
+        return registra(email, clave, nombre).then(function () { return { dentro: true, nueva: true }; });
+      });
   }
 
   function sale() {
@@ -1426,7 +1481,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     vuelta: function () { var v = vuelta; vuelta = null; return v; },
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
-    entra: entra, sale: sale, perfil: perfil,
+    entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura
@@ -5770,16 +5825,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
   }
 
-  // Ya no hay cuentas ni correos: quién eres lo escribes tú y se queda aquí.
-  // El correo de Supabase, en el plan gratuito, deja mandar dos o tres enlaces
-  // por hora, así que como puerta de entrada no servía para nada.
   function pintaCuenta() {
-    var n = $('#cfg-nombre'), c = $('#cfg-club');
-    if (!n || !c) return;
-    var p = prefs();
-    n.value = p.nombre || '';
-    c.value = p.club || '';
+    if (!$('#cuenta-fuera')) return;
+    var dentro = !!yo;
+    $('#cuenta-fuera').hidden = dentro;
+    $('#cuenta-dentro').hidden = !dentro;
+    if (dentro) {
+      $('#cuenta-correo').textContent = yo.email || '';
+      $('#cuenta-nombre').value = yo.nombre || '';
+      $('#cuenta-club').value = yo.club || '';
+    }
     $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
+  }
+
+  // Quién eres, para saber qué puedes hacer.
+  function refrescaCuenta() {
+    if (!hayNube) return Promise.resolve(null);
+    return nube.quienSoy().then(function (p) { yo = p; pintaCuenta(); return p; });
   }
 
   // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
@@ -5800,12 +5862,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var c = doc.card || emptyCard(), f = doc.frames[ui.frame] || doc.frames[0];
     var ficha = {};
     CARD_FIELDS.forEach(function (k) { if (c[k]) ficha[k] = c[k]; });
-    var p = prefs();
     return {
       id: sinAcentos(c.titulo || 'ejercicio').replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '').slice(0, 40) || 'ejercicio',
       pitch: doc.pitch, view: doc.view, card: ficha,
-      autor: p.nombre || '', club: p.club || '',
+      autor: (yo && yo.nombre) || '', club: (yo && yo.club) || '',
       objects: clone(f.objects), strokes: clone(f.strokes || [])
     };
   }
@@ -5862,35 +5923,37 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       openCard();
       return;
     }
-    // El botón está siempre. Sin servidor no se queda muerto: prepara el
-    // ejercicio para mandarlo, que es lo más cerca de compartir que hay.
-    if (!hayNube) { firmaYComparte(); return; }
-    // Sin sesión no se bloquea nada: se comparte igual, preparando el ejercicio
-    // para mandarlo. Tener cuenta solo ahorra ese paso. Hacer del correo una
-    // puerta obligatoria dejaba la aplicación inservible cuando el correo
-    // fallaba, que es justo cuando más falta hace poder trabajar.
-    if (!yo) { firmaYComparte(); return; }
-    if (!doc.card || !doc.card.titulo) {
-      toast('Ponle un título en la ficha antes de compartirla');
-      openCard();
+    if (!hayNube) { comparteSinNube(); return; }
+
+    if (!yo) {
+      ask({ title: 'Compartir «' + doc.card.titulo + '»',
+            message: 'Para subirlo a la biblioteca común hace falta una cuenta, así el ' +
+                     'ejercicio va firmado y puedes retirarlo cuando quieras. Se crea en ' +
+                     'diez segundos con tu correo y una contraseña, sin confirmar nada.',
+            ok: 'Crear mi cuenta' })
+        .then(function (si) {
+          if (!si) return;
+          abreAjustes();
+          setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 300);
+        });
       return;
     }
-    ask({
-      title: 'Compartir «' + doc.card.titulo + '»',
-      message: 'Se sube a la biblioteca común y lo verá cualquiera que abra la pizarra, ' +
-               'con tu nombre debajo. Puedes quitarlo cuando quieras.',
-      ok: 'Compartir'
-    }).then(function (si) {
-      if (!si) return;
-      toast('Subiendo…');
-      nube.publica(clone(doc), { publicado: true }).then(function (fila) {
-        nubeMios = [];
-        toast('Compartido. Ya está en la biblioteca común');
-        if (fila) cargaNube();
-      }).catch(function (e) {
-        toast('No se ha podido compartir: ' + (e.message || 'error'));
+
+    ask({ title: 'Compartir «' + doc.card.titulo + '»',
+          message: 'Se sube a la biblioteca común y lo verá cualquiera que abra la pizarra, ' +
+                   'con tu nombre debajo. Puedes retirarlo cuando quieras.',
+          ok: 'Compartir' })
+      .then(function (si) {
+        if (!si) return;
+        toast('Subiendo…');
+        nube.publica(clone(doc), { publicado: true }).then(function () {
+          nubeMios = []; nubeLista = [];
+          toast('Compartido. Ya está en la biblioteca de todos');
+          cargaNube();
+        }).catch(function (e) {
+          toast('No se ha podido compartir: ' + (e.message || 'error'));
+        });
       });
-    });
   }
 
   /* =========================================================================
@@ -7129,19 +7192,55 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
 
     // ---- Cuenta y biblioteca común ----
-    // Compartir se ve siempre y nunca pide cuenta.
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
-    // Quién eres: se escribe una vez y se queda en este dispositivo.
-    [['#cfg-nombre', 'nombre'], ['#cfg-club', 'club']].forEach(function (par) {
-      var el = $(par[0]);
-      if (!el) return;
-      el.addEventListener('change', function () {
-        var p = prefs();
-        p[par[1]] = this.value.trim().slice(0, 60);
-        guardaPrefs(p);
+    if (hayNube) {
+      $('#cuenta-entrar').addEventListener('click', function () {
+        var correo = $('#cuenta-email').value.trim();
+        var clave  = $('#cuenta-clave').value;
+        var nombre = $('#cuenta-alta-nombre').value.trim();
+        var aviso  = $('#cuenta-aviso');
+        function di(t) { aviso.textContent = t; aviso.hidden = false; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
+        if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+        var b = this; b.disabled = true; b.textContent = 'Entrando…';
+        aviso.hidden = true;
+        nube.entraOCrea(correo, clave, nombre)
+          .then(function (r) {
+            return refrescaCuenta().then(function () {
+              if (nombre && (!yo || yo.nombre !== nombre)) {
+                return nube.perfil({ nombre: nombre, club: (yo && yo.club) || '' })
+                  .then(refrescaCuenta).catch(function () {});
+              }
+            }).then(function () {
+              toast(r.nueva ? 'Cuenta creada. Ya puedes compartir' : 'Hola de nuevo');
+              $('#cuenta-clave').value = '';
+            });
+          })
+          .catch(function (e) { di(e.message || 'No se ha podido entrar'); })
+          .then(function () { b.disabled = false; b.textContent = 'Entrar o crear cuenta'; });
       });
-    });
+
+      $('#cuenta-salir').addEventListener('click', function () {
+        nube.sale().then(function () {
+          yo = null; nubeMios = []; nubeLista = [];
+          pintaCuenta(); toast('Sesión cerrada');
+        });
+      });
+
+      $('#cuenta-guardar').addEventListener('click', function () {
+        var b = this; b.disabled = true;
+        nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
+                      club: $('#cuenta-club').value.trim() })
+          .then(refrescaCuenta)
+          .then(function () { toast('Guardado'); })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); })
+          .then(function () { b.disabled = false; });
+      });
+
+      refrescaCuenta();
+      nube.alCambiar(function () { refrescaCuenta(); });
+    }
 
     pintaCuenta();
     pintaPrivacidad();

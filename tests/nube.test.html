@@ -31,6 +31,8 @@ var servidor = {
   ],
   caduca: false,          // para probar la renovación del testigo
   correoSaturado: false,  // Supabase corta los envíos en el plan gratuito
+  cuentas: { 'entrenador@club.com': 'secreta1' },
+  exigeConfirmacion: false,
   reportes: []
 };
 
@@ -61,6 +63,22 @@ window.fetch = function (url, opts) {
     if (!cuerpo || !cuerpo.email) return da(400, { message: 'falta el correo' });
     if (servidor.correoSaturado) return da(429, { message: 'email rate limit exceeded' });
     return da(200, {});
+  }
+  if (ruta.indexOf('/auth/v1/token?grant_type=password') === 0) {
+    if (!cuerpo || !cuerpo.email || !cuerpo.password)
+      return da(400, { message: 'missing credentials' });
+    if (!servidor.cuentas[cuerpo.email] || servidor.cuentas[cuerpo.email] !== cuerpo.password)
+      return da(400, { message: 'Invalid login credentials' });
+    return da(200, { access_token: 't-1', refresh_token: 'r-1', expires_in: 3600 });
+  }
+  if (ruta.indexOf('/auth/v1/signup') === 0) {
+    if (!cuerpo || !cuerpo.email) return da(400, { message: 'falta el correo' });
+    if (String(cuerpo.password || '').length < 6)
+      return da(422, { message: 'Password should be at least 6 characters' });
+    if (servidor.cuentas[cuerpo.email]) return da(422, { message: 'User already registered' });
+    servidor.cuentas[cuerpo.email] = cuerpo.password;
+    if (servidor.exigeConfirmacion) return da(200, { id: 'u-9', email: cuerpo.email });
+    return da(200, { access_token: 't-1', refresh_token: 'r-1', expires_in: 3600 });
   }
   if (ruta.indexOf('/auth/v1/token?grant_type=refresh_token') === 0) {
     if (!cuerpo || cuerpo.refresh_token !== 'r-1') return da(400, { message: 'testigo inválido' });
@@ -259,30 +277,41 @@ function ultima(fragmento) {
      ultima('/rest/v1/ejercicios?').cabeceras.Authorization === 'Bearer t-2',
      ultima('/rest/v1/ejercicios?').cabeceras.Authorization);
 
-  // ---- entrar y salir ----
-  await N.entra('otro@club.com');
-  ok('entrar manda un enlace al correo', ultima('/auth/v1/otp').cuerpo.email === 'otro@club.com');
-  ok('y crea la cuenta si no existe', ultima('/auth/v1/otp').cuerpo.create_user === true);
-  // El redirect_to va en la query. En el cuerpo, GoTrue lo ignora en silencio
-  // y manda el enlace a la dirección por defecto del proyecto.
-  ok('le dice a Supabase a dónde volver, y en la query',
-     /\/auth\/v1\/otp\?redirect_to=/.test(ultima('/auth/v1/otp').url),
-     ultima('/auth/v1/otp').url.split('?')[1] || 'sin query');
-  ok('y la dirección de vuelta es la de la aplicación',
-     decodeURIComponent((/redirect_to=([^&]+)/.exec(ultima('/auth/v1/otp').url) || [])[1] || '')
-       .indexOf('nube.test.html') > 0);
+  // ---- entrar y crear cuenta, sin un solo correo ----
+  await N.sale();
+  var mala = await N.entra('entrenador@club.com', 'noesesta').then(function () { return null; },
+                                                                   function (e) { return e; });
+  ok('una contraseña que no es, se dice claro',
+     !!mala && /no coinciden/.test(mala.message), mala && mala.message);
 
-  // Supabase corta los correos a los pocos envíos: el aviso tiene que decirlo
-  // en cristiano, no soltar el mensaje del servidor en inglés.
-  servidor.correoSaturado = true;
-  var saturado = await N.entra('otro@club.com').then(function () { return null; },
-                                                     function (e) { return e; });
-  ok('el límite de correos se explica en cristiano',
-     !!saturado && /pocos correos por hora/.test(saturado.message), saturado && saturado.message);
-  ok('y se guarda el mensaje original por si hace falta',
-     !!saturado && /rate limit/.test(saturado.crudo || ''));
-  servidor.correoSaturado = false;
+  ok('con la buena se entra al instante, sin correos',
+     await N.entra('entrenador@club.com', 'secreta1').then(function () { return N.dentro(); }));
+  ok('y no se ha mandado ningún correo', !ultima('/auth/v1/otp'));
 
+  await N.sale();
+  var alta = await N.entraOCrea('nuevo@club.com', 'secreta2', 'Nuevo');
+  ok('un correo desconocido crea la cuenta y entra', alta.dentro && alta.nueva === true);
+  ok('la cuenta nueva guarda el nombre para firmar',
+     ultima('/auth/v1/signup').cuerpo.data.nombre === 'Nuevo');
+
+  await N.sale();
+  var repe = await N.entraOCrea('nuevo@club.com', 'secreta2', 'Nuevo');
+  ok('la segunda vez ya solo entra, no crea nada', repe.dentro && repe.nueva === false);
+
+  var corta = await N.registra('otro@club.com', '123').then(function () { return null; },
+                                                            function (e) { return e; });
+  ok('una contraseña corta se explica antes de mandarla',
+     !!corta && /6 caracteres/.test(corta.message), corta && corta.message);
+
+  // Si el proyecto exige confirmar el correo, hay que decir exactamente eso.
+  servidor.exigeConfirmacion = true;
+  var conf = await N.registra('confirmame@club.com', 'secreta3').then(function () { return null; },
+                                                                      function (e) { return e; });
+  ok('si el proyecto exige confirmar, se dice y se dice dónde apagarlo',
+     !!conf && conf.confirmacion === true && /Confirm email/.test(conf.message));
+  servidor.exigeConfirmacion = false;
+
+  await N.entra('entrenador@club.com', 'secreta1');
   await N.sale();
   ok('salir cierra la sesión', !N.dentro());
   ok('y no deja rastro en el navegador', !localStorage.getItem('pt-nube'));
@@ -303,7 +332,11 @@ function ultima(fragmento) {
     log.join('\n') + '\n\nRESULTADO: ' + (fails ? fails + ' FALLOS' : 'TODO CORRECTO (' + log.length + ' comprobaciones)');
   document.title = fails ? 'FALLOS' : 'OK';
 })().catch(function (e) {
-  document.getElementById('out').textContent = log.join('\n') + '\n\nEXCEPCION: ' + e.message + '\n' + e.stack;
+  var ult = servidor.peticiones.slice(-4).map(function (p) {
+    return p.metodo + ' ' + p.url.replace(BASE, '') + '  cuerpo=' + JSON.stringify(p.cuerpo);
+  }).join('\n');
+  document.getElementById('out').textContent = log.join('\n') + '\n\nEXCEPCION: ' + e.message +
+    '\n\nÚLTIMAS PETICIONES:\n' + ult + '\n' + e.stack;
   document.title = 'FALLOS';
 });
 </script>

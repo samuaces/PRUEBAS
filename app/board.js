@@ -2427,16 +2427,23 @@
     });
   }
 
-  // Ya no hay cuentas ni correos: quién eres lo escribes tú y se queda aquí.
-  // El correo de Supabase, en el plan gratuito, deja mandar dos o tres enlaces
-  // por hora, así que como puerta de entrada no servía para nada.
   function pintaCuenta() {
-    var n = $('#cfg-nombre'), c = $('#cfg-club');
-    if (!n || !c) return;
-    var p = prefs();
-    n.value = p.nombre || '';
-    c.value = p.club || '';
+    if (!$('#cuenta-fuera')) return;
+    var dentro = !!yo;
+    $('#cuenta-fuera').hidden = dentro;
+    $('#cuenta-dentro').hidden = !dentro;
+    if (dentro) {
+      $('#cuenta-correo').textContent = yo.email || '';
+      $('#cuenta-nombre').value = yo.nombre || '';
+      $('#cuenta-club').value = yo.club || '';
+    }
     $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
+  }
+
+  // Quién eres, para saber qué puedes hacer.
+  function refrescaCuenta() {
+    if (!hayNube) return Promise.resolve(null);
+    return nube.quienSoy().then(function (p) { yo = p; pintaCuenta(); return p; });
   }
 
   // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
@@ -2457,12 +2464,11 @@
     var c = doc.card || emptyCard(), f = doc.frames[ui.frame] || doc.frames[0];
     var ficha = {};
     CARD_FIELDS.forEach(function (k) { if (c[k]) ficha[k] = c[k]; });
-    var p = prefs();
     return {
       id: sinAcentos(c.titulo || 'ejercicio').replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '').slice(0, 40) || 'ejercicio',
       pitch: doc.pitch, view: doc.view, card: ficha,
-      autor: p.nombre || '', club: p.club || '',
+      autor: (yo && yo.nombre) || '', club: (yo && yo.club) || '',
       objects: clone(f.objects), strokes: clone(f.strokes || [])
     };
   }
@@ -2519,35 +2525,37 @@
       openCard();
       return;
     }
-    // El botón está siempre. Sin servidor no se queda muerto: prepara el
-    // ejercicio para mandarlo, que es lo más cerca de compartir que hay.
-    if (!hayNube) { firmaYComparte(); return; }
-    // Sin sesión no se bloquea nada: se comparte igual, preparando el ejercicio
-    // para mandarlo. Tener cuenta solo ahorra ese paso. Hacer del correo una
-    // puerta obligatoria dejaba la aplicación inservible cuando el correo
-    // fallaba, que es justo cuando más falta hace poder trabajar.
-    if (!yo) { firmaYComparte(); return; }
-    if (!doc.card || !doc.card.titulo) {
-      toast('Ponle un título en la ficha antes de compartirla');
-      openCard();
+    if (!hayNube) { comparteSinNube(); return; }
+
+    if (!yo) {
+      ask({ title: 'Compartir «' + doc.card.titulo + '»',
+            message: 'Para subirlo a la biblioteca común hace falta una cuenta, así el ' +
+                     'ejercicio va firmado y puedes retirarlo cuando quieras. Se crea en ' +
+                     'diez segundos con tu correo y una contraseña, sin confirmar nada.',
+            ok: 'Crear mi cuenta' })
+        .then(function (si) {
+          if (!si) return;
+          abreAjustes();
+          setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 300);
+        });
       return;
     }
-    ask({
-      title: 'Compartir «' + doc.card.titulo + '»',
-      message: 'Se sube a la biblioteca común y lo verá cualquiera que abra la pizarra, ' +
-               'con tu nombre debajo. Puedes quitarlo cuando quieras.',
-      ok: 'Compartir'
-    }).then(function (si) {
-      if (!si) return;
-      toast('Subiendo…');
-      nube.publica(clone(doc), { publicado: true }).then(function (fila) {
-        nubeMios = [];
-        toast('Compartido. Ya está en la biblioteca común');
-        if (fila) cargaNube();
-      }).catch(function (e) {
-        toast('No se ha podido compartir: ' + (e.message || 'error'));
+
+    ask({ title: 'Compartir «' + doc.card.titulo + '»',
+          message: 'Se sube a la biblioteca común y lo verá cualquiera que abra la pizarra, ' +
+                   'con tu nombre debajo. Puedes retirarlo cuando quieras.',
+          ok: 'Compartir' })
+      .then(function (si) {
+        if (!si) return;
+        toast('Subiendo…');
+        nube.publica(clone(doc), { publicado: true }).then(function () {
+          nubeMios = []; nubeLista = [];
+          toast('Compartido. Ya está en la biblioteca de todos');
+          cargaNube();
+        }).catch(function (e) {
+          toast('No se ha podido compartir: ' + (e.message || 'error'));
+        });
       });
-    });
   }
 
   /* =========================================================================
@@ -3786,19 +3794,55 @@
     });
 
     // ---- Cuenta y biblioteca común ----
-    // Compartir se ve siempre y nunca pide cuenta.
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
-    // Quién eres: se escribe una vez y se queda en este dispositivo.
-    [['#cfg-nombre', 'nombre'], ['#cfg-club', 'club']].forEach(function (par) {
-      var el = $(par[0]);
-      if (!el) return;
-      el.addEventListener('change', function () {
-        var p = prefs();
-        p[par[1]] = this.value.trim().slice(0, 60);
-        guardaPrefs(p);
+    if (hayNube) {
+      $('#cuenta-entrar').addEventListener('click', function () {
+        var correo = $('#cuenta-email').value.trim();
+        var clave  = $('#cuenta-clave').value;
+        var nombre = $('#cuenta-alta-nombre').value.trim();
+        var aviso  = $('#cuenta-aviso');
+        function di(t) { aviso.textContent = t; aviso.hidden = false; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
+        if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+        var b = this; b.disabled = true; b.textContent = 'Entrando…';
+        aviso.hidden = true;
+        nube.entraOCrea(correo, clave, nombre)
+          .then(function (r) {
+            return refrescaCuenta().then(function () {
+              if (nombre && (!yo || yo.nombre !== nombre)) {
+                return nube.perfil({ nombre: nombre, club: (yo && yo.club) || '' })
+                  .then(refrescaCuenta).catch(function () {});
+              }
+            }).then(function () {
+              toast(r.nueva ? 'Cuenta creada. Ya puedes compartir' : 'Hola de nuevo');
+              $('#cuenta-clave').value = '';
+            });
+          })
+          .catch(function (e) { di(e.message || 'No se ha podido entrar'); })
+          .then(function () { b.disabled = false; b.textContent = 'Entrar o crear cuenta'; });
       });
-    });
+
+      $('#cuenta-salir').addEventListener('click', function () {
+        nube.sale().then(function () {
+          yo = null; nubeMios = []; nubeLista = [];
+          pintaCuenta(); toast('Sesión cerrada');
+        });
+      });
+
+      $('#cuenta-guardar').addEventListener('click', function () {
+        var b = this; b.disabled = true;
+        nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
+                      club: $('#cuenta-club').value.trim() })
+          .then(refrescaCuenta)
+          .then(function () { toast('Guardado'); })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); })
+          .then(function () { b.disabled = false; });
+      });
+
+      refrescaCuenta();
+      nube.alCambiar(function () { refrescaCuenta(); });
+    }
 
     pintaCuenta();
     pintaPrivacidad();
