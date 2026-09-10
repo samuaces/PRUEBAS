@@ -3,7 +3,7 @@ name: Publicar el sitio
 # Este repositorio tiene GitHub Pages en modo "Deploy from a branch", sirviendo la
 # rama gh-pages. Para no tocar esa configuración ni pisar lo que ya hay publicado en
 # la raíz, el sitio se copia dentro de gh-pages/pizarra y queda en:
-#   https://klym.xyz/
+#   https://samuaces.github.io/PRUEBAS/
 #
 # Si algún día pasas Pages a "GitHub Actions" (Settings → Pages → Source), puedes
 # sustituir este workflow por el despliegue oficial y servir el sitio en la raíz.
@@ -35,7 +35,7 @@ concurrency:
 
 env:
   CARPETA: pizarra
-  BASE: https://klym.xyz
+  BASE: https://samuaces.github.io/PRUEBAS
 
 jobs:
   publicar:

@@ -246,12 +246,12 @@ DOM: es lo que permite arrastrar veinte fichas y animar la jugada sin tirones.
 
 1. **Settings → Pages → Build and deployment → Source: _GitHub Actions_**.
 2. Fusiona esta rama en la rama principal (o lanza el workflow a mano desde Actions).
-   El sitio queda en `https://klym.xyz/`.
+   El sitio queda en `https://samuaces.github.io/PRUEBAS/`.
 
 ## Cambiar el dominio
 
 Las URLs absolutas (canonical, Open Graph, sitemap, JSON-LD) apuntan a
-`https://klym.xyz`. Si usas un dominio propio, sustitúyelo en
+`https://samuaces.github.io/PRUEBAS`. Si usas un dominio propio, sustitúyelo en
 `index.html`, `app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`,
 y crea un archivo `CNAME` en la raíz con tu dominio. Los enlaces internos son relativos.
 

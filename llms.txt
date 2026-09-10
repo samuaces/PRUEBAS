@@ -10,8 +10,8 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
 
 ## Páginas
 
-- [Inicio](https://klym.xyz/): presentación breve —qué hace y cómo funciona— y el enlace a la pizarra.
-- [La pizarra](https://klym.xyz/app/): la aplicación en sí, lista para dibujar.
+- [Inicio](https://samuaces.github.io/PRUEBAS/): presentación breve —qué hace y cómo funciona— y el enlace a la pizarra.
+- [La pizarra](https://samuaces.github.io/PRUEBAS/app/): la aplicación en sí, lista para dibujar.
 
 ## Qué hace
 

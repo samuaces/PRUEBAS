@@ -44,7 +44,7 @@ las veces que haga falta sin romper nada.
 
 **Authentication** → **URL Configuration**:
 
-- **Site URL**: `https://klym.xyz/app/`
+- **Site URL**: `https://samuaces.github.io/PRUEBAS/app/`
 - **Redirect URLs**: añade esa misma, y `http://localhost:8000/app/` si vas a
   probar en local.
 
