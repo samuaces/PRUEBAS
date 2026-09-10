@@ -1,8 +1,8 @@
 # robots.txt — Pizarra Táctica
-# Nota: los rastreadores solo leen el robots.txt de la RAÍZ del dominio.
-# Con un dominio propio (o un repo <usuario>.github.io) este archivo se aplica tal cual.
-# En una GitHub Page de proyecto (usuario.github.io/PRUEBAS/) queda como documentación:
-# el robots.txt efectivo es el de usuario.github.io/robots.txt.
+# Los rastreadores solo leen el robots.txt de la RAÍZ del dominio. Cuando la web
+# pase al dominio propio, este archivo quedará en la raíz y se aplicará tal cual;
+# mientras se sirva desde un subdirectorio de github.io, vale como documentación.
+# La línea Sitemap la ajusta tools/publicar.mjs al publicar, según dónde vaya.
 
 User-agent: *
 Allow: /
@@ -24,4 +24,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://samuaces.github.io/PRUEBAS/sitemap.xml
+Sitemap: https://samuaces.github.io/PRUEBAS/pizarra/sitemap.xml
