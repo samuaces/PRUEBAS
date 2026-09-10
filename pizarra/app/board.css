@@ -271,6 +271,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .sug:active{background:var(--surface-3)}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Un elemento con «hidden» tiene que desaparecer aunque su clase diga
+   display:flex. Sin esto, el campo del nombre no se ocultaba al cambiar de
+   pestaña y entrar y crear cuenta parecían lo mismo. */
+[hidden]{display:none!important}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field.wide{grid-column:1 / -1}
 .field > span{font-size:11.5px;color:var(--muted);font-weight:600}
