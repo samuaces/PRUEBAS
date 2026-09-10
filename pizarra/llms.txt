@@ -2,7 +2,8 @@
 
 > Pizarra táctica de fútbol online, sin registro, con material de
 > entrenamiento y animación de la jugada por fotogramas. Se ejecuta entera en el
-> navegador: no hay servidor, ni cuentas, ni recogida de datos.
+> navegador. Hay además una biblioteca de ejercicios que los entrenadores
+> comparten entre ellos; para usar la pizarra no hace falta cuenta.
 
 Proyecto estático (HTML, CSS y JavaScript sin dependencias) pensado para entrenadores,
 analistas y aficionados que necesitan diseñar una jugada o una sesión de entrenamiento.
@@ -44,10 +45,16 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   del juego, duración o texto libre.
 - La ficha va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
   rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
-- La biblioteca tiene dos pestañas: la general (viene en assets/biblioteca.json, se descarga
-  al arrancar y se puede ampliar sin republicar la aplicación) y las del propio usuario, que
-  no salen de su navegador. Los ejercicios de un entrenador no se comparten automáticamente
-  con los demás: eso necesitaría un servidor, y el sitio es estático.
+- La biblioteca tiene dos pestañas: la general —los diez que trae la aplicación en
+  assets/biblioteca.json más todo lo que van compartiendo los demás entrenadores, firmado con
+  su nombre y su club— y las del propio usuario: lo guardado en ese navegador y, si ha entrado
+  con su correo, lo que haya subido. Compartir es voluntario: lo que sube un entrenador es
+  suyo y privado hasta que le da a compartir, y puede retirarlo cuando quiera.
+- Cuentas por correo, sin contraseña: se pide un enlace y se entra al abrirlo. Hace falta
+  solo para compartir y para recuperar lo tuyo desde otro dispositivo; para dibujar, imprimir
+  fichas y ver la biblioteca común, no. El correo no se enseña a nadie: lo público es el
+  nombre y el club. Con tres reportes de tres personas distintas un ejercicio deja de verse.
+  El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
   categoría o equipo, que se rellena sola en cada ficha.
 - Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,
@@ -64,9 +71,11 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
 
 ## Qué NO hace todavía
 
-- No sincroniza nada en la nube ni permite compartir la pizarra por enlace.
+- No permite compartir una pizarra concreta por enlace, ni trabajar dos personas a la vez
+  sobre la misma.
 
 ## Privacidad
 
-Sin cookies, sin analítica y sin llamadas a terceros. Todo ocurre en el dispositivo
-del usuario; lo guardado vive en el almacenamiento local de su navegador.
+Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras que se guardan viven en
+el almacenamiento local del navegador. Al servidor solo va lo que el usuario comparte a
+propósito y, si entra, su correo, que no ve nadie más. Sin cuenta no se manda nada.

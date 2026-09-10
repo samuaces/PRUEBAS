@@ -235,6 +235,10 @@
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2.5" width="14" height="15" rx="2"/><path d="M6.5 7h7M6.5 10h7M6.5 13h4"/></svg>
             Ficha del ejercicio
           </button>
+          <button class="row-btn" id="compartir" hidden>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
+            Compartir en la biblioteca
+          </button>
           <button class="row-btn" id="sheet">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8v4H6z"/><path d="M6 13H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2"/><path d="M6 12h8v5H6z"/></svg>
             Hoja de sesión para imprimir
@@ -579,6 +583,40 @@
       <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
+
+    <div id="cfg-cuenta-bloque" hidden>
+      <p class="form-group">Tu cuenta</p>
+      <div id="cfg-cuenta">
+        <div id="cuenta-fuera">
+          <p class="block-note" style="margin:0 0 10px">Entra con tu correo para compartir
+            ejercicios en la biblioteca común y tenerlos en cualquier dispositivo. Sin contraseña:
+            te mandamos un enlace y listo.</p>
+          <div class="form-grid">
+            <label class="field wide"><span>Tu correo</span>
+              <input type="email" id="cuenta-email" autocomplete="email"
+                     placeholder="entrenador@club.com"></label>
+          </div>
+          <button type="button" class="tbtn primary" id="cuenta-entrar"
+                  style="margin-top:10px">Enviarme el enlace</button>
+          <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+        </div>
+
+        <div id="cuenta-dentro" hidden>
+          <p class="block-note" style="margin:0 0 10px">Has entrado como
+            <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
+          <div class="form-grid">
+            <label class="field"><span>Tu nombre <small>firma los que compartas</small></span>
+              <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
+            <label class="field"><span>Club <small>opcional</small></span>
+              <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
+          </div>
+          <div class="lib-linea" style="margin-top:10px">
+            <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
+            <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
@@ -601,6 +639,12 @@
       —con su pizarra y su ficha— más los que hayas guardado tú. Abre siempre en tu modalidad: para ver
       fútbol 7 o sala, cámbiala en el desplegable. Se filtra además por momento del juego, duración o
       buscando texto.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)" class="solo-nube" hidden>
+      <b style="color:var(--text)">Biblioteca común:</b> en Ajustes entras con tu correo —sin contraseña,
+      te llega un enlace— y a partir de ahí puedes compartir tus ejercicios con el resto de entrenadores
+      y verlos desde cualquier dispositivo. Lo que compartas sale firmado con tu nombre y lo puedes
+      retirar cuando quieras. Lo que no compartes no lo ve nadie.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ajustes:</b> ahí eliges tu modalidad predeterminada —con la que abren
@@ -630,13 +674,15 @@
       <b>Ctrl + Z</b><span>Deshacer</span>
       <b>Ctrl + Mayús + Z</b><span>Rehacer</span>
     </div>
-    <p style="margin:16px 0 0;color:var(--muted);font-size:12.5px">
+    <p style="margin:16px 0 0;color:var(--muted);font-size:12.5px" id="help-privacidad">
       Todo se guarda en tu dispositivo: nada viaja a ningún servidor.
     </p>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
+<script src="config.js"></script>
+<script src="nube.js"></script>
 <script src="board.js" defer></script>
 </body>
 </html>

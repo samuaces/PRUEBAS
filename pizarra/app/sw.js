@@ -1,10 +1,12 @@
 /* Pizarra Táctica — caché de la aplicación, para que funcione sin conexión. */
-var CACHE = 'pizarra-tactica-v2';
+var CACHE = 'pizarra-tactica-v3';
 var SHELL = [
   './',
   './index.html',
   './board.css',
   './board.js',
+  './config.js',
+  './nube.js',
   '../assets/biblioteca.json',
   '../site.webmanifest',
   '../assets/fonts/outfit-latin-var.woff2',
