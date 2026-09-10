@@ -1,5 +1,5 @@
 /* Pizarra Táctica — caché de la aplicación, para que funcione sin conexión. */
-var CACHE = 'pizarra-tactica-v3';
+var CACHE = 'pizarra-tactica-v4';
 var SHELL = [
   './',
   './index.html',
@@ -43,8 +43,11 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
 
-  /* La biblioteca sí va a la red primero: es lo único que crece con el tiempo. */
-  if (url.pathname.indexOf('biblioteca.json') >= 0) {
+  /* La biblioteca y la configuración van a la red primero: la una crece con el
+     tiempo, y la otra, si se queda vieja, deja la aplicación hablando con el
+     servidor equivocado (o con ninguno). */
+  if (url.pathname.indexOf('biblioteca.json') >= 0 ||
+      url.pathname.indexOf('config.js') >= 0) {
     e.respondWith(
       fetch(e.request).then(function (res) {
         if (res && res.status === 200) {

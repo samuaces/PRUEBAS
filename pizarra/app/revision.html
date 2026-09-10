@@ -205,15 +205,25 @@ button:focus-visible{outline:3px solid var(--accion);outline-offset:2px}
 
     if (!URL_ || !KEY){
       var l0 = fila('La pizarra sabe a qué proyecto llamar');
-      marca(l0, false, 'app/config.js está sin rellenar.', '');
-      falla(true);
+      marca(l0, false, 'No llega la configuración del proyecto.',
+        'Casi siempre es la copia guardada del navegador. Cierra esta pestaña, ' +
+        'vuelve a abrirla y, si sigue igual, recarga forzando (mantén pulsado el ' +
+        'botón de recargar).');
+      var v0 = document.getElementById('veredicto');
+      v0.className = 'veredicto mal';
+      document.getElementById('veredicto-tit').textContent = 'No puedo preguntar todavía';
+      document.getElementById('veredicto-txt').textContent =
+        'Sin la dirección del proyecto, lo demás no se puede comprobar.';
+      resultados.push('FALLA · No llega la configuración del proyecto');
+      return;                       // sin dirección, seguir es preguntarle a la nada
     }
 
     // 1 · el proyecto contesta
     var li = fila('El proyecto está despierto y contesta');
     var vivo = await protegido(li, async function(){
       var r = await pide('/rest/v1/');
-      if (r.estado >= 200 && r.estado < 500){
+      // Un 404 aquí sería la web contestando por él: sólo vale si contesta Supabase.
+      if (r.estado === 200 || r.estado === 401 || r.estado === 403){
         marca(li, true, 'Responde correctamente.'); return true;
       }
       falla(true);
