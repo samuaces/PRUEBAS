@@ -44,6 +44,10 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   del juego, duración o texto libre.
 - La ficha va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
   rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
+- La biblioteca tiene dos pestañas: la general (viene en assets/biblioteca.json, se descarga
+  al arrancar y se puede ampliar sin republicar la aplicación) y las del propio usuario, que
+  no salen de su navegador. Los ejercicios de un entrenador no se comparten automáticamente
+  con los demás: eso necesitaría un servidor, y el sitio es estático.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
   categoría o equipo, que se rellena sola en cada ficha.
 - Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,

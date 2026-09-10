@@ -1,0 +1,1906 @@
+{
+ "version": 1,
+ "actualizado": "2026-09-10",
+ "ejercicios": [
+  {
+   "id": "rondo-4v2",
+   "pitch": "f11",
+   "view": "area",
+   "card": {
+    "titulo": "Rondo 4 contra 2",
+    "momento": "Calentamiento",
+    "duracion": "12 min",
+    "series": "4 × 2 min",
+    "descanso": "45 s entre series",
+    "jugadores": "4 vs 2",
+    "espacio": "19 × 18 m",
+    "material": "4 conos, 1 balón",
+    "objetivo": "Mejorar la velocidad de circulación y la orientación del cuerpo antes de recibir.",
+    "descripcion": "Cuatro jugadores en los lados del cuadrado y dos dentro presionando. Los de fuera se mueven por su línea, nunca la abandonan.\nEl que pierde el balón entra al centro y sale el que lleve más tiempo dentro.",
+    "consignas": "Perfil abierto antes de que llegue el balón\nMirar el centro antes de recibir\nPasar al pie contrario a la presión\nSi te presionan dos, juega en corto al de al lado",
+    "normas": "Máximo dos toques\nUn toque en la última serie\nSi el balón sale, entra el que lo perdió",
+    "variantes": "Añadir un comodín interior\nAmpliar a 5 contra 2 y reducir el espacio\nGol interior: pase entre los dos defensores"
+   },
+   "objects": [
+    {
+     "id": "c1",
+     "kind": "cone",
+     "x": 43,
+     "y": 25,
+     "rot": 0
+    },
+    {
+     "id": "c2",
+     "kind": "cone",
+     "x": 62,
+     "y": 25,
+     "rot": 0
+    },
+    {
+     "id": "c3",
+     "kind": "cone",
+     "x": 62,
+     "y": 43,
+     "rot": 0
+    },
+    {
+     "id": "c4",
+     "kind": "cone",
+     "x": 43,
+     "y": 43,
+     "rot": 0
+    },
+    {
+     "id": "c5",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 52.5,
+     "y": 24.4,
+     "rot": 0
+    },
+    {
+     "id": "c6",
+     "kind": "player",
+     "team": "home",
+     "num": "6",
+     "x": 62.6,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c7",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 52.5,
+     "y": 43.6,
+     "rot": 0
+    },
+    {
+     "id": "c8",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 42.4,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c9",
+     "kind": "player",
+     "team": "away",
+     "num": "5",
+     "x": 49,
+     "y": 31,
+     "rot": 0
+    },
+    {
+     "id": "ca",
+     "kind": "player",
+     "team": "away",
+     "num": "9",
+     "x": 56,
+     "y": 37,
+     "rot": 0
+    },
+    {
+     "id": "cb",
+     "kind": "ball",
+     "x": 54,
+     "y": 24.9,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "cc",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 54,
+       "y": 24.9
+      },
+      {
+       "x": 61.6,
+       "y": 33
+      }
+     ]
+    },
+    {
+     "id": "cd",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 49,
+       "y": 31
+      },
+      {
+       "x": 56,
+       "y": 27
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "salida-presion",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Salida de balón bajo presión alta",
+    "momento": "Ataque organizado",
+    "duracion": "18 min",
+    "series": "4 × 3 min",
+    "descanso": "1 min entre series",
+    "jugadores": "7 vs 5",
+    "porteros": "1",
+    "espacio": "Medio campo",
+    "material": "2 porterías pequeñas, 6 balones",
+    "objetivo": "Progresar desde portería superando la primera línea de presión con pase interior al pivote.",
+    "descripcion": "El equipo azul saca desde portería con portero, cuatro defensas y dos pivotes. El rojo presiona con tres delanteros y dos interiores.\nEl azul suma al superar la línea de medios con el balón controlado; el rojo, al robar y marcar en cualquiera de las porterías pequeñas.",
+    "consignas": "Centrales amplios, por fuera del área\nEl pivote se ofrece entre líneas, nunca a la espalda del central\nPrimer pase al lado contrario de la presión\nSi presionan al portero, ampliar el campo con los laterales",
+    "normas": "Máximo dos toques en zona de creación\nEl portero no puede jugar en largo\nFuera de juego en la línea de medios",
+    "variantes": "Quitar un pivote: salida 6 contra 5\nObligar a que el primer pase sea al lateral\nEl rojo empieza la presión desde más atrás"
+   },
+   "objects": [
+    {
+     "id": "ce",
+     "kind": "player",
+     "team": "home",
+     "num": "1",
+     "x": 5,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "cf",
+     "kind": "player",
+     "team": "home",
+     "num": "2",
+     "x": 18,
+     "y": 8,
+     "rot": 0
+    },
+    {
+     "id": "cg",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 16,
+     "y": 25,
+     "rot": 0
+    },
+    {
+     "id": "ch",
+     "kind": "player",
+     "team": "home",
+     "num": "5",
+     "x": 16,
+     "y": 43,
+     "rot": 0
+    },
+    {
+     "id": "ci",
+     "kind": "player",
+     "team": "home",
+     "num": "3",
+     "x": 18,
+     "y": 60,
+     "rot": 0
+    },
+    {
+     "id": "cj",
+     "kind": "player",
+     "team": "home",
+     "num": "6",
+     "x": 29,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "ck",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 38,
+     "y": 22,
+     "rot": 0
+    },
+    {
+     "id": "cl",
+     "kind": "player",
+     "team": "away",
+     "num": "9",
+     "x": 25,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "cm",
+     "kind": "player",
+     "team": "away",
+     "num": "7",
+     "x": 26,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "cn",
+     "kind": "player",
+     "team": "away",
+     "num": "11",
+     "x": 26,
+     "y": 51,
+     "rot": 0
+    },
+    {
+     "id": "co",
+     "kind": "player",
+     "team": "away",
+     "num": "6",
+     "x": 36,
+     "y": 27,
+     "rot": 0
+    },
+    {
+     "id": "cp",
+     "kind": "player",
+     "team": "away",
+     "num": "8",
+     "x": 36,
+     "y": 41,
+     "rot": 0
+    },
+    {
+     "id": "cq",
+     "kind": "minigoal",
+     "x": 48,
+     "y": 18,
+     "rot": 90
+    },
+    {
+     "id": "cr",
+     "kind": "minigoal",
+     "x": 48,
+     "y": 50,
+     "rot": 90
+    },
+    {
+     "id": "cs",
+     "kind": "ball",
+     "x": 6.3,
+     "y": 34.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "ct",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 6.3,
+       "y": 34.8
+      },
+      {
+       "x": 16,
+       "y": 25
+      }
+     ]
+    },
+    {
+     "id": "cu",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 16,
+       "y": 25
+      },
+      {
+       "x": 29,
+       "y": 34
+      }
+     ]
+    },
+    {
+     "id": "cv",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 29,
+       "y": 34
+      },
+      {
+       "x": 37,
+       "y": 33
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "finalizacion-centro",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Finalización tras centro lateral",
+    "momento": "Ataque organizado",
+    "duracion": "20 min",
+    "series": "3 × 5 min",
+    "descanso": "2 min entre series",
+    "jugadores": "5 + portero",
+    "porteros": "1",
+    "espacio": "Medio campo",
+    "material": "6 conos, 10 balones",
+    "objetivo": "Atacar el área con tres alturas distintas y llegar al remate con ventaja sobre el defensa.",
+    "descripcion": "El extremo conduce por fuera de los conos y centra. Dos delanteros atacan primer palo y punto de penalti; un tercero llega desde atrás al borde del área.\nSe alternan las bandas y se cambia el rol en cada repetición.",
+    "consignas": "El centro sale antes de llegar a la línea de fondo\nPrimer palo ataca al espacio, segundo espera medio metro\nLa llegada desde atrás no entra hasta que sale el centro\nRematar a portería en el primer contacto",
+    "normas": "Un solo toque para rematar\nEl centro tiene que ir raso o a media altura\nSi el balón se para en el área, se anula la jugada",
+    "variantes": "Añadir un defensa central que dispute el remate\nCentro desde atrás en vez de línea de fondo\nPremiar el gol de cabeza con dos puntos"
+   },
+   "objects": [
+    {
+     "id": "cw",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 3.5,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "cx",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 34,
+     "y": 6,
+     "rot": 0
+    },
+    {
+     "id": "cy",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 12,
+     "y": 27,
+     "rot": 0
+    },
+    {
+     "id": "cz",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 14,
+     "y": 41,
+     "rot": 0
+    },
+    {
+     "id": "c10",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 22,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c11",
+     "kind": "cone",
+     "x": 30,
+     "y": 3,
+     "rot": 0
+    },
+    {
+     "id": "c12",
+     "kind": "cone",
+     "x": 24,
+     "y": 3,
+     "rot": 0
+    },
+    {
+     "id": "c13",
+     "kind": "cone",
+     "x": 18,
+     "y": 3.5,
+     "rot": 0
+    },
+    {
+     "id": "c14",
+     "kind": "disc",
+     "x": 16.5,
+     "y": 24,
+     "rot": 0
+    },
+    {
+     "id": "c15",
+     "kind": "disc",
+     "x": 16.5,
+     "y": 44,
+     "rot": 0
+    },
+    {
+     "id": "c16",
+     "kind": "ball",
+     "x": 35,
+     "y": 7,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c17",
+     "tool": "dribble",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 35,
+       "y": 7
+      },
+      {
+       "x": 26,
+       "y": 5
+      },
+      {
+       "x": 19,
+       "y": 5
+      }
+     ]
+    },
+    {
+     "id": "c18",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 19,
+       "y": 5
+      },
+      {
+       "x": 11,
+       "y": 26
+      }
+     ]
+    },
+    {
+     "id": "c19",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 12,
+       "y": 27
+      },
+      {
+       "x": 7,
+       "y": 30
+      }
+     ]
+    },
+    {
+     "id": "c1a",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 14,
+       "y": 41
+      },
+      {
+       "x": 9,
+       "y": 38
+      }
+     ]
+    },
+    {
+     "id": "c1b",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 22,
+       "y": 34
+      },
+      {
+       "x": 16,
+       "y": 34
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "transicion-3v2",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Transición ofensiva 3 contra 2",
+    "momento": "Transición ofensiva",
+    "duracion": "15 min",
+    "series": "6 × 90 s",
+    "descanso": "1 min entre series",
+    "jugadores": "3 vs 2 + portero",
+    "porteros": "1",
+    "espacio": "Medio campo",
+    "material": "8 balones",
+    "objetivo": "Decidir rápido en superioridad: fijar al defensa antes de soltar el balón.",
+    "descripcion": "Tres atacantes salen desde el medio campo contra dos defensas y portero. Seis segundos para terminar la jugada.\nSi los defensas roban, la jugada acaba y empieza la siguiente.",
+    "consignas": "Conducir hacia el defensa hasta obligarle a saltar\nAbrir el campo: los tres nunca en la misma línea\nEl último pase, siempre al pie que sigue jugando\nSi no hay ventaja clara, tirar",
+    "normas": "Seis segundos por jugada\nNo se puede pasar hacia atrás\nGol de primeras vale doble",
+    "variantes": "Reducir a cinco segundos\nEmpezar con el balón en el suelo y en carrera\nAñadir un tercer defensa que entra tarde"
+   },
+   "objects": [
+    {
+     "id": "c1c",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 3.5,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c1d",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 30,
+     "y": 18,
+     "rot": 0
+    },
+    {
+     "id": "c1e",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 32,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c1f",
+     "kind": "player",
+     "team": "home",
+     "num": "11",
+     "x": 30,
+     "y": 50,
+     "rot": 0
+    },
+    {
+     "id": "c1g",
+     "kind": "player",
+     "team": "away",
+     "num": "4",
+     "x": 17,
+     "y": 28,
+     "rot": 0
+    },
+    {
+     "id": "c1h",
+     "kind": "player",
+     "team": "away",
+     "num": "5",
+     "x": 17,
+     "y": 41,
+     "rot": 0
+    },
+    {
+     "id": "c1i",
+     "kind": "ball",
+     "x": 33,
+     "y": 35,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c1j",
+     "tool": "dribble",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 33,
+       "y": 35
+      },
+      {
+       "x": 24,
+       "y": 34
+      }
+     ]
+    },
+    {
+     "id": "c1k",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 24,
+       "y": 34
+      },
+      {
+       "x": 16,
+       "y": 20
+      }
+     ]
+    },
+    {
+     "id": "c1l",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 30,
+       "y": 18
+      },
+      {
+       "x": 15,
+       "y": 19
+      }
+     ]
+    },
+    {
+     "id": "c1m",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 30,
+       "y": 50
+      },
+      {
+       "x": 16,
+       "y": 46
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "posicion-6v6",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Juego de posición 6 contra 6 + 3",
+    "momento": "Ataque organizado",
+    "duracion": "24 min",
+    "series": "4 × 5 min",
+    "descanso": "90 s entre series",
+    "jugadores": "6 vs 6 + 3 comodines",
+    "espacio": "40 × 34 m",
+    "material": "8 conos, 4 platos, 6 balones",
+    "objetivo": "Mantener el balón con superioridad permanente y cambiar de orientación cuando la presión se acumula.",
+    "descripcion": "Espacio dividido en tres pasillos. Los comodines juegan siempre con quien tiene el balón y no pueden ser presionados con más de un jugador.\nDiez pases seguidos valen punto; cambiar de pasillo también.",
+    "consignas": "Antes de recibir, mirar el pasillo contrario\nEl comodín se ofrece siempre en línea de pase, nunca a la espalda\nSi el rival salta, jugar por dentro; si se cierra, cambiar de banda\nApoyos a tres metros, no a diez",
+    "normas": "Dos toques\nEl comodín, un toque\nDiez pases o cambio de pasillo: un punto",
+    "variantes": "Quitar un comodín\nPremiar solo el cambio de orientación\nAñadir dos porterías pequeñas en los fondos"
+   },
+   "objects": [
+    {
+     "id": "c1n",
+     "kind": "cone",
+     "x": 8,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "c1o",
+     "kind": "cone",
+     "x": 48,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "c1p",
+     "kind": "cone",
+     "x": 48,
+     "y": 51,
+     "rot": 0
+    },
+    {
+     "id": "c1q",
+     "kind": "cone",
+     "x": 8,
+     "y": 51,
+     "rot": 0
+    },
+    {
+     "id": "c1r",
+     "kind": "disc",
+     "x": 21.3,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "c1s",
+     "kind": "disc",
+     "x": 34.6,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "c1t",
+     "kind": "disc",
+     "x": 34.6,
+     "y": 51,
+     "rot": 0
+    },
+    {
+     "id": "c1u",
+     "kind": "disc",
+     "x": 21.3,
+     "y": 51,
+     "rot": 0
+    },
+    {
+     "id": "c1v",
+     "kind": "player",
+     "team": "home",
+     "num": "2",
+     "x": 12,
+     "y": 23,
+     "rot": 0
+    },
+    {
+     "id": "c1w",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 12,
+     "y": 45,
+     "rot": 0
+    },
+    {
+     "id": "c1x",
+     "kind": "player",
+     "team": "home",
+     "num": "6",
+     "x": 24,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c1y",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 32,
+     "y": 24,
+     "rot": 0
+    },
+    {
+     "id": "c1z",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 34,
+     "y": 45,
+     "rot": 0
+    },
+    {
+     "id": "c20",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 45,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c21",
+     "kind": "player",
+     "team": "away",
+     "num": "3",
+     "x": 18,
+     "y": 20,
+     "rot": 0
+    },
+    {
+     "id": "c22",
+     "kind": "player",
+     "team": "away",
+     "num": "5",
+     "x": 18,
+     "y": 48,
+     "rot": 0
+    },
+    {
+     "id": "c23",
+     "kind": "player",
+     "team": "away",
+     "num": "9",
+     "x": 28,
+     "y": 29,
+     "rot": 0
+    },
+    {
+     "id": "c24",
+     "kind": "player",
+     "team": "away",
+     "num": "11",
+     "x": 28,
+     "y": 40,
+     "rot": 0
+    },
+    {
+     "id": "c25",
+     "kind": "player",
+     "team": "away",
+     "num": "8",
+     "x": 39,
+     "y": 24,
+     "rot": 0
+    },
+    {
+     "id": "c26",
+     "kind": "player",
+     "team": "away",
+     "num": "6",
+     "x": 40,
+     "y": 45,
+     "rot": 0
+    },
+    {
+     "id": "c27",
+     "kind": "player",
+     "team": "neutral",
+     "num": "1",
+     "x": 9.5,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c28",
+     "kind": "player",
+     "team": "neutral",
+     "num": "2",
+     "x": 28,
+     "y": 15.4,
+     "rot": 0
+    },
+    {
+     "id": "c29",
+     "kind": "player",
+     "team": "neutral",
+     "num": "3",
+     "x": 28,
+     "y": 52.6,
+     "rot": 0
+    },
+    {
+     "id": "c2a",
+     "kind": "ball",
+     "x": 13.2,
+     "y": 23.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c2b",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 13.2,
+       "y": 23.8
+      },
+      {
+       "x": 23,
+       "y": 33
+      }
+     ]
+    },
+    {
+     "id": "c2c",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 24,
+       "y": 34
+      },
+      {
+       "x": 28,
+       "y": 16.4
+      }
+     ]
+    },
+    {
+     "id": "c2d",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 12,
+       "y": 45
+      },
+      {
+       "x": 20,
+       "y": 47
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "circuito-conduccion",
+   "pitch": "f11",
+   "view": "area",
+   "card": {
+    "titulo": "Circuito de conducción y agilidad",
+    "momento": "Físico-técnico",
+    "duracion": "16 min",
+    "series": "8 pasadas por jugador",
+    "descanso": "Vuelta andando",
+    "jugadores": "Grupo entero en dos filas",
+    "espacio": "30 × 20 m",
+    "material": "1 escalera, 3 vallas, 3 picas, 2 conos, 1 portería pequeña",
+    "objetivo": "Encadenar coordinación, conducción en zigzag y finalización sin perder la velocidad.",
+    "descripcion": "Escalera con apoyos rápidos, tres vallas a pies juntos, conducción en zigzag entre las picas y remate a la portería pequeña.\nDos filas trabajando en paralelo para que nadie espere más de veinte segundos.",
+    "consignas": "En la escalera, la mirada arriba y los brazos activos\nSalir de la última valla ya en carrera\nConducir con el pie de fuera entre las picas\nRematar sin ajustar el paso",
+    "normas": "No se toca ninguna pica\nSi se pierde el balón, se repite la pasada\nSe cronometra la última serie",
+    "variantes": "Cambiar el zigzag por conducción libre a máxima velocidad\nAñadir un pase de pared antes del remate\nCompetición por parejas a la mejor de tres"
+   },
+   "objects": [
+    {
+     "id": "c2e",
+     "kind": "ladder",
+     "x": 44,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2f",
+     "kind": "hurdle",
+     "x": 51,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2g",
+     "kind": "hurdle",
+     "x": 54,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2h",
+     "kind": "hurdle",
+     "x": 57,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2i",
+     "kind": "pole",
+     "x": 61,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c2j",
+     "kind": "pole",
+     "x": 63.5,
+     "y": 38,
+     "rot": 0
+    },
+    {
+     "id": "c2k",
+     "kind": "pole",
+     "x": 66,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c2l",
+     "kind": "cone",
+     "x": 40,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c2m",
+     "kind": "cone",
+     "x": 40,
+     "y": 38,
+     "rot": 0
+    },
+    {
+     "id": "c2n",
+     "kind": "minigoal",
+     "x": 68.5,
+     "y": 34,
+     "rot": 90
+    },
+    {
+     "id": "c2o",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 38.5,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c2p",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 38.5,
+     "y": 38,
+     "rot": 0
+    },
+    {
+     "id": "c2q",
+     "kind": "ball",
+     "x": 58.4,
+     "y": 34.6,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c2r",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 40,
+       "y": 34
+      },
+      {
+       "x": 49,
+       "y": 34
+      }
+     ]
+    },
+    {
+     "id": "c2s",
+     "tool": "dribble",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 58.4,
+       "y": 34.6
+      },
+      {
+       "x": 61,
+       "y": 32.5
+      },
+      {
+       "x": 63.5,
+       "y": 36
+      },
+      {
+       "x": 66,
+       "y": 32.5
+      },
+      {
+       "x": 68,
+       "y": 34
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "presion-tras-perdida",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Presión tras pérdida en cinco segundos",
+    "momento": "Transición defensiva",
+    "duracion": "18 min",
+    "series": "5 × 3 min",
+    "descanso": "1 min entre series",
+    "jugadores": "6 vs 6",
+    "porteros": "1",
+    "espacio": "Medio campo",
+    "material": "2 porterías pequeñas, 6 balones",
+    "objetivo": "Recuperar el balón en los cinco segundos siguientes a la pérdida, antes de que el rival salga de la zona.",
+    "descripcion": "El equipo que pierde el balón tiene cinco segundos para recuperarlo. Si lo consigue en ese tiempo, punto directo.\nSi el rival aguanta esos cinco segundos, puede atacar libre a las porterías pequeñas.",
+    "consignas": "El más cercano salta al balón, sin esperar\nLos dos de al lado cierran las líneas de pase interiores\nOrientar la presión hacia la banda\nSi se supera la presión, replegar todos por detrás del balón",
+    "normas": "Cinco segundos para recuperar\nRecuperación en zona alta: dos puntos\nSalir de la presión con tres pases: un punto para el rival",
+    "variantes": "Bajar a tres segundos\nProhibir la falta táctica\nAñadir un comodín que ayuda al que tiene el balón"
+   },
+   "objects": [
+    {
+     "id": "c2t",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 3.5,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2u",
+     "kind": "player",
+     "team": "home",
+     "num": "6",
+     "x": 30,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c2v",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 26,
+     "y": 20,
+     "rot": 0
+    },
+    {
+     "id": "c2w",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 26,
+     "y": 48,
+     "rot": 0
+    },
+    {
+     "id": "c2x",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 40,
+     "y": 24,
+     "rot": 0
+    },
+    {
+     "id": "c2y",
+     "kind": "player",
+     "team": "home",
+     "num": "5",
+     "x": 40,
+     "y": 44,
+     "rot": 0
+    },
+    {
+     "id": "c2z",
+     "kind": "player",
+     "team": "home",
+     "num": "2",
+     "x": 44,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c30",
+     "kind": "player",
+     "team": "away",
+     "num": "9",
+     "x": 24,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c31",
+     "kind": "player",
+     "team": "away",
+     "num": "7",
+     "x": 22,
+     "y": 16,
+     "rot": 0
+    },
+    {
+     "id": "c32",
+     "kind": "player",
+     "team": "away",
+     "num": "11",
+     "x": 22,
+     "y": 50,
+     "rot": 0
+    },
+    {
+     "id": "c33",
+     "kind": "player",
+     "team": "away",
+     "num": "6",
+     "x": 34,
+     "y": 27,
+     "rot": 0
+    },
+    {
+     "id": "c34",
+     "kind": "player",
+     "team": "away",
+     "num": "8",
+     "x": 34,
+     "y": 41,
+     "rot": 0
+    },
+    {
+     "id": "c35",
+     "kind": "minigoal",
+     "x": 50,
+     "y": 20,
+     "rot": 90
+    },
+    {
+     "id": "c36",
+     "kind": "minigoal",
+     "x": 50,
+     "y": 48,
+     "rot": 90
+    },
+    {
+     "id": "c37",
+     "kind": "ball",
+     "x": 25.4,
+     "y": 30.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c38",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 30,
+       "y": 34
+      },
+      {
+       "x": 26,
+       "y": 31
+      }
+     ]
+    },
+    {
+     "id": "c39",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 26,
+       "y": 20
+      },
+      {
+       "x": 23,
+       "y": 24
+      }
+     ]
+    },
+    {
+     "id": "c3a",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 26,
+       "y": 48
+      },
+      {
+       "x": 23,
+       "y": 43
+      }
+     ]
+    },
+    {
+     "id": "c3b",
+     "tool": "zone",
+     "color": "#00E27E",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 17,
+       "y": 13
+      },
+      {
+       "x": 35,
+       "y": 55
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "corner-primer-palo",
+   "pitch": "f11",
+   "view": "half",
+   "card": {
+    "titulo": "Córner al primer palo con bloqueo",
+    "momento": "Balón parado",
+    "duracion": "12 min",
+    "series": "10 lanzamientos",
+    "descanso": "Entre bloques",
+    "jugadores": "6 atacantes y 5 defensores",
+    "porteros": "1",
+    "espacio": "Área grande",
+    "material": "10 balones",
+    "objetivo": "Ganar el primer palo con un bloqueo previo y rematar el balón antes que el defensa.",
+    "descripcion": "Tres atacantes salen en bloque desde el punto de penalti. El primero bloquea al defensa de referencia y los otros dos atacan primer palo y segundo.\nUn cuarto atacante espera el rechace en el borde del área.",
+    "consignas": "El bloqueo se hace sin brazos, ganando la posición\nEl remate va al primer palo, siempre hacia portería\nEl del rechace no entra al área hasta el saque\nEl saque, tenso y a la altura de la cabeza",
+    "normas": "Gol de cabeza vale doble\nSi el balón pasa el primer palo sin tocar, se repite\nDefensa gana el punto si despeja fuera del área",
+    "variantes": "Córner en corto con apoyo\nSacar al segundo palo con carrera cruzada\nDefensa mixta en vez de al hombre"
+   },
+   "objects": [
+    {
+     "id": "c3c",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 3.4,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c3d",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 1.8,
+     "y": 1.8,
+     "rot": 0
+    },
+    {
+     "id": "c3e",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 12,
+     "y": 26,
+     "rot": 0
+    },
+    {
+     "id": "c3f",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 13.5,
+     "y": 32.5,
+     "rot": 0
+    },
+    {
+     "id": "c3g",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 15,
+     "y": 39,
+     "rot": 0
+    },
+    {
+     "id": "c3h",
+     "kind": "player",
+     "team": "home",
+     "num": "8",
+     "x": 21,
+     "y": 34,
+     "rot": 0
+    },
+    {
+     "id": "c3i",
+     "kind": "player",
+     "team": "home",
+     "num": "5",
+     "x": 10,
+     "y": 47,
+     "rot": 0
+    },
+    {
+     "id": "c3j",
+     "kind": "player",
+     "team": "away",
+     "num": "4",
+     "x": 7,
+     "y": 25,
+     "rot": 0
+    },
+    {
+     "id": "c3k",
+     "kind": "player",
+     "team": "away",
+     "num": "5",
+     "x": 7.5,
+     "y": 32,
+     "rot": 0
+    },
+    {
+     "id": "c3l",
+     "kind": "player",
+     "team": "away",
+     "num": "6",
+     "x": 9.5,
+     "y": 39,
+     "rot": 0
+    },
+    {
+     "id": "c3m",
+     "kind": "player",
+     "team": "away",
+     "num": "2",
+     "x": 6.5,
+     "y": 45,
+     "rot": 0
+    },
+    {
+     "id": "c3n",
+     "kind": "player",
+     "team": "away",
+     "num": "3",
+     "x": 16,
+     "y": 30,
+     "rot": 0
+    },
+    {
+     "id": "c3o",
+     "kind": "ball",
+     "x": 1.8,
+     "y": 1.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c3p",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 1.8,
+       "y": 1.8
+      },
+      {
+       "x": 6.5,
+       "y": 23
+      }
+     ]
+    },
+    {
+     "id": "c3q",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 12,
+       "y": 26
+      },
+      {
+       "x": 7.5,
+       "y": 22.5
+      }
+     ]
+    },
+    {
+     "id": "c3r",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 13.5,
+       "y": 32.5
+      },
+      {
+       "x": 10,
+       "y": 28
+      }
+     ]
+    },
+    {
+     "id": "c3s",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 15,
+       "y": 39
+      },
+      {
+       "x": 12.5,
+       "y": 44
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "f7-superioridad",
+   "pitch": "f7",
+   "view": "half",
+   "card": {
+    "titulo": "Fútbol 7: superioridad 4 contra 3",
+    "momento": "Partido condicionado",
+    "duracion": "16 min",
+    "series": "4 × 3 min",
+    "descanso": "1 min entre series",
+    "jugadores": "4 vs 3 + portero",
+    "porteros": "1",
+    "espacio": "Medio campo de fútbol 7",
+    "material": "2 porterías pequeñas, 6 balones",
+    "objetivo": "Aprovechar el jugador de más buscando siempre el pase al que está libre.",
+    "descripcion": "Cuatro atacantes contra tres defensas y portero. Si los defensas roban, atacan a las dos porterías pequeñas del medio campo.\nCada dos minutos rota un atacante a defensa.",
+    "consignas": "Buscar al libre antes de conducir\nAbrir el campo hasta las bandas\nEl que recibe entre líneas, gira si puede\nRematar dentro del área, no desde fuera",
+    "normas": "Tres toques máximo\nGol tras cambio de banda: doble\nLos defensas no pueden salir del medio campo",
+    "variantes": "Pasar a 4 contra 4 con portero\nLimitar a dos toques\nAñadir un comodín ofensivo en banda"
+   },
+   "objects": [
+    {
+     "id": "c3t",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 3,
+     "y": 22.5,
+     "rot": 0
+    },
+    {
+     "id": "c3u",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 22,
+     "y": 6,
+     "rot": 0
+    },
+    {
+     "id": "c3v",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 20,
+     "y": 18,
+     "rot": 0
+    },
+    {
+     "id": "c3w",
+     "kind": "player",
+     "team": "home",
+     "num": "10",
+     "x": 20,
+     "y": 28,
+     "rot": 0
+    },
+    {
+     "id": "c3x",
+     "kind": "player",
+     "team": "home",
+     "num": "11",
+     "x": 22,
+     "y": 39,
+     "rot": 0
+    },
+    {
+     "id": "c3y",
+     "kind": "player",
+     "team": "away",
+     "num": "2",
+     "x": 12,
+     "y": 16,
+     "rot": 0
+    },
+    {
+     "id": "c3z",
+     "kind": "player",
+     "team": "away",
+     "num": "3",
+     "x": 12,
+     "y": 29,
+     "rot": 0
+    },
+    {
+     "id": "c40",
+     "kind": "player",
+     "team": "away",
+     "num": "4",
+     "x": 16,
+     "y": 22.5,
+     "rot": 0
+    },
+    {
+     "id": "c41",
+     "kind": "minigoal",
+     "x": 30,
+     "y": 10,
+     "rot": 90
+    },
+    {
+     "id": "c42",
+     "kind": "minigoal",
+     "x": 30,
+     "y": 35,
+     "rot": 90
+    },
+    {
+     "id": "c43",
+     "kind": "ball",
+     "x": 21,
+     "y": 18.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c44",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 21,
+       "y": 18.8
+      },
+      {
+       "x": 22,
+       "y": 6
+      }
+     ]
+    },
+    {
+     "id": "c45",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 20,
+       "y": 28
+      },
+      {
+       "x": 12,
+       "y": 25
+      }
+     ]
+    },
+    {
+     "id": "c46",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 22,
+       "y": 6
+      },
+      {
+       "x": 9,
+       "y": 14
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "futsal-3-1",
+   "pitch": "futsal",
+   "view": "full",
+   "card": {
+    "titulo": "Fútbol sala: ataque en 3-1 con pivote",
+    "momento": "Ataque organizado",
+    "duracion": "14 min",
+    "series": "4 × 2,5 min",
+    "descanso": "1 min entre series",
+    "jugadores": "4 vs 4 + porteros",
+    "porteros": "2",
+    "espacio": "Pista completa",
+    "material": "6 balones",
+    "objetivo": "Atacar en 3-1 fijando al defensor del pivote para abrir el pase interior o la segunda jugada.",
+    "descripcion": "Tres jugadores en la primera línea y el pivote fijo de espaldas. Circulación rápida de banda a banda hasta encontrar el pase al pivote.\nSi entra el balón al pivote, los dos alas atacan los palos.",
+    "consignas": "El pivote se mueve al lado contrario del balón\nPase al pivote siempre al pie de fuera\nTras el pase, cortar por delante para arrastrar\nSi no hay pivote, cambio de orientación rápido",
+    "normas": "Máximo tres toques\nGol tras pase del pivote: doble\nProhibido el uno contra uno en la primera línea",
+    "variantes": "Añadir un segundo pivote\nJugar con portero-jugador en superioridad\nLimitar el ataque a diez segundos"
+   },
+   "objects": [
+    {
+     "id": "c47",
+     "kind": "player",
+     "team": "home",
+     "num": "1",
+     "x": 2,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c48",
+     "kind": "player",
+     "team": "away",
+     "num": "1",
+     "x": 38,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c49",
+     "kind": "player",
+     "team": "home",
+     "num": "4",
+     "x": 14,
+     "y": 3,
+     "rot": 0
+    },
+    {
+     "id": "c4a",
+     "kind": "player",
+     "team": "home",
+     "num": "5",
+     "x": 12,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c4b",
+     "kind": "player",
+     "team": "home",
+     "num": "7",
+     "x": 14,
+     "y": 17,
+     "rot": 0
+    },
+    {
+     "id": "c4c",
+     "kind": "player",
+     "team": "home",
+     "num": "9",
+     "x": 28,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c4d",
+     "kind": "player",
+     "team": "away",
+     "num": "2",
+     "x": 22,
+     "y": 4,
+     "rot": 0
+    },
+    {
+     "id": "c4e",
+     "kind": "player",
+     "team": "away",
+     "num": "3",
+     "x": 22,
+     "y": 16,
+     "rot": 0
+    },
+    {
+     "id": "c4f",
+     "kind": "player",
+     "team": "away",
+     "num": "4",
+     "x": 26,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c4g",
+     "kind": "player",
+     "team": "away",
+     "num": "5",
+     "x": 31,
+     "y": 10,
+     "rot": 0
+    },
+    {
+     "id": "c4h",
+     "kind": "ball",
+     "x": 13,
+     "y": 10.8,
+     "rot": 0
+    }
+   ],
+   "strokes": [
+    {
+     "id": "c4i",
+     "tool": "pass",
+     "color": "#F1C40F",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 13,
+       "y": 10.8
+      },
+      {
+       "x": 14,
+       "y": 3
+      }
+     ]
+    },
+    {
+     "id": "c4j",
+     "tool": "pass",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 14,
+       "y": 3
+      },
+      {
+       "x": 27.4,
+       "y": 9.4
+      }
+     ]
+    },
+    {
+     "id": "c4k",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 14,
+       "y": 17
+      },
+      {
+       "x": 30,
+       "y": 15
+      }
+     ]
+    },
+    {
+     "id": "c4l",
+     "tool": "run",
+     "color": "#FFFFFF",
+     "width": 0.32,
+     "pts": [
+      {
+       "x": 14,
+       "y": 3
+      },
+      {
+       "x": 26,
+       "y": 4
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,10 +1,11 @@
 /* Pizarra Táctica — caché de la aplicación, para que funcione sin conexión. */
-var CACHE = 'pizarra-tactica-v1';
+var CACHE = 'pizarra-tactica-v2';
 var SHELL = [
   './',
   './index.html',
   './board.css',
   './board.js',
+  '../assets/biblioteca.json',
   '../site.webmanifest',
   '../assets/fonts/outfit-latin-var.woff2',
   '../assets/fonts/inter-latin-var.woff2',
@@ -39,6 +40,20 @@ self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   var url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+
+  /* La biblioteca sí va a la red primero: es lo único que crece con el tiempo. */
+  if (url.pathname.indexOf('biblioteca.json') >= 0) {
+    e.respondWith(
+      fetch(e.request).then(function (res) {
+        if (res && res.status === 200) {
+          var copia = res.clone();
+          caches.open(CACHE).then(function (c) { c.put(e.request, copia); });
+        }
+        return res;
+      }).catch(function () { return caches.match(e.request); })
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(e.request).then(function (hit) {
