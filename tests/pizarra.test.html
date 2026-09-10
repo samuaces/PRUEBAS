@@ -660,10 +660,10 @@ async function run(w,d){
   d.querySelector('[data-tool="select"]').click();await raf();
   pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerdown');
   pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerup');await wait(250);
-  var aPica=alto(X,Y,26),aPlato=alto(X2,Y,26);
+  var aPica=alto(X,Y,26),aChino=alto(X2,Y,26);
   ok('la pica se dibuja de pie, no como un punto',aPica>60,aPica+' px pintados encima');
-  ok('el plato se dibuja plano, no como un cono',aPlato<40,aPlato+' px pintados encima');
-  ok('la pica se ve bastante más alta que el plato',aPica>aPlato*3,aPica+' contra '+aPlato);
+  ok('el chino se dibuja bajo, no como un cono de tráfico',aChino<60,aChino+' px pintados encima');
+  ok('la pica se ve bastante más alta que el chino',aPica>aChino*2,aPica+' contra '+aChino);
   pointerAt(w,cv,X,Y-16,'pointerdown');pointerAt(w,cv,X,Y-16,'pointerup');await raf();
   ok('la pica se puede seleccionar tocando el palo',
      d.getElementById('inspector').classList.contains('show'));

@@ -27,11 +27,13 @@ balón. Las fichas son símbolos, así que su tamaño se ajusta a la modalidad. 
 predefinidas para ambos equipos: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1 en fútbol
 11; 1-3-2-1, 1-2-3-1, 1-3-1-2 y 1-1-3-2 en fútbol 7; rombo, cuadrado, 1-3-0 y 3-1 en sala.
 
-**Materiales.** Conos, platos marcadores, porterías reglamentarias, porterías pequeñas,
+**Materiales.** Conos, chinos, porterías reglamentarias, porterías pequeñas,
 vallas de agilidad, escaleras de agilidad, picas, maniquíes, aros y banderines. Cada uno se
-dibuja como lo que es: el plato, plano y con su hueco central, no como un cono pequeño; la
+dibuja como lo que es: el chino, ancho y bajo, con las faldas abiertas y el agujero de
+arriba donde se clava la pica, no un plato liso ni un cono de tráfico en miniatura; la
 pica, un palo de metro y medio con sus franjas sobre una peana, no un punto de color; la
-valla, una U invertida apoyada en dos pies; el maniquí, un torso con hombros sobre su base.
+valla, una U invertida apoyada en dos pies; el maniquí, amarillo y con los brazos cruzados
+como los de las barreras.
 Los iconos del panel repiten el mismo dibujo, para que lo que eliges y lo que aparece en el
 campo sean la misma pieza. Se
 colocan tocando el campo tantas veces como haga falta, y los alargados se giran con el

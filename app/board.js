@@ -62,7 +62,7 @@
     player:   { r: 1.45,               rot: false, label: 'Jugador' },
     ball:     { r: 0.85,               rot: false, label: 'Balón' },
     cone:     { r: 0.95,               rot: true,  label: 'Cono' },
-    disc:     { r: 1.00,               rot: true,  label: 'Plato' },
+    disc:     { r: 1.00,               rot: true,  label: 'Chino' },
     goal:     { w: 7.32, h: 2.0,       rot: true,  label: 'Portería' },
     minigoal: { w: 4.5,  h: 1.8,       rot: true,  label: 'Portería pequeña' },
     hurdle:   { w: 2.2,  h: 1.1,       rot: true,  label: 'Valla' },
@@ -557,20 +557,33 @@
     c.fillRect(-s * 0.36, -s * 0.72, s * 0.72, s * 0.2);
   }
 
-  // Un plato marcador es plano: dos centímetros de alto y un hueco en medio.
-  // Dibujado con cúpula parecía un cono pequeño, que es justo lo que no es.
+  // Un chino: cono ancho y bajo, con el agujero de arriba donde se clava la
+  // pica. Ni un plato liso ni un cono de tráfico en miniatura.
   function drawDisc(c, u, o) {
     var r = KIND.disc.r * u, col = o.color || '#F1C40F';
-    shadow(c, u, KIND.disc.r * 0.85, 0.24, 0.3);
-    c.fillStyle = shade(col, -0.32);                    // el canto
-    c.beginPath(); c.ellipse(0, r * 0.07, r, r * 0.3, 0, 0, 7); c.fill();
-    c.fillStyle = col;                                  // la cara de arriba
-    c.beginPath(); c.ellipse(0, 0, r, r * 0.3, 0, 0, 7); c.fill();
-    c.fillStyle = shade(col, -0.16);                    // el hundido central
-    c.beginPath(); c.ellipse(0, 0, r * 0.56, r * 0.16, 0, 0, 7); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.55)';
-    c.lineWidth = Math.max(1, u * 0.04);
-    c.beginPath(); c.ellipse(0, 0, r * 0.97, r * 0.29, 0, Math.PI * 1.06, Math.PI * 1.94); c.stroke();
+    var h = r * 0.6, ra = r * 0.19;                     // alto y radio del agujero
+    shadow(c, u, KIND.disc.r * 0.9, 0.26, 0.32);
+
+    c.fillStyle = shade(col, -0.34);                    // el canto de la falda
+    c.beginPath(); c.ellipse(0, r * 0.05, r, r * 0.32, 0, 0, 7); c.fill();
+
+    var g = c.createLinearGradient(-r, 0, r, 0);        // la falda
+    g.addColorStop(0, shade(col, 0.2));
+    g.addColorStop(0.5, col);
+    g.addColorStop(1, shade(col, -0.24));
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(-r, 0);
+    c.quadraticCurveTo(-r * 0.66, -h * 0.92, -ra, -h);
+    c.lineTo(ra, -h);
+    c.quadraticCurveTo(r * 0.66, -h * 0.92, r, 0);
+    c.ellipse(0, 0, r, r * 0.32, 0, 0, Math.PI);        // el borde de delante
+    c.closePath(); c.fill();
+
+    c.fillStyle = shade(col, 0.26);                     // la corona de arriba
+    c.beginPath(); c.ellipse(0, -h, ra * 1.5, ra * 0.62, 0, 0, 7); c.fill();
+    c.fillStyle = shade(col, -0.55);                    // el agujero
+    c.beginPath(); c.ellipse(0, -h, ra * 0.78, ra * 0.32, 0, 0, 7); c.fill();
   }
 
   function drawGoal(c, u, w, d) {
@@ -1793,7 +1806,7 @@
   var PLURAL = {
     ball:     ['balón', 'balones'],
     cone:     ['cono', 'conos'],
-    disc:     ['plato', 'platos'],
+    disc:     ['chino', 'chinos'],
     goal:     ['portería', 'porterías'],
     minigoal: ['portería pequeña', 'porterías pequeñas'],
     hurdle:   ['valla', 'vallas'],
