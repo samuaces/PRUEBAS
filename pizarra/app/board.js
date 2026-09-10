@@ -2583,9 +2583,16 @@
     });
     items = items.concat(nubeLista);
 
+    // Un ejercicio que ya está subido no se enseña dos veces: manda la copia
+    // del servidor, que es la que te sigue a cualquier dispositivo. Antes, al
+    // compartir, el mismo ejercicio salía duplicado en «Mías».
+    var enLaNube = {};
+    nubeMios.forEach(function (it) { enLaNube[sinAcentos(it.nombre)] = true; });
+
     var mias = savedBoards();
     Object.keys(mias).sort(function (a, b) { return mias[b].at - mias[a].at; })
       .forEach(function (n) {
+        if (enLaNube[sinAcentos(n)]) return;
         var d = mias[n].doc || {};
         items.push({ id: 'mia:' + n, origen: 'mia', fuente: 'local', nombre: n, guardada: n,
                      pitch: d.pitch || 'f11', card: d.card || emptyCard(),
@@ -3797,6 +3804,24 @@
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
     if (hayNube) {
+      // Entrar y registrarse son dos cosas distintas y se piden por separado.
+      var modo = 'entrar';
+      function ponModo(m) {
+        modo = m;
+        $$('#cuenta-modo button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.dataset.modo === m));
+        });
+        $$('.solo-crear').forEach(function (el) { el.hidden = m !== 'crear'; });
+        $('#cuenta-entrar').textContent = m === 'crear' ? 'Crear cuenta' : 'Entrar';
+        $('#cuenta-clave').setAttribute('autocomplete',
+          m === 'crear' ? 'new-password' : 'current-password');
+        $('#cuenta-aviso').hidden = true;
+      }
+      $$('#cuenta-modo button').forEach(function (b) {
+        b.addEventListener('click', function () { ponModo(b.dataset.modo); });
+      });
+      ponModo('entrar');
+
       $('#cuenta-entrar').addEventListener('click', function () {
         var correo = $('#cuenta-email').value.trim();
         var clave  = $('#cuenta-clave').value;
@@ -3805,22 +3830,35 @@
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
         if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
-        var b = this; b.disabled = true; b.textContent = 'Entrando…';
+
+        var b = this, etiqueta = b.textContent;
+        b.disabled = true; b.textContent = modo === 'crear' ? 'Creando…' : 'Entrando…';
         aviso.hidden = true;
-        nube.entraOCrea(correo, clave, nombre)
-          .then(function (r) {
-            return refrescaCuenta().then(function () {
-              if (nombre && (!yo || yo.nombre !== nombre)) {
-                return nube.perfil({ nombre: nombre, club: (yo && yo.club) || '' })
-                  .then(refrescaCuenta).catch(function () {});
-              }
-            }).then(function () {
-              toast(r.nueva ? 'Cuenta creada. Ya puedes compartir' : 'Hola de nuevo');
-              $('#cuenta-clave').value = '';
-            });
-          })
-          .catch(function (e) { di(e.message || 'No se ha podido entrar'); })
-          .then(function () { b.disabled = false; b.textContent = 'Entrar o crear cuenta'; });
+
+        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre)
+                                     : nube.entra(correo, clave);
+        tarea.then(function () {
+          return refrescaCuenta().then(function () {
+            if (modo === 'crear' && nombre) {
+              return nube.perfil({ nombre: nombre, club: '' })
+                .then(refrescaCuenta).catch(function () {});
+            }
+          });
+        }).then(function () {
+          $('#cuenta-clave').value = '';
+          toast(modo === 'crear' ? 'Cuenta creada. Ya puedes compartir' : 'Hola de nuevo');
+        }).catch(function (e) {
+          var m = e.message || 'No se ha podido';
+          // El caso que más despista: la cuenta existe pero no tiene contraseña
+          // porque se creó con el enlace del correo, que ya no usamos.
+          if (modo === 'crear' && /ya tiene cuenta/.test(m)) {
+            di('Ese correo ya tiene cuenta. Cambia arriba a «Ya tengo cuenta» y entra con su ' +
+               'contraseña. Si nunca le pusiste una, usa otro correo.');
+          } else if (modo === 'entrar' && /no coinciden/.test(m)) {
+            di('Ese correo y esa contraseña no coinciden. Si la cuenta la creaste antes con un ' +
+               'enlace por correo, no tiene contraseña: crea una cuenta con otro correo.');
+          } else di(m);
+        }).then(function () { b.disabled = false; b.textContent = etiqueta; });
       });
 
       $('#cuenta-salir').addEventListener('click', function () {
