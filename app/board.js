@@ -2241,6 +2241,122 @@
 ;
 
   /* =========================================================================
+     La nube
+     La biblioteca compartida vive en Supabase. Si no está configurada —o si
+     no hay conexión— nada de esto se nota: la pizarra sigue con su catálogo
+     y con lo que hayas guardado en este dispositivo.
+     ====================================================================== */
+
+  var nube = window.PTNube || null;
+  var hayNube = !!(nube && nube.hay());
+  var nubeLista = [];                 // lo que ha compartido cualquiera
+  var nubeMios  = [];                 // los tuyos, compartidos o no
+  var yo = null;                      // tu perfil, si has entrado
+  var nubeEstado = { cargando: false, error: '' };
+
+  // Una fila del servidor con la misma forma que el resto de la biblioteca.
+  function itemDeFila(fila, origen) {
+    var c = emptyCard();
+    CARD_FIELDS.forEach(function (k) { if (fila.ficha && fila.ficha[k]) c[k] = fila.ficha[k]; });
+    var quien = fila.entrenadores || {};
+    return {
+      id: origen + ':nube:' + fila.id, origen: origen, fuente: 'nube',
+      nombre: fila.titulo, pitch: fila.pitch, card: c, doc: fila.doc,
+      fila: fila, autor: quien.nombre || '', club: quien.club || '',
+      mio: !!(yo && fila.autor === yo.id), publicado: !!fila.publicado
+    };
+  }
+
+  // Se pide al servidor lo mismo que se está filtrando en pantalla, para no
+  // traerse la biblioteca entera cuando crezca.
+  function cargaNube() {
+    if (!hayNube) return Promise.resolve();
+    nubeEstado = { cargando: true, error: '' };
+    pintaBiblioteca();
+
+    var f = libFiltros;
+    var tarea = libFiltros.origen === 'mia'
+      ? nube.mios().then(function (filas) {
+          nubeMios = (filas || []).map(function (r) { return itemDeFila(r, 'mia'); });
+        })
+      : nube.lista(f, 0, 60).then(function (filas) {
+          nubeLista = (filas || []).map(function (r) { return itemDeFila(r, 'catalogo'); });
+        });
+
+    return tarea.then(function () {
+      nubeEstado = { cargando: false, error: '' };
+      pintaBiblioteca();
+    }).catch(function (e) {
+      nubeEstado = { cargando: false, error: e && e.message ? e.message : 'Sin conexión' };
+      pintaBiblioteca();
+    });
+  }
+
+  // Quién eres, para saber qué puedes hacer. Se llama al arrancar y al entrar.
+  function refrescaCuenta() {
+    if (!hayNube) return Promise.resolve(null);
+    return nube.quienSoy().then(function (p) {
+      yo = p;
+      pintaCuenta();
+      return p;
+    });
+  }
+
+  function pintaCuenta() {
+    var caja = $('#cfg-cuenta');
+    if (!caja) return;
+    $('#cfg-cuenta-bloque').hidden = !hayNube;
+    if (!hayNube) return;
+    var dentro = !!yo;
+    $('#cuenta-fuera').hidden = dentro;
+    $('#cuenta-dentro').hidden = !dentro;
+    if (dentro) {
+      $('#cuenta-correo').textContent = yo.email || '';
+      $('#cuenta-nombre').value = yo.nombre || '';
+      $('#cuenta-club').value = yo.club || '';
+    }
+    $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
+  }
+
+  // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
+  // casos: con biblioteca común y sin ella.
+  function pintaPrivacidad() {
+    var p = $('#help-privacidad');
+    if (!p) return;
+    p.textContent = !hayNube
+      ? 'Todo se guarda en tu dispositivo: nada viaja a ningún servidor.'
+      : 'Tus pizarras se guardan en este dispositivo. Al servidor solo va lo que compartes ' +
+        'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.';
+  }
+
+  // Compartir la pizarra que tienes abierta.
+  function comparteActual() {
+    if (!hayNube) return;
+    if (!yo) { $('#dlg-cfg').showModal(); pintaCuenta(); toast('Entra con tu correo para compartir'); return; }
+    if (!doc.card || !doc.card.titulo) {
+      toast('Ponle un título en la ficha antes de compartirla');
+      openCard();
+      return;
+    }
+    ask({
+      title: 'Compartir «' + doc.card.titulo + '»',
+      message: 'Se sube a la biblioteca común y lo verá cualquiera que abra la pizarra, ' +
+               'con tu nombre debajo. Puedes quitarlo cuando quieras.',
+      ok: 'Compartir'
+    }).then(function (si) {
+      if (!si) return;
+      toast('Subiendo…');
+      nube.publica(clone(doc), { publicado: true }).then(function (fila) {
+        nubeMios = [];
+        toast('Compartido. Ya está en la biblioteca común');
+        if (fila) cargaNube();
+      }).catch(function (e) {
+        toast('No se ha podido compartir: ' + (e.message || 'error'));
+      });
+    });
+  }
+
+  /* =========================================================================
      Biblioteca
      Reúne el catálogo que viene con la aplicación y las pizarras que hayas
      guardado tú, y deja filtrarlas. Sin filtros salen todas.
@@ -2254,21 +2370,25 @@
              frames: [{ objects: clone(ej.objects), strokes: clone(ej.strokes || []) }] };
   }
 
-  // Todo lo que hay: catálogo + lo tuyo, con los datos que usan los filtros.
+  // Todo lo que hay, con los datos que usan los filtros:
+  //   general → los que vienen con la aplicación + los que comparte la gente
+  //   mías    → lo guardado en este dispositivo + lo tuyo que está en la nube
   function bibliotecaItems() {
     var items = CATALOGO.map(function (ej) {
-      return { id: 'cat:' + ej.id, origen: 'catalogo', nombre: ej.card.titulo,
+      return { id: 'cat:' + ej.id, origen: 'catalogo', fuente: 'app', nombre: ej.card.titulo,
                pitch: ej.pitch, card: ej.card, doc: null, ej: ej };
     });
+    items = items.concat(nubeLista);
+
     var mias = savedBoards();
     Object.keys(mias).sort(function (a, b) { return mias[b].at - mias[a].at; })
       .forEach(function (n) {
         var d = mias[n].doc || {};
-        items.push({ id: 'mia:' + n, origen: 'mia', nombre: n, guardada: n,
+        items.push({ id: 'mia:' + n, origen: 'mia', fuente: 'local', nombre: n, guardada: n,
                      pitch: d.pitch || 'f11', card: d.card || emptyCard(),
                      doc: d, at: mias[n].at });
       });
-    return items;
+    return items.concat(nubeMios);
   }
 
   function itemDoc(it) {
@@ -2335,6 +2455,26 @@
   }
   var libFiltros = filtrosPorDefecto();
 
+  // La línea que explica de dónde sale lo que estás viendo.
+  function notaBiblioteca() {
+    if (libFiltros.origen === 'mia') {
+      if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
+      if (!yo) return 'Lo guardado se queda en este dispositivo · entra con tu correo ' +
+                      'en Ajustes para tener los tuyos en cualquier sitio';
+      return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
+    }
+    var partes = ['Los que trae la aplicación'];
+    if (hayNube) {
+      partes.push(nubeEstado.cargando ? 'trayendo los de la comunidad…'
+        : nubeEstado.error ? 'sin conexión con la biblioteca común'
+        : 'y los que va compartiendo la gente');
+    } else if (catalogoInfo.fecha) {
+      partes.push('al día del ' + fechaCorta(catalogoInfo.fecha));
+    }
+    if (catalogoInfo.deCache) partes.push('sin conexión, versión guardada');
+    return partes.join(' · ');
+  }
+
   function pintaBiblioteca() {
     var items = bibliotecaItems();
     var vistos = filtraBiblioteca(items, libFiltros);
@@ -2357,15 +2497,15 @@
     $$('.lib-tab').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
     });
-    $('#lib-nota').textContent = libFiltros.origen === 'catalogo'
-      ? 'Viene con la aplicación y se actualiza sola' +
-        (catalogoInfo.fecha ? ' · al día del ' + fechaCorta(catalogoInfo.fecha) : '') +
-        (catalogoInfo.deCache ? ' · sin conexión, versión guardada' : '')
-      : 'Lo que guardas se queda en este dispositivo';
+    $('#lib-nota').textContent = notaBiblioteca();
 
     grid.innerHTML = '';
     if (!vistos.length) {
       var hayFiltros = libFiltros.q || libFiltros.momento || libFiltros.duracion;
+      if (nubeEstado.cargando) {
+        grid.innerHTML = '<p class="empty">Trayendo la biblioteca…</p>';
+        return;
+      }
       grid.innerHTML = libFiltros.origen === 'mia' && !hayFiltros
         ? '<div class="lib-vacio"><b>Todavía no has guardado ninguna</b>' +
           'Monta un ejercicio, dale a Guardar y aparecerá aquí, solo en este dispositivo.</div>'
@@ -2393,7 +2533,8 @@
       pie.className = 'lib-pie';
       var marca = document.createElement('span');
       marca.className = 'lib-origen';
-      marca.textContent = it.origen === 'mia' ? 'Tuya' : 'Del catálogo';
+      marca.textContent = firmaItem(it);
+      if (it.fuente === 'nube' && !it.publicado) marca.classList.add('privado');
       pie.appendChild(marca);
 
       var abrir = document.createElement('button');
@@ -2401,26 +2542,103 @@
       abrir.addEventListener('click', function () { abreItem(it); });
       pie.appendChild(abrir);
 
-      if (it.origen === 'mia') {
-        var borrar = document.createElement('button');
-        borrar.className = 'tbtn'; borrar.textContent = 'Borrar';
-        borrar.addEventListener('click', function () {
-          ask({ title: 'Borrar «' + it.guardada + '»', message: 'Se quita de tu biblioteca. Esto no se puede deshacer.', ok: 'Borrar', danger: true })
-            .then(function (si) {
-              if (!si) return;
-              var a = savedBoards(); delete a[it.guardada]; writeBoards(a);
-              delete libMini[it.id];
-              pintaBiblioteca();
-            });
-        });
-        pie.appendChild(borrar);
-      }
+      botonesDeItem(it).forEach(function (b) { pie.appendChild(b); });
       art.appendChild(pie);
       grid.appendChild(art);
     });
   }
 
+  // De quién es cada ejercicio, dicho en dos palabras.
+  function firmaItem(it) {
+    if (it.fuente === 'app') return 'Del catálogo';
+    if (it.fuente === 'local') return 'Tuya, en este dispositivo';
+    if (!it.publicado) return 'Tuyo, sin compartir';
+    if (it.mio) return 'Tuyo, compartido';
+    return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'De la comunidad';
+  }
+
+  // Lo que puedes hacer con él, que depende de quién sea.
+  function botonesDeItem(it) {
+    var bs = [];
+    function boton(txt, clase, fn) {
+      var b = document.createElement('button');
+      b.className = 'tbtn' + (clase ? ' ' + clase : ''); b.textContent = txt;
+      b.addEventListener('click', fn); bs.push(b); return b;
+    }
+
+    if (it.fuente === 'local') {
+      if (hayNube && yo) {
+        boton('Compartir', '', function () {
+          ask({ title: 'Compartir «' + it.nombre + '»',
+                message: 'Se sube a la biblioteca común y lo verá cualquiera, con tu nombre debajo. ' +
+                         'Puedes retirarlo cuando quieras.', ok: 'Compartir' })
+            .then(function (si) {
+              if (!si) return;
+              var d = clone(itemDoc(it));
+              if (!d.card) d.card = emptyCard();
+              if (!d.card.titulo) d.card.titulo = it.nombre;
+              nube.publica(d, { publicado: true })
+                .then(function () { toast('Compartido'); nubeMios = []; cargaNube(); })
+                .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); });
+            });
+        });
+      }
+      boton('Borrar', '', function () {
+        ask({ title: 'Borrar «' + it.guardada + '»', message: 'Se quita de tu biblioteca. Esto no se puede deshacer.', ok: 'Borrar', danger: true })
+          .then(function (si) {
+            if (!si) return;
+            var a = savedBoards(); delete a[it.guardada]; writeBoards(a);
+            delete libMini[it.id];
+            pintaBiblioteca();
+          });
+      });
+      return bs;
+    }
+
+    if (it.fuente === 'nube' && it.mio) {
+      boton(it.publicado ? 'Retirar' : 'Compartir', '', function () {
+        nube.cambiaPublicado(it.fila.id, !it.publicado)
+          .then(function () {
+            toast(it.publicado ? 'Retirado de la biblioteca común' : 'Compartido');
+            nubeMios = []; nubeLista = []; cargaNube();
+          })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); });
+      });
+      boton('Borrar', '', function () {
+        ask({ title: 'Borrar «' + it.nombre + '»',
+              message: 'Se borra del servidor y deja de verse. Esto no se puede deshacer.',
+              ok: 'Borrar', danger: true })
+          .then(function (si) {
+            if (!si) return;
+            nube.borra(it.fila.id)
+              .then(function () { toast('Borrado'); nubeMios = []; nubeLista = []; cargaNube(); })
+              .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); });
+          });
+      });
+      return bs;
+    }
+
+    if (it.fuente === 'nube' && yo) {
+      boton('Reportar', 'sutil', function () {
+        ask({ title: 'Reportar «' + it.nombre + '»',
+              message: 'Avisas de que este ejercicio no debería estar en la biblioteca. ' +
+                       'Con tres avisos deja de verse.', ok: 'Reportar', danger: true })
+          .then(function (si) {
+            if (!si) return;
+            nube.reporta(it.fila.id, '')
+              .then(function () { toast('Gracias, queda avisado'); })
+              .catch(function (e) {
+                toast(/duplicate|unique/i.test(e.message || '') ? 'Ya lo habías reportado'
+                                                                : 'No se ha podido avisar');
+              });
+          });
+      });
+    }
+    return bs;
+  }
+
   function abreItem(it) {
+    if (it.fuente === 'nube' && it.fila && !it.mio) nube.apertura(it.fila.id);
     doc = clone(itemDoc(it));
     ui.frame = 0; ui.sel = null; ui.multi = [];
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
@@ -2436,6 +2654,7 @@
     $('#lib-pitch').value = libFiltros.pitch;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
+    cargaNube();
   }
 
   // ---- Sugerencias campo a campo ----
@@ -3338,12 +3557,15 @@
     $('#lib-q').addEventListener('input', function () {
       libFiltros.q = this.value;
       clearTimeout(libTeclas);
-      libTeclas = setTimeout(pintaBiblioteca, 120);   // sin repintar en cada tecla
+      libTeclas = setTimeout(function () {   // sin repintar ni preguntar en cada tecla
+        pintaBiblioteca(); cargaNube();
+      }, 250);
     });
     $$('.lib-tab').forEach(function (b) {
       b.addEventListener('click', function () {
         libFiltros.origen = b.dataset.origen;
         pintaBiblioteca();
+        cargaNube();
       });
     });
     [['#lib-pitch', 'pitch'],
@@ -3351,6 +3573,7 @@
       $(par[0]).addEventListener('change', function () {
         libFiltros[par[1]] = this.value;
         pintaBiblioteca();
+        cargaNube();
       });
     });
     $('#lib-limpiar').addEventListener('click', function () {
@@ -3362,7 +3585,56 @@
       ['#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
       $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
+      cargaNube();
     });
+
+    // ---- Cuenta y biblioteca común ----
+    if (hayNube) {
+      var compartir = $('#compartir');
+      if (compartir) {
+        compartir.hidden = false;
+        compartir.addEventListener('click', function () { sheetClose(); comparteActual(); });
+      }
+      $('#cuenta-entrar').addEventListener('click', function () {
+        var correo = $('#cuenta-email').value.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { toast('Escribe un correo válido'); return; }
+        var b = this; b.disabled = true; b.textContent = 'Enviando…';
+        nube.entra(correo).then(function () {
+          $('#cuenta-aviso').textContent =
+            'Te hemos mandado un enlace a ' + correo + '. Ábrelo en este mismo dispositivo ' +
+            'y volverás aquí con la sesión iniciada.';
+          $('#cuenta-aviso').hidden = false;
+        }).catch(function (e) {
+          $('#cuenta-aviso').textContent = 'No se ha podido enviar: ' + (e.message || 'error');
+          $('#cuenta-aviso').hidden = false;
+        }).then(function () { b.disabled = false; b.textContent = 'Enviarme el enlace'; });
+      });
+      $('#cuenta-salir').addEventListener('click', function () {
+        nube.sale().then(function () {
+          yo = null; nubeMios = []; nubeLista = [];
+          pintaCuenta(); toast('Sesión cerrada');
+        });
+      });
+      $('#cuenta-guardar').addEventListener('click', function () {
+        var b = this; b.disabled = true;
+        nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
+                      club: $('#cuenta-club').value.trim() })
+          .then(function () { return refrescaCuenta(); })
+          .then(function () { toast('Guardado'); })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); })
+          .then(function () { b.disabled = false; });
+      });
+
+      // Al volver del enlace del correo se entra solo.
+      var v = nube.vuelta();
+      refrescaCuenta().then(function (p) {
+        if (v && v.entrado && p) toast('Hola, ' + (p.nombre || 'entrenador'));
+        else if (v && v.error) toast(v.error);
+      });
+      nube.alCambiar(function () { refrescaCuenta(); });
+    }
+    pintaCuenta();
+    pintaPrivacidad();
 
     // ---- Ficha ----
     llenaSelectorPlantillas();

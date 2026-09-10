@@ -530,9 +530,12 @@ async function run(w,d){
   ok('quitar filtros vuelve a tu modalidad, no a todo',
      d.querySelectorAll('.lib-card').length===total&&d.getElementById('lib-pitch').value==='f11');
   ok('la biblioteca general dice de dónde sale y de cuándo es',
-     /se actualiza sola/.test(d.getElementById('lib-nota').textContent)&&
+     /trae la aplicación/.test(d.getElementById('lib-nota').textContent)&&
      /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
      d.getElementById('lib-nota').textContent);
+  // --- sin servidor configurado, la nube no se nota ---
+  ok('sin nube configurada no aparece nada de cuentas',
+     d.getElementById('cfg-cuenta-bloque').hidden&&d.getElementById('compartir').hidden);
 
   // abrir un ejercicio trae pizarra y ficha
   d.getElementById('lib-pitch').value='futsal';

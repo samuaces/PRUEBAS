@@ -3,7 +3,8 @@
 Pizarra táctica de fútbol en el navegador, con material de entrenamiento y animación de
 la jugada por fotogramas. Más una portada breve que la presenta y lleva a ella.
 
-Todo estático: HTML, CSS y JavaScript sin dependencias, sin build y sin servidor.
+HTML, CSS y JavaScript sin dependencias ni build. El sitio es estático; lo único que hay
+detrás es Supabase, y solo para la biblioteca que los entrenadores comparten entre ellos.
 
 - **Portada:** `index.html`
 - **Aplicación:** `app/index.html` + `app/board.css` + `app/board.js`
@@ -80,12 +81,12 @@ La biblioteca tiene **dos pestañas**: la general y las tuyas.
   las versiones de un solo archivo (`dist/` y el artifact) la llevan incrustada al construirse.
   El service worker la pide siempre a la red primero —es lo único que crece— y cae a la copia
   guardada si no hay.
-- **Mías.** Las pizarras que hayas guardado tú, que no salen de tu navegador.
+- **Mías.** Las pizarras que hayas guardado en este navegador, y —si has entrado con tu
+  correo— las que hayas subido, compartidas o no.
 
-Y aquí el límite que conviene tener claro: **la biblioteca general la actualiza quien mantiene
-el repositorio, no los propios entrenadores**. Para que un entrenador publique su ejercicio y
-lo vean los demás hace falta un servidor que acepte escrituras, y con él identidad, moderación
-y datos saliendo del dispositivo. Ver «Biblioteca compartida» más abajo.
+Con la biblioteca común configurada (ver abajo), la pestaña general enseña además **todo lo que
+van compartiendo los demás entrenadores**, firmado con su nombre y su club. Sin configurar, la
+aplicación se comporta exactamente igual que antes y no aparece nada de cuentas.
 
 **Un solo lenguaje en los menús.** Los diálogos compartían anatomía pero no piezas: había
 cinco estilos de campo de formulario, dos clases distintas para el mismo rótulo de sección,
@@ -158,7 +159,9 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 ├── app/
 │   ├── index.html                 Interfaz de la pizarra
 │   ├── board.css                  Tema e interfaz
-│   └── board.js                   Motor: campo, objetos, trazos, animación, E/S
+│   ├── board.js                   Motor: campo, objetos, trazos, animación, E/S
+│   ├── nube.js                    Cliente de Supabase para la biblioteca común
+│   └── config.js                  Las dos claves de Supabase (en blanco = sin nube)
 ├── 404.html                       Página de error
 ├── robots.txt · sitemap.xml · llms.txt · site.webmanifest · .nojekyll
 ├── assets/
@@ -167,29 +170,40 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 │   ├── img/                       favicon, iconos PWA e imagen Open Graph 1200×630
 │   └── js/site.js                 JS de la portada (tema, menú, aparición progresiva)
 ├── dist/pizarra-tactica.html      La pizarra entera en un archivo (node tools/build-single.mjs)
+├── supabase/                      schema.sql y cómo montar la biblioteca común
 ├── tools/                         build-single.mjs (archivo único) y build-icons.mjs (marca e iconos)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
 ├── tests/                         Batería de pruebas de la pizarra en el navegador
 └── .github/workflows/deploy-pages.yml
 ```
 
-## Biblioteca compartida: qué faltaría
+## Biblioteca compartida
 
-Hoy el sitio es estático: GitHub Pages sirve archivos y no ejecuta nada. Eso basta para que la
-biblioteca general **crezca** (editando `assets/biblioteca.json`), pero no para que **cualquiera
-la haga crecer**. Para eso hay dos caminos, de menos a más:
+Los entrenadores comparten sus ejercicios entre ellos, y la biblioteca general crece sola. El
+servidor es **Supabase**: tres tablas, permisos por fila y nada más. Todo el montaje está en
+[`supabase/`](supabase/) —el esquema en [`schema.sql`](supabase/schema.sql) y las instrucciones
+en [`supabase/README.md`](supabase/README.md)—, y se hace una vez en unos diez minutos.
 
-1. **Por pull request.** Un entrenador exporta su ejercicio en JSON desde la propia pizarra y
-   lo manda; se añade al archivo y en el siguiente despliegue lo tiene todo el mundo. Coste:
-   cero euros y un rato de revisión por ejercicio. Es lo que ya se puede hacer hoy.
-2. **Con servidor.** Una base de datos y una API con un botón de «publicar» en la aplicación.
-   Hace falta identidad (aunque sea anónima, para poder borrar o bloquear), una cola de
-   revisión —todo lo que se sube lo ve todo el mundo— y un cambio en la promesa de privacidad
-   de la aplicación, que hoy es que nada sale del dispositivo. Supabase o Cloudflare tienen
-   plan gratuito de sobra para empezar. Semanas de trabajo, no horas.
+Cómo queda repartido:
 
-El cliente ya está preparado para lo segundo: la biblioteca se pinta a partir de una lista de
-ejercicios que llega de fuera, así que cambiar el archivo por una API es sustituir una URL.
+- **Sin cuenta** se usa la pizarra entera y se ve la biblioteca común. No se manda nada.
+- **Con cuenta** —correo, sin contraseña: llega un enlace y listo— se comparten ejercicios y se
+  recuperan desde cualquier dispositivo.
+- Lo que subes es **tuyo y privado** hasta que le das a compartir. Que nadie más pueda leerlo,
+  editarlo ni borrarlo lo garantiza la base de datos (`row level security`), no la aplicación.
+- El correo **no se expone nunca**: vive en `auth.users`, que la aplicación no puede leer. Lo
+  público es el nombre y el club.
+- Con **tres reportes de tres personas distintas** un ejercicio se esconde solo, sin que nadie
+  tenga que estar pendiente.
+
+En el cliente son dos archivos y ninguna dependencia: [`app/nube.js`](app/nube.js) habla con
+Supabase por HTTP a pelo, y [`app/config.js`](app/config.js) guarda las dos claves. **Con
+`config.js` en blanco la nube se queda dormida**: ni cuentas, ni botón de compartir, ni una sola
+petición. Los archivos de un solo archivo (`dist/` y el artifact) se construyen siempre así,
+porque ahí no hay servidor al que llamar.
+
+La clave `anon` que va en `config.js` es pública a propósito; lo que protege los datos son las
+reglas por fila. La `service_role` no se pone en el navegador en ningún caso.
 
 ## Cómo funciona por dentro
 
@@ -269,21 +283,34 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 127 comprobaciones de punta a punta sobre la
+Dos baterías, 178 comprobaciones, que se lanzan juntas con `node tests/run-headless.mjs`.
+
+`tests/pizarra.test.html` son 128 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
 la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la consistencia entre menús, que cada material se dibuje como lo que es, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
-formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
+formaciones y la exportación.
+
+`tests/nube.test.html` son otras 50 sobre la biblioteca común, con un Supabase de mentira
+delante: que se recoja la sesión del enlace del correo y se limpie la dirección, que el testigo
+caducado se renueve y se reintente la petición, que los filtros de pantalla se traduzcan a la
+consulta correcta, que al compartir se suba la pizarra entera firmada con tu identidad y no con
+la que le digan, que «mías» pida solo las tuyas, y que sin sesión se avise en vez de fallar en
+silencio. No hace falta tener Supabase montado para pasarla.
+
+Sirve el repositorio y abre esos archivos en el navegador; se ejecutan solos.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.
 
 ## Privacidad y rendimiento
 
 - La portada se pinta con una sola petición: CSS embebido y JS diferido.
 - Sin JavaScript, la portada se ve y se navega igual.
-- Sin cookies, sin analítica y sin llamadas externas. Lo que guardas en la pizarra vive en
-  el `localStorage` de tu navegador y no viaja a ningún sitio.
+- Sin cookies, sin analítica y sin llamadas a terceros.
+- Las pizarras que guardas viven en el `localStorage` de tu navegador. Al servidor solo va
+  lo que compartes a propósito, y el correo con el que entras, que no ve nadie más.
+- Sin cuenta no se manda nada: la pizarra entera funciona igual.
 
 ## Tráfico
 

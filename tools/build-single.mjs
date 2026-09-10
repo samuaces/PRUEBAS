@@ -41,7 +41,7 @@ const cabecera = [
 // El motor se copia entero: el registro del service worker sólo se activa en
 // https, así que abriendo el archivo con doble clic no hace nada.
 const desde = html.indexOf('<div class="app">');
-const hasta = html.indexOf('<script src="board.js"');
+const hasta = html.indexOf('<script src="config.js"');
 if (desde < 0 || hasta < 0) throw new Error('app/index.html no tiene la forma esperada');
 const cuerpo = html.slice(desde, hasta).trimEnd()
   .replace(/<a href="\.\.\/"[^>]*>[^<]*<\/a>/, '');   // aquí no hay landing a la que volver
@@ -50,10 +50,16 @@ const motor = js;
 // La biblioteca va incrustada: aquí no hay servidor del que traerla.
 const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');
 
+// La biblioteca común sí necesita servidor y aquí no lo hay, así que este
+// archivo va siempre sin ella: la configuración se deja vacía a propósito.
+const nube = leer('app/nube.js');
+
 const salida =
   cabecera + '\n' +
   '<style>\n' + caras + '\n' + css + '\n</style>\n' +
   cuerpo + '\n' +
+  '<script>window.PT_NUBE = { url: "", key: "" };</script>\n' +
+  '<script>\n' + nube + '\n</script>\n' +
   '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +
   '<script>\n' + motor + '\n</script>';
 

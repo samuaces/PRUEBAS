@@ -1,0 +1,292 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pruebas de la nube</title>
+<meta name="robots" content="noindex, nofollow">
+<style>html,body{margin:0;background:#111;color:#eee;font:13px monospace}
+#out{white-space:pre;padding:10px;font-size:14px}</style></head>
+<body>
+<h1 style="font:700 16px system-ui;padding:10px 10px 0;margin:0">Pruebas de la biblioteca compartida</h1>
+<p style="font:13px system-ui;color:#9aa;padding:0 10px;margin:6px 0">
+  Aquí no hay Supabase de verdad: se le pone delante un servidor de mentira que responde
+  como responde el suyo, y se comprueba que la aplicación le pide y le manda lo que debe.</p>
+<div id="out">ejecutando…</div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   El Supabase de mentira. Guarda lo que le mandan y responde como PostgREST y
+   GoTrue: mismos caminos, mismas cabeceras, mismos errores.
+   --------------------------------------------------------------------------- */
+var BASE = 'https://mentira.supabase.co';
+var KEY  = 'clave-anon-de-mentira';
+window.PT_NUBE = { url: BASE, key: KEY };
+
+var servidor = {
+  peticiones: [],
+  usuario: { id: 'u-1', email: 'entrenador@club.com' },
+  perfil:  { id: 'u-1', nombre: 'Samu', club: 'CD Ejemplo', admin: false },
+  ejercicios: [
+    { id: 'e-1', autor: 'u-2', publicado: true, oculto: false, titulo: 'Rondo 5v2',
+      pitch: 'f11', vista: 'area', momento: 'Calentamiento', categoria: 'Cadete',
+      minutos: 12, objetivo: 'Circular rápido', ficha: { titulo: 'Rondo 5v2', objetivo: 'Circular rápido', duracion: '12 min' },
+      doc: { pitch: 'f11', view: 'area', card: {}, frames: [{ objects: [], strokes: [] }] },
+      aperturas: 3, creado: '2026-09-01', entrenadores: { nombre: 'Marta', club: 'CF Prueba' } }
+  ],
+  caduca: false,          // para probar la renovación del testigo
+  reportes: []
+};
+
+var real = window.fetch;
+window.fetch = function (url, opts) {
+  opts = opts || {};
+  url = String(url);
+  var cuerpo = opts.body ? JSON.parse(opts.body) : null;
+  var h = opts.headers || {};
+  servidor.peticiones.push({ url: url, metodo: opts.method || 'GET', cuerpo: cuerpo, cabeceras: h });
+
+  function da(estado, datos) {
+    return Promise.resolve(new Response(datos === undefined ? '' : JSON.stringify(datos),
+      { status: estado, headers: { 'Content-Type': 'application/json' } }));
+  }
+  if (url.indexOf(BASE) !== 0) return da(404, { message: 'fuera del servidor' });
+  var ruta = url.slice(BASE.length);
+  var aut = String(h.Authorization || '');
+
+  // Con el testigo caducado, Supabase contesta 401 a todo menos a la renovación.
+  if (servidor.caduca && aut.indexOf('Bearer t-1') === 0 &&
+      ruta.indexOf('grant_type=refresh_token') < 0) {
+    return da(401, { message: 'JWT expired' });
+  }
+
+  // --- GoTrue ---
+  if (ruta.indexOf('/auth/v1/otp') === 0) {
+    if (!cuerpo || !cuerpo.email) return da(400, { message: 'falta el correo' });
+    return da(200, {});
+  }
+  if (ruta.indexOf('/auth/v1/token?grant_type=refresh_token') === 0) {
+    if (!cuerpo || cuerpo.refresh_token !== 'r-1') return da(400, { message: 'testigo inválido' });
+    servidor.caduca = false;
+    return da(200, { access_token: 't-2', refresh_token: 'r-1', expires_in: 3600 });
+  }
+  if (ruta.indexOf('/auth/v1/logout') === 0) return da(204);
+  if (ruta.indexOf('/auth/v1/user') === 0) {
+    if (servidor.caduca && aut.indexOf('t-1') > 0) return da(401, { message: 'caducado' });
+    if (aut.indexOf('Bearer t-') < 0) return da(401, { message: 'sin sesión' });
+    return da(200, servidor.usuario);
+  }
+
+  // --- PostgREST ---
+  if (ruta.indexOf('/rest/v1/entrenadores') === 0) {
+    if (opts.method === 'PATCH') {
+      servidor.perfil.nombre = cuerpo.nombre; servidor.perfil.club = cuerpo.club;
+      return da(200, [servidor.perfil]);
+    }
+    return da(200, [servidor.perfil]);
+  }
+  if (ruta.indexOf('/rest/v1/ejercicios') === 0) {
+    if (opts.method === 'POST') {
+      var nuevo = JSON.parse(JSON.stringify(cuerpo));
+      nuevo.id = 'e-' + (servidor.ejercicios.length + 1);
+      nuevo.entrenadores = { nombre: servidor.perfil.nombre, club: servidor.perfil.club };
+      servidor.ejercicios.push(nuevo);
+      return da(201, [nuevo]);
+    }
+    if (opts.method === 'PATCH') {
+      var id = /id=eq\.([^&]+)/.exec(ruta)[1];
+      servidor.ejercicios.forEach(function (e) { if (e.id === id) e.publicado = cuerpo.publicado; });
+      return da(200, servidor.ejercicios.filter(function (e) { return e.id === id; }));
+    }
+    if (opts.method === 'DELETE') {
+      var q = /id=eq\.([^&]+)/.exec(ruta)[1];
+      servidor.ejercicios = servidor.ejercicios.filter(function (e) { return e.id !== q; });
+      return da(204);
+    }
+    // lectura: se aplican los filtros que vengan en la dirección
+    var filas = servidor.ejercicios.slice();
+    var mAutor = /autor=eq\.([^&]+)/.exec(ruta);
+    if (mAutor) filas = filas.filter(function (e) { return e.autor === mAutor[1]; });
+    if (/publicado=eq\.true/.test(ruta)) filas = filas.filter(function (e) { return e.publicado; });
+    var mP = /[?&]pitch=eq\.([^&]+)/.exec(ruta);
+    if (mP) filas = filas.filter(function (e) { return e.pitch === decodeURIComponent(mP[1]); });
+    var mM = /[?&]momento=eq\.([^&]+)/.exec(ruta);
+    if (mM) filas = filas.filter(function (e) { return e.momento === decodeURIComponent(mM[1]); });
+    var mB = /busca=ilike\.\*([^&*]*)\*/.exec(ruta);
+    if (mB) {
+      var t = decodeURIComponent(mB[1]);
+      filas = filas.filter(function (e) { return (e.titulo + ' ' + e.objetivo).toLowerCase().indexOf(t) >= 0; });
+    }
+    return da(200, filas);
+  }
+  if (ruta.indexOf('/rest/v1/rpc/suma_apertura') === 0) {
+    servidor.reportes.push('apertura:' + cuerpo.ej); return da(204);
+  }
+  if (ruta.indexOf('/rest/v1/reportes') === 0) {
+    if (servidor.reportes.indexOf('r:' + cuerpo.ejercicio) >= 0)
+      return da(409, { message: 'duplicate key value violates unique constraint' });
+    servidor.reportes.push('r:' + cuerpo.ejercicio);
+    return da(201, [cuerpo]);
+  }
+  return da(404, { message: 'ruta desconocida: ' + ruta });
+};
+</script>
+
+<!-- La sesión llega en el ancla, igual que al volver del enlace del correo -->
+<script>
+try { localStorage.removeItem('pt-nube'); } catch (e) {}
+history.replaceState(null, '', location.pathname + '#access_token=t-1&refresh_token=r-1&expires_in=3600&token_type=bearer');
+</script>
+<script src="../app/nube.js"></script>
+
+<script>
+var log = [], fails = 0;
+function ok(n, c, x) { log.push((c ? 'PASA  ' : 'FALLA ') + n + (x ? '  (' + x + ')' : '')); if (!c) fails++; }
+function ultima(fragmento) {
+  for (var i = servidor.peticiones.length - 1; i >= 0; i--)
+    if (servidor.peticiones[i].url.indexOf(fragmento) >= 0) return servidor.peticiones[i];
+  return null;
+}
+
+(async function () {
+  var N = window.PTNube;
+
+  // ---- configuración y vuelta del correo ----
+  ok('la nube se activa cuando hay configuración', N.hay());
+  ok('recoge la sesión del enlace del correo', N.dentro());
+  ok('y limpia la dirección del navegador', location.hash === '', JSON.stringify(location.hash));
+  ok('la sesión sobrevive a recargar', !!JSON.parse(localStorage.getItem('pt-nube') || 'null'));
+
+  // ---- perfil ----
+  var yo = await N.quienSoy();
+  ok('sabe quién eres', yo && yo.id === 'u-1' && yo.nombre === 'Samu', yo && yo.nombre);
+  ok('trae también tu correo para enseñarlo', yo && yo.email === 'entrenador@club.com');
+  var pet = ultima('/auth/v1/user');
+  ok('pregunta con tu testigo, no con la clave pública',
+     pet.cabeceras.Authorization === 'Bearer t-1', pet.cabeceras.Authorization);
+  ok('manda siempre la clave del proyecto', pet.cabeceras.apikey === KEY);
+
+  await N.perfil({ nombre: 'Samuel', club: 'CD Nuevo' });
+  ok('guardar el perfil lo cambia en el servidor', servidor.perfil.nombre === 'Samuel', servidor.perfil.nombre);
+  ok('el perfil se guarda con PATCH sobre tu fila',
+     ultima('/rest/v1/entrenadores').metodo === 'PATCH' &&
+     /id=eq\.u-1/.test(ultima('/rest/v1/entrenadores').url));
+
+  // ---- la biblioteca común ----
+  var lista = await N.lista({ pitch: 'f11' }, 0, 60);
+  ok('trae los ejercicios compartidos', lista.length === 1 && lista[0].titulo === 'Rondo 5v2');
+  ok('trae el nombre de quien lo hizo', lista[0].entrenadores.nombre === 'Marta');
+  var q = ultima('/rest/v1/ejercicios?').url;
+  ok('pide solo lo publicado y no escondido',
+     /publicado=eq\.true/.test(q) && /oculto=eq\.false/.test(q));
+  ok('pide lo más nuevo primero', /order=creado\.desc/.test(q));
+  ok('la lista pública no necesita sesión',
+     ultima('/rest/v1/ejercicios?').cabeceras.Authorization === 'Bearer ' + KEY);
+  ok('pide de página en página', /^\d+-\d+$/.test(ultima('/rest/v1/ejercicios?').cabeceras.Range || ''),
+     ultima('/rest/v1/ejercicios?').cabeceras.Range);
+
+  // ---- los filtros se traducen a la consulta ----
+  await N.lista({ pitch: 'futsal', momento: 'Balón parado', duracion: 'media', q: 'rondo' });
+  var f = ultima('/rest/v1/ejercicios?').url;
+  ok('la modalidad viaja al servidor', /pitch=eq\.futsal/.test(f));
+  ok('el momento del juego también', /momento=eq\.Bal/.test(f), decodeURIComponent(f.match(/momento=eq\.[^&]+/)[0]));
+  ok('la duración se convierte en un rango', /minutos=gte\.16/.test(f) && /minutos=lte\.25/.test(f));
+  ok('el texto libre se busca sin distinguir mayúsculas', /busca=ilike\.\*rondo\*/.test(f));
+
+  var corta = await N.lista({ duracion: 'corta' });
+  ok('«hasta 15 min» es un tope, no un rango',
+     /minutos=lte\.15/.test(ultima('/rest/v1/ejercicios?').url) &&
+     !/minutos=gte/.test(ultima('/rest/v1/ejercicios?').url));
+
+  // ---- compartir ----
+  var doc = {
+    pitch: 'f7', view: 'half',
+    card: { titulo: 'Salida en 3', objetivo: 'Progresar por dentro', duracion: '18 min',
+            momento: 'Ataque organizado', categoria: 'Infantil', material: '4 chinos' },
+    frames: [{ objects: [{ id: 1, kind: 'player' }], strokes: [] }]
+  };
+  var subido = await N.publica(doc, { publicado: true });
+  var envio = ultima('/rest/v1/ejercicios').cuerpo;
+  ok('compartir sube la pizarra entera',
+     envio.doc && envio.doc.frames.length === 1 && envio.doc.pitch === 'f7');
+  ok('y firma con tu identidad, no con la que le digan', envio.autor === 'u-1', envio.autor);
+  ok('saca el título de la ficha', envio.titulo === 'Salida en 3');
+  ok('saca los minutos del texto de la duración', envio.minutos === 18, String(envio.minutos));
+  ok('copia modalidad y vista', envio.pitch === 'f7' && envio.vista === 'half');
+  ok('copia el momento y la categoría para poder filtrar',
+     envio.momento === 'Ataque organizado' && envio.categoria === 'Infantil');
+  ok('guarda la ficha entera aparte', envio.ficha.material === '4 chinos');
+  ok('lo sube ya compartido cuando se lo pides', envio.publicado === true);
+  ok('el servidor devuelve la fila creada', subido && subido.id === 'e-2');
+  ok('compartir sí va con tu sesión',
+     ultima('/rest/v1/ejercicios').cabeceras.Authorization === 'Bearer t-1');
+
+  var sinTitulo = await N.publica({ pitch: 'f11', card: {}, frames: [] }, {});
+  ok('sin título no se queda en blanco', ultima('/rest/v1/ejercicios').cuerpo.titulo.length > 0,
+     ultima('/rest/v1/ejercicios').cuerpo.titulo);
+  ok('sin duración escrita, minutos va vacío', ultima('/rest/v1/ejercicios').cuerpo.minutos === null);
+
+  // ---- los tuyos ----
+  servidor.ejercicios[1].autor = 'u-1';
+  var mios = await N.mios();
+  ok('«mías» pide solo las tuyas', /autor=eq\.u-1/.test(ultima('/rest/v1/ejercicios?').url));
+  ok('y no filtra por publicado: también salen las que no compartes',
+     !/publicado=eq\.true/.test(ultima('/rest/v1/ejercicios?').url));
+
+  await N.cambiaPublicado('e-2', false);
+  ok('retirar deja de compartirlo',
+     servidor.ejercicios.filter(function (e) { return e.id === 'e-2'; })[0].publicado === false);
+
+  // ---- reportar ----
+  await N.reporta('e-1', 'no es un ejercicio');
+  ok('reportar manda el ejercicio y quién avisa',
+     ultima('/rest/v1/reportes').cuerpo.ejercicio === 'e-1' &&
+     ultima('/rest/v1/reportes').cuerpo.quien === 'u-1');
+  var repetido = await N.reporta('e-1', '').then(function () { return null; }, function (e) { return e; });
+  ok('reportar dos veces lo mismo da error, no un aviso falso', !!repetido);
+
+  // ---- contar aperturas ----
+  await N.apertura('e-1');
+  ok('abrir uno de otro suma una apertura',
+     servidor.reportes.indexOf('apertura:e-1') >= 0);
+
+  // ---- renovación del testigo ----
+  servidor.caduca = true;
+  var mios2 = await N.mios();
+  ok('si el testigo caduca lo renueva sin que se note', Array.isArray(mios2), typeof mios2);
+  ok('y para eso llama a la renovación', !!ultima('grant_type=refresh_token'));
+  ok('la sesión guardada se queda con el testigo nuevo',
+     JSON.parse(localStorage.getItem('pt-nube')).access_token === 't-2',
+     JSON.parse(localStorage.getItem('pt-nube')).access_token);
+  ok('y reintenta la petición que había fallado, ya con el testigo bueno',
+     ultima('/rest/v1/ejercicios?').cabeceras.Authorization === 'Bearer t-2',
+     ultima('/rest/v1/ejercicios?').cabeceras.Authorization);
+
+  // ---- entrar y salir ----
+  await N.entra('otro@club.com');
+  ok('entrar manda un enlace al correo', ultima('/auth/v1/otp').cuerpo.email === 'otro@club.com');
+  ok('y crea la cuenta si no existe', ultima('/auth/v1/otp').cuerpo.create_user === true);
+  ok('le dice a Supabase a dónde volver',
+     /nube\.test\.html/.test(ultima('/auth/v1/otp').cuerpo.options.email_redirect_to),
+     ultima('/auth/v1/otp').cuerpo.options.email_redirect_to);
+
+  await N.sale();
+  ok('salir cierra la sesión', !N.dentro());
+  ok('y no deja rastro en el navegador', !localStorage.getItem('pt-nube'));
+
+  var falla = await N.publica({ pitch: 'f11', card: {}, frames: [] }, {})
+    .then(function () { return null; }, function (e) { return e; });
+  ok('sin sesión, compartir avisa en vez de fallar en silencio',
+     !!falla && /correo/i.test(falla.message), falla && falla.message);
+
+  // ---- errores del servidor ----
+  var previo = window.fetch;
+  window.fetch = function () { return Promise.reject(new Error('sin red')); };
+  var caido = await N.lista({}).then(function () { return null; }, function (e) { return e; });
+  ok('si el servidor no contesta, la promesa falla y no cuelga', !!caido);
+  window.fetch = previo;
+
+  document.getElementById('out').textContent =
+    log.join('\n') + '\n\nRESULTADO: ' + (fails ? fails + ' FALLOS' : 'TODO CORRECTO (' + log.length + ' comprobaciones)');
+  document.title = fails ? 'FALLOS' : 'OK';
+})().catch(function (e) {
+  document.getElementById('out').textContent = log.join('\n') + '\n\nEXCEPCION: ' + e.message + '\n' + e.stack;
+  document.title = 'FALLOS';
+});
+</script>
+</body></html>
