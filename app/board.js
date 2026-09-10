@@ -3826,6 +3826,7 @@
         var correo = $('#cuenta-email').value.trim();
         var clave  = $('#cuenta-clave').value;
         var nombre = $('#cuenta-alta-nombre').value.trim();
+        var club   = $('#cuenta-alta-club').value.trim();
         var aviso  = $('#cuenta-aviso');
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
@@ -3839,8 +3840,8 @@
                                      : nube.entra(correo, clave);
         tarea.then(function () {
           return refrescaCuenta().then(function () {
-            if (modo === 'crear' && nombre) {
-              return nube.perfil({ nombre: nombre, club: '' })
+            if (modo === 'crear' && (nombre || club)) {
+              return nube.perfil({ nombre: nombre || 'Entrenador', club: club })
                 .then(refrescaCuenta).catch(function () {});
             }
           });

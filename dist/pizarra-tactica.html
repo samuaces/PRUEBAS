@@ -280,6 +280,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .sug:active{background:var(--surface-3)}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Un elemento con «hidden» tiene que desaparecer aunque su clase diga
+   display:flex. Sin esto, el campo del nombre no se ocultaba al cambiar de
+   pestaña y entrar y crear cuenta parecían lo mismo. */
+[hidden]{display:none!important}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field.wide{grid-column:1 / -1}
 .field > span{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -1041,8 +1045,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <label class="field wide"><span>Contraseña <small>mínimo 6 caracteres</small></span>
           <input type="password" id="cuenta-clave" autocomplete="current-password"
                  placeholder="••••••"></label>
-        <label class="field wide solo-crear" hidden><span>Tu nombre <small>firma lo que compartas</small></span>
+        <label class="field solo-crear" hidden><span>Tu nombre <small>firma lo que compartas</small></span>
           <input type="text" id="cuenta-alta-nombre" maxlength="60" placeholder="Samu"></label>
+        <label class="field solo-crear" hidden><span>Club <small>opcional</small></span>
+          <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="CD Ejemplo"></label>
       </div>
 
       <button type="button" class="tbtn primary" id="cuenta-entrar" style="margin-top:12px">Entrar</button>
@@ -7229,6 +7235,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         var correo = $('#cuenta-email').value.trim();
         var clave  = $('#cuenta-clave').value;
         var nombre = $('#cuenta-alta-nombre').value.trim();
+        var club   = $('#cuenta-alta-club').value.trim();
         var aviso  = $('#cuenta-aviso');
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
@@ -7242,8 +7249,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
                                      : nube.entra(correo, clave);
         tarea.then(function () {
           return refrescaCuenta().then(function () {
-            if (modo === 'crear' && nombre) {
-              return nube.perfil({ nombre: nombre, club: '' })
+            if (modo === 'crear' && (nombre || club)) {
+              return nube.perfil({ nombre: nombre || 'Entrenador', club: club })
                 .then(refrescaCuenta).catch(function () {});
             }
           });

@@ -585,16 +585,26 @@ async function run(w,d){
     // Registrarse y entrar son cosas distintas: cada una con lo suyo.
     ok('entrar y crear cuenta están separados',
        d.querySelectorAll('#cuenta-modo button').length===2);
-    ok('al entrar no se pide el nombre',
-       d.querySelector('.solo-crear').hidden&&
+    // Hay que abrir Ajustes: si el diálogo está cerrado no se ve nada y la
+    // comprobación pasaría sola sin comprobar nada.
+    if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
+    await wait(200);
+    d.getElementById('cfg').click();await wait(400);
+    // Se mira si SE VE, no el display del campo: un hijo de algo oculto
+    // conserva su propio display y engaña a la comprobación.
+    var seVe=function(id){var e=d.getElementById(id);return !!(e&&e.offsetParent!==null);};
+    ok('los ajustes se abren para mirar la cuenta',d.getElementById('dlg-cfg').open);
+    ok('al entrar solo se pide correo y contraseña',
+       !seVe('cuenta-alta-nombre')&&!seVe('cuenta-alta-club')&&
        /^Entrar$/.test(d.getElementById('cuenta-entrar').textContent.trim()),
        d.getElementById('cuenta-entrar').textContent);
     d.querySelector('#cuenta-modo [data-modo="crear"]').click();await wait(300);
-    ok('al crear cuenta sí, y el botón lo dice',
-       !d.querySelector('.solo-crear').hidden&&
+    ok('al crear cuenta se eligen nombre y club, y el botón lo dice',
+       seVe('cuenta-alta-nombre')&&seVe('cuenta-alta-club')&&
        /^Crear cuenta$/.test(d.getElementById('cuenta-entrar').textContent.trim()),
        d.getElementById('cuenta-entrar').textContent);
     d.querySelector('#cuenta-modo [data-modo="entrar"]').click();await wait(200);
+    d.querySelector('#dlg-cfg [data-close]').click();await wait(250);
   } else {
     ok('sin servidor, compartir prepara el ejercicio para mandarlo',
        d.getElementById('dlg-file').open||d.getElementById('toast').textContent.length>0);
