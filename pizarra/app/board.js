@@ -173,13 +173,15 @@
 
   /* Ajustes del usuario. Viven aparte del documento: no son de una pizarra
      concreta, son de quien la usa. */
-  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '' };
+  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '', nombre: '', club: '' };
 
   function prefs() {
     var p;
     try { p = JSON.parse(localStorage.getItem('pt-prefs') || '{}'); } catch (e) { p = {}; }
     if (!PITCHES[p.pitch]) p.pitch = PREFS_POR_DEFECTO.pitch;
-    if (typeof p.categoria !== 'string') p.categoria = '';
+    ['categoria', 'nombre', 'club'].forEach(function (k) {
+      if (typeof p[k] !== 'string') p[k] = '';
+    });
     return p;
   }
   function guardaPrefs(p) {
@@ -2384,7 +2386,7 @@
   var hayNube = !!(nube && nube.hay());
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
-  var yo = null;                      // tu perfil, si has entrado
+  var yo = null;                      // sin cuentas: nadie firma en el servidor
   var nubeEstado = { cargando: false, error: '' };
 
   // Una fila del servidor con la misma forma que el resto de la biblioteca.
@@ -2425,29 +2427,15 @@
     });
   }
 
-  // Quién eres, para saber qué puedes hacer. Se llama al arrancar y al entrar.
-  function refrescaCuenta() {
-    if (!hayNube) return Promise.resolve(null);
-    return nube.quienSoy().then(function (p) {
-      yo = p;
-      pintaCuenta();
-      return p;
-    });
-  }
-
+  // Ya no hay cuentas ni correos: quién eres lo escribes tú y se queda aquí.
+  // El correo de Supabase, en el plan gratuito, deja mandar dos o tres enlaces
+  // por hora, así que como puerta de entrada no servía para nada.
   function pintaCuenta() {
-    var caja = $('#cfg-cuenta');
-    if (!caja) return;
-    $('#cfg-cuenta-bloque').hidden = !hayNube;
-    if (!hayNube) return;
-    var dentro = !!yo;
-    $('#cuenta-fuera').hidden = dentro;
-    $('#cuenta-dentro').hidden = !dentro;
-    if (dentro) {
-      $('#cuenta-correo').textContent = yo.email || '';
-      $('#cuenta-nombre').value = yo.nombre || '';
-      $('#cuenta-club').value = yo.club || '';
-    }
+    var n = $('#cfg-nombre'), c = $('#cfg-club');
+    if (!n || !c) return;
+    var p = prefs();
+    n.value = p.nombre || '';
+    c.value = p.club || '';
     $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
   }
 
@@ -2469,10 +2457,12 @@
     var c = doc.card || emptyCard(), f = doc.frames[ui.frame] || doc.frames[0];
     var ficha = {};
     CARD_FIELDS.forEach(function (k) { if (c[k]) ficha[k] = c[k]; });
+    var p = prefs();
     return {
       id: sinAcentos(c.titulo || 'ejercicio').replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '').slice(0, 40) || 'ejercicio',
       pitch: doc.pitch, view: doc.view, card: ficha,
+      autor: p.nombre || '', club: p.club || '',
       objects: clone(f.objects), strokes: clone(f.strokes || [])
     };
   }
@@ -2508,6 +2498,21 @@
     alPortapapeles();
   }
 
+  // Compartir no pide cuenta: como mucho, tu nombre la primera vez, para que
+  // el ejercicio vaya firmado. Se guarda y no se vuelve a preguntar.
+  function firmaYComparte() {
+    var p = prefs();
+    if (p.nombre) { comparteSinNube(); return; }
+    ask({ title: 'Firma tu ejercicio', input: '',
+          placeholder: 'Tu nombre, para que sepan de quién es',
+          ok: 'Compartir' })
+      .then(function (nombre) {
+        if (nombre === null) return;
+        if (nombre) { p.nombre = nombre.slice(0, 60); guardaPrefs(p); pintaCuenta(); }
+        comparteSinNube();
+      });
+  }
+
   function comparteActual() {
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirlo');
@@ -2516,28 +2521,12 @@
     }
     // El botón está siempre. Sin servidor no se queda muerto: prepara el
     // ejercicio para mandarlo, que es lo más cerca de compartir que hay.
-    if (!hayNube) {
-      ask({ title: 'Compartir «' + doc.card.titulo + '»',
-            message: 'La biblioteca común todavía no tiene servidor propio, así que de ' +
-                     'momento se comparte a mano: te preparo el ejercicio entero —pizarra y ' +
-                     'ficha— para que lo mandes, y se añade a la biblioteca que ve todo el mundo.',
-            ok: 'Preparar' })
-        .then(function (si) { if (si) comparteSinNube(); });
-      return;
-    }
+    if (!hayNube) { firmaYComparte(); return; }
     // Sin sesión no se bloquea nada: se comparte igual, preparando el ejercicio
     // para mandarlo. Tener cuenta solo ahorra ese paso. Hacer del correo una
     // puerta obligatoria dejaba la aplicación inservible cuando el correo
     // fallaba, que es justo cuando más falta hace poder trabajar.
-    if (!yo) {
-      ask({ title: 'Compartir «' + doc.card.titulo + '»',
-            message: 'Puedes mandarlo ahora mismo sin cuenta y se añade a la biblioteca ' +
-                     'común. Si entras con tu correo (en Ajustes), se sube solo y firmado ' +
-                     'con tu nombre.',
-            ok: 'Mandarlo ahora' })
-        .then(function (si) { if (si) comparteSinNube(); });
-      return;
-    }
+    if (!yo) { firmaYComparte(); return; }
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirla');
       openCard();
@@ -3792,47 +3781,20 @@
     });
 
     // ---- Cuenta y biblioteca común ----
-    // Compartir se ve siempre; si no hay servidor, lo explica al pulsarlo.
+    // Compartir se ve siempre y nunca pide cuenta.
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
-    if (hayNube) {
-      $('#cuenta-entrar').addEventListener('click', function () {
-        var correo = $('#cuenta-email').value.trim();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { toast('Escribe un correo válido'); return; }
-        var b = this; b.disabled = true; b.textContent = 'Enviando…';
-        nube.entra(correo).then(function () {
-          $('#cuenta-aviso').textContent =
-            'Te hemos mandado un enlace a ' + correo + '. Ábrelo en este mismo dispositivo ' +
-            'y volverás aquí con la sesión iniciada.';
-          $('#cuenta-aviso').hidden = false;
-        }).catch(function (e) {
-          $('#cuenta-aviso').textContent = 'No se ha podido enviar: ' + (e.message || 'error');
-          $('#cuenta-aviso').hidden = false;
-        }).then(function () { b.disabled = false; b.textContent = 'Enviarme el enlace'; });
-      });
-      $('#cuenta-salir').addEventListener('click', function () {
-        nube.sale().then(function () {
-          yo = null; nubeMios = []; nubeLista = [];
-          pintaCuenta(); toast('Sesión cerrada');
-        });
-      });
-      $('#cuenta-guardar').addEventListener('click', function () {
-        var b = this; b.disabled = true;
-        nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
-                      club: $('#cuenta-club').value.trim() })
-          .then(function () { return refrescaCuenta(); })
-          .then(function () { toast('Guardado'); })
-          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); })
-          .then(function () { b.disabled = false; });
-      });
 
-      // Al volver del enlace del correo se entra solo.
-      var v = nube.vuelta();
-      refrescaCuenta().then(function (p) {
-        if (v && v.entrado && p) toast('Hola, ' + (p.nombre || 'entrenador'));
-        else if (v && v.error) toast(v.error);
+    // Quién eres: se escribe una vez y se queda en este dispositivo.
+    [['#cfg-nombre', 'nombre'], ['#cfg-club', 'club']].forEach(function (par) {
+      var el = $(par[0]);
+      if (!el) return;
+      el.addEventListener('change', function () {
+        var p = prefs();
+        p[par[1]] = this.value.trim().slice(0, 60);
+        guardaPrefs(p);
       });
-      nube.alCambiar(function () { refrescaCuenta(); });
-    }
+    });
+
     pintaCuenta();
     pintaPrivacidad();
 
