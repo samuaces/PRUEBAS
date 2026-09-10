@@ -246,14 +246,23 @@ DOM: es lo que permite arrastrar veinte fichas y animar la jugada sin tirones.
 
 1. **Settings → Pages → Build and deployment → Source: _GitHub Actions_**.
 2. Fusiona esta rama en la rama principal (o lanza el workflow a mano desde Actions).
-   El sitio queda en `https://samuaces.github.io/PRUEBAS/`.
+   El sitio se publica en el dominio propio: `https://klym.xyz/`.
 
-## Cambiar el dominio
+## El dominio
+
+La web vive en **klym.xyz**. Lo que lo sostiene son dos cosas:
+
+- Un archivo `CNAME` en la raíz de lo publicado, con el dominio dentro. Es lo que
+  le dice a GitHub Pages que sirva ahí y que redirija las direcciones antiguas de
+  `samuaces.github.io`.
+- En el DNS del dominio, cuatro registros `A` del vértice apuntando a GitHub
+  (185.199.108.153, 185.199.109.153, 185.199.110.153 y 185.199.111.153) y un
+  `CNAME` de `www` a `samuaces.github.io`.
 
 Las URLs absolutas (canonical, Open Graph, sitemap, JSON-LD) apuntan a
-`https://samuaces.github.io/PRUEBAS`. Si usas un dominio propio, sustitúyelo en
-`index.html`, `app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`,
-y crea un archivo `CNAME` en la raíz con tu dominio. Los enlaces internos son relativos.
+`https://klym.xyz`. Si algún día cambia el dominio, se sustituye en `index.html`,
+`app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`, y en el
+`CNAME`. Los enlaces internos son relativos y no hay que tocarlos.
 
 ## Diseño
 

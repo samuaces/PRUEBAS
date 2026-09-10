@@ -1,8 +1,6 @@
 # robots.txt — Pizarra Táctica
-# Nota: los rastreadores solo leen el robots.txt de la RAÍZ del dominio.
-# Con un dominio propio (o un repo <usuario>.github.io) este archivo se aplica tal cual.
-# En una GitHub Page de proyecto (usuario.github.io/PRUEBAS/) queda como documentación:
-# el robots.txt efectivo es el de usuario.github.io/robots.txt.
+# Los rastreadores solo leen el robots.txt de la RAÍZ del dominio. La web se
+# sirve en klym.xyz y este archivo queda en la raíz, así que se aplica tal cual.
 
 User-agent: *
 Allow: /
@@ -24,4 +22,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://samuaces.github.io/PRUEBAS/sitemap.xml
+Sitemap: https://klym.xyz/sitemap.xml

@@ -40,13 +40,15 @@ aquí, más el trabajo manual que solo puedes hacer tú.
 Activa GitHub Pages: **Settings → Pages → Source: GitHub Actions**. El workflow
 `.github/workflows/deploy-pages.yml` despliega en cada push a la rama principal.
 
-### Paso 2 — Un dominio propio (muy recomendable)
-En `usuario.github.io/PRUEBAS/` estás construyendo autoridad para *GitHub*, no para ti,
+### Paso 2 — Un dominio propio (hecho: klym.xyz)
+En `usuario.github.io/PRUEBAS/` estabas construyendo autoridad para *GitHub*, no para ti,
 y el `robots.txt` de un subdirectorio **no lo lee nadie** (los rastreadores solo miran el
-de la raíz del dominio). Con un dominio propio, todo lo de este repositorio funciona tal
-cual. Para cambiarlo hay que sustituir `https://samuaces.github.io/PRUEBAS` por tu dominio
-en: `index.html`, `app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`,
-y añadir un archivo `CNAME` en la raíz con tu dominio.
+de la raíz del dominio). La web se sirve ya en **klym.xyz**, con el `robots.txt` y el
+`sitemap.xml` en la raíz, que es donde se leen.
+
+Si algún día se cambia de dominio: sustituir `https://klym.xyz` en `index.html`,
+`app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`, y cambiar el
+archivo `CNAME` de la raíz.
 
 ### Paso 3 — Search Console y Bing Webmaster Tools
 Da de alta la propiedad, verifica, envía `sitemap.xml` y usa "Inspección de URL →
