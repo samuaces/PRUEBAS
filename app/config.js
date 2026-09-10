@@ -17,6 +17,8 @@
    diez ejercicios y lo que guardes en este dispositivo, sin cuentas ni red.
    =========================================================================== */
 window.PT_NUBE = {
+  // Falta la Project URL. Mientras esté vacía, la nube sigue dormida y la
+  // pizarra funciona igual que siempre: ni cuentas, ni peticiones, ni nada.
   url: '',
-  key: ''
+  key: 'sb_publishable_aF2ad0cjxXPZjViR8o-e1g_z5LFdSun'
 };

@@ -5804,15 +5804,66 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   }
 
   // Compartir la pizarra que tienes abierta.
+  // El ejercicio en el mismo formato que assets/biblioteca.json, listo para
+  // entrar en la biblioteca común tal cual, sin tener que traducir nada.
+  function paqueteEjercicio() {
+    var c = doc.card || emptyCard(), f = doc.frames[ui.frame] || doc.frames[0];
+    var ficha = {};
+    CARD_FIELDS.forEach(function (k) { if (c[k]) ficha[k] = c[k]; });
+    return {
+      id: sinAcentos(c.titulo || 'ejercicio').replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '').slice(0, 40) || 'ejercicio',
+      pitch: doc.pitch, view: doc.view, card: ficha,
+      objects: clone(f.objects), strokes: clone(f.strokes || [])
+    };
+  }
+
+  // Sin servidor todavía, compartir es esto: dejar el ejercicio preparado para
+  // que salga del dispositivo. Se manda con la hoja de compartir del móvil, o
+  // se copia, o se enseña para copiarlo a mano. Cuando haya base de datos,
+  // este camino se queda como el de siempre para quien no tenga cuenta.
+  function comparteSinNube() {
+    var texto = JSON.stringify(paqueteEjercicio(), null, 1);
+    var titulo = doc.card.titulo;
+    var nota = 'Ejercicio para la biblioteca común: ' + titulo;
+
+    function alPortapapeles() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(
+          function () { toast('Copiado. Pégalo donde quieras mandarlo'); },
+          function () { aMano(); });
+      } else aMano();
+    }
+    function aMano() {
+      showFile(new Blob([texto], { type: 'application/json' }), titulo + '.json');
+      var n = $('#file-note');
+      if (n) n.textContent = 'Este es tu ejercicio listo para la biblioteca común. ' +
+                             'Cópialo y mándaselo a quien la mantiene.';
+    }
+
+    if (navigator.share) {
+      navigator.share({ title: nota, text: texto })
+        .catch(function (e) { if (!e || e.name !== 'AbortError') alPortapapeles(); });
+      return;
+    }
+    alPortapapeles();
+  }
+
   function comparteActual() {
-    // El botón está siempre: si desapareciera sin más, quien lo busca piensa
-    // que la aplicación no le deja compartir. Mejor decir por qué.
+    if (!doc.card || !doc.card.titulo) {
+      toast('Ponle un título en la ficha antes de compartirlo');
+      openCard();
+      return;
+    }
+    // El botón está siempre. Sin servidor no se queda muerto: prepara el
+    // ejercicio para mandarlo, que es lo más cerca de compartir que hay.
     if (!hayNube) {
-      ask({ title: 'La biblioteca común todavía no está encendida',
-            message: 'Compartir ejercicios con otros entrenadores necesita servidor, y este ' +
-                     'todavía no está configurado. Mientras tanto, lo que guardes se queda en ' +
-                     'este dispositivo y puedes llevártelo con Exportar → Archivo de la pizarra.',
-            ok: 'Entendido' });
+      ask({ title: 'Compartir «' + doc.card.titulo + '»',
+            message: 'La biblioteca común todavía no tiene servidor propio, así que de ' +
+                     'momento se comparte a mano: te preparo el ejercicio entero —pizarra y ' +
+                     'ficha— para que lo mandes, y se añade a la biblioteca que ve todo el mundo.',
+            ok: 'Preparar' })
+        .then(function (si) { if (si) comparteSinNube(); });
       return;
     }
     if (!yo) { $('#dlg-cfg').showModal(); pintaCuenta(); toast('Entra con tu correo para compartir'); return; }

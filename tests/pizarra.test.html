@@ -570,11 +570,13 @@ async function run(w,d){
   // Compartir se ve siempre: si desaparece, quien lo busca cree que la
   // aplicación no le deja compartir. Sin servidor, lo explica.
   ok('el botón de compartir sigue estando',!d.getElementById('compartir').hidden);
-  d.getElementById('compartir').click();await wait(350);
-  ok('y sin servidor explica por qué no se puede todavía',
-     d.getElementById('dlg-ask').open&&/no está encendida/.test(d.getElementById('ask-title').textContent),
+  d.getElementById('compartir').click();await wait(400);
+  ok('y sin servidor no se queda muerto: prepara el ejercicio para mandarlo',
+     d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
      d.getElementById('ask-title').textContent);
-  d.querySelector('#dlg-ask [data-close]').click();await wait(200);
+  ok('y avisa de que por ahora se comparte a mano',
+     /a mano/.test(d.getElementById('ask-msg').textContent));
+  d.querySelector('#dlg-ask [data-close]').click();await wait(250);
 
   // abrir un ejercicio trae pizarra y ficha
   d.getElementById('lib-pitch').value='futsal';
