@@ -1852,6 +1852,8 @@
     if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
     if (!c.categoria) fieldEl('categoria').value = prefs().categoria;
     if (!dlgCard) dlgCard = $('#dlg-card');
+    var primero = $('.paso-btn');
+    if (primero) primero.click();          // se abre siempre por el primer apartado
     dlgCard.showModal();
   }
 
@@ -2650,6 +2652,60 @@
     $('#lib-pitch').value = libFiltros.pitch;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
+  }
+
+  // ---- Sugerencias campo a campo ----
+  // Lo básico de lo que partir, para no escribir «4 × 3 min» cuarenta veces.
+  var SUGERENCIAS = {
+    duracion:  ['8 min', '10 min', '12 min', '15 min', '20 min', '25 min', '30 min'],
+    series:    ['3 × 3 min', '4 × 2 min', '4 × 3 min', '5 × 2 min', '2 × 8 min',
+                '8 repeticiones', '10 lanzamientos'],
+    descanso:  ['30 s', '45 s entre series', '1 min entre series', '2 min entre series',
+                'Vuelta andando', 'Sin descanso'],
+    jugadores: ['3 vs 2', '4 vs 2', '4 vs 4', '5 vs 5', '7 vs 7', '9 vs 9', '11 vs 11',
+                '+ 2 comodines', 'Grupo entero'],
+    porteros:  ['Sin portero', '1', '2'],
+    espacio:   ['15 × 15 m', '20 × 20 m', '30 × 20 m', '40 × 30 m',
+                'Medio campo', 'Campo completo'],
+    material:  ['Conos y balones', 'Petos, conos y balones', '2 porterías pequeñas',
+                'Vallas y escalera', 'Picas y maniquíes'],
+    consignas: ['Perfil abierto al recibir', 'Mirar antes de recibir', 'Primer pase al lado libre',
+                'Apoyos cerca, no a diez metros', 'Cambiar de orientación si se cierra',
+                'Rematar en el primer contacto'],
+    normas:    ['Máximo dos toques', 'Un toque', 'Gol tras cambio de banda: doble',
+                'Fuera de juego en la línea de medios', 'Diez pases: un punto',
+                'Cinco segundos para recuperar'],
+    variantes: ['Añadir un comodín', 'Quitar un jugador al equipo que ataca',
+                'Reducir el espacio cinco metros', 'Limitar a un toque',
+                'Bajar el tiempo de la jugada']
+  };
+
+  // En los campos de una línea la sugerencia sustituye; en los de varias, suma una más.
+  var SUG_LINEA = { consignas: 1, normas: 1, variantes: 1 };
+
+  function pintaSugerencias() {
+    $$('.sugs').forEach(function (caja) {
+      var campo = caja.dataset.para.replace(/^f-/, '');
+      var lista = SUGERENCIAS[campo];
+      if (!lista || caja.childNodes.length) return;
+      lista.forEach(function (txt) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'sug'; b.textContent = txt;
+        b.addEventListener('click', function () {
+          var el = fieldEl(campo);
+          if (!el) return;
+          if (SUG_LINEA[campo]) {
+            var v = el.value.trim();
+            var yaEsta = v.split('\n').some(function (l) { return l.trim() === txt; });
+            if (!yaEsta) el.value = v ? v + '\n' + txt : txt;
+          } else {
+            el.value = txt;
+          }
+          el.focus({ preventScroll: true });
+        });
+        caja.appendChild(b);
+      });
+    });
   }
 
   // ---- Plantillas dentro de la ficha ----
@@ -3518,6 +3574,25 @@
 
     // ---- Ficha ----
     llenaSelectorPlantillas();
+    pintaSugerencias();
+
+    // Si el apartado no tiene acción propia, su fila de rótulo sobra.
+    $$('.paso > .form-group').forEach(function (g) {
+      if (!g.querySelector('button')) g.classList.add('vacio');
+    });
+
+    // La ficha va por apartados: cada botón enseña el suyo.
+    function verPaso(id) {
+      $$('.paso').forEach(function (p) { p.hidden = p.id !== 'paso-' + id; });
+      $$('.paso-btn').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.paso === id));
+      });
+      var cuerpo = $('#dlg-card .dbody');
+      if (cuerpo) cuerpo.scrollTop = 0;
+    }
+    $$('.paso-btn').forEach(function (b) {
+      b.addEventListener('click', function () { verPaso(b.dataset.paso); });
+    });
     $('#f-plantilla').addEventListener('change', function () {
       var id = this.value, sel = this;
       sel.value = '';
@@ -3568,13 +3643,20 @@
     var aside = $('#aside'), scrim = $('#scrim');
     var current = null;
 
+    // Cada pestaña abre lo suyo y nada más: la hoja enseña un solo grupo.
+    var TITULOS = { tools: 'Herramientas', trazo: 'Trazo', equipos: 'Equipos y formaciones',
+                    material: 'Material', campo: 'Campo', pizarra: 'Pizarra' };
+
     function sheetOpen(id) {
       current = id;
+      var block = document.getElementById(id);
+      var grupo = block ? block.dataset.grupo : '';
+      aside.dataset.grupo = grupo;
+      $('#sheet-tit').textContent = TITULOS[grupo] || '';
       aside.classList.add('open');
       scrim.classList.add('show');
       $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
-      var block = document.getElementById(id);
-      if (block) requestAnimationFrame(function () { aside.scrollTop = block.offsetTop - 30; });
+      requestAnimationFrame(function () { aside.scrollTop = 0; });
     }
     function sheetClose() {
       current = null;

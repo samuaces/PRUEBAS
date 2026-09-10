@@ -98,7 +98,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 }
 .aside::-webkit-scrollbar{width:9px}
 .aside::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:9px;border:3px solid var(--bg-2)}
-.sheet-grab{display:none}
+.sheet-grab,.sheet-tit{display:none}
 .block{margin-bottom:18px;scroll-margin-top:12px}
 .block > h2{font-family:var(--ff-display);font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
   color:var(--muted);margin:0 0 9px 2px}
@@ -282,8 +282,30 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .field input:focus,.field select:focus,.field textarea:focus{
   outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
 .field textarea{min-height:56px}
+/* La ficha, por apartados: uno cada vez, no un rollo de treinta campos. */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin-bottom:16px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:11px}
+.paso-btn{min-height:38px;padding:8px 6px;border-radius:8px;font-size:12.5px;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
+.paso-btn:hover{color:var(--text)}
+.paso-btn[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;
+  box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.paso > .form-group:first-child{margin-top:0}
+/* El nombre del apartado ya está en la pestaña: aquí solo queda su acción. */
+.paso > .form-group > span{display:none}
+.paso > .form-group{justify-content:flex-end;margin:0 0 14px;min-height:34px}
+.paso > .form-group.vacio{display:none}
+
+.sugs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.sugs:empty{display:none}
+.sug{padding:5px 10px;border-radius:100px;border:1px solid var(--line);background:var(--surface);
+  color:var(--muted);font-family:var(--ff-body);font-size:11.5px;line-height:1.3;transition:.15s}
+.sug:hover{border-color:var(--brand-2);color:var(--text)}
+.sug:active{background:var(--surface-2)}
+
 @media (max-width:560px){
   .form-grid{grid-template-columns:1fr}
+  .sug{font-size:12.5px;padding:7px 12px}
   /* 16 px evita que Safari acerque la pantalla al enfocar un campo */
   .field input,.field select,.field textarea{font-size:16px}
   dialog.wide .dbody{max-height:68vh}
@@ -386,18 +408,34 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     width:100%;height:26px;margin-bottom:2px;background:var(--bg-2);border:0;border-radius:20px 20px 0 0}
   .sheet-grab::before{content:"";display:block;width:40px;height:4px;border-radius:4px;
     background:var(--line-strong);margin:11px auto 0}
+
+  /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
+     ves material, no un panel con todo dentro. */
+  .sheet-tit{display:block;position:sticky;top:26px;z-index:2;margin:0 -14px 12px;
+    padding:6px 14px 12px;background:var(--bg-2);border-bottom:1px solid var(--line);
+    font-family:var(--ff-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .aside[data-grupo] .block{display:none}
+  .aside[data-grupo="tools"] .block[data-grupo="tools"],
+  .aside[data-grupo="trazo"] .block[data-grupo="trazo"],
+  .aside[data-grupo="equipos"] .block[data-grupo="equipos"],
+  .aside[data-grupo="material"] .block[data-grupo="material"],
+  .aside[data-grupo="campo"] .block[data-grupo="campo"],
+  .aside[data-grupo="pizarra"] .block[data-grupo="pizarra"]{display:block}
+  .aside[data-grupo] .block > h2{display:none}          /* el título ya está arriba */
+  .aside[data-grupo] .block[data-grupo="equipos"] > h2{display:block}  /* salvo si hay dos */
   .block{margin-bottom:16px;scroll-margin-top:30px}
   .tools{grid-template-columns:repeat(4,1fr)}
   .mats{grid-template-columns:repeat(5,1fr)}
 
   .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     background:var(--bg-2);border-top:1px solid var(--line);
     padding-bottom:var(--safe-b);z-index:41;position:relative;
   }
   .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    height:var(--tabbar);font-size:10px;color:var(--muted);transition:color .15s}
-  .tab svg{width:21px;height:21px}
+    height:var(--tabbar);font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
+    color:var(--muted);transition:color .15s}
+  .tab svg{width:20px;height:20px}
   .tab[aria-pressed="true"]{color:var(--brand-2)}
   .tab[aria-pressed="true"] svg{filter:drop-shadow(0 0 8px color-mix(in srgb,var(--brand) 55%,transparent))}
 
@@ -479,8 +517,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <!-- ======== PANEL: barra lateral en escritorio, hoja inferior en móvil ======== -->
     <aside class="aside" id="aside" aria-label="Herramientas">
       <button class="sheet-grab" id="sheet-grab" aria-label="Cerrar el panel"></button>
+      <p class="sheet-tit" id="sheet-tit" aria-hidden="true"></p>
 
-      <div class="block" id="b-tools">
+      <div class="block" id="b-tools" data-grupo="tools">
         <h2>Herramientas</h2>
         <div class="tools">
           <button class="tool" data-tool="select" aria-pressed="true" title="Seleccionar y mover (V)">
@@ -504,7 +543,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-color">
+      <div class="block" id="b-color" data-grupo="trazo">
         <h2>Color del trazo</h2>
         <div class="swatches">
           <button class="sw" data-color="#FFFFFF" style="background:#FFFFFF" aria-pressed="true" aria-label="Blanco"></button>
@@ -523,7 +562,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-teams">
+      <div class="block" id="b-teams" data-grupo="equipos">
         <h2>Jugadores y balón</h2>
         <div class="teams">
           <button class="team-btn home" data-place="player" data-team="home">+ Local</button>
@@ -538,7 +577,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-forms">
+      <div class="block" id="b-forms" data-grupo="equipos">
         <h2>Formaciones</h2>
         <div class="stack">
           <select class="sel" id="form-home" aria-label="Formación del equipo local">
@@ -554,7 +593,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-mats">
+      <div class="block" id="b-mats" data-grupo="material">
         <h2>Materiales</h2>
         <p class="block-note">Toca el campo para ir colocando. Con la pieza seleccionada, gírala arrastrando el tirador rojo o con los botones de giro.</p>
         <div class="mats">
@@ -591,7 +630,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-view">
+      <div class="block" id="b-view" data-grupo="campo">
         <h2>Modalidad</h2>
         <div class="seg" style="margin-bottom:9px">
           <button data-pitch="f11" aria-pressed="true">Fútbol 11</button>
@@ -610,7 +649,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <label class="check"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
       </div>
 
-      <div class="block" id="b-actions">
+      <div class="block" id="b-actions" data-grupo="pizarra">
         <h2>Pizarra</h2>
         <div class="stack">
           <button class="row-btn" id="install" hidden>
@@ -699,6 +738,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <button class="tab" data-section="b-view">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="3"/></svg>
       Campo</button>
+    <button class="tab" data-section="b-actions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7.5 8.5h9M7.5 12h9M7.5 15.5h5"/></svg>
+      Pizarra</button>
   </nav>
 
   <div class="scrim" id="scrim"></div>
@@ -781,7 +823,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   <div class="dhead"><h3 id="dlg-card-t">Ficha del ejercicio</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
   <div class="dbody">
-    <p class="form-group">Identificación</p>
+    
+    <div class="pasos" role="tablist" aria-label="Apartados de la ficha">
+      <button type="button" class="paso-btn" data-paso="ident" aria-pressed="true">Identificación</button>
+      <button type="button" class="paso-btn" data-paso="organizacion" aria-pressed="false">Organización</button>
+      <button type="button" class="paso-btn" data-paso="contenido" aria-pressed="false">Contenido</button>
+    </div>
+    <section class="paso" id="paso-ident">
+<p class="form-group"><span>Identificación</span></p>
     <div class="form-grid">
       <label class="field wide"><span>Plantilla <small>rellena la ficha con un ejercicio del catálogo</small></span>
         <select id="f-plantilla"></select></label>
@@ -807,39 +856,51 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <label class="field"><span>Sesión</span>
         <input type="text" id="f-sesion" maxlength="30" placeholder="Sesión 12 · microciclo 4"></label>
     </div>
-
-    <p class="form-group">Organización
+    </section>
+    <section class="paso" id="paso-organizacion" hidden>
+<p class="form-group"><span>Organización</span>
       <button type="button" class="mini-btn" id="f-auto">Rellenar desde la pizarra</button>
     </p>
     <div class="form-grid">
       <label class="field"><span>Duración</span>
-        <input type="text" id="f-duracion" maxlength="20" placeholder="15 min"></label>
+        <input type="text" id="f-duracion" maxlength="20" placeholder="15 min">
+        <div class="sugs" data-para="f-duracion"></div></label>
       <label class="field"><span>Series y repeticiones</span>
-        <input type="text" id="f-series" maxlength="30" placeholder="4 × 3 min"></label>
+        <input type="text" id="f-series" maxlength="30" placeholder="4 × 3 min">
+        <div class="sugs" data-para="f-series"></div></label>
       <label class="field"><span>Descanso</span>
-        <input type="text" id="f-descanso" maxlength="20" placeholder="1 min entre series"></label>
+        <input type="text" id="f-descanso" maxlength="20" placeholder="1 min entre series">
+        <div class="sugs" data-para="f-descanso"></div></label>
       <label class="field"><span>Jugadores</span>
-        <input type="text" id="f-jugadores" maxlength="30" placeholder="5 vs 5"></label>
+        <input type="text" id="f-jugadores" maxlength="30" placeholder="5 vs 5">
+        <div class="sugs" data-para="f-jugadores"></div></label>
       <label class="field"><span>Porteros</span>
-        <input type="text" id="f-porteros" maxlength="20" placeholder="2"></label>
+        <input type="text" id="f-porteros" maxlength="20" placeholder="2">
+        <div class="sugs" data-para="f-porteros"></div></label>
       <label class="field"><span>Espacio</span>
-        <input type="text" id="f-espacio" maxlength="30" placeholder="40 × 30 m"></label>
+        <input type="text" id="f-espacio" maxlength="30" placeholder="40 × 30 m">
+        <div class="sugs" data-para="f-espacio"></div></label>
       <label class="field wide"><span>Material</span>
-        <input type="text" id="f-material" maxlength="120" placeholder="8 conos, 2 minigoles, 6 balones"></label>
+        <input type="text" id="f-material" maxlength="120" placeholder="8 conos, 2 minigoles, 6 balones">
+        <div class="sugs" data-para="f-material"></div></label>
     </div>
-
-    <p class="form-group">Contenido</p>
+    </section>
+    <section class="paso" id="paso-contenido" hidden>
+<p class="form-group"><span>Contenido</span></p>
     <div class="form-grid">
       <label class="field wide"><span>Objetivo</span>
         <textarea id="f-objetivo" rows="2" maxlength="300" placeholder="Qué queremos mejorar con este ejercicio."></textarea></label>
       <label class="field wide"><span>Descripción y desarrollo</span>
         <textarea id="f-descripcion" rows="4" maxlength="900" placeholder="Cómo se organiza y cómo se juega."></textarea></label>
       <label class="field wide"><span>Consignas <small>una por línea</small></span>
-        <textarea id="f-consignas" rows="4" maxlength="700" placeholder="Perfil abierto al recibir&#10;Primer pase al lado contrario de la presión"></textarea></label>
+        <textarea id="f-consignas" rows="4" maxlength="700" placeholder="Perfil abierto al recibir&#10;Primer pase al lado contrario de la presión"></textarea>
+        <div class="sugs" data-para="f-consignas"></div></label>
       <label class="field wide"><span>Normas <small>una por línea</small></span>
-        <textarea id="f-normas" rows="3" maxlength="700" placeholder="Máximo dos toques&#10;Gol solo tras cinco pases"></textarea></label>
+        <textarea id="f-normas" rows="3" maxlength="700" placeholder="Máximo dos toques&#10;Gol solo tras cinco pases"></textarea>
+        <div class="sugs" data-para="f-normas"></div></label>
       <label class="field wide"><span>Variantes y progresiones <small>una por línea</small></span>
-        <textarea id="f-variantes" rows="3" maxlength="700" placeholder="Añadir un comodín ofensivo&#10;Reducir el espacio cinco metros"></textarea></label>
+        <textarea id="f-variantes" rows="3" maxlength="700" placeholder="Añadir un comodín ofensivo&#10;Reducir el espacio cinco metros"></textarea>
+        <div class="sugs" data-para="f-variantes"></div></label>
     </div>
   </div>
   <div class="dfoot">
@@ -847,7 +908,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <button class="tbtn" id="f-guardar">Guardar</button>
     <button class="tbtn primary" id="f-imprimir">Guardar e imprimir</button>
   </div>
-</dialog>
+    </section>
+  </dialog>
 
 <dialog id="dlg-file" aria-labelledby="file-title">
   <div class="dhead"><h3 id="file-title">Archivo</h3>
@@ -979,8 +1041,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y
-      material, y sale una página lista para imprimir con el dibujo de la pizarra. El botón
-      «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio, y el
+      material, y sale una página lista para imprimir con el dibujo de la pizarra. Va por apartados
+      —identificación, organización y contenido—, y cada campo trae sugerencias de las que partir.
+      El botón «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio, y el
       selector de plantilla la rellena entera con un ejercicio del catálogo.
     </p>
     <div class="kbd">
@@ -2861,6 +2924,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
     if (!c.categoria) fieldEl('categoria').value = prefs().categoria;
     if (!dlgCard) dlgCard = $('#dlg-card');
+    var primero = $('.paso-btn');
+    if (primero) primero.click();          // se abre siempre por el primer apartado
     dlgCard.showModal();
   }
 
@@ -3659,6 +3724,60 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#lib-pitch').value = libFiltros.pitch;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
+  }
+
+  // ---- Sugerencias campo a campo ----
+  // Lo básico de lo que partir, para no escribir «4 × 3 min» cuarenta veces.
+  var SUGERENCIAS = {
+    duracion:  ['8 min', '10 min', '12 min', '15 min', '20 min', '25 min', '30 min'],
+    series:    ['3 × 3 min', '4 × 2 min', '4 × 3 min', '5 × 2 min', '2 × 8 min',
+                '8 repeticiones', '10 lanzamientos'],
+    descanso:  ['30 s', '45 s entre series', '1 min entre series', '2 min entre series',
+                'Vuelta andando', 'Sin descanso'],
+    jugadores: ['3 vs 2', '4 vs 2', '4 vs 4', '5 vs 5', '7 vs 7', '9 vs 9', '11 vs 11',
+                '+ 2 comodines', 'Grupo entero'],
+    porteros:  ['Sin portero', '1', '2'],
+    espacio:   ['15 × 15 m', '20 × 20 m', '30 × 20 m', '40 × 30 m',
+                'Medio campo', 'Campo completo'],
+    material:  ['Conos y balones', 'Petos, conos y balones', '2 porterías pequeñas',
+                'Vallas y escalera', 'Picas y maniquíes'],
+    consignas: ['Perfil abierto al recibir', 'Mirar antes de recibir', 'Primer pase al lado libre',
+                'Apoyos cerca, no a diez metros', 'Cambiar de orientación si se cierra',
+                'Rematar en el primer contacto'],
+    normas:    ['Máximo dos toques', 'Un toque', 'Gol tras cambio de banda: doble',
+                'Fuera de juego en la línea de medios', 'Diez pases: un punto',
+                'Cinco segundos para recuperar'],
+    variantes: ['Añadir un comodín', 'Quitar un jugador al equipo que ataca',
+                'Reducir el espacio cinco metros', 'Limitar a un toque',
+                'Bajar el tiempo de la jugada']
+  };
+
+  // En los campos de una línea la sugerencia sustituye; en los de varias, suma una más.
+  var SUG_LINEA = { consignas: 1, normas: 1, variantes: 1 };
+
+  function pintaSugerencias() {
+    $$('.sugs').forEach(function (caja) {
+      var campo = caja.dataset.para.replace(/^f-/, '');
+      var lista = SUGERENCIAS[campo];
+      if (!lista || caja.childNodes.length) return;
+      lista.forEach(function (txt) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'sug'; b.textContent = txt;
+        b.addEventListener('click', function () {
+          var el = fieldEl(campo);
+          if (!el) return;
+          if (SUG_LINEA[campo]) {
+            var v = el.value.trim();
+            var yaEsta = v.split('\n').some(function (l) { return l.trim() === txt; });
+            if (!yaEsta) el.value = v ? v + '\n' + txt : txt;
+          } else {
+            el.value = txt;
+          }
+          el.focus({ preventScroll: true });
+        });
+        caja.appendChild(b);
+      });
+    });
   }
 
   // ---- Plantillas dentro de la ficha ----
@@ -4527,6 +4646,25 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     // ---- Ficha ----
     llenaSelectorPlantillas();
+    pintaSugerencias();
+
+    // Si el apartado no tiene acción propia, su fila de rótulo sobra.
+    $$('.paso > .form-group').forEach(function (g) {
+      if (!g.querySelector('button')) g.classList.add('vacio');
+    });
+
+    // La ficha va por apartados: cada botón enseña el suyo.
+    function verPaso(id) {
+      $$('.paso').forEach(function (p) { p.hidden = p.id !== 'paso-' + id; });
+      $$('.paso-btn').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.paso === id));
+      });
+      var cuerpo = $('#dlg-card .dbody');
+      if (cuerpo) cuerpo.scrollTop = 0;
+    }
+    $$('.paso-btn').forEach(function (b) {
+      b.addEventListener('click', function () { verPaso(b.dataset.paso); });
+    });
     $('#f-plantilla').addEventListener('change', function () {
       var id = this.value, sel = this;
       sel.value = '';
@@ -4577,13 +4715,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var aside = $('#aside'), scrim = $('#scrim');
     var current = null;
 
+    // Cada pestaña abre lo suyo y nada más: la hoja enseña un solo grupo.
+    var TITULOS = { tools: 'Herramientas', trazo: 'Trazo', equipos: 'Equipos y formaciones',
+                    material: 'Material', campo: 'Campo', pizarra: 'Pizarra' };
+
     function sheetOpen(id) {
       current = id;
+      var block = document.getElementById(id);
+      var grupo = block ? block.dataset.grupo : '';
+      aside.dataset.grupo = grupo;
+      $('#sheet-tit').textContent = TITULOS[grupo] || '';
       aside.classList.add('open');
       scrim.classList.add('show');
       $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
-      var block = document.getElementById(id);
-      if (block) requestAnimationFrame(function () { aside.scrollTop = block.offsetTop - 30; });
+      requestAnimationFrame(function () { aside.scrollTop = 0; });
     }
     function sheetClose() {
       current = null;

@@ -69,9 +69,17 @@ archivo**, no porque haya un servidor detrás. Lo que guarda cada usuario se que
 navegador. Compartir ejercicios entre usuarios necesitaría un servidor, y eso son cuentas,
 moderación y datos saliendo del dispositivo.
 
+**El panel, por secciones.** En el móvil cada pestaña de abajo abre **su** sección y nada más
+—herramientas, trazo, equipos, material, campo o pizarra—, con su título arriba, en vez de una
+hoja con todo dentro que hay que recorrer. En pantalla ancha la barra lateral las sigue
+enseñando todas, que ahí es lo cómodo.
+
 **Ficha del ejercicio.** Un formulario dentro de la pizarra —título, categoría, momento del
 juego, sesión, duración, series, descanso, jugadores, porteros, espacio, material, objetivo,
-descripción, consignas, normas y variantes— que se imprime en una página A4 maquetada por
+descripción, consignas, normas y variantes—, repartido en tres apartados que se abren de uno
+en uno, con **sugerencias en cada campo** (duraciones, series, descansos, número de jugadores,
+espacios, material, y consignas, normas y variantes habituales, que se suman como una línea
+más). Se imprime en una página A4 maquetada por
 bloques: cabecera con etiquetas, el esquema del ejercicio en su marco, los datos en celdas,
 el objetivo destacado, el desarrollo, y consignas, normas y progresiones numeradas a tres
 columnas. Si la jugada tiene varios fotogramas, añade la secuencia en miniatura, y al pie
@@ -215,11 +223,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 105 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 115 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, la generación del GIF y su decodificación por el
+la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.

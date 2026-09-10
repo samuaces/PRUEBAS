@@ -551,6 +551,31 @@ async function run(w,d){
   ok('el selector de plantilla vuelve a su sitio tras usarlo',plant.value==='');
   d.querySelector('#dlg-card [data-close]').click();await raf();
 
+  // --- la ficha, por apartados y con sugerencias ---
+  d.getElementById('card-edit').click();await wait(300);
+  ok('la ficha abre por el primer apartado',
+     [].filter.call(d.querySelectorAll('.paso'),function(p){return !p.hidden;}).length===1&&
+     !d.getElementById('paso-ident').hidden);
+  d.querySelectorAll('.paso-btn')[1].click();await wait(200);
+  ok('cada apartado enseña solo lo suyo',
+     !d.getElementById('paso-organizacion').hidden&&d.getElementById('paso-ident').hidden&&
+     d.getElementById('paso-contenido').hidden);
+  var sugD=d.querySelector('[data-para="f-duracion"] .sug');
+  ok('los campos traen sugerencias',!!sugD,
+     d.querySelectorAll('.sug').length+' en toda la ficha');
+  d.getElementById('f-duracion').value='';
+  sugD.click();await raf();
+  ok('la sugerencia rellena el campo de una línea',d.getElementById('f-duracion').value===sugD.textContent,
+     d.getElementById('f-duracion').value);
+  d.querySelectorAll('.paso-btn')[2].click();await wait(200);
+  d.getElementById('f-consignas').value='';
+  var sugC=d.querySelectorAll('[data-para="f-consignas"] .sug');
+  sugC[0].click();sugC[1].click();sugC[0].click();await raf();
+  ok('en las listas la sugerencia suma una línea y no repite',
+     d.getElementById('f-consignas').value.split('\n').length===2,
+     JSON.stringify(d.getElementById('f-consignas').value));
+  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+
   // --- ajustes ---
   d.getElementById('cfg').click();await wait(250);
   ok('los ajustes se abren',d.getElementById('dlg-cfg').open);
@@ -581,6 +606,24 @@ async function run(w,d){
      region(cv,cv.width/2,cv.height/2,80)!==antesZona&&
      d.querySelector('[data-view="area"]').getAttribute('aria-pressed')==='true');
   d.querySelector('[data-view="full"]').click();await wait(200);
+
+  // --- cada pestaña abre su sección (solo en pantalla estrecha) ---
+  var marco=w.frameElement;marco.style.width='390px';await wait(600);
+  d.querySelectorAll('.tab')[3].click();await wait(400);
+  var visibles=[].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;});
+  ok('la pestaña de material abre solo material',
+     visibles.length===1&&visibles[0].id==='b-mats',visibles.map(function(b){return b.id;}).join(','));
+  ok('la hoja dice en qué sección estás',d.getElementById('sheet-tit').textContent==='Material',
+     d.getElementById('sheet-tit').textContent);
+  d.querySelectorAll('.tab')[5].click();await wait(400);
+  var vis2=[].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;});
+  ok('la pestaña de pizarra lleva a las acciones',vis2.length===1&&vis2[0].id==='b-actions',
+     vis2.map(function(b){return b.id;}).join(','));
+  ok('hay una pestaña por sección',d.querySelectorAll('.tab').length===6);
+  d.getElementById('scrim').click();await wait(300);
+  marco.style.width='1200px';await wait(500);
+  ok('en pantalla ancha el panel las enseña todas',
+     [].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;}).length>=6);
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }

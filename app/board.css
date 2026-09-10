@@ -89,7 +89,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 }
 .aside::-webkit-scrollbar{width:9px}
 .aside::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:9px;border:3px solid var(--bg-2)}
-.sheet-grab{display:none}
+.sheet-grab,.sheet-tit{display:none}
 .block{margin-bottom:18px;scroll-margin-top:12px}
 .block > h2{font-family:var(--ff-display);font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
   color:var(--muted);margin:0 0 9px 2px}
@@ -273,8 +273,30 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .field input:focus,.field select:focus,.field textarea:focus{
   outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
 .field textarea{min-height:56px}
+/* La ficha, por apartados: uno cada vez, no un rollo de treinta campos. */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin-bottom:16px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:11px}
+.paso-btn{min-height:38px;padding:8px 6px;border-radius:8px;font-size:12.5px;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
+.paso-btn:hover{color:var(--text)}
+.paso-btn[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;
+  box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.paso > .form-group:first-child{margin-top:0}
+/* El nombre del apartado ya está en la pestaña: aquí solo queda su acción. */
+.paso > .form-group > span{display:none}
+.paso > .form-group{justify-content:flex-end;margin:0 0 14px;min-height:34px}
+.paso > .form-group.vacio{display:none}
+
+.sugs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.sugs:empty{display:none}
+.sug{padding:5px 10px;border-radius:100px;border:1px solid var(--line);background:var(--surface);
+  color:var(--muted);font-family:var(--ff-body);font-size:11.5px;line-height:1.3;transition:.15s}
+.sug:hover{border-color:var(--brand-2);color:var(--text)}
+.sug:active{background:var(--surface-2)}
+
 @media (max-width:560px){
   .form-grid{grid-template-columns:1fr}
+  .sug{font-size:12.5px;padding:7px 12px}
   /* 16 px evita que Safari acerque la pantalla al enfocar un campo */
   .field input,.field select,.field textarea{font-size:16px}
   dialog.wide .dbody{max-height:68vh}
@@ -377,18 +399,34 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     width:100%;height:26px;margin-bottom:2px;background:var(--bg-2);border:0;border-radius:20px 20px 0 0}
   .sheet-grab::before{content:"";display:block;width:40px;height:4px;border-radius:4px;
     background:var(--line-strong);margin:11px auto 0}
+
+  /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
+     ves material, no un panel con todo dentro. */
+  .sheet-tit{display:block;position:sticky;top:26px;z-index:2;margin:0 -14px 12px;
+    padding:6px 14px 12px;background:var(--bg-2);border-bottom:1px solid var(--line);
+    font-family:var(--ff-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .aside[data-grupo] .block{display:none}
+  .aside[data-grupo="tools"] .block[data-grupo="tools"],
+  .aside[data-grupo="trazo"] .block[data-grupo="trazo"],
+  .aside[data-grupo="equipos"] .block[data-grupo="equipos"],
+  .aside[data-grupo="material"] .block[data-grupo="material"],
+  .aside[data-grupo="campo"] .block[data-grupo="campo"],
+  .aside[data-grupo="pizarra"] .block[data-grupo="pizarra"]{display:block}
+  .aside[data-grupo] .block > h2{display:none}          /* el título ya está arriba */
+  .aside[data-grupo] .block[data-grupo="equipos"] > h2{display:block}  /* salvo si hay dos */
   .block{margin-bottom:16px;scroll-margin-top:30px}
   .tools{grid-template-columns:repeat(4,1fr)}
   .mats{grid-template-columns:repeat(5,1fr)}
 
   .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     background:var(--bg-2);border-top:1px solid var(--line);
     padding-bottom:var(--safe-b);z-index:41;position:relative;
   }
   .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    height:var(--tabbar);font-size:10px;color:var(--muted);transition:color .15s}
-  .tab svg{width:21px;height:21px}
+    height:var(--tabbar);font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
+    color:var(--muted);transition:color .15s}
+  .tab svg{width:20px;height:20px}
   .tab[aria-pressed="true"]{color:var(--brand-2)}
   .tab[aria-pressed="true"] svg{filter:drop-shadow(0 0 8px color-mix(in srgb,var(--brand) 55%,transparent))}
 

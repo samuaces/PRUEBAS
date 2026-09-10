@@ -42,6 +42,8 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   sola modalidad —la predeterminada del usuario, fútbol 11 si no ha elegido otra— y no mezcla
   disciplinas; para ver fútbol 7 o sala hay que seleccionarlo. Se filtra además por momento
   del juego, duración o texto libre.
+- La ficha va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
+  rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
   categoría o equipo, que se rellena sola en cada ficha.
 - Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,
