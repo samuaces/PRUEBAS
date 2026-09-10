@@ -385,6 +385,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    ============================================================ */
 @media (max-width:900px){
   :root{--aside:0px;--tabbar:60px;--topbar:52px}
+
+  /* La última fila tiene que dar de sí lo que ocupa el indicador de inicio del
+     iPhone. Antes medía solo --tabbar: la barra se quedaba corta por abajo, sus
+     botones se salían por debajo de la pantalla y, como la hoja se apoya a la
+     altura de --tabbar + el hueco seguro, entre la hoja y la barra asomaba una
+     franja vacía con el fondo del campo. */
+  .app{grid-template-rows:auto 1fr auto calc(var(--tabbar) + var(--safe-b))}
   .middle{grid-template-columns:1fr}
   .sm-only{display:flex}
   .topbar .hide-sm{display:none}
@@ -437,8 +444,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     background:var(--bg-2);border-top:1px solid var(--line);
     padding-bottom:var(--safe-b);z-index:41;position:relative;
   }
+  /* Sin altura fija: los botones rellenan lo que la barra les deja, así que el
+     píxel del borde de arriba no los empuja fuera. */
   .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    height:var(--tabbar);font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
+    min-height:0;font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
     color:var(--muted);transition:color .15s}
   .tab svg{width:20px;height:20px}
   .tab[aria-pressed="true"]{color:var(--brand-2)}
