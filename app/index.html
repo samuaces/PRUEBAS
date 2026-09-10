@@ -562,38 +562,14 @@
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
 
-    <div id="cfg-cuenta-bloque" hidden>
-      <p class="form-group">Tu cuenta</p>
-      <div id="cfg-cuenta">
-        <div id="cuenta-fuera">
-          <p class="block-note" style="margin:0 0 10px">Entra con tu correo para compartir
-            ejercicios en la biblioteca común y tenerlos en cualquier dispositivo. Sin contraseña:
-            te mandamos un enlace y listo.</p>
-          <div class="form-grid">
-            <label class="field wide"><span>Tu correo</span>
-              <input type="email" id="cuenta-email" autocomplete="email"
-                     placeholder="entrenador@club.com"></label>
-          </div>
-          <button type="button" class="tbtn primary" id="cuenta-entrar"
-                  style="margin-top:10px">Enviarme el enlace</button>
-          <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
-        </div>
-
-        <div id="cuenta-dentro" hidden>
-          <p class="block-note" style="margin:0 0 10px">Has entrado como
-            <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
-          <div class="form-grid">
-            <label class="field"><span>Tu nombre <small>firma los que compartas</small></span>
-              <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
-            <label class="field"><span>Club <small>opcional</small></span>
-              <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
-          </div>
-          <div class="lib-linea" style="margin-top:10px">
-            <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
-            <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
-          </div>
-        </div>
-      </div>
+    <p class="form-group">Quién eres</p>
+    <p class="block-note" style="margin:0 0 10px">Firma los ejercicios que compartas. Se queda
+      en este dispositivo: no hay que registrarse en ningún sitio ni dar ningún correo.</p>
+    <div class="form-grid">
+      <label class="field"><span>Tu nombre</span>
+        <input type="text" id="cfg-nombre" maxlength="60" placeholder="Samu" autocomplete="name"></label>
+      <label class="field"><span>Club <small>opcional</small></span>
+        <input type="text" id="cfg-club" maxlength="60" placeholder="CD Ejemplo"></label>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
@@ -632,15 +608,15 @@
       fútbol 7 o sala, cámbiala en el desplegable. Se filtra además por momento del juego, duración o
       buscando texto.
     </p>
-    <p style="margin:0 0 16px;color:var(--muted)" class="solo-nube" hidden>
-      <b style="color:var(--text)">Biblioteca común:</b> en Ajustes entras con tu correo —sin contraseña,
-      te llega un enlace— y a partir de ahí puedes compartir tus ejercicios con el resto de entrenadores
-      y verlos desde cualquier dispositivo. Lo que compartas sale firmado con tu nombre y lo puedes
-      retirar cuando quieras. Lo que no compartes no lo ve nadie.
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Compartir:</b> no hay que registrarse en ningún sitio. Pones tu
+      nombre una vez en Ajustes y, desde el panel de Pizarra, «Compartir en la biblioteca» prepara
+      el ejercicio entero —dibujo y ficha— para mandarlo. Se añade a la biblioteca común y lo ve
+      todo el mundo, firmado con tu nombre.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ajustes:</b> ahí eliges tu modalidad predeterminada —con la que abren
-      la biblioteca y cada pizarra nueva— y tu categoría o equipo, que se pone sola en cada ficha.
+      la biblioteca y cada pizarra nueva— tu categoría o equipo, que se pone sola en cada ficha, y tu nombre, que firma lo que compartas.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y

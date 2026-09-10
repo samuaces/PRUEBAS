@@ -569,26 +569,28 @@ async function run(w,d){
   // Compartir se ve siempre: si desaparece, quien lo busca cree que la
   // aplicación no le deja compartir.
   ok('el botón de compartir siempre está',!d.getElementById('compartir').hidden);
-  ok('la cuenta solo se pide si hay servidor detrás',
-     d.getElementById('cfg-cuenta-bloque').hidden===!conNube,
-     conNube?'con servidor':'sin servidor');
+  // Ya no hay cuentas: quién eres se escribe una vez y se queda en el móvil.
+  ok('no se pide cuenta ni correo en ninguna parte',
+     !d.getElementById('cuenta-email')&&!d.getElementById('cfg-cuenta-bloque'));
+  ok('en su lugar hay nombre y club, guardados aquí',
+     !!d.getElementById('cfg-nombre')&&!!d.getElementById('cfg-club'));
   d.getElementById('compartir').click();await wait(500);
-  if(conNube){
-    // sin sesión iniciada NO se bloquea: se puede mandar igual. El correo de
-    // Supabase falla a menudo (límite de envíos) y no puede ser una puerta.
-    ok('con servidor pero sin sesión, compartir sigue siendo posible',
-       d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
-       d.getElementById('ask-title').textContent);
-    ok('y explica que con cuenta se sube solo',
-       /sin cuenta/.test(d.getElementById('ask-msg').textContent));
-  } else {
-    ok('sin servidor no se queda muerto: prepara el ejercicio para mandarlo',
-       d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
-       d.getElementById('ask-title').textContent);
-    ok('y avisa de que por ahora se comparte a mano',
-       /a mano/.test(d.getElementById('ask-msg').textContent));
-  }
+  // La primera vez pide el nombre para firmar; después, ni eso.
+  ok('compartir pide firmar la primera vez, no una cuenta',
+     d.getElementById('dlg-ask').open&&/Firma tu ejercicio/.test(d.getElementById('ask-title').textContent),
+     d.getElementById('ask-title').textContent);
+  d.getElementById('ask-input').value='Samu';
+  d.getElementById('ask-ok').click();await wait(500);
+  ok('el nombre se queda guardado para la próxima',
+     JSON.parse(w.localStorage.getItem('pt-prefs')||'{}').nombre==='Samu');
+  if(d.getElementById('dlg-file').open)d.querySelector('#dlg-file [data-close]').click();
   if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
+  await wait(250);
+  d.getElementById('compartir').click();await wait(500);
+  ok('y a la segunda ya no pregunta nada',
+     !d.getElementById('dlg-ask').open,
+     d.getElementById('ask-title').textContent);
+  if(d.getElementById('dlg-file').open)d.querySelector('#dlg-file [data-close]').click();
   await wait(250);
   // La biblioteca tiene que seguir en pie aunque el servidor no conteste.
   ok('el catálogo se ve aunque el servidor no responda',

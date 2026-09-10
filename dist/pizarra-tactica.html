@@ -1024,38 +1024,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
 
-    <div id="cfg-cuenta-bloque" hidden>
-      <p class="form-group">Tu cuenta</p>
-      <div id="cfg-cuenta">
-        <div id="cuenta-fuera">
-          <p class="block-note" style="margin:0 0 10px">Entra con tu correo para compartir
-            ejercicios en la biblioteca común y tenerlos en cualquier dispositivo. Sin contraseña:
-            te mandamos un enlace y listo.</p>
-          <div class="form-grid">
-            <label class="field wide"><span>Tu correo</span>
-              <input type="email" id="cuenta-email" autocomplete="email"
-                     placeholder="entrenador@club.com"></label>
-          </div>
-          <button type="button" class="tbtn primary" id="cuenta-entrar"
-                  style="margin-top:10px">Enviarme el enlace</button>
-          <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
-        </div>
-
-        <div id="cuenta-dentro" hidden>
-          <p class="block-note" style="margin:0 0 10px">Has entrado como
-            <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
-          <div class="form-grid">
-            <label class="field"><span>Tu nombre <small>firma los que compartas</small></span>
-              <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
-            <label class="field"><span>Club <small>opcional</small></span>
-              <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
-          </div>
-          <div class="lib-linea" style="margin-top:10px">
-            <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
-            <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
-          </div>
-        </div>
-      </div>
+    <p class="form-group">Quién eres</p>
+    <p class="block-note" style="margin:0 0 10px">Firma los ejercicios que compartas. Se queda
+      en este dispositivo: no hay que registrarse en ningún sitio ni dar ningún correo.</p>
+    <div class="form-grid">
+      <label class="field"><span>Tu nombre</span>
+        <input type="text" id="cfg-nombre" maxlength="60" placeholder="Samu" autocomplete="name"></label>
+      <label class="field"><span>Club <small>opcional</small></span>
+        <input type="text" id="cfg-club" maxlength="60" placeholder="CD Ejemplo"></label>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
@@ -1094,15 +1070,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       fútbol 7 o sala, cámbiala en el desplegable. Se filtra además por momento del juego, duración o
       buscando texto.
     </p>
-    <p style="margin:0 0 16px;color:var(--muted)" class="solo-nube" hidden>
-      <b style="color:var(--text)">Biblioteca común:</b> en Ajustes entras con tu correo —sin contraseña,
-      te llega un enlace— y a partir de ahí puedes compartir tus ejercicios con el resto de entrenadores
-      y verlos desde cualquier dispositivo. Lo que compartas sale firmado con tu nombre y lo puedes
-      retirar cuando quieras. Lo que no compartes no lo ve nadie.
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Compartir:</b> no hay que registrarse en ningún sitio. Pones tu
+      nombre una vez en Ajustes y, desde el panel de Pizarra, «Compartir en la biblioteca» prepara
+      el ejercicio entero —dibujo y ficha— para mandarlo. Se añade a la biblioteca común y lo ve
+      todo el mundo, firmado con tu nombre.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ajustes:</b> ahí eliges tu modalidad predeterminada —con la que abren
-      la biblioteca y cada pizarra nueva— y tu categoría o equipo, que se pone sola en cada ficha.
+      la biblioteca y cada pizarra nueva— tu categoría o equipo, que se pone sola en cada ficha, y tu nombre, que firma lo que compartas.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y
@@ -3540,13 +3516,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   /* Ajustes del usuario. Viven aparte del documento: no son de una pizarra
      concreta, son de quien la usa. */
-  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '' };
+  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '', nombre: '', club: '' };
 
   function prefs() {
     var p;
     try { p = JSON.parse(localStorage.getItem('pt-prefs') || '{}'); } catch (e) { p = {}; }
     if (!PITCHES[p.pitch]) p.pitch = PREFS_POR_DEFECTO.pitch;
-    if (typeof p.categoria !== 'string') p.categoria = '';
+    ['categoria', 'nombre', 'club'].forEach(function (k) {
+      if (typeof p[k] !== 'string') p[k] = '';
+    });
     return p;
   }
   function guardaPrefs(p) {
@@ -5751,7 +5729,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   var hayNube = !!(nube && nube.hay());
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
-  var yo = null;                      // tu perfil, si has entrado
+  var yo = null;                      // sin cuentas: nadie firma en el servidor
   var nubeEstado = { cargando: false, error: '' };
 
   // Una fila del servidor con la misma forma que el resto de la biblioteca.
@@ -5792,29 +5770,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
   }
 
-  // Quién eres, para saber qué puedes hacer. Se llama al arrancar y al entrar.
-  function refrescaCuenta() {
-    if (!hayNube) return Promise.resolve(null);
-    return nube.quienSoy().then(function (p) {
-      yo = p;
-      pintaCuenta();
-      return p;
-    });
-  }
-
+  // Ya no hay cuentas ni correos: quién eres lo escribes tú y se queda aquí.
+  // El correo de Supabase, en el plan gratuito, deja mandar dos o tres enlaces
+  // por hora, así que como puerta de entrada no servía para nada.
   function pintaCuenta() {
-    var caja = $('#cfg-cuenta');
-    if (!caja) return;
-    $('#cfg-cuenta-bloque').hidden = !hayNube;
-    if (!hayNube) return;
-    var dentro = !!yo;
-    $('#cuenta-fuera').hidden = dentro;
-    $('#cuenta-dentro').hidden = !dentro;
-    if (dentro) {
-      $('#cuenta-correo').textContent = yo.email || '';
-      $('#cuenta-nombre').value = yo.nombre || '';
-      $('#cuenta-club').value = yo.club || '';
-    }
+    var n = $('#cfg-nombre'), c = $('#cfg-club');
+    if (!n || !c) return;
+    var p = prefs();
+    n.value = p.nombre || '';
+    c.value = p.club || '';
     $$('.solo-nube').forEach(function (el) { el.hidden = !hayNube; });
   }
 
@@ -5836,10 +5800,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var c = doc.card || emptyCard(), f = doc.frames[ui.frame] || doc.frames[0];
     var ficha = {};
     CARD_FIELDS.forEach(function (k) { if (c[k]) ficha[k] = c[k]; });
+    var p = prefs();
     return {
       id: sinAcentos(c.titulo || 'ejercicio').replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '').slice(0, 40) || 'ejercicio',
       pitch: doc.pitch, view: doc.view, card: ficha,
+      autor: p.nombre || '', club: p.club || '',
       objects: clone(f.objects), strokes: clone(f.strokes || [])
     };
   }
@@ -5875,6 +5841,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     alPortapapeles();
   }
 
+  // Compartir no pide cuenta: como mucho, tu nombre la primera vez, para que
+  // el ejercicio vaya firmado. Se guarda y no se vuelve a preguntar.
+  function firmaYComparte() {
+    var p = prefs();
+    if (p.nombre) { comparteSinNube(); return; }
+    ask({ title: 'Firma tu ejercicio', input: '',
+          placeholder: 'Tu nombre, para que sepan de quién es',
+          ok: 'Compartir' })
+      .then(function (nombre) {
+        if (nombre === null) return;
+        if (nombre) { p.nombre = nombre.slice(0, 60); guardaPrefs(p); pintaCuenta(); }
+        comparteSinNube();
+      });
+  }
+
   function comparteActual() {
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirlo');
@@ -5883,28 +5864,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }
     // El botón está siempre. Sin servidor no se queda muerto: prepara el
     // ejercicio para mandarlo, que es lo más cerca de compartir que hay.
-    if (!hayNube) {
-      ask({ title: 'Compartir «' + doc.card.titulo + '»',
-            message: 'La biblioteca común todavía no tiene servidor propio, así que de ' +
-                     'momento se comparte a mano: te preparo el ejercicio entero —pizarra y ' +
-                     'ficha— para que lo mandes, y se añade a la biblioteca que ve todo el mundo.',
-            ok: 'Preparar' })
-        .then(function (si) { if (si) comparteSinNube(); });
-      return;
-    }
+    if (!hayNube) { firmaYComparte(); return; }
     // Sin sesión no se bloquea nada: se comparte igual, preparando el ejercicio
     // para mandarlo. Tener cuenta solo ahorra ese paso. Hacer del correo una
     // puerta obligatoria dejaba la aplicación inservible cuando el correo
     // fallaba, que es justo cuando más falta hace poder trabajar.
-    if (!yo) {
-      ask({ title: 'Compartir «' + doc.card.titulo + '»',
-            message: 'Puedes mandarlo ahora mismo sin cuenta y se añade a la biblioteca ' +
-                     'común. Si entras con tu correo (en Ajustes), se sube solo y firmado ' +
-                     'con tu nombre.',
-            ok: 'Mandarlo ahora' })
-        .then(function (si) { if (si) comparteSinNube(); });
-      return;
-    }
+    if (!yo) { firmaYComparte(); return; }
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirla');
       openCard();
@@ -7159,47 +7124,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
 
     // ---- Cuenta y biblioteca común ----
-    // Compartir se ve siempre; si no hay servidor, lo explica al pulsarlo.
+    // Compartir se ve siempre y nunca pide cuenta.
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
-    if (hayNube) {
-      $('#cuenta-entrar').addEventListener('click', function () {
-        var correo = $('#cuenta-email').value.trim();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { toast('Escribe un correo válido'); return; }
-        var b = this; b.disabled = true; b.textContent = 'Enviando…';
-        nube.entra(correo).then(function () {
-          $('#cuenta-aviso').textContent =
-            'Te hemos mandado un enlace a ' + correo + '. Ábrelo en este mismo dispositivo ' +
-            'y volverás aquí con la sesión iniciada.';
-          $('#cuenta-aviso').hidden = false;
-        }).catch(function (e) {
-          $('#cuenta-aviso').textContent = 'No se ha podido enviar: ' + (e.message || 'error');
-          $('#cuenta-aviso').hidden = false;
-        }).then(function () { b.disabled = false; b.textContent = 'Enviarme el enlace'; });
-      });
-      $('#cuenta-salir').addEventListener('click', function () {
-        nube.sale().then(function () {
-          yo = null; nubeMios = []; nubeLista = [];
-          pintaCuenta(); toast('Sesión cerrada');
-        });
-      });
-      $('#cuenta-guardar').addEventListener('click', function () {
-        var b = this; b.disabled = true;
-        nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
-                      club: $('#cuenta-club').value.trim() })
-          .then(function () { return refrescaCuenta(); })
-          .then(function () { toast('Guardado'); })
-          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); })
-          .then(function () { b.disabled = false; });
-      });
 
-      // Al volver del enlace del correo se entra solo.
-      var v = nube.vuelta();
-      refrescaCuenta().then(function (p) {
-        if (v && v.entrado && p) toast('Hola, ' + (p.nombre || 'entrenador'));
-        else if (v && v.error) toast(v.error);
+    // Quién eres: se escribe una vez y se queda en este dispositivo.
+    [['#cfg-nombre', 'nombre'], ['#cfg-club', 'club']].forEach(function (par) {
+      var el = $(par[0]);
+      if (!el) return;
+      el.addEventListener('change', function () {
+        var p = prefs();
+        p[par[1]] = this.value.trim().slice(0, 60);
+        guardaPrefs(p);
       });
-      nube.alCambiar(function () { refrescaCuenta(); });
-    }
+    });
+
     pintaCuenta();
     pintaPrivacidad();
 
