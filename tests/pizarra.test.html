@@ -564,19 +564,34 @@ async function run(w,d){
      /trae la aplicación/.test(d.getElementById('lib-nota').textContent)&&
      /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
      d.getElementById('lib-nota').textContent);
-  // --- sin servidor configurado, la nube no se nota ---
-  ok('sin nube configurada no se pide ninguna cuenta',
-     d.getElementById('cfg-cuenta-bloque').hidden);
+  // --- la nube, esté configurada o no, no puede romper nada ---
+  var conNube=w.PTNube&&w.PTNube.hay();
   // Compartir se ve siempre: si desaparece, quien lo busca cree que la
-  // aplicación no le deja compartir. Sin servidor, lo explica.
-  ok('el botón de compartir sigue estando',!d.getElementById('compartir').hidden);
-  d.getElementById('compartir').click();await wait(400);
-  ok('y sin servidor no se queda muerto: prepara el ejercicio para mandarlo',
-     d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
-     d.getElementById('ask-title').textContent);
-  ok('y avisa de que por ahora se comparte a mano',
-     /a mano/.test(d.getElementById('ask-msg').textContent));
-  d.querySelector('#dlg-ask [data-close]').click();await wait(250);
+  // aplicación no le deja compartir.
+  ok('el botón de compartir siempre está',!d.getElementById('compartir').hidden);
+  ok('la cuenta solo se pide si hay servidor detrás',
+     d.getElementById('cfg-cuenta-bloque').hidden===!conNube,
+     conNube?'con servidor':'sin servidor');
+  d.getElementById('compartir').click();await wait(500);
+  if(conNube){
+    // sin sesión iniciada manda a Ajustes a entrar; nunca se queda quieto
+    ok('con servidor, compartir lleva a entrar con tu correo',
+       d.getElementById('dlg-cfg').open||d.getElementById('dlg-ask').open,
+       'ajustes '+d.getElementById('dlg-cfg').open);
+    if(d.getElementById('dlg-cfg').open)d.querySelector('#dlg-cfg [data-close]').click();
+  } else {
+    ok('sin servidor no se queda muerto: prepara el ejercicio para mandarlo',
+       d.getElementById('dlg-ask').open&&/^Compartir «/.test(d.getElementById('ask-title').textContent),
+       d.getElementById('ask-title').textContent);
+    ok('y avisa de que por ahora se comparte a mano',
+       /a mano/.test(d.getElementById('ask-msg').textContent));
+  }
+  if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
+  await wait(250);
+  // La biblioteca tiene que seguir en pie aunque el servidor no conteste.
+  ok('el catálogo se ve aunque el servidor no responda',
+     d.querySelectorAll('.lib-card').length>0,
+     d.getElementById('lib-cuenta').textContent);
 
   // abrir un ejercicio trae pizarra y ficha
   d.getElementById('lib-pitch').value='futsal';

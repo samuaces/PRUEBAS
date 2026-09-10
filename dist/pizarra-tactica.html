@@ -5998,12 +5998,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
     }
     var partes = ['Los que trae la aplicación'];
+    if (catalogoInfo.fecha) partes.push('al día del ' + fechaCorta(catalogoInfo.fecha));
     if (hayNube) {
       partes.push(nubeEstado.cargando ? 'trayendo los de la comunidad…'
         : nubeEstado.error ? 'sin conexión con la biblioteca común'
         : 'y los que va compartiendo la gente');
-    } else if (catalogoInfo.fecha) {
-      partes.push('al día del ' + fechaCorta(catalogoInfo.fecha));
     }
     if (catalogoInfo.deCache) partes.push('sin conexión, versión guardada');
     return partes.join(' · ');
