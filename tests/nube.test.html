@@ -20,8 +20,8 @@ window.PT_NUBE = { url: BASE, key: KEY };
 
 var servidor = {
   peticiones: [],
-  usuario: { id: 'u-1', email: 'entrenador@club.com' },
-  perfil:  { id: 'u-1', nombre: 'Samu', club: 'CD Ejemplo', admin: false },
+  usuario: { id: 'u-1', email: 'ana@ejemplo.com' },
+  perfil:  { id: 'u-1', nombre: 'Ana Ruiz', club: 'CF Prueba', admin: false },
   ejercicios: [
     { id: 'e-1', autor: 'u-2', publicado: true, oculto: false, titulo: 'Rondo 5v2',
       pitch: 'f11', vista: 'area', momento: 'Calentamiento', categoria: 'Cadete',
@@ -31,7 +31,7 @@ var servidor = {
   ],
   caduca: false,          // para probar la renovación del testigo
   correoSaturado: false,  // Supabase corta los envíos en el plan gratuito
-  cuentas: { 'entrenador@club.com': 'secreta1' },
+  cuentas: { 'ana@ejemplo.com': 'secreta1' },
   exigeConfirmacion: false,
   reportes: []
 };
@@ -174,15 +174,15 @@ function ultima(fragmento) {
 
   // ---- perfil ----
   var yo = await N.quienSoy();
-  ok('sabe quién eres', yo && yo.id === 'u-1' && yo.nombre === 'Samu', yo && yo.nombre);
-  ok('trae también tu correo para enseñarlo', yo && yo.email === 'entrenador@club.com');
+  ok('sabe quién eres', yo && yo.id === 'u-1' && yo.nombre === 'Ana Ruiz', yo && yo.nombre);
+  ok('trae también tu correo para enseñarlo', yo && yo.email === 'ana@ejemplo.com');
   var pet = ultima('/auth/v1/user');
   ok('pregunta con tu testigo, no con la clave pública',
      pet.cabeceras.Authorization === 'Bearer t-1', pet.cabeceras.Authorization);
   ok('manda siempre la clave del proyecto', pet.cabeceras.apikey === KEY);
 
-  await N.perfil({ nombre: 'Samuel', club: 'CD Nuevo' });
-  ok('guardar el perfil lo cambia en el servidor', servidor.perfil.nombre === 'Samuel', servidor.perfil.nombre);
+  await N.perfil({ nombre: 'Ana Torres', club: 'CD Nuevo' });
+  ok('guardar el perfil lo cambia en el servidor', servidor.perfil.nombre === 'Ana Torres', servidor.perfil.nombre);
   ok('el perfil se guarda con PATCH sobre tu fila',
      ultima('/rest/v1/entrenadores').metodo === 'PATCH' &&
      /id=eq\.u-1/.test(ultima('/rest/v1/entrenadores').url));
@@ -279,13 +279,13 @@ function ultima(fragmento) {
 
   // ---- entrar y crear cuenta, sin un solo correo ----
   await N.sale();
-  var mala = await N.entra('entrenador@club.com', 'noesesta').then(function () { return null; },
+  var mala = await N.entra('ana@ejemplo.com', 'noesesta').then(function () { return null; },
                                                                    function (e) { return e; });
   ok('una contraseña que no es, se dice claro',
      !!mala && /no coinciden/.test(mala.message), mala && mala.message);
 
   ok('con la buena se entra al instante, sin correos',
-     await N.entra('entrenador@club.com', 'secreta1').then(function () { return N.dentro(); }));
+     await N.entra('ana@ejemplo.com', 'secreta1').then(function () { return N.dentro(); }));
   ok('y no se ha mandado ningún correo', !ultima('/auth/v1/otp'));
 
   await N.sale();
@@ -311,7 +311,7 @@ function ultima(fragmento) {
      !!conf && conf.confirmacion === true && /Confirm email/.test(conf.message));
   servidor.exigeConfirmacion = false;
 
-  await N.entra('entrenador@club.com', 'secreta1');
+  await N.entra('ana@ejemplo.com', 'secreta1');
   await N.sale();
   ok('salir cierra la sesión', !N.dentro());
   ok('y no deja rastro en el navegador', !localStorage.getItem('pt-nube'));
