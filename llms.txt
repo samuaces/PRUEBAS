@@ -38,8 +38,12 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
 - Biblioteca con diez ejercicios que vienen dentro de la aplicación —rondo, salida de balón,
   finalización, transición, juego de posición, circuito, presión tras pérdida, córner,
   superioridad en fútbol 7 y ataque en 3-1 de sala—, cada uno con su pizarra montada y su
-  ficha rellena, más las pizarras que haya guardado el usuario. Se filtran por modalidad,
-  momento del juego, duración o texto libre; sin filtros se ven todas.
+  ficha rellena, más las pizarras que haya guardado el usuario. La lista abre siempre en una
+  sola modalidad —la predeterminada del usuario, fútbol 11 si no ha elegido otra— y no mezcla
+  disciplinas; para ver fútbol 7 o sala hay que seleccionarlo. Se filtra además por momento
+  del juego, duración o texto libre.
+- Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
+  categoría o equipo, que se rellena sola en cada ficha.
 - Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,
   para ejercicios en espacio reducido) y superficie libre.
 - Ficha del ejercicio: un formulario con título, categoría, momento del juego, duración,

@@ -48,8 +48,17 @@ bloque. Es lo que permite recolocar una línea entera de un arrastre.
 finalización tras centro, transición 3 contra 2, juego de posición, circuito de conducción,
 presión tras pérdida, córner, superioridad en fútbol 7 y ataque en 3-1 de sala—, cada uno con
 su pizarra montada y su ficha rellena. La biblioteca los lista junto a las pizarras que hayas
-guardado tú, con su miniatura, y se filtran por modalidad, momento del juego, duración o
-buscando texto en cualquier campo de la ficha. Sin filtros salen todos.
+guardado tú, con su miniatura.
+
+**No mezcla disciplinas**: abre siempre en una sola modalidad, la que tengas puesta como
+predeterminada —fútbol 11 mientras no cambies nada—, y para ver fútbol 7 o sala hay que
+seleccionarlo. Dentro de esa modalidad se filtra por momento del juego, duración o buscando
+texto en cualquier campo de la ficha; sin más filtros salen todos los de tu modalidad.
+
+**Ajustes.** Un panel propio con dos cosas: la modalidad predeterminada —con la que abre la
+biblioteca y con la que empieza cada pizarra nueva, sin tocar la que tengas abierta— y tu
+categoría o equipo, que se rellena sola en cada ficha. Se guarda en el navegador, aparte del
+documento: no es de una pizarra, es de quien la usa.
 
 Los mismos diez sirven de **plantilla** desde la ficha: un selector rellena título, objetivo,
 descripción, consignas, normas, variantes y todos los datos de organización, y deja intactas
@@ -206,11 +215,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 100 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 105 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, la generación del GIF y su decodificación por el
+la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.

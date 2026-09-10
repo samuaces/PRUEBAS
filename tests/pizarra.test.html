@@ -490,10 +490,15 @@ async function run(w,d){
   d.getElementById('open').click();await wait(500);
   var lib=d.getElementById('dlg-lib');
   var total=d.querySelectorAll('.lib-card').length;
-  ok('la biblioteca se abre con el catálogo entero',lib.open&&total>=10,total+' ejercicios');
+  ok('la biblioteca se abre con ejercicios',lib.open&&total>=6,total+' ejercicios');
   ok('cada ejercicio trae su miniatura dibujada',
      [].every.call(d.querySelectorAll('.lib-card img'),function(i){return /^data:image\/png/.test(i.src);}));
-  ok('sin filtros se ven todos',/^\d+ ejercicios$/.test(d.getElementById('lib-cuenta').textContent),
+  ok('la primera vista es la de tu modalidad, sin mezclar',
+     d.getElementById('lib-pitch').value==='f11'&&
+     [].every.call(d.querySelectorAll('.lib-tags'),function(t){return /Fútbol 11/.test(t.textContent);}),
+     d.getElementById('lib-cuenta').textContent);
+  ok('sin más filtros se ven todos los de esa modalidad',
+     /^\d+ ejercicios? de fútbol 11$/.test(d.getElementById('lib-cuenta').textContent),
      d.getElementById('lib-cuenta').textContent);
 
   var q=d.getElementById('lib-q');
@@ -513,10 +518,12 @@ async function run(w,d){
      d.getElementById('lib-cuenta').textContent);
 
   d.getElementById('lib-limpiar').click();await wait(300);
-  ok('quitar filtros devuelve el catálogo entero',d.querySelectorAll('.lib-card').length===total);
+  ok('quitar filtros vuelve a tu modalidad, no a todo',
+     d.querySelectorAll('.lib-card').length===total&&d.getElementById('lib-pitch').value==='f11');
 
   // abrir un ejercicio trae pizarra y ficha
-  q.value='sala';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(300);
+  d.getElementById('lib-pitch').value='futsal';
+  d.getElementById('lib-pitch').dispatchEvent(new Event('change',{bubbles:true}));await wait(300);
   d.querySelector('.lib-card .tbtn.primary').click();await wait(600);
   ok('abrir un ejercicio cierra la biblioteca',!lib.open);
   ok('el ejercicio trae su modalidad y sus piezas',
@@ -543,6 +550,29 @@ async function run(w,d){
      d.getElementById('f-titulo').value);
   ok('el selector de plantilla vuelve a su sitio tras usarlo',plant.value==='');
   d.querySelector('#dlg-card [data-close]').click();await raf();
+
+  // --- ajustes ---
+  d.getElementById('cfg').click();await wait(250);
+  ok('los ajustes se abren',d.getElementById('dlg-cfg').open);
+  ok('marcan la modalidad que tienes puesta',
+     d.querySelector('[data-cfg-pitch="f11"]').getAttribute('aria-pressed')==='true');
+  d.querySelector('[data-cfg-pitch="f7"]').click();await wait(250);
+  d.getElementById('cfg-categoria').value='Cadete A';
+  d.getElementById('cfg-categoria').dispatchEvent(new Event('change',{bubbles:true}));
+  d.querySelector('#dlg-cfg [data-close]').click();await wait(250);
+  d.getElementById('open').click();await wait(500);
+  ok('la biblioteca abre en la modalidad de los ajustes',
+     d.getElementById('lib-pitch').value==='f7'&&
+     /fútbol 7/.test(d.getElementById('lib-cuenta').textContent),
+     d.getElementById('lib-cuenta').textContent);
+  d.querySelector('#dlg-lib [data-close]').click();await wait(200);
+  d.getElementById('card-edit').click();await wait(250);
+  ok('la ficha hereda tu equipo',d.getElementById('f-categoria').value==='Cadete A',
+     d.getElementById('f-categoria').value);
+  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+  d.getElementById('cfg').click();await wait(200);
+  d.querySelector('[data-cfg-pitch="f11"]').click();await wait(200);
+  d.querySelector('#dlg-cfg [data-close]').click();await wait(200);
 
   // --- vista de zona ---
   var antesZona=region(cv,cv.width/2,cv.height/2,80);
