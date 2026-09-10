@@ -261,9 +261,14 @@ function ultima(fragmento) {
   await N.entra('otro@club.com');
   ok('entrar manda un enlace al correo', ultima('/auth/v1/otp').cuerpo.email === 'otro@club.com');
   ok('y crea la cuenta si no existe', ultima('/auth/v1/otp').cuerpo.create_user === true);
-  ok('le dice a Supabase a dónde volver',
-     /nube\.test\.html/.test(ultima('/auth/v1/otp').cuerpo.options.email_redirect_to),
-     ultima('/auth/v1/otp').cuerpo.options.email_redirect_to);
+  // El redirect_to va en la query. En el cuerpo, GoTrue lo ignora en silencio
+  // y manda el enlace a la dirección por defecto del proyecto.
+  ok('le dice a Supabase a dónde volver, y en la query',
+     /\/auth\/v1\/otp\?redirect_to=/.test(ultima('/auth/v1/otp').url),
+     ultima('/auth/v1/otp').url.split('?')[1] || 'sin query');
+  ok('y la dirección de vuelta es la de la aplicación',
+     decodeURIComponent((/redirect_to=([^&]+)/.exec(ultima('/auth/v1/otp').url) || [])[1] || '')
+       .indexOf('nube.test.html') > 0);
 
   await N.sale();
   ok('salir cierra la sesión', !N.dentro());
