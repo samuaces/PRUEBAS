@@ -527,8 +527,22 @@ async function run(w,d){
   var lib=d.getElementById('dlg-lib');
   var total=d.querySelectorAll('.lib-card').length;
   ok('la biblioteca se abre con ejercicios',lib.open&&total>=6,total+' ejercicios');
-  ok('cada ejercicio trae su miniatura dibujada',
-     [].every.call(d.querySelectorAll('.lib-card img'),function(i){return /^data:image\/png/.test(i.src);}));
+  // Las miniaturas se dibujan según hacen falta, no todas de golpe: con la
+  // biblioteca llena, pintarlas todas congelaba la pantalla tres segundos. Lo
+  // que se exige es que lo que está a la vista esté dibujado, y que al bajar se
+  // vaya dibujando el resto.
+  var cuerpoLib=d.querySelector('#dlg-lib .dbody');
+  function miniPuesta(i){return /^data:image\/png/.test(i.getAttribute('src')||'');}
+  function minisPuestas(){return [].filter.call(d.querySelectorAll('.lib-card img'),miniPuesta).length;}
+  var aLaVista=[].filter.call(d.querySelectorAll('.lib-card img'),function(i){
+    var c=i.getBoundingClientRect(),caja=cuerpoLib.getBoundingClientRect();
+    return c.bottom>caja.top&&c.top<caja.bottom;});
+  ok('los ejercicios que se ven traen su miniatura dibujada',
+     aLaVista.length>0&&aLaVista.every(miniPuesta),aLaVista.length+' a la vista');
+  for(var vz=0;vz<15;vz++){cuerpoLib.scrollTop+=cuerpoLib.clientHeight*0.8;await wait(90);}
+  await wait(400);
+  ok('al bajar se dibujan las que faltaban',minisPuestas()===total,minisPuestas()+' de '+total);
+  cuerpoLib.scrollTop=0;await wait(200);
   ok('la biblioteca abre por la general, no por las tuyas',
      d.querySelectorAll('.lib-tab')[0].getAttribute('aria-pressed')==='true');
   ok('la primera vista es la de tu modalidad, sin mezclar',
