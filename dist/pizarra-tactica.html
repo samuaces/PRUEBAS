@@ -151,9 +151,18 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
   background:var(--surface);border:1px solid var(--line);font-size:12.5px;cursor:pointer}
 .check input{accent-color:var(--brand);width:17px;height:17px}
 
-select.sel{width:100%;min-height:var(--touch);padding:9px 10px;border-radius:9px;background:var(--surface);
-  border:1px solid var(--line);color:var(--text);font-size:12.5px;cursor:pointer}
-select.sel:hover{border-color:var(--line-strong)}
+/* Un único estilo de campo para toda la aplicación: el panel, los diálogos y
+   los filtros. Antes había cinco, cada uno con su tamaño y su borde. */
+.ask-input,.field input,.field select,.field textarea,
+#lib-q,.lib-selects select,select.sel,#cfg-categoria{
+  width:100%;min-height:var(--touch);padding:11px 13px;border-radius:10px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+  font-family:var(--ff-body);font-size:15px;line-height:1.45}
+.ask-input:focus,.field input:focus,.field select:focus,.field textarea:focus,
+#lib-q:focus,.lib-selects select:focus,select.sel:focus,#cfg-categoria:focus{
+  outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
+.field select,.lib-selects select,select.sel{cursor:pointer}
+.field textarea{min-height:70px;resize:vertical}
 
 /* ---------------- Escenario ---------------- */
 /* El canvas va fuera del flujo: si midiera el contenedor y a la vez lo empujara,
@@ -248,9 +257,6 @@ dialog h3{margin:0;font-family:var(--ff-display);font-size:16px}
 dialog .dbody{padding:16px;max-height:58vh;overflow:auto;overscroll-behavior:contain}
 dialog .dfoot{padding:13px 16px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
 dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
-.ask-input{width:100%;min-height:var(--touch);padding:11px 13px;border-radius:10px;background:var(--surface-2);
-  border:1px solid var(--line-strong);color:var(--text);font-size:16px;font-family:var(--ff-body)}
-.ask-input:focus{outline:2px solid var(--brand-2);outline-offset:1px}
 .tbtn.primary.danger{background:#D64534;color:#fff}
 .tbtn.primary.danger:hover{background:#E8563F}
 .ios-steps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
@@ -265,31 +271,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   margin:20px 0 10px;font-family:var(--ff-display);font-size:11px;font-weight:700;
   letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
 .form-group:first-child{margin-top:0}
-.mini-btn{padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
-  color:var(--brand-2);font-family:var(--ff-body);font-size:11px;font-weight:600;
+.mini-btn,.sug{padding:6px 11px;border-radius:100px;border:1px solid var(--line);
+  background:var(--surface);font-family:var(--ff-body);font-size:11.5px;line-height:1.3;
   letter-spacing:0;text-transform:none;transition:.15s}
-.mini-btn:hover{border-color:var(--brand-2);background:var(--surface-2)}
+.mini-btn{color:var(--brand-2);font-weight:600}
+.sug{color:var(--muted)}
+.mini-btn:hover,.sug:hover{border-color:var(--brand-2);background:var(--surface-2);color:var(--text)}
+.sug:active{background:var(--surface-3)}
 
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field.wide{grid-column:1 / -1}
 .field > span{font-size:11.5px;color:var(--muted);font-weight:600}
 .field > span small{font-weight:400;opacity:.75}
-.field input,.field select,.field textarea{
-  width:100%;padding:10px 11px;border-radius:9px;background:var(--surface-2);
-  border:1px solid var(--line);color:var(--text);font-size:14px;font-family:var(--ff-body);
-  line-height:1.45;resize:vertical}
-.field input:focus,.field select:focus,.field textarea:focus{
-  outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
-.field textarea{min-height:56px}
 /* La ficha, por apartados: uno cada vez, no un rollo de treinta campos. */
-.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin-bottom:16px;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:11px}
-.paso-btn{min-height:38px;padding:8px 6px;border-radius:8px;font-size:12.5px;
-  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.15s}
-.paso-btn:hover{color:var(--text)}
-.paso-btn[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;
-  box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.seg.pasos{margin-bottom:16px}
+.seg.pasos button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .paso > .form-group:first-child{margin-top:0}
 /* El nombre del apartado ya está en la pestaña: aquí solo queda su acción. */
 .paso > .form-group > span{display:none}
@@ -298,23 +295,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 .sugs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .sugs:empty{display:none}
-.sug{padding:5px 10px;border-radius:100px;border:1px solid var(--line);background:var(--surface);
-  color:var(--muted);font-family:var(--ff-body);font-size:11.5px;line-height:1.3;transition:.15s}
-.sug:hover{border-color:var(--brand-2);color:var(--text)}
-.sug:active{background:var(--surface-2)}
 
 @media (max-width:560px){
   .form-grid{grid-template-columns:1fr}
-  .sug{font-size:12.5px;padding:7px 12px}
+  .sug,.mini-btn{font-size:12.5px;padding:7px 12px}
   /* 16 px evita que Safari acerque la pantalla al enfocar un campo */
-  .field input,.field select,.field textarea{font-size:16px}
+  .ask-input,.field input,.field select,.field textarea,
+  #lib-q,.lib-selects select,select.sel,#cfg-categoria{font-size:16px}
   dialog.wide .dbody{max-height:68vh}
   dialog.wide .dfoot .tbtn{flex:1;padding:9px 10px}
 }
 
-.ex-group{margin:16px 0 8px;font-family:var(--ff-display);font-size:11px;font-weight:700;
-  letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
-.ex-group:first-child{margin-top:0}
 .ex{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border-radius:12px;
   border:1px solid var(--line);background:var(--surface);color:var(--text);text-align:left;
   margin-bottom:7px;transition:.15s;cursor:pointer}
@@ -340,13 +331,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 /* ---------------- Biblioteca ---------------- */
 .lib-filtros{display:grid;gap:9px;margin-bottom:14px}
-#lib-q{width:100%;min-height:var(--touch);padding:11px 13px;border-radius:10px;background:var(--surface-2);
-  border:1px solid var(--line-strong);color:var(--text);font-size:15px;font-family:var(--ff-body)}
-#lib-q:focus{outline:2px solid var(--brand-2);outline-offset:1px}
 .lib-selects{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.lib-selects select{min-height:40px;padding:8px 10px;border-radius:9px;background:var(--surface-2);
-  border:1px solid var(--line);color:var(--text);font-size:13px;font-family:var(--ff-body);cursor:pointer}
-.lib-selects select:focus{outline:2px solid var(--brand-2);outline-offset:1px}
+.lib-selects select{min-height:40px;padding:9px 11px;font-size:13.5px}
 .lib-linea{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:26px}
 .lib-cuenta{font-size:12px;color:var(--muted)}
 
@@ -370,7 +356,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 @media (max-width:560px){
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr 1fr}
-  #lib-q{font-size:16px}
 }
 
 /* ---------------- Aviso ---------------- */
@@ -767,7 +752,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   <div class="dhead"><h3 id="dlg-export-t">Exportar</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
   <div class="dbody">
-    <p class="ex-group">Este fotograma</p>
+    <p class="form-group">Este fotograma</p>
     <button class="ex" id="ex-png">
       <span class="ex-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 3-2 4 4"/></svg>
@@ -787,7 +772,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <span class="ex-txt"><b>Hoja de sesión</b><small>Todos los fotogramas en una página, lista para imprimir o guardar en PDF.</small></span>
     </button>
 
-    <p class="ex-group">La jugada animada</p>
+    <p class="form-group">La jugada animada</p>
     <button class="ex" id="ex-video">
       <span class="ex-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
@@ -801,7 +786,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <span class="ex-txt"><b>GIF animado</b><small>Lo abre todo: Fotos, WhatsApp, Telegram, correo.</small></span>
     </button>
 
-    <p class="ex-group">La pizarra entera</p>
+    <p class="form-group">La pizarra entera</p>
     <button class="ex" id="ex-json">
       <span class="ex-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2"/><path d="M15 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2"/></svg>
@@ -824,7 +809,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
   <div class="dbody">
     
-    <div class="pasos" role="tablist" aria-label="Apartados de la ficha">
+    <div class="seg pasos" role="tablist" aria-label="Apartados de la ficha">
       <button type="button" class="paso-btn" data-paso="ident" aria-pressed="true">Identificación</button>
       <button type="button" class="paso-btn" data-paso="organizacion" aria-pressed="false">Organización</button>
       <button type="button" class="paso-btn" data-paso="contenido" aria-pressed="false">Contenido</button>
@@ -943,7 +928,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       puede instalar aplicaciones en iOS.
     </p>
   </div>
-  <div class="dfoot"><button class="tbtn primary" data-close>Entendido</button></div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
 <dialog id="dlg-lib" class="wide" aria-labelledby="dlg-lib-t">
@@ -1013,7 +998,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
     </div>
   </div>
-  <div class="dfoot"><button class="tbtn primary" data-close>Listo</button></div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
 <dialog id="dlg-help" aria-labelledby="dlg-help-t">
@@ -1067,7 +1052,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       Todo se guarda en tu dispositivo: nada viaja a ningún servidor.
     </p>
   </div>
-  <div class="dfoot"><button class="tbtn primary" data-close>Entendido</button></div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 <script>
 /* ============================================================================

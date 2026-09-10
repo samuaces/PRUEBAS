@@ -69,6 +69,15 @@ archivo**, no porque haya un servidor detrás. Lo que guarda cada usuario se que
 navegador. Compartir ejercicios entre usuarios necesitaría un servidor, y eso son cuentas,
 moderación y datos saliendo del dispositivo.
 
+**Un solo lenguaje en los menús.** Los diálogos compartían anatomía pero no piezas: había
+cinco estilos de campo de formulario, dos clases distintas para el mismo rótulo de sección,
+dos controles segmentados que hacían lo mismo, dos píldoras casi iguales y tres verbos para
+cerrar («Cerrar», «Entendido», «Listo»). Ahora hay **un** estilo de campo para el panel, los
+diálogos y los filtros; **un** rótulo de sección; **un** control segmentado, que usan igual la
+vista del campo, la modalidad y los apartados de la ficha; **una** píldora, que sirve tanto
+para las acciones pequeñas como para las sugerencias; y **cerrar se dice «Cerrar»** en todas
+partes, con el botón principal reservado a lo que de verdad hace algo.
+
 **El panel, por secciones.** En el móvil cada pestaña de abajo abre **su** sección y nada más
 —herramientas, trazo, equipos, material, campo o pizarra—, con su título arriba, en vez de una
 hoja con todo dentro que hay que recorrer. En pantalla ancha la barra lateral las sigue
@@ -223,11 +232,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 115 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 119 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la generación del GIF y su decodificación por el
+la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, los ajustes, los apartados de la ficha y sus sugerencias, el panel por secciones, la consistencia entre menús, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.

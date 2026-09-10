@@ -625,6 +625,28 @@ async function run(w,d){
   ok('en pantalla ancha el panel las enseña todas',
      [].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;}).length>=6);
 
+  // --- consistencia entre menús ---
+  var comps = w.getComputedStyle;
+  d.getElementById('card-edit').click();await wait(300);
+  var campoFicha = comps(d.getElementById('f-titulo'));
+  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+  d.getElementById('open').click();await wait(500);
+  var campoLib = comps(d.getElementById('lib-q'));
+  d.querySelector('#dlg-lib [data-close]').click();await wait(200);
+  ok('los campos de todos los menús se ven igual',
+     campoFicha.fontSize===campoLib.fontSize&&campoFicha.borderRadius===campoLib.borderRadius&&
+     campoFicha.backgroundColor===campoLib.backgroundColor,
+     campoFicha.fontSize+' / '+campoLib.fontSize);
+  ok('los apartados usan el mismo control que el resto',
+     d.querySelector('.pasos').classList.contains('seg'));
+  ok('los rótulos de sección son todos el mismo',
+     d.querySelectorAll('.ex-group').length===0&&d.querySelectorAll('.form-group').length>=5,
+     d.querySelectorAll('.form-group').length+' rótulos');
+  var cierres=[].map.call(d.querySelectorAll('.dfoot [data-close]'),function(b){return b.textContent.trim();});
+  ok('cerrar se dice igual en todas partes',
+     cierres.filter(function(t){return t!=='Cerrar'&&t!=='Cancelar';}).length===0,
+     cierres.join(' · '));
+
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
 function report(){document.getElementById('out').textContent=log.join('\n')+
