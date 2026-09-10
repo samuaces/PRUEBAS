@@ -1,12 +1,680 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
-<title>La pizarra se ha mudado</title>
-<meta name="robots" content="noindex, follow">
-<link rel="canonical" href="https://klym.xyz/app/">
-<meta http-equiv="refresh" content="0; url=https://klym.xyz/app/">
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#070A0F;
-color:#E8EEF6;font:16px/1.6 system-ui,sans-serif;text-align:center;padding:24px}
-a{color:#FF2E55}</style></head><body><div>
-<p>La pizarra ahora vive en <a href="https://klym.xyz/app/">klym.xyz</a>.</p>
-<p>Te llevo para allá…</p></div>
-<script>location.replace('https://klym.xyz/app/');</script>
-</body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Pizarra Táctica de Fútbol | Diseña y anima tus jugadas</title>
+<meta name="description" content="Pizarra táctica de fútbol con conos, porterías, vallas, escaleras y maniquíes. Coloca a tus jugadores, dibuja la jugada y anímala por fotogramas.">
+<link rel="canonical" href="https://samuaces.github.io/PRUEBAS/app/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#070A0F">
+
+<!-- Aplicación instalable -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pizarra">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="../site.webmanifest">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pizarra Táctica de Fútbol — diseña y anima tus jugadas">
+<meta property="og:description" content="Conos, porterías, vallas, escaleras y maniquíes sobre un campo a escala. Dibuja la jugada y reprodúcela animada.">
+<meta property="og:url" content="https://samuaces.github.io/PRUEBAS/app/">
+<meta property="og:image" content="https://samuaces.github.io/PRUEBAS/assets/img/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/outfit-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ==================== BARRA SUPERIOR ==================== -->
+  <header class="topbar">
+    <div class="logo">
+<svg viewBox="0 0 32 32" aria-hidden="true">
+        <defs><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
+          <stop stop-color="#E7204A"/><stop offset="1" stop-color="#AE0325"/></linearGradient></defs>
+        <rect width="32" height="32" rx="7" fill="url(#lg)"/>
+        <g stroke="#fff" stroke-width="1.5" fill="none" opacity=".8" stroke-linejoin="round">
+          <rect x="4.5" y="3.5" width="23" height="25" rx="2"/><path d="M4.5 16h23"/>
+          <path d="M11.5 3.5v3.6h9V3.5M11.5 28.5v-3.6h9v3.6"/></g>
+        <path d="M7.6 23.4 L13.4 17 L16.6 20.2 L22.4 12.4" stroke="#fff" stroke-width="2.7" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
+      </svg>
+      <span>Pizarra Táctica</span>
+      <a href="../" class="hide-sm">← Inicio</a>
+    </div>
+
+    <span class="spacer"></span>
+
+    <div class="group">
+      <button class="tbtn" id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10h-3"/><path d="M8 5L4 9l4 4"/></svg>
+      </button>
+      <button class="tbtn" id="redo" title="Rehacer (Ctrl+Mayús+Z)" aria-label="Rehacer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H9a5 5 0 0 0 0 10h3"/><path d="M16 5l4 4-4 4"/></svg>
+      </button>
+    </div>
+
+    <div class="group">
+      <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
+      <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
+      <button class="tbtn" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
+      <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        <span class="hide-sm">Exportar</span>
+      </button>
+    </div>
+
+    <div class="group">
+      <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="middle">
+
+    <!-- ======== PANEL: barra lateral en escritorio, hoja inferior en móvil ======== -->
+    <aside class="aside" id="aside" aria-label="Herramientas">
+      <button class="sheet-grab" id="sheet-grab" aria-label="Cerrar el panel"></button>
+      <p class="sheet-tit" id="sheet-tit" aria-hidden="true"></p>
+
+      <div class="block" id="b-tools" data-grupo="tools">
+        <h2>Herramientas</h2>
+        <div class="tools">
+          <button class="tool" data-tool="select" aria-pressed="true" title="Seleccionar y mover (V)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3l14 8-6 1.6L10 19z"/></svg>Mover</button>
+          <button class="tool" data-tool="pass" title="Flecha de pase (A)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c5 0 8-9 18-11"/><path d="M17 4l4 2-1 4"/></svg>Pase</button>
+          <button class="tool" data-tool="run" title="Flecha de carrera, discontinua (S)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3.2 3"><path d="M3 17c5 0 8-9 18-11"/></svg>Carrera</button>
+          <button class="tool" data-tool="dribble" title="Conducción del balón (D)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2-4 4 4 6 0s4 4 6 0 4 4 6 0"/></svg>Conducción</button>
+          <button class="tool" data-tool="free" title="Línea libre (F)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 19c4-1 5-7 9-9s7-6 9-7"/></svg>Línea</button>
+          <button class="tool" data-tool="zone" title="Zona sombreada (Z)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.4 2.6"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/></svg>Zona</button>
+          <button class="tool" data-tool="measure" title="Medir distancias (M)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14.5L14.5 3 21 9.5 9.5 21z"/><path d="M8 8l2 2M11 5l2 2M5 11l2 2"/></svg>Regla</button>
+          <button class="tool" data-place="text" title="Colocar un texto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6"/></svg>Texto</button>
+          <button class="tool" data-tool="eraser" title="Borrar trazos u objetos (E)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 20H5l-2-3 10-11 6 6-8 8z"/><path d="M20 20h-9"/></svg>Borrar</button>
+        </div>
+      </div>
+
+      <div class="block" id="b-color" data-grupo="trazo">
+        <h2>Color del trazo</h2>
+        <div class="swatches">
+          <button class="sw" data-color="#FFFFFF" style="background:#FFFFFF" aria-pressed="true" aria-label="Blanco"></button>
+          <button class="sw" data-color="#F1C40F" style="background:#F1C40F" aria-label="Amarillo"></button>
+          <button class="sw" data-color="#E03B2F" style="background:#E03B2F" aria-label="Rojo"></button>
+          <button class="sw" data-color="#00E27E" style="background:#00E27E" aria-label="Verde"></button>
+          <button class="sw" data-color="#4CC2FF" style="background:#4CC2FF" aria-label="Azul"></button>
+          <button class="sw" data-color="#E67E22" style="background:#E67E22" aria-label="Naranja"></button>
+          <button class="sw" data-color="#B36BE0" style="background:#B36BE0" aria-label="Morado"></button>
+          <button class="sw" data-color="#1ABC9C" style="background:#1ABC9C" aria-label="Turquesa"></button>
+        </div>
+        <div class="seg" style="margin-top:9px">
+          <button data-width="0.22">Fino</button>
+          <button data-width="0.32" aria-pressed="true">Medio</button>
+          <button data-width="0.48">Grueso</button>
+        </div>
+      </div>
+
+      <div class="block" id="b-teams" data-grupo="equipos">
+        <h2>Jugadores y balón</h2>
+        <div class="teams">
+          <button class="team-btn home" data-place="player" data-team="home">+ Local</button>
+          <button class="team-btn away" data-place="player" data-team="away">+ Visitante</button>
+          <button class="team-btn neutral" data-place="player" data-team="neutral">+ Comodín / neutral</button>
+        </div>
+        <div class="stack" style="margin-top:6px">
+          <button class="row-btn" data-place="ball">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 5l3 2-1 4H8L7 7z"/></svg>
+            Añadir balón
+          </button>
+        </div>
+      </div>
+
+      <div class="block" id="b-forms" data-grupo="equipos">
+        <h2>Formaciones</h2>
+        <div class="stack">
+          <select class="sel" id="form-home" aria-label="Formación del equipo local">
+            <option value="">Colocar equipo local…</option>
+            <option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option>
+            <option>3-5-2</option><option>5-3-2</option><option>4-1-4-1</option>
+          </select>
+          <select class="sel" id="form-away" aria-label="Formación del equipo visitante">
+            <option value="">Colocar equipo visitante…</option>
+            <option>4-4-2</option><option>4-3-3</option><option>4-2-3-1</option>
+            <option>3-5-2</option><option>5-3-2</option><option>4-1-4-1</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="block" id="b-mats" data-grupo="material">
+        <h2>Materiales</h2>
+        <p class="block-note">Toca el campo para ir colocando. Con la pieza seleccionada, gírala arrastrando el tirador rojo o con los botones de giro.</p>
+        <div class="mats">
+          <button class="mat" data-place="cone" title="Cono" aria-label="Cono">
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="25" rx="10" ry="3.4" fill="#8A4406"/><path d="M16 5l7 19H9z" fill="#F4820B"/><rect x="11.6" y="15" width="8.8" height="2.6" fill="#fff" opacity=".8"/></svg>
+          </button>
+          <button class="mat" data-place="disc" title="Chino" aria-label="Chino">
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="22.6" rx="13" ry="4.2" fill="#C9A20B"/><path d="M3 22.2q3.4-9.6 9.4-10.4h7.2q6 .8 9.4 10.4a13 4.2 0 0 1-26 0z" fill="#F1C40F"/><ellipse cx="16" cy="11.8" rx="3.6" ry="1.5" fill="#F7DE6A"/><ellipse cx="16" cy="11.9" rx="1.9" ry=".8" fill="#8A6D08"/></svg>
+          </button>
+          <button class="mat" data-place="goal" title="Portería reglamentaria" aria-label="Portería">
+            <svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="12" fill="#fff" opacity=".14"/><path d="M4 22V10h24v12" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><g stroke="#fff" stroke-opacity=".45" stroke-width="1"><path d="M9 10v12M14 10v12M19 10v12M24 10v12M4 14h24M4 18h24"/></g></svg>
+          </button>
+          <button class="mat" data-place="minigoal" title="Portería pequeña" aria-label="Portería pequeña">
+            <svg viewBox="0 0 32 32"><rect x="9" y="13" width="14" height="8" fill="#fff" opacity=".14"/><path d="M9 21v-8h14v8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+          <button class="mat" data-place="hurdle" title="Valla de agilidad" aria-label="Valla">
+            <svg viewBox="0 0 32 32"><g fill="#243244"><rect x="3" y="22" width="8" height="3" rx="1.5"/><rect x="21" y="22" width="8" height="3" rx="1.5"/></g><path d="M7 24V10h18v14" fill="none" stroke="#F1C40F" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="mat" data-place="ladder" title="Escalera de agilidad" aria-label="Escalera de agilidad">
+            <svg viewBox="0 0 32 32"><rect x="3" y="11" width="26" height="10" fill="none" stroke="#F1C40F" stroke-width="2"/><g stroke="#F1C40F" stroke-width="1.6"><path d="M9.5 11v10M16 11v10M22.5 11v10"/></g></svg>
+          </button>
+          <button class="mat" data-place="pole" title="Pica / poste" aria-label="Pica">
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="26" rx="7" ry="2.6" fill="#26364A"/><rect x="14.2" y="5" width="3.6" height="21" rx="1.6" fill="#E03B2F"/><rect x="14.2" y="10" width="3.6" height="3.4" fill="#fff"/><rect x="14.2" y="17.6" width="3.6" height="3.4" fill="#fff"/></svg>
+          </button>
+          <button class="mat" data-place="dummy" title="Maniquí" aria-label="Maniquí">
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="27.4" rx="8.4" ry="2.6" fill="#161C24"/><path d="M11.6 27.6V15q0-3.2 3-3.6h2.8q3 .4 3 3.6v12.6z" fill="#F5C518"/><circle cx="16" cy="8.2" r="3.4" fill="#F5C518"/><g stroke="rgba(0,0,0,.45)" stroke-width="1.5" stroke-linecap="round"><path d="M11.8 15.4l8.4 2.2M20.2 15.4l-8.4 2.2"/></g></svg>
+          </button>
+          <button class="mat" data-place="ring" title="Aro" aria-label="Aro">
+            <svg viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="11" ry="8" fill="none" stroke="#4CC2FF" stroke-width="3"/></svg>
+          </button>
+          <button class="mat" data-place="flag" title="Banderín" aria-label="Banderín">
+            <svg viewBox="0 0 32 32"><path d="M12 27V5" stroke="#DCE6F0" stroke-width="2.4" stroke-linecap="round"/><path d="M12 5l13 4.5L12 14z" fill="#E03B2F"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="block" id="b-view" data-grupo="campo">
+        <h2>Modalidad</h2>
+        <div class="seg" style="margin-bottom:9px">
+          <button data-pitch="f11" aria-pressed="true">Fútbol 11</button>
+          <button data-pitch="f7">Fútbol 7</button>
+          <button data-pitch="futsal">Sala</button>
+        </div>
+        <p class="block-note">Cada modalidad trae sus medidas reglamentarias, sus porterías y sus alineaciones. Lo que ya tengas colocado se reescala.</p>
+        <h2>Vista</h2>
+        <div class="seg">
+          <button data-view="full" aria-pressed="true">Completo</button>
+          <button data-view="half">Medio</button>
+          <button data-view="area">Zona</button>
+          <button data-view="blank">Libre</button>
+        </div>
+        <p class="block-note" style="margin-top:9px">«Zona» encuadra los 32 × 22 m centrales, que es donde se monta casi cualquier ejercicio.</p>
+        <label class="check"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
+      </div>
+
+      <div class="block" id="b-actions" data-grupo="pizarra">
+        <h2>Pizarra</h2>
+        <div class="stack">
+          <button class="row-btn" id="install" hidden>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
+            Instalar en este dispositivo
+          </button>
+          <button class="row-btn" id="compartir">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
+            Compartir en la biblioteca
+          </button>
+          <button class="row-btn" id="help">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
+            Cómo se usa
+          </button>
+          <button class="row-btn" id="clear">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+            Vaciar este fotograma
+          </button>
+          <button class="row-btn danger" id="reset">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 10a7 7 0 1 1 2 4.9"/><path d="M3 15v-5h5"/></svg>
+            Empezar pizarra nueva
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==================== CAMPO ==================== -->
+    <section class="stage">
+      <canvas id="board" aria-label="Campo de fútbol. Arrastra las fichas y dibuja la jugada." role="img"></canvas>
+      <div class="inspector" id="inspector" role="toolbar" aria-label="Objeto seleccionado"></div>
+      <button class="zoom-reset" id="zoom" hidden title="Ver el campo entero" aria-label="Ver el campo entero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M15 20h5v-5M9 20H4v-5"/></svg>
+        <span>Ajustar</span>
+      </button>
+      <div class="hint" id="hint"></div>
+    </section>
+  </div>
+
+  <!-- ==================== TRANSPORTE ==================== -->
+  <footer class="timeline">
+    <button class="play" id="play" aria-label="Reproducir" title="Reproducir la animación (Espacio)">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+    </button>
+
+    <div class="frames" id="frames" role="tablist" aria-label="Fotogramas"></div>
+
+    <button class="chip" id="delframe" aria-label="Eliminar el fotograma actual" title="Eliminar el fotograma actual">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+    </button>
+    <button class="chip" id="loop" aria-pressed="false" title="Repetir en bucle">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V7a3 3 0 0 1 3-3h6"/><path d="M11 2l2 2-2 2"/><path d="M16 12v1a3 3 0 0 1-3 3H7"/><path d="M9 18l-2-2 2-2"/></svg>
+      <span class="hide-sm">Bucle</span>
+    </button>
+    <button class="chip mono" id="speed" title="Velocidad de la animación">1.0×</button>
+
+    <div class="progress" id="progress"><i></i></div>
+  </footer>
+
+  <!-- ============== NAVEGACIÓN INFERIOR (solo pantallas pequeñas) ============== -->
+  <nav class="tabbar" aria-label="Secciones">
+    <button class="tab" data-section="b-tools">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3l14 8-6 1.6L10 19z"/></svg>
+      Herramientas</button>
+    <button class="tab" data-section="b-color">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/><circle cx="19" cy="5" r="2.2"/><path d="M7 12h9"/></svg>
+      Trazo</button>
+    <button class="tab" data-section="b-teams">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8.5" cy="9" r="3"/><circle cx="16" cy="15" r="3"/></svg>
+      Equipos</button>
+    <button class="tab" data-section="b-mats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l7 15H5z"/></svg>
+      Material</button>
+    <button class="tab" data-section="b-view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="3"/></svg>
+      Campo</button>
+    <button class="tab" data-section="b-actions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7.5 8.5h9M7.5 12h9M7.5 15.5h5"/></svg>
+      Pizarra</button>
+  </nav>
+
+  <div class="scrim" id="scrim"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ==================== DIÁLOGOS ==================== -->
+<dialog id="dlg-ask" aria-labelledby="ask-title">
+  <div class="dhead"><h3 id="ask-title">…</h3>
+    <button class="tbtn" data-close aria-label="Cancelar">✕</button></div>
+  <div class="dbody">
+    <p id="ask-msg" style="margin:0;color:var(--muted)"></p>
+    <div id="ask-field" hidden>
+      <input type="text" id="ask-input" class="ask-input" autocomplete="off" spellcheck="false" maxlength="40">
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cancelar</button>
+    <button class="tbtn primary" id="ask-ok">Aceptar</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-export" aria-labelledby="dlg-export-t">
+  <div class="dhead"><h3 id="dlg-export-t">Exportar</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="form-group">Este fotograma</p>
+    <button class="ex" id="ex-png">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-5 4 4 3-2 4 4"/></svg>
+      </span>
+      <span class="ex-txt"><b>Imagen PNG</b><small>Para el informe o el grupo del equipo. 2400 px.</small></span>
+    </button>
+    <button class="ex" id="ex-sheet">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4H7z"/><path d="M7 16H5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Hoja de sesión</b><small>Todos los fotogramas en una página, lista para imprimir o guardar en PDF.</small></span>
+    </button>
+
+    <p class="form-group">La jugada animada</p>
+    <button class="ex" id="ex-video">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>
+      </span>
+      <span class="ex-txt"><b>Vídeo</b><small id="ex-video-fmt">Máxima calidad.</small></span>
+    </button>
+    <button class="ex" id="ex-gif">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M14 10.5a2.5 2.5 0 1 0 0 3h.8v-1.4"/><path d="M8 9.8v4.4"/></svg>
+      </span>
+      <span class="ex-txt"><b>GIF animado</b><small>Lo abre todo: Fotos, WhatsApp, Telegram, correo.</small></span>
+    </button>
+
+    <p class="form-group">La pizarra entera</p>
+    <button class="ex" id="ex-json">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2"/><path d="M15 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2"/></svg>
+      </span>
+      <span class="ex-txt"><b>Archivo de la pizarra</b><small>Para llevártela a otro dispositivo o guardar una copia.</small></span>
+    </button>
+    <label class="ex" id="ex-import">
+      <span class="ex-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8M7.5 12.5L12 8l4.5 4.5"/><path d="M4 4h16"/></svg>
+      </span>
+      <span class="ex-txt"><b>Abrir un archivo de pizarra</b><small>Recupera una copia que hayas exportado.</small></span>
+      <input type="file" id="import" accept="application/json,.json" class="sr">
+    </label>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-card" class="wide" aria-labelledby="dlg-card-t">
+  <div class="dhead"><h3 id="dlg-card-t">Ficha del ejercicio</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    
+    <div class="seg pasos" role="tablist" aria-label="Apartados de la ficha">
+      <button type="button" class="paso-btn" data-paso="ident" aria-pressed="true">Identificación</button>
+      <button type="button" class="paso-btn" data-paso="organizacion" aria-pressed="false">Organización</button>
+      <button type="button" class="paso-btn" data-paso="contenido" aria-pressed="false">Contenido</button>
+    </div>
+    <section class="paso" id="paso-ident">
+<p class="form-group"><span>Identificación</span></p>
+    <div class="form-grid">
+      <label class="field wide"><span>Plantilla <small>rellena la ficha con un ejercicio del catálogo</small></span>
+        <select id="f-plantilla"></select></label>
+      <label class="field wide"><span>Título del ejercicio</span>
+        <input type="text" id="f-titulo" maxlength="70" placeholder="Salida de balón bajo presión"></label>
+      <label class="field"><span>Categoría o equipo</span>
+        <input type="text" id="f-categoria" maxlength="40" placeholder="Alevín A"></label>
+      <label class="field"><span>Momento del juego</span>
+        <select id="f-momento">
+          <option value="">Sin especificar</option>
+          <option>Calentamiento</option>
+          <option>Ataque organizado</option>
+          <option>Defensa organizada</option>
+          <option>Transición ofensiva</option>
+          <option>Transición defensiva</option>
+          <option>Balón parado</option>
+          <option>Técnica individual</option>
+          <option>Físico-técnico</option>
+          <option>Partido condicionado</option>
+        </select></label>
+      <label class="field"><span>Fecha</span>
+        <input type="text" id="f-fecha" maxlength="24" placeholder="dd/mm/aaaa"></label>
+      <label class="field"><span>Sesión</span>
+        <input type="text" id="f-sesion" maxlength="30" placeholder="Sesión 12 · microciclo 4"></label>
+    </div>
+    </section>
+    <section class="paso" id="paso-organizacion" hidden>
+<p class="form-group"><span>Organización</span>
+      <button type="button" class="mini-btn" id="f-auto">Rellenar desde la pizarra</button>
+    </p>
+    <div class="form-grid">
+      <label class="field"><span>Duración</span>
+        <input type="text" id="f-duracion" maxlength="20" placeholder="15 min">
+        <div class="sugs" data-para="f-duracion"></div></label>
+      <label class="field"><span>Series y repeticiones</span>
+        <input type="text" id="f-series" maxlength="30" placeholder="4 × 3 min">
+        <div class="sugs" data-para="f-series"></div></label>
+      <label class="field"><span>Descanso</span>
+        <input type="text" id="f-descanso" maxlength="20" placeholder="1 min entre series">
+        <div class="sugs" data-para="f-descanso"></div></label>
+      <label class="field"><span>Jugadores</span>
+        <input type="text" id="f-jugadores" maxlength="30" placeholder="5 vs 5">
+        <div class="sugs" data-para="f-jugadores"></div></label>
+      <label class="field"><span>Porteros</span>
+        <input type="text" id="f-porteros" maxlength="20" placeholder="2">
+        <div class="sugs" data-para="f-porteros"></div></label>
+      <label class="field"><span>Espacio</span>
+        <input type="text" id="f-espacio" maxlength="30" placeholder="40 × 30 m">
+        <div class="sugs" data-para="f-espacio"></div></label>
+      <label class="field wide"><span>Material</span>
+        <input type="text" id="f-material" maxlength="120" placeholder="8 conos, 2 minigoles, 6 balones">
+        <div class="sugs" data-para="f-material"></div></label>
+    </div>
+    </section>
+    <section class="paso" id="paso-contenido" hidden>
+<p class="form-group"><span>Contenido</span></p>
+    <div class="form-grid">
+      <label class="field wide"><span>Objetivo</span>
+        <textarea id="f-objetivo" rows="2" maxlength="300" placeholder="Qué queremos mejorar con este ejercicio."></textarea></label>
+      <label class="field wide"><span>Descripción y desarrollo</span>
+        <textarea id="f-descripcion" rows="4" maxlength="900" placeholder="Cómo se organiza y cómo se juega."></textarea></label>
+      <label class="field wide"><span>Consignas <small>una por línea</small></span>
+        <textarea id="f-consignas" rows="4" maxlength="700" placeholder="Perfil abierto al recibir&#10;Primer pase al lado contrario de la presión"></textarea>
+        <div class="sugs" data-para="f-consignas"></div></label>
+      <label class="field wide"><span>Normas <small>una por línea</small></span>
+        <textarea id="f-normas" rows="3" maxlength="700" placeholder="Máximo dos toques&#10;Gol solo tras cinco pases"></textarea>
+        <div class="sugs" data-para="f-normas"></div></label>
+      <label class="field wide"><span>Variantes y progresiones <small>una por línea</small></span>
+        <textarea id="f-variantes" rows="3" maxlength="700" placeholder="Añadir un comodín ofensivo&#10;Reducir el espacio cinco metros"></textarea>
+        <div class="sugs" data-para="f-variantes"></div></label>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cerrar</button>
+    <button class="tbtn" id="f-guardar">Guardar</button>
+    <button class="tbtn primary" id="f-imprimir">Guardar e imprimir</button>
+  </div>
+    </section>
+  </dialog>
+
+<dialog id="dlg-file" aria-labelledby="file-title">
+  <div class="dhead"><h3 id="file-title">Archivo</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p id="file-note" style="margin:0 0 12px;color:var(--muted);font-size:13px"></p>
+    <img id="file-img" alt="Fotograma exportado de la pizarra" hidden
+         style="width:100%;border-radius:10px;border:1px solid var(--line);display:block">
+    <video id="file-video" controls playsinline hidden
+           style="width:100%;border-radius:10px;border:1px solid var(--line);display:block;background:#000"></video>
+    <textarea id="file-text" class="ask-input" rows="9" readonly hidden
+              style="resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+  </div>
+  <div class="dfoot"><button class="tbtn primary" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-ios" aria-labelledby="dlg-ios-t">
+  <div class="dhead"><h3 id="dlg-ios-t">Instalar en el iPhone</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p style="margin:0 0 14px;color:var(--muted)">
+      En iPhone y iPad la instalación la hace Safari, en dos pasos. Una vez instalada se abre
+      a pantalla completa, sin barras del navegador, y funciona sin conexión.
+    </p>
+    <ol class="ios-steps">
+      <li><b>1</b><span>Pulsa <b>Compartir</b> en la barra de Safari (el cuadrado con la flecha hacia arriba).</span></li>
+      <li><b>2</b><span>Baja y elige <b>Añadir a pantalla de inicio</b>, y luego <b>Añadir</b>.</span></li>
+    </ol>
+    <p style="margin:14px 0 0;color:var(--muted);font-size:12.5px">
+      Si estás en Chrome o Firefox dentro del iPhone, ábrela antes en Safari: es el único que
+      puede instalar aplicaciones en iOS.
+    </p>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-lib" class="wide" aria-labelledby="dlg-lib-t">
+  <div class="dhead"><h3 id="dlg-lib-t">Biblioteca</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <div class="seg pasos" role="tablist" aria-label="Origen de los ejercicios">
+      <button type="button" class="lib-tab" data-origen="catalogo" aria-pressed="true">Biblioteca general</button>
+      <button type="button" class="lib-tab" data-origen="mia" aria-pressed="false">Mías</button>
+    </div>
+    <div class="lib-filtros">
+      <input type="search" id="lib-q" placeholder="Buscar por título, objetivo, material…"
+             autocomplete="off" aria-label="Buscar en la biblioteca">
+      <div class="lib-selects">
+        <select id="lib-pitch" aria-label="Modalidad">
+          <option value="">Cualquier modalidad</option>
+          <option value="f11">Fútbol 11</option>
+          <option value="f7">Fútbol 7</option>
+          <option value="futsal">Fútbol sala</option>
+        </select>
+        <select id="lib-momento" aria-label="Momento del juego">
+          <option value="">Cualquier momento</option>
+          <option>Calentamiento</option>
+          <option>Ataque organizado</option>
+          <option>Defensa organizada</option>
+          <option>Transición ofensiva</option>
+          <option>Transición defensiva</option>
+          <option>Balón parado</option>
+          <option>Técnica individual</option>
+          <option>Físico-técnico</option>
+          <option>Partido condicionado</option>
+        </select>
+        <select id="lib-duracion" aria-label="Duración">
+          <option value="">Cualquier duración</option>
+          <option value="corta">Hasta 15 min</option>
+          <option value="media">De 16 a 25 min</option>
+          <option value="larga">Más de 25 min</option>
+        </select>
+      </div>
+      <div class="lib-linea">
+        <span class="lib-cuenta" id="lib-cuenta"></span>
+        <button type="button" class="mini-btn" id="lib-limpiar" hidden>Quitar filtros</button>
+      </div>
+      <p class="lib-nota" id="lib-nota"></p>
+    </div>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
+  <div class="dhead"><h3 id="dlg-cfg-t">Ajustes</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="form-group">Modalidad predeterminada</p>
+    <div class="seg" id="cfg-pitch">
+      <button type="button" data-cfg-pitch="f11">Fútbol 11</button>
+      <button type="button" data-cfg-pitch="f7">Fútbol 7</button>
+      <button type="button" data-cfg-pitch="futsal">Sala</button>
+    </div>
+    <p class="block-note" style="margin:9px 0 0">Con la que abre la biblioteca y con la que empieza
+      cada pizarra nueva. La pizarra que tengas abierta no se toca.</p>
+
+    <p class="form-group">Tu equipo</p>
+    <div class="form-grid">
+      <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
+        <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
+    </div>
+
+    <div id="cfg-cuenta-bloque" hidden>
+      <p class="form-group">Tu cuenta</p>
+      <div id="cfg-cuenta">
+        <div id="cuenta-fuera">
+          <p class="block-note" style="margin:0 0 10px">Entra con tu correo para compartir
+            ejercicios en la biblioteca común y tenerlos en cualquier dispositivo. Sin contraseña:
+            te mandamos un enlace y listo.</p>
+          <div class="form-grid">
+            <label class="field wide"><span>Tu correo</span>
+              <input type="email" id="cuenta-email" autocomplete="email"
+                     placeholder="entrenador@club.com"></label>
+          </div>
+          <button type="button" class="tbtn primary" id="cuenta-entrar"
+                  style="margin-top:10px">Enviarme el enlace</button>
+          <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+        </div>
+
+        <div id="cuenta-dentro" hidden>
+          <p class="block-note" style="margin:0 0 10px">Has entrado como
+            <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
+          <div class="form-grid">
+            <label class="field"><span>Tu nombre <small>firma los que compartas</small></span>
+              <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Samu"></label>
+            <label class="field"><span>Club <small>opcional</small></span>
+              <input type="text" id="cuenta-club" maxlength="60" placeholder="CD Ejemplo"></label>
+          </div>
+          <div class="lib-linea" style="margin-top:10px">
+            <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
+            <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<!-- Cuando el navegador no deja imprimir solo (el iPhone dentro de otra
+     aplicación, un marco con permisos recortados), al menos la hoja se ve. -->
+<dialog id="dlg-hoja" class="wide" aria-labelledby="dlg-hoja-t">
+  <div class="dhead"><h3 id="dlg-hoja-t">Tu hoja</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="block-note" style="margin:0 0 12px">Este navegador no deja lanzar la impresión
+      desde la página. La hoja está lista aquí debajo: imprímela o guárdala en PDF con el botón
+      de compartir del navegador.</p>
+    <iframe id="hoja-marco" title="Hoja para imprimir"></iframe>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-help" aria-labelledby="dlg-help-t">
+  <div class="dhead"><h3 id="dlg-help-t">Cómo se usa</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p style="margin:0 0 14px;color:var(--muted)">
+      Coloca las fichas y el material, dibuja la jugada y, para animarla, añade un
+      <b style="color:var(--text)">fotograma</b>, mueve lo que se tenga que mover y dale a reproducir.
+      Cada fotograma es una posición; la pizarra interpola el movimiento entre ellos.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Para girar una pieza:</b> tócala y arrastra el tirador rojo que aparece
+      encima, o usa los botones de giro de la barra que sale al seleccionarla.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Biblioteca:</b> el botón de la barra abre diez ejercicios ya montados
+      —con su pizarra y su ficha— más los que hayas guardado tú. Abre siempre en tu modalidad: para ver
+      fútbol 7 o sala, cámbiala en el desplegable. Se filtra además por momento del juego, duración o
+      buscando texto.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)" class="solo-nube" hidden>
+      <b style="color:var(--text)">Biblioteca común:</b> en Ajustes entras con tu correo —sin contraseña,
+      te llega un enlace— y a partir de ahí puedes compartir tus ejercicios con el resto de entrenadores
+      y verlos desde cualquier dispositivo. Lo que compartas sale firmado con tu nombre y lo puedes
+      retirar cuando quieras. Lo que no compartes no lo ve nadie.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Ajustes:</b> ahí eliges tu modalidad predeterminada —con la que abren
+      la biblioteca y cada pizarra nueva— y tu categoría o equipo, que se pone sola en cada ficha.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y
+      material, y sale una página lista para imprimir con el dibujo de la pizarra. Va por apartados
+      —identificación, organización y contenido—, y cada campo trae sugerencias de las que partir.
+      El botón «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio, y el
+      selector de plantilla la rellena entera con un ejercicio del catálogo.
+    </p>
+    <div class="kbd">
+      <b>V</b><span>Seleccionar y mover</span>
+      <b>A</b><span>Flecha de pase</span>
+      <b>S</b><span>Flecha de carrera</span>
+      <b>D</b><span>Conducción</span>
+      <b>F</b><span>Línea libre</span>
+      <b>Z</b><span>Zona sombreada</span>
+      <b>M</b><span>Medir distancias</span>
+      <b>Arrastrar en vacío</b><span>Seleccionar varias piezas a la vez</span>
+      <b>E</b><span>Borrar</span>
+      <b>R</b><span>Girar 15° la pieza seleccionada</span>
+      <b>Supr</b><span>Eliminar lo seleccionado</span>
+      <b>Espacio</b><span>Reproducir o pausar</span>
+      <b>Esc</b><span>Volver a la herramienta de mover</span>
+      <b>Ctrl + Z</b><span>Deshacer</span>
+      <b>Ctrl + Mayús + Z</b><span>Rehacer</span>
+    </div>
+    <p style="margin:16px 0 0;color:var(--muted);font-size:12.5px" id="help-privacidad">
+      Todo se guarda en tu dispositivo: nada viaja a ningún servidor.
+    </p>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<script src="config.js"></script>
+<script src="nube.js"></script>
+<script src="board.js" defer></script>
+</body>
+</html>
