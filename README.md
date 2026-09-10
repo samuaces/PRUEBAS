@@ -14,7 +14,8 @@ Todo estático: HTML, CSS y JavaScript sin dependencias, sin build y sin servido
 una con sus medidas de reglamento: áreas, arcos de penalti, córners, porterías y —en
 sala— el área en doble cuarto de círculo trazado desde cada poste y pista en lugar de
 césped. Al cambiar de modalidad, las fichas, el material y los trazos se reescalan al
-campo nuevo. Tres vistas por modalidad: completo, medio campo o superficie libre.
+campo nuevo. Cuatro encuadres por modalidad: campo completo, medio campo, zona de trabajo —los 32 × 22 m
+centrales, que es donde se monta casi cualquier ejercicio— o superficie libre.
 
 **En el móvil.** En vertical el campo se gira 90° para aprovechar el alto de la pantalla,
 manteniendo los dorsales derechos. Se acerca con dos dedos y se desplaza arrastrando.
@@ -42,6 +43,22 @@ suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 **Selección múltiple.** Arrastrando sobre una zona vacía se dibuja un recuadro que
 selecciona todas las piezas de dentro; a partir de ahí se mueven, duplican o borran en
 bloque. Es lo que permite recolocar una línea entera de un arrastre.
+
+**Biblioteca.** Diez ejercicios vienen dentro de la aplicación —rondo, salida de balón,
+finalización tras centro, transición 3 contra 2, juego de posición, circuito de conducción,
+presión tras pérdida, córner, superioridad en fútbol 7 y ataque en 3-1 de sala—, cada uno con
+su pizarra montada y su ficha rellena. La biblioteca los lista junto a las pizarras que hayas
+guardado tú, con su miniatura, y se filtran por modalidad, momento del juego, duración o
+buscando texto en cualquier campo de la ficha. Sin filtros salen todos.
+
+Los mismos diez sirven de **plantilla** desde la ficha: un selector rellena título, objetivo,
+descripción, consignas, normas, variantes y todos los datos de organización, y deja intactas
+la categoría, la fecha y la sesión, que son tuyas.
+
+Ojo con el alcance: el catálogo es **el mismo para todo el mundo porque viaja dentro del
+archivo**, no porque haya un servidor detrás. Lo que guarda cada usuario se queda en su
+navegador. Compartir ejercicios entre usuarios necesitaría un servidor, y eso son cuentas,
+moderación y datos saliendo del dispositivo.
 
 **Ficha del ejercicio.** Un formulario dentro de la pizarra —título, categoría, momento del
 juego, sesión, duración, series, descanso, jugadores, porteros, espacio, material, objetivo,
@@ -189,11 +206,11 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 86 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 100 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
-la ficha del ejercicio y su impresión, la generación del GIF y su decodificación por el
+la ficha del ejercicio y su impresión, la biblioteca con sus filtros y sus plantillas, la generación del GIF y su decodificación por el
 navegador, la escritura del contenedor MP4 caja por caja, que el MP4 resultante se abra y tenga imagen, deshacer y rehacer,
 formaciones y la exportación. Sirve el repositorio y abre ese archivo en el navegador; se ejecuta solo.
 Ver [`tests/README.md`](tests/README.md) para la variante sin interfaz.

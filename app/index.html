@@ -64,7 +64,7 @@
 
     <div class="group">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
-      <button class="tbtn" id="open" title="Abrir una pizarra guardada" aria-label="Abrir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z"/><path d="M3 7V5a2 2 0 0 1 2-2h3"/></svg><span class="hide-sm">Abrir</span></button>
+      <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
       <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
@@ -205,9 +205,11 @@
         <div class="seg">
           <button data-view="full" aria-pressed="true">Completo</button>
           <button data-view="half">Medio</button>
+          <button data-view="area">Zona</button>
           <button data-view="blank">Libre</button>
         </div>
-        <label class="check" style="margin-top:9px"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
+        <p class="block-note" style="margin-top:9px">«Zona» encuadra los 32 × 22 m centrales, que es donde se monta casi cualquier ejercicio.</p>
+        <label class="check"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
       </div>
 
       <div class="block" id="b-actions">
@@ -375,6 +377,8 @@
   <div class="dbody">
     <p class="form-group">Identificación</p>
     <div class="form-grid">
+      <label class="field wide"><span>Plantilla <small>rellena la ficha con un ejercicio del catálogo</small></span>
+        <select id="f-plantilla"></select></label>
       <label class="field wide"><span>Título del ejercicio</span>
         <input type="text" id="f-titulo" maxlength="70" placeholder="Salida de balón bajo presión"></label>
       <label class="field"><span>Categoría o equipo</span>
@@ -474,10 +478,51 @@
   <div class="dfoot"><button class="tbtn primary" data-close>Entendido</button></div>
 </dialog>
 
-<dialog id="dlg-open" aria-labelledby="dlg-open-t">
-  <div class="dhead"><h3 id="dlg-open-t">Pizarras guardadas</h3>
+<dialog id="dlg-lib" class="wide" aria-labelledby="dlg-lib-t">
+  <div class="dhead"><h3 id="dlg-lib-t">Biblioteca</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
-  <div class="dbody"><div class="saved" id="saved-list"></div></div>
+  <div class="dbody">
+    <div class="lib-filtros">
+      <input type="search" id="lib-q" placeholder="Buscar por título, objetivo, material…"
+             autocomplete="off" aria-label="Buscar en la biblioteca">
+      <div class="lib-selects">
+        <select id="lib-origen" aria-label="Origen">
+          <option value="">Todos</option>
+          <option value="catalogo">Del catálogo</option>
+          <option value="mia">Tuyas</option>
+        </select>
+        <select id="lib-pitch" aria-label="Modalidad">
+          <option value="">Cualquier modalidad</option>
+          <option value="f11">Fútbol 11</option>
+          <option value="f7">Fútbol 7</option>
+          <option value="futsal">Fútbol sala</option>
+        </select>
+        <select id="lib-momento" aria-label="Momento del juego">
+          <option value="">Cualquier momento</option>
+          <option>Calentamiento</option>
+          <option>Ataque organizado</option>
+          <option>Defensa organizada</option>
+          <option>Transición ofensiva</option>
+          <option>Transición defensiva</option>
+          <option>Balón parado</option>
+          <option>Técnica individual</option>
+          <option>Físico-técnico</option>
+          <option>Partido condicionado</option>
+        </select>
+        <select id="lib-duracion" aria-label="Duración">
+          <option value="">Cualquier duración</option>
+          <option value="corta">Hasta 15 min</option>
+          <option value="media">De 16 a 25 min</option>
+          <option value="larga">Más de 25 min</option>
+        </select>
+      </div>
+      <div class="lib-linea">
+        <span class="lib-cuenta" id="lib-cuenta"></span>
+        <button type="button" class="mini-btn" id="lib-limpiar" hidden>Quitar filtros</button>
+      </div>
+    </div>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
@@ -495,9 +540,15 @@
       encima, o usa los botones de giro de la barra que sale al seleccionarla.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Biblioteca:</b> el botón de la barra abre diez ejercicios ya montados
+      —con su pizarra y su ficha— más los que hayas guardado tú. Se filtran por modalidad, momento del
+      juego, duración o buscando texto; sin filtros salen todos.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ficha del ejercicio:</b> rellena objetivos, consignas, normas, duración y
       material, y sale una página lista para imprimir con el dibujo de la pizarra. El botón
-      «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio.
+      «Rellenar desde la pizarra» cuenta solo los jugadores, el material y el espacio, y el
+      selector de plantilla la rellena entera con un ejercicio del catálogo.
     </p>
     <div class="kbd">
       <b>V</b><span>Seleccionar y mover</span>

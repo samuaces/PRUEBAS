@@ -486,6 +486,72 @@ async function run(w,d){
     }
   }
 
+  // --- biblioteca y plantillas ---
+  d.getElementById('open').click();await wait(500);
+  var lib=d.getElementById('dlg-lib');
+  var total=d.querySelectorAll('.lib-card').length;
+  ok('la biblioteca se abre con el catálogo entero',lib.open&&total>=10,total+' ejercicios');
+  ok('cada ejercicio trae su miniatura dibujada',
+     [].every.call(d.querySelectorAll('.lib-card img'),function(i){return /^data:image\/png/.test(i.src);}));
+  ok('sin filtros se ven todos',/^\d+ ejercicios$/.test(d.getElementById('lib-cuenta').textContent),
+     d.getElementById('lib-cuenta').textContent);
+
+  var q=d.getElementById('lib-q');
+  q.value='rondo';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(300);
+  var conTexto=d.querySelectorAll('.lib-card').length;
+  ok('el buscador filtra por texto',conTexto>0&&conTexto<total,conTexto+' de '+total);
+
+  q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(250);
+  var selP=d.getElementById('lib-pitch');
+  selP.value='futsal';selP.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
+  var soloSala=[].every.call(d.querySelectorAll('.lib-tags'),function(t){return /sala/i.test(t.textContent);});
+  ok('el filtro de modalidad deja solo esa modalidad',soloSala&&d.querySelectorAll('.lib-card').length>0);
+
+  var selM=d.getElementById('lib-momento');
+  selM.value='Balón parado';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
+  ok('los filtros se combinan',d.querySelectorAll('.lib-card').length===0,
+     d.getElementById('lib-cuenta').textContent);
+
+  d.getElementById('lib-limpiar').click();await wait(300);
+  ok('quitar filtros devuelve el catálogo entero',d.querySelectorAll('.lib-card').length===total);
+
+  // abrir un ejercicio trae pizarra y ficha
+  q.value='sala';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(300);
+  d.querySelector('.lib-card .tbtn.primary').click();await wait(600);
+  ok('abrir un ejercicio cierra la biblioteca',!lib.open);
+  ok('el ejercicio trae su modalidad y sus piezas',
+     d.querySelector('[data-pitch="futsal"]').getAttribute('aria-pressed')==='true');
+  d.getElementById('card-edit').click();await wait(250);
+  ok('el ejercicio trae la ficha rellena',
+     /pivote/i.test(d.getElementById('f-titulo').value+' '+d.getElementById('f-objetivo').value),
+     d.getElementById('f-titulo').value);
+
+  // plantilla: rellena la ficha sin tocar la pizarra
+  var plant=d.getElementById('f-plantilla');
+  ok('la ficha ofrece plantillas',plant.options.length>=11,plant.options.length-1+' plantillas');
+  d.getElementById('f-titulo').value='';d.getElementById('f-objetivo').value='';
+  d.getElementById('f-descripcion').value='';d.getElementById('f-consignas').value='';
+  d.getElementById('f-normas').value='';d.getElementById('f-variantes').value='';
+  d.getElementById('f-duracion').value='';d.getElementById('f-series').value='';
+  d.getElementById('f-descanso').value='';d.getElementById('f-jugadores').value='';
+  d.getElementById('f-porteros').value='';d.getElementById('f-espacio').value='';
+  d.getElementById('f-material').value='';d.getElementById('f-momento').value='';
+  plant.value='rondo-4v2';plant.dispatchEvent(new Event('change',{bubbles:true}));await wait(350);
+  ok('la plantilla rellena la ficha entera',
+     /Rondo/.test(d.getElementById('f-titulo').value)&&
+     d.getElementById('f-consignas').value.split('\n').length>=3,
+     d.getElementById('f-titulo').value);
+  ok('el selector de plantilla vuelve a su sitio tras usarlo',plant.value==='');
+  d.querySelector('#dlg-card [data-close]').click();await raf();
+
+  // --- vista de zona ---
+  var antesZona=region(cv,cv.width/2,cv.height/2,80);
+  d.querySelector('[data-view="area"]').click();await wait(250);
+  ok('la vista de zona encuadra el centro del campo',
+     region(cv,cv.width/2,cv.height/2,80)!==antesZona&&
+     d.querySelector('[data-view="area"]').getAttribute('aria-pressed')==='true');
+  d.querySelector('[data-view="full"]').click();await wait(200);
+
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
 function report(){document.getElementById('out').textContent=log.join('\n')+
