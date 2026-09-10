@@ -5,16 +5,27 @@ iframe{width:1200px;height:820px;border:0}#out{white-space:pre;padding:10px;font
 <body>
 <h1 style="font:700 16px system-ui;padding:10px 10px 0;margin:0">Pruebas de la pizarra táctica</h1>
 <p style="font:13px system-ui;color:#9aa;padding:0 10px;margin:6px 0">Sirve el repositorio (<code>python3 -m http.server</code>) y abre este archivo. Se ejecuta solo.</p>
-<div id="out">ejecutando…</div><iframe id="fr" src="../app/"></iframe>
+<div id="out">ejecutando…</div><iframe id="fr"></iframe>
 <script>
+/* La pizarra guarda lo suyo en el navegador: pt-autosave, pt-prefs, pt-boards,
+   pt-catalogo, pt-nube. Si no se limpia, la segunda pasada arranca con lo que
+   dejó la primera —la modalidad cambiada a sala, la ficha ya rellena— y fallan
+   pruebas que no tienen nada que ver con lo que se está comprobando. Se limpia
+   ANTES de cargar la aplicación, por eso el iframe no trae src en el HTML. */
+try{ Object.keys(localStorage).filter(function(k){return k.indexOf('pt-')===0;})
+       .forEach(function(k){localStorage.removeItem(k);}); }catch(e){}
 var log=[],fails=0;
 function ok(n,c,x){log.push((c?'PASA  ':'FALLA ')+n+(x?'  ('+x+')':''));if(!c)fails++;}
 function raf(){return new Promise(function(r){setTimeout(r,70);});}
 function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
-var fr=document.getElementById('fr'),errors=[];
+var fr=document.getElementById('fr'),errors=[],arrancado=false;
 fr.addEventListener('load',function(){var w=fr.contentWindow,d=fr.contentDocument;
+  /* Un iframe sin src carga about:blank y también avisa: solo cuenta la carga
+     que trae la pizarra dentro, y solo una vez. */
+  if(arrancado||!d||!d.getElementById('board'))return; arrancado=true;
   w.addEventListener('error',function(e){errors.push(e.message);});
   run(w,d).catch(function(e){log.push('EXCEPCION: '+e.message);fails++;}).then(report);});
+fr.src='../app/';
 function px(cv,x,y){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width);
   return c.getImageData(Math.round(x*dpr),Math.round(y*dpr),1,1).data;}
 function pointerAt(w,el,x,y,t){var r=el.getBoundingClientRect();
