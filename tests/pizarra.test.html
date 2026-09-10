@@ -763,6 +763,38 @@ async function run(w,d){
   ok('ningún botón de la barra o del panel se queda sin oyente',
      huerfanos.length===0,huerfanos.join(', '));
 
+  // --- la barra de arriba cabe entera en un teléfono ---
+  // El logo era lo único que podía encogerse, así que absorbía todo lo que
+  // sobraba y salía cortado por la mitad.
+  var marcoB=w.frameElement,anchoPrevio=marcoB.style.width;
+  var medidas=[];
+  for(var ai=0;ai<3;ai++){
+    var an=[320,360,390][ai];
+    marcoB.style.width=an+'px';await wait(600);
+    medidas.push((function(){
+      var t=d.querySelector('.topbar'),est=w.getComputedStyle(t);
+      var hijos=[].filter.call(t.children,function(c){return c.offsetParent!==null;});
+      var suma=parseFloat(est.paddingLeft)+parseFloat(est.paddingRight)+
+               parseFloat(est.gap)*Math.max(0,hijos.length-1);
+      hijos.forEach(function(c){if(!c.classList.contains('spacer'))
+        suma+=c.getBoundingClientRect().width;});
+      var logo=d.querySelector('.logo');
+      return {ancho:an,desborde:Math.round(suma-t.getBoundingClientRect().width),
+        logoEntero:logo.offsetParent===null||logo.clientWidth>=logo.scrollWidth-1,
+        botones:Math.round(Math.min.apply(null,[].map.call(
+          t.querySelectorAll('button'),function(x){return x.getBoundingClientRect().width;})))};
+    })());
+  }
+  marcoB.style.width=anchoPrevio||'1200px';await wait(600);
+  ok('la barra de arriba cabe entera en cualquier teléfono',
+     medidas.every(function(m){return m.desborde<=0;}),
+     medidas.map(function(m){return m.ancho+'px:'+m.desborde;}).join(' · '));
+  ok('el logo nunca sale cortado',medidas.every(function(m){return m.logoEntero;}),
+     medidas.map(function(m){return m.ancho+'px:'+(m.logoEntero?'ok':'CORTADO');}).join(' · '));
+  ok('los botones de la barra siguen siendo tocables',
+     medidas.every(function(m){return m.botones>=34;}),
+     medidas.map(function(m){return m.ancho+'px:'+m.botones+'px';}).join(' · '));
+
   // --- la hoja del móvil no se mete debajo de la barra de pestañas ---
   var marco2=w.frameElement;marco2.style.width='390px';await wait(650);
   d.querySelectorAll('.tab')[2].click();await wait(500);

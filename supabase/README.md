@@ -95,6 +95,27 @@ update public.ejercicios set oculto = true where id = '…';
 
 ---
 
+## Comprobarlo antes de tocar nada
+
+El esquema y sus permisos se prueban en un Postgres de usar y tirar, sin
+Supabase y sin internet:
+
+```
+./supabase/probar.sh
+```
+
+Levanta un Postgres temporal, monta lo mínimo de Supabase (`auth.users`,
+`auth.uid()` y los roles `anon` y `authenticated`), ejecuta `schema.sql` **dos
+veces** —para verificar que se puede repetir— y lanza 21 comprobaciones de
+permisos: que un entrenador no vea lo que otro no ha compartido, que no pueda
+editarlo ni borrarlo, que no pueda subir un ejercicio firmando como otro, que
+nadie se nombre administrador a sí mismo, que el correo de los demás no se
+pueda leer, y que con tres reportes el ejercicio se esconde solo.
+
+Si esto pasa en local, `schema.sql` entra limpio en Supabase.
+
+---
+
 ## Cómo queda
 
 | | Sin cuenta | Con cuenta |

@@ -202,6 +202,12 @@ Cómo queda repartido:
 - Con **tres reportes de tres personas distintas** un ejercicio se esconde solo, sin que nadie
   tenga que estar pendiente.
 
+El esquema no se prueba a ciegas: `./supabase/probar.sh` levanta un Postgres de usar
+y tirar, monta lo mínimo de Supabase, ejecuta `schema.sql` dos veces y lanza **21
+comprobaciones de permisos** —que nadie vea, edite ni borre lo de otro, que no se pueda
+firmar como otro, que nadie se nombre administrador, que el correo no se pueda leer y que
+tres reportes escondan el ejercicio—. No hace falta cuenta de Supabase para pasarlas.
+
 En el cliente son dos archivos y ninguna dependencia: [`app/nube.js`](app/nube.js) habla con
 Supabase por HTTP a pelo, y [`app/config.js`](app/config.js) guarda las dos claves. **Con
 `config.js` en blanco la nube se queda dormida**: ni cuentas, ni botón de compartir, ni una sola
