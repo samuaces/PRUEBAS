@@ -557,12 +557,20 @@
     c.fillRect(-s * 0.36, -s * 0.72, s * 0.72, s * 0.2);
   }
 
+  // Un plato marcador es plano: dos centímetros de alto y un hueco en medio.
+  // Dibujado con cúpula parecía un cono pequeño, que es justo lo que no es.
   function drawDisc(c, u, o) {
     var r = KIND.disc.r * u, col = o.color || '#F1C40F';
-    c.fillStyle = shade(col, -0.15);
-    c.beginPath(); c.ellipse(0, 0, r, r * 0.42, 0, 0, 7); c.fill();
-    c.fillStyle = shade(col, 0.25);
-    c.beginPath(); c.ellipse(0, -r * 0.06, r * 0.62, r * 0.26, 0, 0, 7); c.fill();
+    shadow(c, u, KIND.disc.r * 0.85, 0.24, 0.3);
+    c.fillStyle = shade(col, -0.32);                    // el canto
+    c.beginPath(); c.ellipse(0, r * 0.07, r, r * 0.3, 0, 0, 7); c.fill();
+    c.fillStyle = col;                                  // la cara de arriba
+    c.beginPath(); c.ellipse(0, 0, r, r * 0.3, 0, 0, 7); c.fill();
+    c.fillStyle = shade(col, -0.16);                    // el hundido central
+    c.beginPath(); c.ellipse(0, 0, r * 0.56, r * 0.16, 0, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.55)';
+    c.lineWidth = Math.max(1, u * 0.04);
+    c.beginPath(); c.ellipse(0, 0, r * 0.97, r * 0.29, 0, Math.PI * 1.06, Math.PI * 1.94); c.stroke();
   }
 
   function drawGoal(c, u, w, d) {
@@ -588,16 +596,23 @@
     c.restore();
   }
 
+  // Una valla de agilidad es una U invertida apoyada en dos pies.
   function drawHurdle(c, u, o) {
     var w = KIND.hurdle.w * u, h = KIND.hurdle.h * u, col = o.color || '#F1C40F';
-    shadow(c, u, KIND.hurdle.w * 0.5, 0.4, 0.32);
-    c.fillStyle = '#243244';
-    c.fillRect(-w / 2, -h / 2, w * 0.12, h);
-    c.fillRect(w / 2 - w * 0.12, -h / 2, w * 0.12, h);
-    c.fillStyle = col;
-    roundRect(c, -w / 2, -h * 0.19, w, h * 0.38, h * 0.16); c.fill();
-    c.fillStyle = 'rgba(0,0,0,.35)';
-    for (var i = 0; i < 4; i++) c.fillRect(-w / 2 + w * (0.14 + i * 0.2), -h * 0.19, w * 0.07, h * 0.38);
+    shadow(c, u, KIND.hurdle.w * 0.48, 0.32, 0.3);
+    var gr = Math.max(1.8, h * 0.17);
+    c.fillStyle = '#243244';                            // los pies
+    roundRect(c, -w / 2, h * 0.16, w * 0.24, gr, gr * 0.5); c.fill();
+    roundRect(c, w / 2 - w * 0.24, h * 0.16, w * 0.24, gr, gr * 0.5); c.fill();
+    c.strokeStyle = col;                                // montantes y travesaño
+    c.lineWidth = gr;
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(-w / 2 + gr, h * 0.2);
+    c.lineTo(-w / 2 + gr, -h * 0.4);
+    c.lineTo(w / 2 - gr, -h * 0.4);
+    c.lineTo(w / 2 - gr, h * 0.2);
+    c.stroke();
   }
 
   function drawLadder(c, u, o) {
@@ -616,27 +631,46 @@
     c.stroke();
   }
 
+  // Una pica es un palo de metro y medio clavado en su peana. Vista desde
+  // arriba era un punto rojo indistinguible de cualquier otra cosa.
   function drawPole(c, u, o) {
-    var r = KIND.pole.r * u, col = o.color || '#E03B2F';
-    shadow(c, u, KIND.pole.r * 1.1, 0.3, 0.35);
-    c.fillStyle = '#26364A';
-    c.beginPath(); c.arc(0, 0, r * 1.35, 0, 7); c.fill();
-    c.fillStyle = col;
-    c.beginPath(); c.arc(0, 0, r * 0.8, 0, 7); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.85)';
-    c.beginPath(); c.arc(-r * 0.22, -r * 0.22, r * 0.24, 0, 7); c.fill();
+    var s = KIND.pole.r * u, col = o.color || '#E03B2F', alto = s * 2.2;
+    shadow(c, u, KIND.pole.r * 0.75, 0.24, 0.34);
+    c.fillStyle = '#26364A';                            // peana
+    c.beginPath(); c.ellipse(0, 0, s * 0.92, s * 0.34, 0, 0, 7); c.fill();
+    var an = Math.max(1.6, s * 0.32);
+    var g = c.createLinearGradient(-an / 2, 0, an / 2, 0);
+    g.addColorStop(0, shade(col, 0.2)); g.addColorStop(1, shade(col, -0.28));
+    c.fillStyle = g;
+    c.fillRect(-an / 2, -alto, an, alto);
+    c.fillStyle = 'rgba(255,255,255,.85)';              // las franjas
+    c.fillRect(-an / 2, -alto * 0.74, an, alto * 0.15);
+    c.fillRect(-an / 2, -alto * 0.38, an, alto * 0.15);
+    c.fillStyle = shade(col, 0.2);                      // punta
+    c.beginPath(); c.arc(0, -alto, an / 2, 0, 7); c.fill();
   }
 
+  // Un maniquí es un torso con hombros sobre una peana, no una cápsula.
   function drawDummy(c, u) {
     var w = KIND.dummy.w * u, h = KIND.dummy.h * u;
-    shadow(c, u, KIND.dummy.w * 0.8, 0.5, 0.36);
-    c.fillStyle = '#2C3E56';
-    roundRect(c, -w / 2, -h / 2, w, h, w * 0.45); c.fill();
+    shadow(c, u, KIND.dummy.w * 0.7, 0.34, 0.34);
+    c.fillStyle = '#1B2837';
+    c.beginPath(); c.ellipse(0, h * 0.46, w * 0.55, w * 0.2, 0, 0, 7); c.fill();
+    var g = c.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, '#3D5878'); g.addColorStop(1, '#223449');
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(-w * 0.46, h * 0.44);
+    c.lineTo(-w * 0.4, -h * 0.08);
+    c.quadraticCurveTo(-w * 0.38, -h * 0.24, -w * 0.18, -h * 0.27);
+    c.lineTo(w * 0.18, -h * 0.27);
+    c.quadraticCurveTo(w * 0.38, -h * 0.24, w * 0.4, -h * 0.08);
+    c.lineTo(w * 0.46, h * 0.44);
+    c.closePath(); c.fill();
     c.fillStyle = '#4A6482';
-    c.beginPath(); c.arc(0, -h * 0.26, w * 0.34, 0, 7); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.5)';
-    c.lineWidth = Math.max(1, u * 0.05);
-    c.beginPath(); c.moveTo(-w * 0.3, h * 0.06); c.lineTo(w * 0.3, h * 0.06); c.stroke();
+    c.beginPath(); c.arc(0, -h * 0.37, w * 0.25, 0, 7); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.4)';
+    c.fillRect(-w * 0.4, h * 0.04, w * 0.8, Math.max(1, h * 0.045));
   }
 
   function drawRing(c, u, o) {
@@ -1009,12 +1043,16 @@
     return null;
   }
 
+  // Las piezas que se dibujan de pie —cono, pica y banderín— ocupan en pantalla
+  // bastante más que su base, así que se dejan tocar con un poco más de margen.
+  var DE_PIE = { cone: 1, pole: 1, flag: 1 };
+
   function hitObject(m) {
     var a = frame().objects;
     for (var i = a.length - 1; i >= 0; i--) {
       var o = a[i], k = dims(o);
       if (k.r != null) {
-        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + 0.35) return o;
+        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + (DE_PIE[o.kind] ? 0.75 : 0.35)) return o;
       } else {
         var ang = -(o.rot || 0) * Math.PI / 180;
         var dx = m.x - o.x, dy = m.y - o.y;
