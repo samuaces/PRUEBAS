@@ -171,6 +171,21 @@
 
   var hist = [], hi = -1;
 
+  /* Ajustes del usuario. Viven aparte del documento: no son de una pizarra
+     concreta, son de quien la usa. */
+  var PREFS_POR_DEFECTO = { pitch: 'f11', categoria: '' };
+
+  function prefs() {
+    var p;
+    try { p = JSON.parse(localStorage.getItem('pt-prefs') || '{}'); } catch (e) { p = {}; }
+    if (!PITCHES[p.pitch]) p.pitch = PREFS_POR_DEFECTO.pitch;
+    if (typeof p.categoria !== 'string') p.categoria = '';
+    return p;
+  }
+  function guardaPrefs(p) {
+    try { localStorage.setItem('pt-prefs', JSON.stringify(p)); } catch (e) {}
+  }
+
   function frame() { return doc.frames[ui.frame]; }
 
   function commit() {
@@ -1835,6 +1850,7 @@
       if (el) el.value = c[k] || '';
     });
     if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
+    if (!c.categoria) fieldEl('categoria').value = prefs().categoria;
     if (!dlgCard) dlgCard = $('#dlg-card');
     dlgCard.showModal();
   }
@@ -1866,7 +1882,7 @@
     set('porteros', st.gk ? String(st.gk) : '');
     set('material', statsMaterial(st));
     set('espacio', doc.view === 'full' ? P.L + ' × ' + P.W + ' m' : statsSpace(st));
-    set('categoria', PITCHES[doc.pitch].label);
+    set('categoria', prefs().categoria);
     set('fecha', new Date().toLocaleDateString('es-ES'));
     toast(puesto ? 'Rellenados ' + puesto + ' campos desde la pizarra' : 'No había nada nuevo que rellenar');
   }
@@ -2540,18 +2556,30 @@
     });
   }
 
-  var libFiltros = { q: '', origen: '', pitch: '', momento: '', duracion: '' };
+  // Los filtros arrancan en la modalidad predeterminada: mezclar fútbol 11,
+  // fútbol 7 y sala en la misma lista no le sirve a nadie.
+  function filtrosPorDefecto() {
+    return { q: '', origen: '', pitch: prefs().pitch, momento: '', duracion: '' };
+  }
+  var libFiltros = filtrosPorDefecto();
 
   function pintaBiblioteca() {
     var items = bibliotecaItems();
     var vistos = filtraBiblioteca(items, libFiltros);
     var grid = $('#lib-grid'), cuenta = $('#lib-cuenta');
 
-    cuenta.textContent = vistos.length === items.length
-      ? items.length + ' ejercicios'
-      : vistos.length + ' de ' + items.length + ' ejercicios';
-    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.origen || libFiltros.pitch ||
-                                 libFiltros.momento || libFiltros.duracion);
+    var base = libFiltros.pitch
+      ? items.filter(function (i) { return i.pitch === libFiltros.pitch; })
+      : items;
+    var modo = libFiltros.pitch ? ' de ' + PITCHES[libFiltros.pitch].label.toLowerCase() : '';
+    var palabra = function (n) { return n === 1 ? ' ejercicio' : ' ejercicios'; };
+    cuenta.textContent = vistos.length === base.length
+      ? base.length + palabra(base.length) + modo
+      : vistos.length + ' de ' + base.length + palabra(base.length) + modo;
+
+    var porDefecto = filtrosPorDefecto();
+    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.origen || libFiltros.momento ||
+                                 libFiltros.duracion || libFiltros.pitch !== porDefecto.pitch);
 
     grid.innerHTML = '';
     if (!vistos.length) {
@@ -2615,6 +2643,11 @@
   }
 
   function openLibrary() {
+    // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
+    libFiltros = filtrosPorDefecto();
+    $('#lib-q').value = '';
+    $('#lib-origen').value = ''; $('#lib-momento').value = ''; $('#lib-duracion').value = '';
+    $('#lib-pitch').value = libFiltros.pitch;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
   }
@@ -3405,7 +3438,7 @@
       ask({ title: 'Empezar de cero', message: 'Se borra la pizarra entera, incluidos todos los fotogramas. Lo que hayas guardado con nombre se conserva.', ok: 'Empezar de cero', danger: true })
         .then(function (yes) {
           if (!yes) return;
-          doc = { pitch: doc.pitch, view: doc.view, card: emptyCard(), frames: [emptyFrame()] };
+          doc = { pitch: prefs().pitch, view: doc.view, card: emptyCard(), frames: [emptyFrame()] };
           ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
           commit(); buildFrames(); draw();
         });
@@ -3475,9 +3508,11 @@
       });
     });
     $('#lib-limpiar').addEventListener('click', function () {
-      libFiltros = { q: '', origen: '', pitch: '', momento: '', duracion: '' };
+      // vuelve a tu modalidad, no a todas mezcladas
+      libFiltros = filtrosPorDefecto();
       $('#lib-q').value = '';
-      ['#lib-origen', '#lib-pitch', '#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      ['#lib-origen', '#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
     });
 
@@ -3501,6 +3536,29 @@
       $('#dlg-card').close();
       setTimeout(printCard, 120);
     });
+    // ---- Ajustes ----
+    function pintaAjustes() {
+      var p = prefs();
+      $$('[data-cfg-pitch]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.cfgPitch === p.pitch));
+      });
+      $('#cfg-categoria').value = p.categoria;
+    }
+    function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
+    $('#cfg').addEventListener('click', abreAjustes);
+    $('#cfg-sm').addEventListener('click', function () { sheetClose(); abreAjustes(); });
+    $('#help-sm').addEventListener('click', function () { sheetClose(); $('#dlg-help').showModal(); });
+    $$('[data-cfg-pitch]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var p = prefs(); p.pitch = b.dataset.cfgPitch; guardaPrefs(p);
+        pintaAjustes();
+        toast('La biblioteca y las pizarras nuevas empiezan en ' + PITCHES[p.pitch].label.toLowerCase());
+      });
+    });
+    $('#cfg-categoria').addEventListener('change', function () {
+      var p = prefs(); p.categoria = this.value.trim(); guardaPrefs(p);
+    });
+
     $('#help').addEventListener('click', function () { $('#dlg-help').showModal(); });
     $('#zoom').addEventListener('click', resetView);
     $$('[data-close]').forEach(function (b) {
@@ -3638,12 +3696,15 @@
      ====================================================================== */
 
   function seed() {
-    // Una disposición inicial para que la pizarra no aparezca vacía.
+    // Una disposición inicial para que la pizarra no aparezca vacía, con la
+    // primera alineación de la modalidad que toque.
+    var set = formationSet(), nombre = Object.keys(set.pos)[0], P = PITCH();
     var f = frame();
-    FORMATIONS['4-3-3'].forEach(function (p, i) {
-      f.objects.push({ id: uid(), kind: 'player', team: 'home', x: p[0], y: p[1], num: NUMBERS['4-3-3'][i], rot: 0 });
+    set.pos[nombre].forEach(function (p, i) {
+      f.objects.push({ id: uid(), kind: 'player', team: 'home', x: p[0], y: p[1],
+                       num: set.num[nombre][i], rot: 0 });
     });
-    f.objects.push({ id: uid(), kind: 'ball', x: 28, y: 34, rot: 0 });
+    f.objects.push({ id: uid(), kind: 'ball', x: P.L * 0.27, y: P.W / 2, rot: 0 });
   }
 
   function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
@@ -3659,6 +3720,7 @@
         if (d && d.frames && d.frames.length) doc = d;
       } catch (e) {}
     }
+    if (!saved) doc.pitch = prefs().pitch;       // primera visita: tu modalidad
     ensurePitch();
     if (!doc.frames[0].objects.length && doc.frames.length === 1) seed();
     syncViewButtons();

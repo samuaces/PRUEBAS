@@ -398,6 +398,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .inspector .name{display:none}
 }
 
+@media (max-width:430px){
+  /* La barra no da para todo: la ayuda se va al panel, donde ya está Ajustes. */
+  .topbar #help{display:none}
+  .topbar{gap:5px;padding-left:9px;padding-right:9px}
+  .group{gap:4px;padding:3px}
+}
+
 @media (max-width:420px){
   .chip#speed{min-width:48px;padding:0 8px}
   .tab{font-size:9.5px}
