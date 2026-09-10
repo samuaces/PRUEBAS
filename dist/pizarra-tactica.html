@@ -681,7 +681,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <span class="ex-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
       </span>
-      <span class="ex-txt"><b>Ficha del ejercicio</b><small>Una página con el dibujo, los objetivos, las consignas y las normas.</small></span>
+      <span class="ex-txt"><b>Ficha del ejercicio</b><small id="ex-card-nota">Una página con el dibujo, los objetivos, las consignas y las normas.</small></span>
     </button>
     <button class="ex" id="ex-sheet">
       <span class="ex-ico">
@@ -3787,6 +3787,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#ex-video-fmt').textContent = varios
         ? 'MP4, el que reproduce cualquier móvil.'
         : 'Necesita al menos dos fotogramas.';
+      $('#ex-card-nota').textContent = cardHasContent()
+        ? 'Ya la tienes rellenada: ábrela para cambiarla o imprimirla.'
+        : 'Una página con el dibujo, los objetivos, las consignas y las normas.';
       dlgExport.showModal();
     }
     function exportar(fn) {
@@ -3794,10 +3797,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }
     $('#export').addEventListener('click', function () { if (!recording) openExport(); });
     $('#ex-png').addEventListener('click', exportar(exportPNG));
-    $('#ex-card').addEventListener('click', exportar(function () {
-      // Si la ficha está vacía, primero se rellena; si ya tiene contenido, se imprime.
-      if (cardHasContent()) printCard(); else openCard();
-    }));
+    // La ficha siempre se abre para editarla: imprimir sin verla dejaba la ficha
+    // ya rellenada sin manera de volver a tocarla desde aquí.
+    $('#ex-card').addEventListener('click', exportar(openCard));
     $('#ex-sheet').addEventListener('click', exportar(printSheet));
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));

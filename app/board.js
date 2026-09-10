@@ -2909,6 +2909,9 @@
       $('#ex-video-fmt').textContent = varios
         ? 'MP4, el que reproduce cualquier móvil.'
         : 'Necesita al menos dos fotogramas.';
+      $('#ex-card-nota').textContent = cardHasContent()
+        ? 'Ya la tienes rellenada: ábrela para cambiarla o imprimirla.'
+        : 'Una página con el dibujo, los objetivos, las consignas y las normas.';
       dlgExport.showModal();
     }
     function exportar(fn) {
@@ -2916,10 +2919,9 @@
     }
     $('#export').addEventListener('click', function () { if (!recording) openExport(); });
     $('#ex-png').addEventListener('click', exportar(exportPNG));
-    $('#ex-card').addEventListener('click', exportar(function () {
-      // Si la ficha está vacía, primero se rellena; si ya tiene contenido, se imprime.
-      if (cardHasContent()) printCard(); else openCard();
-    }));
+    // La ficha siempre se abre para editarla: imprimir sin verla dejaba la ficha
+    // ya rellenada sin manera de volver a tocarla desde aquí.
+    $('#ex-card').addEventListener('click', exportar(openCard));
     $('#ex-sheet').addEventListener('click', exportar(printSheet));
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));

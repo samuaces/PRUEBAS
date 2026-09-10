@@ -1,6 +1,6 @@
 # Pizarra Táctica
 
-> Pizarra táctica de fútbol online, gratuita y sin registro, con material de
+> Pizarra táctica de fútbol online, sin registro, con material de
 > entrenamiento y animación de la jugada por fotogramas. Se ejecuta entera en el
 > navegador: no hay servidor, ni cuentas, ni recogida de datos.
 
@@ -32,7 +32,7 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   movimiento, con estelas, control de velocidad y bucle.
 - Descarga de la jugada animada siempre en MP4 (con MediaRecorder si el navegador sabe,
   o codificando H.264 con WebCodecs y escribiendo el contenedor la propia aplicación) o
-  como GIF animado. Todo se genera en el navegador y sin marca de agua.
+  como GIF animado. Todo se genera en el navegador.
 - Regla para medir distancias reales sobre el campo.
 - Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
 - Ficha del ejercicio: un formulario con título, categoría, momento del juego, duración,

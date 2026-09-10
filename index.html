@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-<title>Pizarra Táctica de Fútbol Online y Gratis | Sin registro</title>
-<meta name="description" content="Pizarra táctica de fútbol 11, fútbol 7 y sala: material de entrenamiento, animación de la jugada y exportación en vídeo. Gratis, sin registro y sin marcas de agua.">
+<title>Pizarra Táctica de Fútbol Online | Diseña y anima la jugada</title>
+<meta name="description" content="Pizarra táctica de fútbol 11, fútbol 7 y sala: material de entrenamiento, animación de la jugada por fotogramas y exportación en vídeo. Se abre en el navegador, sin registro.">
 <link rel="canonical" href="https://samuaces.github.io/PRUEBAS/">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 <meta name="author" content="Pizarra Táctica">
@@ -17,8 +17,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pizarra Táctica">
 <meta property="og:locale" content="es_ES">
-<meta property="og:title" content="Pizarra Táctica de Fútbol Online y Gratis">
-<meta property="og:description" content="Monta el circuito con conos, vallas y porterías, dibuja los movimientos y pulsa reproducir: la jugada se anima sola. Gratis y sin registro.">
+<meta property="og:title" content="Pizarra Táctica de Fútbol Online">
+<meta property="og:description" content="Monta el circuito con conos, vallas y porterías, dibuja los movimientos y pulsa reproducir: la jugada se anima sola.">
 <meta property="og:url" content="https://samuaces.github.io/PRUEBAS/">
 <meta property="og:image" content="https://samuaces.github.io/PRUEBAS/assets/img/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -27,8 +27,8 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pizarra Táctica de Fútbol Online y Gratis">
-<meta name="twitter:description" content="Material de entrenamiento, formaciones en un clic y animación de la jugada por fotogramas. Gratis y sin registro.">
+<meta name="twitter:title" content="Pizarra Táctica de Fútbol Online">
+<meta name="twitter:description" content="Material de entrenamiento, formaciones en un clic y animación de la jugada por fotogramas.">
 <meta name="twitter:image" content="https://samuaces.github.io/PRUEBAS/assets/img/og-image.png">
 
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
@@ -174,9 +174,11 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 /* ---------- Pasos ---------- */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:s}
 .step{position:relative;padding:26px 22px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface)}
-.step::before{counter-increment:s;content:"0" counter(s);display:block;margin-bottom:16px;
-  font-family:var(--ff-display);font-size:42px;font-weight:800;line-height:1;letter-spacing:-.04em;
-  color:transparent;-webkit-text-stroke:1.5px var(--line-strong)}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;
+  width:34px;height:34px;margin-bottom:16px;border-radius:50%;
+  background:color-mix(in srgb,var(--brand) 15%,transparent);
+  border:1px solid color-mix(in srgb,var(--brand) 30%,transparent);color:var(--brand);
+  font-family:var(--ff-display);font-size:17px;font-weight:700;line-height:1}
 .step h3{font-size:19px;margin:0 0 10px}
 .step p{color:var(--muted);font-size:15.5px}
 
@@ -184,6 +186,16 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 
 
 
+
+/* ---------- Lo que hay y lo que no ---------- */
+.lista{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lista li{display:flex;gap:13px;align-items:flex-start;padding:15px 17px;border-radius:13px;
+  border:1px solid var(--line);background:var(--surface)}
+.lista .mrk{width:23px;height:23px;flex:none;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.lista .si{background:color-mix(in srgb,var(--brand) 15%,transparent);color:var(--brand)}
+.lista .no{background:rgba(127,140,158,.14);color:var(--muted)}
+.lista b{display:block;font-family:var(--ff-display);font-size:16px;margin-bottom:2px}
+.lista span.txt{color:var(--muted);font-size:14.5px;line-height:1.5}
 
 /* ---------- Footer ---------- */
 .site-footer{border-top:1px solid var(--line);background:var(--bg-2);padding:48px 0 30px;margin-top:0}
@@ -217,7 +229,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
   .nav{gap:10px}
   .nav-actions{margin-left:auto}
   .nav-toggle{display:grid}
-  .cards,.steps{grid-template-columns:1fr}
+  .cards,.steps,.lista{grid-template-columns:1fr}
   .hero-cta{gap:10px}
   .hero-cta .btn{flex:1;padding-inline:16px}
 }
@@ -249,14 +261,14 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       "@id":"https://samuaces.github.io/PRUEBAS/#website",
       "url":"https://samuaces.github.io/PRUEBAS/",
       "name":"Pizarra Táctica",
-      "description":"Pizarra táctica de fútbol online y gratuita para diseñar jugadas, ejercicios y alineaciones desde el navegador.",
+      "description":"Pizarra táctica de fútbol para diseñar jugadas, ejercicios y alineaciones desde el navegador.",
       "inLanguage":"es-ES"
     },
     {
       "@type":"WebPage",
       "@id":"https://samuaces.github.io/PRUEBAS/#webpage",
       "url":"https://samuaces.github.io/PRUEBAS/",
-      "name":"Pizarra Táctica de Fútbol Online y Gratis",
+      "name":"Pizarra Táctica de Fútbol Online",
       "isPartOf":{"@id":"https://samuaces.github.io/PRUEBAS/#website"},
       "primaryImageOfPage":"https://samuaces.github.io/PRUEBAS/assets/img/og-image.png",
       "inLanguage":"es-ES"
@@ -277,13 +289,12 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
         "Material de entrenamiento: conos, platos, porterias, minigoles, vallas, escaleras, picas, maniquies, aros y banderines",
         "Flechas de pase, de carrera y de conduccion, lineas libres, zonas sombreadas y textos",
         "Formaciones predefinidas 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1",
-        "Animacion de la jugada por fotogramas y descarga en video sin marca de agua",
+        "Animacion de la jugada por fotogramas y descarga en video MP4 o GIF",
         "Regla para medir distancias reales y hoja de sesion imprimible con todos los fotogramas",
         "Seleccion multiple por recuadro para mover varias fichas a la vez",
         "Instalable en el movil y funciona sin conexion, con acercamiento a dos dedos",
         "Guardado en el dispositivo, exportacion a PNG y a JSON, deshacer y rehacer"
-      ],
-      "offers":{"@type":"Offer","price":"0","priceCurrency":"EUR","availability":"https://schema.org/InStock"}
+      ]
     }
   ]
 }
@@ -471,8 +482,28 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     </div>
   </section>
 
+  <!-- ================= LO QUE HAY Y LO QUE NO ================= -->
+  <section class="section" id="estado" style="background:var(--bg-2);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">A día de hoy</span>
+        <h2 class="title">Lo que hay y lo que no</h2>
+      </div>
+      <ul class="lista reveal">
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Tres modalidades</b><span class="txt">Fútbol 11, fútbol 7 y fútbol sala, con sus medidas de reglamento.</span></span></li>
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Diez materiales</b><span class="txt">Conos, platos, porterías, minigoles, vallas, escaleras, picas, maniquíes, aros y banderines.</span></span></li>
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Animación por fotogramas</b><span class="txt">Con estelas de movimiento, control de velocidad y bucle.</span></span></li>
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Vídeo y GIF de la jugada</b><span class="txt">La animación se descarga en MP4, o en GIF si prefieres.</span></span></li>
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Ficha del ejercicio y hoja de sesión</b><span class="txt">Objetivos, consignas y normas, con el dibujo, listas para imprimir.</span></span></li>
+        <li><span class="mrk si" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span><b>Se instala y funciona sin conexión</b><span class="txt">En el móvil se añade a la pantalla de inicio y abre sin cobertura.</span></span></li>
+        <li><span class="mrk no" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span><b>Compartir por enlace</b><span class="txt">Todavía no. Para pasar una jugada se exporta el archivo.</span></span></li>
+        <li><span class="mrk no" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span><b>Sincronizar entre dispositivos</b><span class="txt">Todavía no. Lo que guardas vive en el navegador donde lo guardaste.</span></span></li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ================= CÓMO FUNCIONA ================= -->
-  <section class="section" id="como-funciona" style="background:var(--bg-2);border-block:1px solid var(--line)">
+  <section class="section" id="como-funciona">
     <div class="wrap">
       <div class="section-head reveal">
         <span class="eyebrow">Cómo funciona</span>

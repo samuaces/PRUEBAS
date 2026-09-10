@@ -297,6 +297,21 @@ async function run(w,d){
   ok('rellenar no pisa lo que ya has escrito',
      (d.getElementById('f-auto').click(),d.getElementById('f-titulo').value==='Salida de balón bajo presión'));
 
+  // una ficha ya rellenada tiene que poder volver a abrirse desde Exportar,
+  // que en el móvil es el único camino a mano
+  d.querySelector('#dlg-card [data-close]').click();await wait(150);
+  var imprimio=false,oldOpen3=w.open;
+  w.open=function(){ imprimio=true; return {document:{write:function(){},close:function(){}},
+    focus:function(){},print:function(){}}; };
+  d.getElementById('export').click();await wait(150);
+  var nota=d.getElementById('ex-card-nota').textContent;
+  d.getElementById('ex-card').click();await wait(400);
+  w.open=oldOpen3;
+  ok('la ficha rellenada se vuelve a abrir desde Exportar, no se imprime sola',
+     d.getElementById('dlg-card').open&&!imprimio,
+     'diálogo '+d.getElementById('dlg-card').open+' · imprimió '+imprimio);
+  ok('la hoja de exportación avisa de que la ficha ya está rellenada',/rellenada/.test(nota),nota);
+
   var fichaOut=null,oldOpen2=w.open;
   w.open=function(){ fichaOut={html:'',document:{write:function(h){fichaOut.html+=h;},close:function(){}},
     focus:function(){},print:function(){fichaOut.printed=true;}}; return fichaOut; };

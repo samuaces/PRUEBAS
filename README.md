@@ -189,7 +189,7 @@ python3 -m http.server 8000
 
 ## Pruebas
 
-`tests/pizarra.test.html` es una batería de 84 comprobaciones de punta a punta sobre la
+`tests/pizarra.test.html` es una batería de 86 comprobaciones de punta a punta sobre la
 pizarra: colocación y giro de las once piezas, arrastre, las herramientas de trazo, la
 regla, la animación por fotogramas, la grabación de vídeo, el zoom a dos dedos, las tres
 modalidades de campo, la selección múltiple, la hoja de sesión, la hoja de exportación,
