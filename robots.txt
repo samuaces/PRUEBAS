@@ -24,4 +24,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://samuaces.github.io/PRUEBAS/sitemap.xml
+Sitemap: https://klym.xyz/sitemap.xml

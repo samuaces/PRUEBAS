@@ -44,7 +44,7 @@ Activa GitHub Pages: **Settings → Pages → Source: GitHub Actions**. El workf
 En `usuario.github.io/PRUEBAS/` estás construyendo autoridad para *GitHub*, no para ti,
 y el `robots.txt` de un subdirectorio **no lo lee nadie** (los rastreadores solo miran el
 de la raíz del dominio). Con un dominio propio, todo lo de este repositorio funciona tal
-cual. Para cambiarlo hay que sustituir `https://samuaces.github.io/PRUEBAS` por tu dominio
+cual. Para cambiarlo hay que sustituir `https://klym.xyz` por tu dominio
 en: `index.html`, `app/index.html`, `404.html`, `sitemap.xml`, `robots.txt` y `llms.txt`,
 y añadir un archivo `CNAME` en la raíz con tu dominio.
 
