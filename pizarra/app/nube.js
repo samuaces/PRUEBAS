@@ -46,11 +46,29 @@
     return h;
   }
 
-  // Los errores de Supabase vienen en JSON; se traducen a algo legible.
+  // Los errores de Supabase vienen en inglés y en JSON. Aquí se traducen a algo
+  // que se entienda y que diga qué hacer, no a un tecnicismo en otro idioma.
+  var TRADUCE = [
+    [/rate limit|too many requests/i,
+     'Supabase solo deja mandar unos pocos correos por hora en el plan gratuito, y ya se han gastado. Se repone solo en un rato.'],
+    [/redirect|not allowed|invalid.*url/i,
+     'El proyecto no reconoce la dirección de esta pizarra, así que no sabe a dónde devolverte.'],
+    [/expired|invalid.*token|otp_expired/i,
+     'Ese enlace ya se ha usado o ha caducado. Pide otro y ábrelo en este mismo móvil.'],
+    [/signups? not allowed|disabled/i,
+     'El proyecto no admite cuentas nuevas ahora mismo.'],
+    [/user already registered/i, 'Ese correo ya tiene cuenta: pide el enlace de entrada.'],
+    [/failed to fetch|networkerror|load failed/i,
+     'No hay manera de llegar al servidor. Puede ser tu conexión.']
+  ];
+  function enCristiano(m) {
+    for (var i = 0; i < TRADUCE.length; i++) if (TRADUCE[i][0].test(m)) return TRADUCE[i][1];
+    return m;
+  }
   function fallo(r) {
     return r.json().catch(function () { return {}; }).then(function (d) {
       var m = d.message || d.error_description || d.error || d.msg || ('Error ' + r.status);
-      var e = new Error(m); e.status = r.status; throw e;
+      var e = new Error(enCristiano(String(m))); e.status = r.status; e.crudo = m; throw e;
     });
   }
 

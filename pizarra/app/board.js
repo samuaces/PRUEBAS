@@ -2525,7 +2525,19 @@
         .then(function (si) { if (si) comparteSinNube(); });
       return;
     }
-    if (!yo) { $('#dlg-cfg').showModal(); pintaCuenta(); toast('Entra con tu correo para compartir'); return; }
+    // Sin sesión no se bloquea nada: se comparte igual, preparando el ejercicio
+    // para mandarlo. Tener cuenta solo ahorra ese paso. Hacer del correo una
+    // puerta obligatoria dejaba la aplicación inservible cuando el correo
+    // fallaba, que es justo cuando más falta hace poder trabajar.
+    if (!yo) {
+      ask({ title: 'Compartir «' + doc.card.titulo + '»',
+            message: 'Puedes mandarlo ahora mismo sin cuenta y se añade a la biblioteca ' +
+                     'común. Si entras con tu correo (en Ajustes), se sube solo y firmado ' +
+                     'con tu nombre.',
+            ok: 'Mandarlo ahora' })
+        .then(function (si) { if (si) comparteSinNube(); });
+      return;
+    }
     if (!doc.card || !doc.card.titulo) {
       toast('Ponle un título en la ficha antes de compartirla');
       openCard();
