@@ -52,7 +52,9 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   suyo y privado hasta que le da a compartir, y puede retirarlo cuando quiera.
 - Cuentas con correo y contraseña, sin confirmación ni enlaces: se crean al instante. Hacen
   falta solo para compartir y para recuperar lo tuyo desde otro dispositivo; para dibujar,
-  imprimir fichas y ver la biblioteca común, no. El correo no se enseña a nadie: lo público es el
+  imprimir fichas y ver la biblioteca común, no. Si se olvida la contraseña se pide un correo
+  para ponerse otra, y con la sesión abierta se puede cambiar desde Ajustes.
+  El correo no se enseña a nadie: lo público es el
   nombre y el club. Con tres reportes de tres personas distintas un ejercicio deja de verse.
   El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y

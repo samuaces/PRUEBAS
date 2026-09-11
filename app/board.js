@@ -1598,9 +1598,15 @@
       var field = $('#ask-field', dlg);
       var msg = $('#ask-msg', dlg);
       var input = $('#ask-input', dlg);
+      // El tipo se pone siempre, no solo cuando se pide: si no, el diálogo se
+      // quedaría en «contraseña» para la siguiente vez que se use.
+      input.type = opts.tipo || 'text';
+      input.setAttribute('autocomplete', opts.tipo === 'password' ? 'new-password' : 'off');
       if (opts.input != null) {
         field.hidden = false;
-        msg.hidden = true;
+        // Un campo puede llevar además una explicación encima.
+        msg.hidden = !opts.message;
+        msg.textContent = opts.message || '';
         input.value = opts.input;
         input.placeholder = opts.placeholder || '';
       } else {
@@ -1622,8 +1628,18 @@
         if (dlg.open) dlg.close();
         resolve(value);
       }
-      function onOk() { finish(opts.input != null ? input.value.trim() : true); }
-      function onClose() { finish(null); }
+      // Una contraseña no se recorta: un espacio al final es parte de ella.
+      function onOk() {
+        finish(opts.input == null ? true
+               : opts.tipo === 'password' ? input.value : input.value.trim());
+      }
+      /* El evento «close» no llega en el momento de cerrar, sino un poco
+         después. Si mientras tanto se ha vuelto a abrir el diálogo —pedir otra
+         vez la contraseña porque la primera era corta, por ejemplo—, ese aviso
+         atrasado del diálogo anterior caía sobre el nuevo y lo cerraba recién
+         abierto. Si el diálogo está abierto, el aviso es de la vez anterior y
+         no va con nosotros. */
+      function onClose() { if (dlg.open) return; finish(null); }
       function onKey(e) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } }
 
       okBtn.addEventListener('click', onOk);
@@ -2524,6 +2540,25 @@
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+  }
+
+  /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
+     desde Ajustes y el de volver del enlace de «he olvidado la contraseña».
+     En este segundo caso es importante que la escriba de verdad: el enlace del
+     correo es la única llave que tiene en ese momento y caduca. */
+  function pideClaveNueva(mensaje) {
+    return ask({ title: 'Contraseña nueva', message: mensaje, input: '', tipo: 'password',
+                 placeholder: 'Mínimo 6 caracteres', ok: 'Guardar' })
+      .then(function (clave) {
+        if (clave === null) return false;                 // ha cerrado el diálogo
+        if (String(clave).length < 6) {
+          toast('La contraseña tiene que tener al menos 6 caracteres');
+          return pideClaveNueva(mensaje);                 // se vuelve a pedir
+        }
+        return nube.cambiaClave(clave)
+          .then(function () { toast('Contraseña cambiada. Ya puedes entrar con ella'); return true; })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); return false; });
+      });
   }
 
   // Quién eres, para saber qué puedes hacer.
@@ -3961,6 +3996,7 @@
           b.setAttribute('aria-pressed', String(b.dataset.modo === m));
         });
         $$('.solo-crear').forEach(function (el) { el.hidden = m !== 'crear'; });
+        $$('.solo-entrar').forEach(function (el) { el.hidden = m === 'crear'; });
         $('#cuenta-entrar').textContent = m === 'crear' ? 'Crear cuenta' : 'Entrar';
         $('#cuenta-clave').setAttribute('autocomplete',
           m === 'crear' ? 'new-password' : 'current-password');
@@ -4011,6 +4047,30 @@
         }).then(function () { b.disabled = false; b.textContent = etiqueta; });
       });
 
+      // Sin esto, quien olvida su contraseña pierde su biblioteca de la nube
+      // para siempre: no hay otra manera de volver a entrar.
+      $('#cuenta-olvido').addEventListener('click', function () {
+        var correo = $('#cuenta-email').value.trim();
+        var aviso  = $('#cuenta-aviso');
+        function di(t) { aviso.textContent = t; aviso.hidden = false; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+          di('Escribe arriba el correo de tu cuenta y vuelve a pulsar aquí.'); return;
+        }
+        var b = this, etiqueta = b.textContent;
+        b.disabled = true; b.textContent = 'Enviando…'; aviso.hidden = true;
+        nube.recupera(correo).then(function () {
+          di('Te hemos mandado un correo a ' + correo + '. Ábrelo en este mismo dispositivo y ' +
+             'te dejará escribir una contraseña nueva. Mira también en la carpeta de no deseado.');
+        }).catch(function (e) {
+          di(e.message || 'No se ha podido mandar el correo.');
+        }).then(function () { b.disabled = false; b.textContent = etiqueta; });
+      });
+
+      // Con la sesión abierta, cambiarla es solo escribir la nueva.
+      $('#cuenta-clave-nueva').addEventListener('click', function () {
+        pideClaveNueva('Escribe la contraseña nueva, de seis caracteres o más.');
+      });
+
       $('#cuenta-salir').addEventListener('click', function () {
         nube.sale().then(function () {
           yo = null; nubeMios = []; nubeLista = [];
@@ -4030,6 +4090,27 @@
 
       refrescaCuenta();
       nube.alCambiar(function () { refrescaCuenta(); });
+
+      /* Cuando se vuelve del enlace de un correo, la sesión llega en la
+         dirección. La nube la recogía y guardaba, pero nadie miraba el
+         resultado: el usuario aterrizaba en la pizarra sin que nada le dijera
+         si había funcionado. Y en el caso de recuperar la contraseña hay que
+         pedirle una nueva ahí mismo, porque ese enlace es su única llave y
+         caduca. */
+      var regreso = nube.vuelta();
+      if (regreso) {
+        if (regreso.error) {
+          $('#cfg').click();
+          var av = $('#cuenta-aviso'); av.textContent = regreso.error; av.hidden = false;
+        } else if (regreso.recuperando) {
+          refrescaCuenta().then(function () {
+            pideClaveNueva('Tu cuenta está abierta. Escribe una contraseña nueva para no ' +
+                           'volver a perderla; con ella entrarás a partir de ahora.');
+          });
+        } else if (regreso.entrado) {
+          toast('Has entrado con tu cuenta');
+        }
+      }
     }
 
     pintaCuenta();
