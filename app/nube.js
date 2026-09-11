@@ -92,6 +92,9 @@
     [/signups? not allowed|disabled/i,
      'El proyecto no admite cuentas nuevas ahora mismo.'],
     [/user already registered/i, 'Ese correo ya tiene cuenta. Escribe su contraseña para entrar.'],
+    [/user not found|no user found/i, 'No hay ninguna cuenta con ese correo.'],
+    [/new password should be different|same.*password/i,
+     'La contraseña nueva tiene que ser distinta de la que tenías.'],
     [/invalid login credentials/i, 'Ese correo y esa contraseña no coinciden.'],
     [/password.*(6|short|least)/i, 'La contraseña tiene que tener al menos 6 caracteres.'],
     [/failed to fetch|networkerror|load failed/i,
@@ -177,7 +180,10 @@
         refresh_token: p.get('refresh_token'),
         expires_in: p.get('expires_in')
       });
-      return { entrado: true };
+      // Si viene del enlace de «he olvidado la contraseña», la sesión ya está
+      // abierta pero hace falta que escriba una nueva: si no, el enlace es la
+      // única llave que tiene y caduca.
+      return { entrado: true, recuperando: p.get('type') === 'recovery' };
     }
     var cod = p.get('error_code') || '';
     var desc = p.get('error_description') || p.get('error') || '';
@@ -287,6 +293,35 @@
       });
   }
 
+  /* Recuperar la contraseña.
+     Quitamos el correo de confirmación porque Supabase gratis manda muy pocos
+     al día y eso ahogaba el registro de todo el mundo. Este es otro caso: lo
+     pide poca gente y muy de vez en cuando, así que el límite no estorba, y sin
+     él quien olvida su contraseña pierde su biblioteca de la nube para siempre.
+
+     El «redirect_to» va en la dirección, NO en el cuerpo: metiéndolo en el
+     cuerpo, GoTrue lo ignora sin decir nada y manda al sitio equivocado. Se
+     vuelve a la pizarra, no a la portada, porque es donde está la cuenta. */
+  function recupera(email) {
+    if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    var vuelve = location.origin + location.pathname;
+    return traer(BASE + '/auth/v1/recover?redirect_to=' + encodeURIComponent(vuelve), {
+      method: 'POST', headers: cabeceras(false),
+      body: JSON.stringify({ email: String(email || '').trim() })
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return true;
+    });
+  }
+
+  // Cambiar la contraseña: al volver del enlace del correo, y también desde
+  // Ajustes con la sesión abierta.
+  function cambiaClave(nueva) {
+    if (!ses) return Promise.reject(new Error('Entra con tu correo primero'));
+    return pide('/auth/v1/user', { method: 'PUT', body: { password: String(nueva || '') } })
+      .then(function () { return true; });
+  }
+
   function sale() {
     var fin = ses
       ? pide('/auth/v1/logout', { method: 'POST' }).catch(function () {})
@@ -386,6 +421,7 @@
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
     entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
+    recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura

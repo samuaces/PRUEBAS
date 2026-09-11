@@ -195,6 +195,12 @@ Cómo queda repartido:
 - **Sin cuenta** se usa la pizarra entera y se ve la biblioteca común. No se manda nada.
 - **Con cuenta** —correo y contraseña, sin confirmación ni enlaces— se comparten ejercicios y
   se recuperan desde cualquier dispositivo.
+- **Si se olvida la contraseña** se pide un correo con un enlace para ponerse otra, y con la
+  sesión abierta se cambia desde Ajustes. Es el único correo que manda la aplicación: se quitó
+  el de confirmación porque el plan gratuito de Supabase manda muy pocos al día y ahogaba el
+  registro de todo el mundo, pero este lo pide poca gente y muy de vez en cuando. Para que el
+  enlace devuelva al sitio correcto, en **Authentication → URL Configuration** del proyecto
+  tiene que estar `https://klym.xyz/app/` como Site URL y en Redirect URLs.
 - Lo que subes es **tuyo y privado** hasta que le das a compartir. Que nadie más pueda leerlo,
   editarlo ni borrarlo lo garantiza la base de datos (`row level security`), no la aplicación.
 - El correo **no se expone nunca**: vive en `auth.users`, que la aplicación no puede leer. Lo

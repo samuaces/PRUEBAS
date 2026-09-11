@@ -1246,7 +1246,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="Nombre del club"></label>
       </div>
 
-      <button type="button" class="tbtn primary" id="cuenta-entrar" style="margin-top:12px">Entrar</button>
+      <div class="lib-linea" style="margin-top:12px">
+        <button type="button" class="tbtn primary" id="cuenta-entrar">Entrar</button>
+        <button type="button" class="mini-btn solo-entrar" id="cuenta-olvido">He olvidado la contraseña</button>
+      </div>
       <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
     </div>
 
@@ -1262,6 +1265,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <div class="lib-linea" style="margin-top:10px">
         <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
         <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+      </div>
+      <div class="stack" style="margin-top:10px">
+        <button type="button" class="row-btn" id="cuenta-clave-nueva">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Cambiar la contraseña</button>
       </div>
     </div>
   </div>
@@ -1437,6 +1445,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     [/signups? not allowed|disabled/i,
      'El proyecto no admite cuentas nuevas ahora mismo.'],
     [/user already registered/i, 'Ese correo ya tiene cuenta. Escribe su contraseña para entrar.'],
+    [/user not found|no user found/i, 'No hay ninguna cuenta con ese correo.'],
+    [/new password should be different|same.*password/i,
+     'La contraseña nueva tiene que ser distinta de la que tenías.'],
     [/invalid login credentials/i, 'Ese correo y esa contraseña no coinciden.'],
     [/password.*(6|short|least)/i, 'La contraseña tiene que tener al menos 6 caracteres.'],
     [/failed to fetch|networkerror|load failed/i,
@@ -1522,7 +1533,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         refresh_token: p.get('refresh_token'),
         expires_in: p.get('expires_in')
       });
-      return { entrado: true };
+      // Si viene del enlace de «he olvidado la contraseña», la sesión ya está
+      // abierta pero hace falta que escriba una nueva: si no, el enlace es la
+      // única llave que tiene y caduca.
+      return { entrado: true, recuperando: p.get('type') === 'recovery' };
     }
     var cod = p.get('error_code') || '';
     var desc = p.get('error_description') || p.get('error') || '';
@@ -1632,6 +1646,35 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       });
   }
 
+  /* Recuperar la contraseña.
+     Quitamos el correo de confirmación porque Supabase gratis manda muy pocos
+     al día y eso ahogaba el registro de todo el mundo. Este es otro caso: lo
+     pide poca gente y muy de vez en cuando, así que el límite no estorba, y sin
+     él quien olvida su contraseña pierde su biblioteca de la nube para siempre.
+
+     El «redirect_to» va en la dirección, NO en el cuerpo: metiéndolo en el
+     cuerpo, GoTrue lo ignora sin decir nada y manda al sitio equivocado. Se
+     vuelve a la pizarra, no a la portada, porque es donde está la cuenta. */
+  function recupera(email) {
+    if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    var vuelve = location.origin + location.pathname;
+    return traer(BASE + '/auth/v1/recover?redirect_to=' + encodeURIComponent(vuelve), {
+      method: 'POST', headers: cabeceras(false),
+      body: JSON.stringify({ email: String(email || '').trim() })
+    }).then(function (r) {
+      if (!r.ok) return fallo(r);
+      return true;
+    });
+  }
+
+  // Cambiar la contraseña: al volver del enlace del correo, y también desde
+  // Ajustes con la sesión abierta.
+  function cambiaClave(nueva) {
+    if (!ses) return Promise.reject(new Error('Entra con tu correo primero'));
+    return pide('/auth/v1/user', { method: 'PUT', body: { password: String(nueva || '') } })
+      .then(function () { return true; });
+  }
+
   function sale() {
     var fin = ses
       ? pide('/auth/v1/logout', { method: 'POST' }).catch(function () {})
@@ -1731,6 +1774,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
     entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
+    recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura
@@ -5245,9 +5289,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       var field = $('#ask-field', dlg);
       var msg = $('#ask-msg', dlg);
       var input = $('#ask-input', dlg);
+      // El tipo se pone siempre, no solo cuando se pide: si no, el diálogo se
+      // quedaría en «contraseña» para la siguiente vez que se use.
+      input.type = opts.tipo || 'text';
+      input.setAttribute('autocomplete', opts.tipo === 'password' ? 'new-password' : 'off');
       if (opts.input != null) {
         field.hidden = false;
-        msg.hidden = true;
+        // Un campo puede llevar además una explicación encima.
+        msg.hidden = !opts.message;
+        msg.textContent = opts.message || '';
         input.value = opts.input;
         input.placeholder = opts.placeholder || '';
       } else {
@@ -5269,8 +5319,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         if (dlg.open) dlg.close();
         resolve(value);
       }
-      function onOk() { finish(opts.input != null ? input.value.trim() : true); }
-      function onClose() { finish(null); }
+      // Una contraseña no se recorta: un espacio al final es parte de ella.
+      function onOk() {
+        finish(opts.input == null ? true
+               : opts.tipo === 'password' ? input.value : input.value.trim());
+      }
+      /* El evento «close» no llega en el momento de cerrar, sino un poco
+         después. Si mientras tanto se ha vuelto a abrir el diálogo —pedir otra
+         vez la contraseña porque la primera era corta, por ejemplo—, ese aviso
+         atrasado del diálogo anterior caía sobre el nuevo y lo cerraba recién
+         abierto. Si el diálogo está abierto, el aviso es de la vez anterior y
+         no va con nosotros. */
+      function onClose() { if (dlg.open) return; finish(null); }
       function onKey(e) { if (e.key === 'Enter') { e.preventDefault(); onOk(); } }
 
       okBtn.addEventListener('click', onOk);
@@ -6171,6 +6231,25 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+  }
+
+  /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
+     desde Ajustes y el de volver del enlace de «he olvidado la contraseña».
+     En este segundo caso es importante que la escriba de verdad: el enlace del
+     correo es la única llave que tiene en ese momento y caduca. */
+  function pideClaveNueva(mensaje) {
+    return ask({ title: 'Contraseña nueva', message: mensaje, input: '', tipo: 'password',
+                 placeholder: 'Mínimo 6 caracteres', ok: 'Guardar' })
+      .then(function (clave) {
+        if (clave === null) return false;                 // ha cerrado el diálogo
+        if (String(clave).length < 6) {
+          toast('La contraseña tiene que tener al menos 6 caracteres');
+          return pideClaveNueva(mensaje);                 // se vuelve a pedir
+        }
+        return nube.cambiaClave(clave)
+          .then(function () { toast('Contraseña cambiada. Ya puedes entrar con ella'); return true; })
+          .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); return false; });
+      });
   }
 
   // Quién eres, para saber qué puedes hacer.
@@ -7608,6 +7687,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           b.setAttribute('aria-pressed', String(b.dataset.modo === m));
         });
         $$('.solo-crear').forEach(function (el) { el.hidden = m !== 'crear'; });
+        $$('.solo-entrar').forEach(function (el) { el.hidden = m === 'crear'; });
         $('#cuenta-entrar').textContent = m === 'crear' ? 'Crear cuenta' : 'Entrar';
         $('#cuenta-clave').setAttribute('autocomplete',
           m === 'crear' ? 'new-password' : 'current-password');
@@ -7658,6 +7738,30 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         }).then(function () { b.disabled = false; b.textContent = etiqueta; });
       });
 
+      // Sin esto, quien olvida su contraseña pierde su biblioteca de la nube
+      // para siempre: no hay otra manera de volver a entrar.
+      $('#cuenta-olvido').addEventListener('click', function () {
+        var correo = $('#cuenta-email').value.trim();
+        var aviso  = $('#cuenta-aviso');
+        function di(t) { aviso.textContent = t; aviso.hidden = false; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+          di('Escribe arriba el correo de tu cuenta y vuelve a pulsar aquí.'); return;
+        }
+        var b = this, etiqueta = b.textContent;
+        b.disabled = true; b.textContent = 'Enviando…'; aviso.hidden = true;
+        nube.recupera(correo).then(function () {
+          di('Te hemos mandado un correo a ' + correo + '. Ábrelo en este mismo dispositivo y ' +
+             'te dejará escribir una contraseña nueva. Mira también en la carpeta de no deseado.');
+        }).catch(function (e) {
+          di(e.message || 'No se ha podido mandar el correo.');
+        }).then(function () { b.disabled = false; b.textContent = etiqueta; });
+      });
+
+      // Con la sesión abierta, cambiarla es solo escribir la nueva.
+      $('#cuenta-clave-nueva').addEventListener('click', function () {
+        pideClaveNueva('Escribe la contraseña nueva, de seis caracteres o más.');
+      });
+
       $('#cuenta-salir').addEventListener('click', function () {
         nube.sale().then(function () {
           yo = null; nubeMios = []; nubeLista = [];
@@ -7677,6 +7781,27 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
       refrescaCuenta();
       nube.alCambiar(function () { refrescaCuenta(); });
+
+      /* Cuando se vuelve del enlace de un correo, la sesión llega en la
+         dirección. La nube la recogía y guardaba, pero nadie miraba el
+         resultado: el usuario aterrizaba en la pizarra sin que nada le dijera
+         si había funcionado. Y en el caso de recuperar la contraseña hay que
+         pedirle una nueva ahí mismo, porque ese enlace es su única llave y
+         caduca. */
+      var regreso = nube.vuelta();
+      if (regreso) {
+        if (regreso.error) {
+          $('#cfg').click();
+          var av = $('#cuenta-aviso'); av.textContent = regreso.error; av.hidden = false;
+        } else if (regreso.recuperando) {
+          refrescaCuenta().then(function () {
+            pideClaveNueva('Tu cuenta está abierta. Escribe una contraseña nueva para no ' +
+                           'volver a perderla; con ella entrarás a partir de ahora.');
+          });
+        } else if (regreso.entrado) {
+          toast('Has entrado con tu cuenta');
+        }
+      }
     }
 
     pintaCuenta();
