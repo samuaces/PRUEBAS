@@ -53,6 +53,7 @@ const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');
 // La biblioteca común sí necesita servidor y aquí no lo hay, así que este
 // archivo va siempre sin ella: la configuración se deja vacía a propósito.
 const nube = leer('app/nube.js');
+const enlace = leer('app/enlace.js');
 
 const salida =
   cabecera + '\n' +
@@ -60,6 +61,7 @@ const salida =
   cuerpo + '\n' +
   '<script>window.PT_NUBE = { url: "", key: "" };</script>\n' +
   '<script>\n' + nube + '\n</script>\n' +
+  '<script>\n' + enlace + '\n</script>\n' +
   '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +
   '<script>\n' + motor + '\n</script>';
 

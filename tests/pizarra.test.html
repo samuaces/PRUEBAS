@@ -609,6 +609,48 @@ async function run(w,d){
      /trae la aplicación/.test(d.getElementById('lib-nota').textContent)&&
      /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
      d.getElementById('lib-nota').textContent);
+  // --- mandar la jugada por enlace ---
+  // La jugada viaja dentro del enlace. Lo que hay que comprobar no es que el
+  // texto sea bonito, sino que lo que entra sale idéntico: con su ficha, con
+  // sus fotogramas y, sobre todo, con la identidad de cada pieza intacta entre
+  // fotogramas, que es de lo que depende que la jugada se anime en vez de
+  // parpadear.
+  var E=w.PTEnlace;
+  ok('el enlace de la jugada está montado',!!E&&typeof E.direccion==='function');
+  if(E){
+    var jugada={pitch:'f7',view:'half',
+      card:{titulo:'Jugada de prueba',objetivo:'Comprobar el enlace',consignas:'Una\nY otra'},
+      frames:[0,1,2].map(function(i){return {
+        objects:[{id:'aa',kind:'player',team:'home',num:'7',x:10+i*3,y:20+i*1.5,rot:0},
+                 {id:'bb',kind:'cone',x:30,y:12,rot:45},
+                 {id:'cc',kind:'ball',x:11+i*3,y:21+i*1.5,rot:0}],
+        strokes:i===0?[{id:'dd',tool:'pass',color:'#F1C40F',width:0.32,
+                        pts:[{x:10,y:20},{x:22,y:26}]}]:[]};})};
+    var txt=await E.empaqueta(jugada);
+    var v=await E.desempaqueta(txt);
+    ok('la jugada vuelve entera del enlace',
+       !!v&&v.pitch==='f7'&&v.view==='half'&&v.frames.length===3,
+       v?v.pitch+' · '+v.frames.length+' fotogramas':'no vuelve');
+    ok('con su ficha',v&&v.card.titulo==='Jugada de prueba'&&/Y otra/.test(v.card.consignas||''));
+    ok('con sus trazos',v&&v.frames[0].strokes.length===1&&v.frames[0].strokes[0].tool==='pass');
+    ok('y con las posiciones en su sitio',
+       v&&Math.abs(v.frames[2].objects[0].x-16)<0.06&&Math.abs(v.frames[2].objects[0].y-23)<0.06,
+       v?v.frames[2].objects[0].x+','+v.frames[2].objects[0].y:'-');
+    var ids0=v?v.frames[0].objects.map(function(o){return o.id;}).sort().join(','):'';
+    ok('cada pieza conserva su identidad en todos los fotogramas (si no, no se anima)',
+       v&&v.frames.every(function(f){
+         return f.objects.map(function(o){return o.id;}).sort().join(',')===ids0;}),ids0);
+    ok('lo que se movía se ha movido y lo que no, no',
+       v&&v.frames[2].objects[0].x>v.frames[0].objects[0].x&&
+       v.frames[2].objects[1].x===v.frames[0].objects[1].x);
+    var dir=await E.direccion(jugada,'https://klym.xyz/app/');
+    ok('la dirección lleva la jugada detrás del #',/^https:\/\/klym\.xyz\/app\/#j=/.test(dir));
+    ok('y una jugada normal cabe en cualquier sitio',dir.length<E.comodo,dir.length+' caracteres');
+    var rotos=await Promise.all(['','basura','!!!','AAAA'].map(function(m){return E.desempaqueta(m);}));
+    ok('un enlace roto no revienta: devuelve nada',
+       rotos.every(function(x){return x===null||typeof x==='object';}));
+  }
+
   // --- la nube, esté configurada o no, no puede romper nada ---
   var conNube=w.PTNube&&w.PTNube.hay();
   // Compartir se ve siempre: si desaparece, quien lo busca cree que la

@@ -52,11 +52,13 @@ suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 selecciona todas las piezas de dentro; a partir de ahí se mueven, duplican o borran en
 bloque. Es lo que permite recolocar una línea entera de un arrastre.
 
-**Biblioteca.** Diez ejercicios vienen dentro de la aplicación —rondo, salida de balón,
-finalización tras centro, transición 3 contra 2, juego de posición, circuito de conducción,
-presión tras pérdida, córner, superioridad en fútbol 7 y ataque en 3-1 de sala—, cada uno con
-su pizarra montada y su ficha rellena. La biblioteca los lista junto a las pizarras que hayas
-guardado tú, con su miniatura.
+**Biblioteca.** Veinticuatro ejercicios vienen dentro de la aplicación: trece de fútbol 11,
+seis de fútbol 7 y cinco de fútbol sala, repartidos por momento del juego —calentamiento,
+técnica individual, ataque y defensa organizados, las dos transiciones, finalización, balón
+parado, porteros, físico-técnico y partido condicionado—, cada uno con su pizarra montada y su
+ficha rellena. La biblioteca los lista junto a las pizarras que hayas guardado tú, con su
+miniatura. `tests/catalogo.mjs` comprueba que todos se puedan dibujar de verdad: piezas dentro
+del campo y del encuadre, sin fichas superpuestas y con la ficha completa.
 
 **No mezcla disciplinas**: abre siempre en una sola modalidad, la que tengas puesta como
 predeterminada —fútbol 11 mientras no cambies nada—, y para ver fútbol 7 o sala hay que
@@ -68,7 +70,7 @@ biblioteca y con la que empieza cada pizarra nueva, sin tocar la que tengas abie
 categoría o equipo, que se rellena sola en cada ficha. Se guarda en el navegador, aparte del
 documento: no es de una pizarra, es de quien la usa.
 
-Los mismos diez sirven de **plantilla** desde la ficha: un selector rellena título, objetivo,
+Los mismos sirven de **plantilla** desde la ficha: un selector rellena título, objetivo,
 descripción, consignas, normas, variantes y todos los datos de organización, y deja intactas
 la categoría, la fecha y la sesión, que son tuyas.
 
@@ -193,6 +195,12 @@ en [`supabase/README.md`](supabase/README.md)—, y se hace una vez en unos diez
 Cómo queda repartido:
 
 - **Sin cuenta** se usa la pizarra entera y se ve la biblioteca común. No se manda nada.
+- **Una jugada se manda por enlace** sin tocar el servidor: va entera dentro del enlace,
+  detrás del `#`. El navegador nunca manda al servidor lo que hay después del `#`, así que la
+  jugada solo existe en los dos dispositivos. El enlace no caduca, no hay nada que moderar y
+  no hace falta cuenta. Cabe: una jugada normal ocupa 500-1.400 caracteres y una animación de
+  24 fotogramas con su ficha, unos 2.000, porque del segundo fotograma en adelante solo viaja
+  lo que ha cambiado. El montaje está en `app/enlace.js`.
 - **Con cuenta** —correo y contraseña, sin confirmación ni enlaces— se comparten ejercicios y
   se recuperan desde cualquier dispositivo.
 - **Si se olvida la contraseña** se pide un correo con un enlace para ponerse otra, y con la
