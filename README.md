@@ -200,7 +200,10 @@ Cómo queda repartido:
   jugada solo existe en los dos dispositivos. El enlace no caduca, no hay nada que moderar y
   no hace falta cuenta. Cabe: una jugada normal ocupa 500-1.400 caracteres y una animación de
   24 fotogramas con su ficha, unos 2.000, porque del segundo fotograma en adelante solo viaja
-  lo que ha cambiado. El montaje está en `app/enlace.js`.
+  lo que ha cambiado. El montaje está en `app/enlace.js`. Se manda desde el menú de la pizarra
+  y, sobre todo, desde la propia biblioteca: **cada ejercicio lleva su botón de compartir**, y
+  se pasa sin abrirlo. El enlace se va preparando al apoyar el dedo, no al soltarlo, porque
+  Safari solo abre la hoja de compartir del teléfono si se le pide dentro del mismo gesto.
 - **Con cuenta** —correo y contraseña, sin confirmación ni enlaces— se comparten ejercicios y
   se recuperan desde cualquier dispositivo.
 - **Si se olvida la contraseña** se pide un correo con un enlace para ponerse otra, y con la

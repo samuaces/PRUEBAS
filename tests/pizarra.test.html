@@ -609,6 +609,43 @@ async function run(w,d){
      /trae la aplicación/.test(d.getElementById('lib-nota').textContent)&&
      /\d+\/\d+\/\d{4}/.test(d.getElementById('lib-nota').textContent),
      d.getElementById('lib-nota').textContent);
+  /* --- compartir desde la biblioteca ---
+     Pasarle un ejercicio a otro entrenador se hace con la biblioteca delante,
+     no después de abrirlo. Por eso el botón tiene que estar en TODAS las
+     tarjetas, y lo que mande tiene que ser ese ejercicio y no lo que hubiera en
+     la pizarra. */
+  var tarjetas=d.querySelectorAll('.lib-card');
+  var conIcono=d.querySelectorAll('.lib-card .lib-pie .tbtn.icono');
+  ok('cada ejercicio lleva su botón de compartir',
+     tarjetas.length>0&&conIcono.length===tarjetas.length,
+     conIcono.length+' de '+tarjetas.length);
+  if(conIcono.length){
+    var bIco=conIcono[0],rIco=bIco.getBoundingClientRect();
+    ok('el botón de compartir se ve y se puede pulsar con el dedo',
+       !!bIco.querySelector('svg')&&rIco.width>=34&&rIco.height>=34,
+       Math.round(rIco.width)+'×'+Math.round(rIco.height)+' px');
+    ok('y dice lo que hace, también a quien no lo ve',
+       /por enlace/.test(bIco.title||'')&&bIco.getAttribute('aria-label')===bIco.title,
+       bIco.title);
+
+    // Se finge la hoja del teléfono para ver qué se le entrega.
+    var mandado=null,shareAntes=w.navigator.share;
+    try{w.navigator.share=function(x){mandado=x;return Promise.resolve();};}catch(e){}
+    if(w.navigator.share!==shareAntes){
+      var suNombre=tarjetas[0].querySelector('.lib-txt b').textContent;
+      bIco.click();await wait(700);
+      ok('pulsar compartir abre la hoja del teléfono con ese ejercicio',
+         !!mandado&&mandado.text===suNombre,mandado?mandado.text:'(no se abrió)');
+      ok('y la jugada va dentro del enlace, detrás del #',
+         !!mandado&&/#[^#]+=/.test(mandado.url||''),
+         mandado?(mandado.url||'').length+' caracteres':'');
+      ok('compartir no es abrir: la biblioteca se queda donde estaba',
+         d.getElementById('dlg-lib').open&&
+         d.querySelectorAll('.lib-card').length===tarjetas.length);
+      try{w.navigator.share=shareAntes;}catch(e){}
+    }
+  }
+
   // --- mandar la jugada por enlace ---
   // La jugada viaja dentro del enlace. Lo que hay que comprobar no es que el
   // texto sea bonito, sino que lo que entra sale idéntico: con su ficha, con

@@ -18,7 +18,9 @@ async function suite(archivo) {
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.goto('http://localhost:8899/tests/' + archivo, { waitUntil: 'networkidle0' });
-  await page.waitForFunction(() => /^(OK|FALLOS)/.test(document.title), { timeout: 60000 });
+  // La batería ronda el minuto y medio y va creciendo con cada función nueva.
+  // El tope está para avisar de un cuelgue, no para cortar una prueba lenta.
+  await page.waitForFunction(() => /^(OK|FALLOS)/.test(document.title), { timeout: 240000 });
   const out = await page.$eval('#out', el => el.textContent);
   console.log(out);
   await page.close();

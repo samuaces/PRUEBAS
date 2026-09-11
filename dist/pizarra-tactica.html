@@ -542,6 +542,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-pie .tbtn{padding:7px 12px;font-size:12.5px}
 .lib-pie .tbtn.sutil{opacity:.6}
 .lib-pie .tbtn.sutil:hover{opacity:1}
+/* Mandar el ejercicio por enlace: solo el icono, que el pie ya va justo de
+   sitio y la flecha se entiende sola. Cuadrado de 34 px, que es lo que pide
+   un dedo. */
+.lib-pie .tbtn.icono{padding:0;width:34px;height:34px;flex:0 0 auto;
+  display:inline-flex;align-items:center;justify-content:center;
+  /* Con su cajita y su borde: un icono suelto, sin nada detrás, no se lee como
+     algo que se pueda pulsar. */
+  background:var(--glass-2);border:1px solid var(--line);color:var(--text);
+  box-shadow:inset 0 1px 0 var(--sheen)}
+.lib-pie .tbtn.icono:hover{background:var(--glass-3);border-color:var(--line-strong)}
+.lib-pie .tbtn.icono svg{width:17px;height:17px;display:block}
 @media (max-width:560px){
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr}   /* a 16 px, dos por fila se cortan */
@@ -1848,12 +1859,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return bytes;
   }
 
+  /* El lado por el que se mete el texto en el comprimidor también avisa de los
+     fallos, además del lado por el que sale. Con un enlace cortado los dos se
+     quejan, y la queja del de entrada no la recoge nadie: el navegador la da
+     por error suelto de la página aunque el enlace roto ya esté resuelto y
+     avisado. Aquí se recoge y se calla; el aviso bueno sigue llegando por el
+     lado de salida, que es el que lee quien llama. */
+  function calla(p) { if (p && p.catch) p.catch(function () {}); }
+
   function comprime(texto) {
     var bytes = new TextEncoder().encode(texto);
     if (!HAY_ZIP) return Promise.resolve({ zip: false, bytes: bytes });
     var cs = new CompressionStream('deflate-raw');
     var w = cs.writable.getWriter();
-    w.write(bytes); w.close();
+    calla(w.write(bytes)); calla(w.close());
     return new Response(cs.readable).arrayBuffer()
       .then(function (b) { return { zip: true, bytes: new Uint8Array(b) }; })
       .catch(function () { return { zip: false, bytes: bytes }; });
@@ -1864,7 +1883,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!HAY_ZIP) return Promise.reject(new Error('Este navegador no sabe abrir este enlace'));
     var ds = new DecompressionStream('deflate-raw');
     var w = ds.writable.getWriter();
-    w.write(bytes); w.close();
+    calla(w.write(bytes)); calla(w.close());
     return new Response(ds.readable).arrayBuffer()
       .then(function (b) { return new TextDecoder().decode(new Uint8Array(b)); });
   }
@@ -8205,6 +8224,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   function icoPlay() { return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>'; }
   function icoPause() { return '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg>'; }
+  /* El de compartir de toda la vida —la cajita con la flecha saliendo—, que es
+     el mismo que enseña el teléfono al pulsar. */
+  function icoCompartir() {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+           '<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/>' +
+           '<path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+  }
 
   /* =========================================================================
      Guardar, abrir y exportar
@@ -8987,11 +9014,32 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      servidor, sin caducidad y sin que la jugada salga de los dos dispositivos
      —lo que va detrás del # ni se manda al abrir la dirección—. Quien lo recibe
      pincha y le sale la jugada montada, con su ficha.
+
+     Se manda lo que haya en la pizarra, o —desde la biblioteca— el ejercicio
+     que se señale, sin tener que abrirlo antes.
      ---------------------------------------------------------------------- */
-  function enviaPorEnlace() {
+  /* El enlace se va preparando al apoyar el dedo, antes de soltarlo.
+
+     No es un capricho: armar el enlace lleva su milisegundo, y Safari solo deja
+     abrir la hoja de compartir del teléfono si se le pide en el mismo gesto del
+     usuario, no después de esperar a nada. Preparándolo en el «pointerdown»,
+     cuando llega el «click» ya está hecho y la hoja se abre. Si no diera tiempo,
+     se sigue por el camino de siempre y, como mucho, el enlace se copia. */
+  var enlaceEnCamino = null;
+  function preparaEnlace(jugada) {
+    if (!window.PTEnlace) return;
+    var mio = enlaceEnCamino = { jugada: jugada, url: null };
+    PTEnlace.direccion(jugada).then(function (url) {
+      if (enlaceEnCamino === mio) mio.url = url;
+    }, function () { if (enlaceEnCamino === mio) enlaceEnCamino = null; });
+  }
+
+  function enviaPorEnlace(cual, comoSeLlama) {
     if (!window.PTEnlace) { toast('Este navegador no puede hacer el enlace'); return; }
-    var titulo = (doc.card && doc.card.titulo || '').trim();
-    PTEnlace.direccion(doc).then(function (url) {
+    var jugada = cual || doc;
+    var titulo = comoSeLlama || (jugada.card && jugada.card.titulo || '').trim();
+
+    function conLaDireccion(url) {
       if (url.length > PTEnlace.comodo) {
         /* Un enlace muy largo lo abre bien el navegador, pero algunas
            aplicaciones de mensajería lo parten por la mitad y llega roto. Se
@@ -9008,7 +9056,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         return;
       }
       mandaEnlace(url, titulo);
-    }).catch(function () { toast('No se ha podido preparar el enlace'); });
+    }
+
+    // Si ya se preparó al apoyar el dedo, se manda aquí mismo, sin esperar.
+    if (enlaceEnCamino && enlaceEnCamino.jugada === jugada && enlaceEnCamino.url) {
+      conLaDireccion(enlaceEnCamino.url);
+      return;
+    }
+    PTEnlace.direccion(jugada).then(conLaDireccion)
+      .catch(function () { toast('No se ha podido preparar el enlace'); });
   }
 
   function mandaEnlace(url, titulo) {
@@ -9074,6 +9130,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
                  '. Si la abres, se cambiará lo que tienes ahora en la pizarra.',
         ok: 'Abrir la jugada'
       }).then(function (si) { if (si) abre(); });
+    }).catch(function () {
+      // Pase lo que pase con un enlace de fuera, la pizarra sigue en pie.
+      toast('Ese enlace no trae ninguna jugada, o ha llegado cortado');
     });
   }
 
@@ -9336,6 +9395,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       marca.textContent = firmaItem(it);
       if (it.fuente === 'nube' && !it.publicado) marca.classList.add('privado');
       pie.appendChild(marca);
+
+      /* Cualquier ejercicio se manda por enlace sin abrirlo antes: es lo que se
+         hace con la biblioteca delante, pasarle uno a otro entrenador. Va con
+         el icono de compartir de siempre —el de la flecha saliendo— para que se
+         reconozca sin leer, y abre la hoja del teléfono: WhatsApp, correo,
+         lo que tenga puesto. */
+      var enlazar = document.createElement('button');
+      enlazar.className = 'tbtn icono';
+      enlazar.title = 'Mandar «' + (it.nombre || 'este ejercicio') + '» por enlace';
+      enlazar.setAttribute('aria-label', enlazar.title);
+      enlazar.innerHTML = icoCompartir();
+      enlazar.addEventListener('pointerdown', function () { preparaEnlace(itemDoc(it)); });
+      enlazar.addEventListener('click', function () {
+        enviaPorEnlace(itemDoc(it), it.nombre || '');
+      });
+      pie.appendChild(enlazar);
 
       var abrir = document.createElement('button');
       abrir.className = 'tbtn primary'; abrir.textContent = 'Abrir';
@@ -10437,6 +10512,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
 
     // ---- Cuenta y biblioteca común ----
+    $('#enlace').addEventListener('pointerdown', function () { preparaEnlace(doc); });
     $('#enlace').addEventListener('click', function () { sheetClose(); enviaPorEnlace(); });
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
