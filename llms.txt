@@ -67,6 +67,11 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   consignas, normas y variantes, que se imprime en una página A4 con el dibujo de la
   pizarra. Un botón rellena solos los jugadores, el material y el espacio contando lo
   que hay en el campo. La ficha se guarda dentro de la pizarra.
+- Una jugada se manda por enlace: la jugada entera —piezas, trazos, fotogramas y ficha— viaja
+  DENTRO del enlace, detrás del #. Sin cuenta, sin servidor, sin caducidad y sin que salga de
+  los dos dispositivos: lo que va detrás del # ni siquiera se manda al abrir la dirección.
+  Quien lo recibe pincha y le aparece la jugada montada. Una jugada normal ocupa entre 500 y
+  1.400 caracteres; una animación de 24 fotogramas con su ficha, unos 2.000.
 - Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.
 - Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
 - Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
@@ -74,11 +79,12 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
 
 ## Qué NO hace todavía
 
-- No permite compartir una pizarra concreta por enlace, ni trabajar dos personas a la vez
-  sobre la misma.
+- No permite que dos personas trabajen a la vez sobre la misma pizarra.
 
 ## Privacidad
 
 Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras que se guardan viven en
 el almacenamiento local del navegador. Al servidor solo va lo que el usuario comparte a
 propósito y, si entra, su correo, que no ve nadie más. Sin cuenta no se manda nada.
+Una jugada mandada por enlace tampoco pasa por ningún servidor: va dentro del propio
+enlace, detrás del #, y esa parte de la dirección el navegador no la manda nunca.

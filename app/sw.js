@@ -8,7 +8,7 @@
 
    Lo que no cambia nunca (tipografías e iconos) sí sale de la copia primero,
    que para eso es lo que hace que la aplicación abra al instante. */
-var CACHE = 'pizarra-tactica-v5';
+var CACHE = 'pizarra-tactica-v6';
 
 var SHELL = [
   './',
@@ -17,6 +17,7 @@ var SHELL = [
   './board.js',
   './config.js',
   './nube.js',
+  './enlace.js',
   '../assets/biblioteca.json',
   '../site.webmanifest',
   '../assets/fonts/outfit-latin-var.woff2',

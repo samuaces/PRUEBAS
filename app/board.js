@@ -2625,6 +2625,103 @@
     alPortapapeles();
   }
 
+  /* -------------------------------------------------------------------------
+     Mandar la jugada por enlace.
+
+     La jugada va dentro del propio enlace, detrás del #: sin cuenta, sin
+     servidor, sin caducidad y sin que la jugada salga de los dos dispositivos
+     —lo que va detrás del # ni se manda al abrir la dirección—. Quien lo recibe
+     pincha y le sale la jugada montada, con su ficha.
+     ---------------------------------------------------------------------- */
+  function enviaPorEnlace() {
+    if (!window.PTEnlace) { toast('Este navegador no puede hacer el enlace'); return; }
+    var titulo = (doc.card && doc.card.titulo || '').trim();
+    PTEnlace.direccion(doc).then(function (url) {
+      if (url.length > PTEnlace.comodo) {
+        /* Un enlace muy largo lo abre bien el navegador, pero algunas
+           aplicaciones de mensajería lo parten por la mitad y llega roto. Se
+           avisa y se deja decidir, que para eso es su jugada. */
+        ask({
+          title: 'El enlace sale muy largo',
+          message: 'Esta jugada tiene muchos fotogramas y el enlace ocupa ' +
+                   url.length + ' caracteres. El navegador lo abre sin problema, pero ' +
+                   'algunas aplicaciones de mensajería cortan los enlaces largos y ' +
+                   'llegaría roto.\n\nPuedes quitarle fotogramas, o mandar el archivo ' +
+                   'desde Exportar, que no tiene límite.',
+          ok: 'Mandarlo igual'
+        }).then(function (si) { if (si) mandaEnlace(url, titulo); });
+        return;
+      }
+      mandaEnlace(url, titulo);
+    }).catch(function () { toast('No se ha podido preparar el enlace'); });
+  }
+
+  function mandaEnlace(url, titulo) {
+    var nombre = titulo || 'una jugada';
+    function alPortapapeles() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(
+          function () { toast('Enlace copiado. Pégalo donde quieras mandarlo'); },
+          function () { aMano(); });
+      } else aMano();
+    }
+    function aMano() {
+      // Si ni se puede compartir ni copiar, al menos que se vea para copiarlo.
+      showFile(new Blob([url], { type: 'text/plain' }), 'enlace.txt');
+      var n = $('#file-note');
+      if (n) n.textContent = 'Este es el enlace de la jugada. Cópialo y mándalo.';
+    }
+    if (navigator.share) {
+      navigator.share({ title: 'Pizarra Táctica', text: nombre, url: url })
+        .catch(function (e) { if (!e || e.name !== 'AbortError') alPortapapeles(); });
+      return;
+    }
+    alPortapapeles();
+  }
+
+  /* Al abrir, mirar si la dirección trae una jugada dentro.
+
+     Quien recibe el enlace casi nunca usa la aplicación: si no tiene nada
+     guardado, se le abre la jugada directamente, que es lo que espera al
+     pinchar. Si sí tiene algo suyo en la pizarra, se pregunta antes: perder el
+     trabajo de otro sin avisar no lo arregla ningún enlace. */
+  function abreLoQueTraeElEnlace() {
+    if (!window.PTEnlace) return;
+    var dato = PTEnlace.loQueTraeLaDireccion();
+    if (!dato) return;
+    PTEnlace.limpiaDireccion();          // que una recarga no lo repita
+
+    var habia = false;
+    try { habia = !!localStorage.getItem('pt-autosave'); } catch (e) {}
+
+    PTEnlace.desempaqueta(dato).then(function (d) {
+      if (!d || !d.frames || !d.frames.length) {
+        toast('Ese enlace no trae ninguna jugada, o ha llegado cortado');
+        return;
+      }
+      var limpio = saneaDoc(d);          // por la misma aduana que todo lo demás
+      var nombre = (limpio.card && limpio.card.titulo || '').trim() || 'La jugada';
+
+      function abre() {
+        doc = limpio;
+        ui.frame = 0; ui.sel = null; ui.multi = [];
+        syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
+        hint('');
+        toast('«' + nombre + '» abierta' +
+              (limpio.frames.length > 1 ? ' · ' + limpio.frames.length + ' fotogramas' : ''));
+      }
+
+      if (!habia) { abre(); return; }
+      ask({
+        title: nombre,
+        message: 'Te han mandado esta jugada' +
+                 (limpio.frames.length > 1 ? ', de ' + limpio.frames.length + ' fotogramas' : '') +
+                 '. Si la abres, se cambiará lo que tienes ahora en la pizarra.',
+        ok: 'Abrir la jugada'
+      }).then(function (si) { if (si) abre(); });
+    });
+  }
+
   // Compartir no pide cuenta: como mucho, tu nombre la primera vez, para que
   // el ejercicio vaya firmado. Se guarda y no se vuelve a preguntar.
 
@@ -3985,6 +4082,7 @@
     });
 
     // ---- Cuenta y biblioteca común ----
+    $('#enlace').addEventListener('click', function () { sheetClose(); enviaPorEnlace(); });
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
     if (hayNube) {
@@ -4370,6 +4468,16 @@
         : 'Arrastra las fichas · pulsa <b>+</b> en la línea de tiempo y mueve la jugada para animarla');
     }, 700);
     setTimeout(function () { hint(''); }, 7000);
+
+    // Lo último: si la dirección trae una jugada, se abre. Va al final para que
+    // la pizarra ya esté montada y se pueda sustituir sin sobresaltos.
+    abreLoQueTraeElEnlace();
+
+    /* Y si llega un enlace con la aplicación YA abierta. Cambiar solo lo que va
+       detrás del # no recarga la página —el navegador se limita a mover el
+       ancla—, así que sin esto el enlace no hacía nada: te quedabas mirando tu
+       pizarra de siempre preguntándote por qué no se abría la jugada. */
+    window.addEventListener('hashchange', function () { abreLoQueTraeElEnlace(); });
   }
 
   /* Red de seguridad del arranque. Si algo se rompe montando la pizarra, lo
