@@ -575,12 +575,32 @@ async function run(w,d){
   var selP=d.getElementById('lib-pitch');
   selP.value='futsal';selP.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
   var soloSala=[].every.call(d.querySelectorAll('.lib-tags'),function(t){return /sala/i.test(t.textContent);});
-  ok('el filtro de modalidad deja solo esa modalidad',soloSala&&d.querySelectorAll('.lib-card').length>0);
+  var cuantasSala=d.querySelectorAll('.lib-card').length;
+  ok('el filtro de modalidad deja solo esa modalidad',soloSala&&cuantasSala>0);
 
+  /* Que los filtros se combinan no se comprueba buscando una pareja que no dé
+     nada: eso deja de valer en cuanto el catálogo crece y alguien añade justo
+     ese ejercicio. Se comprueba mirando que lo que queda cumple LOS DOS y que
+     son menos que con un filtro solo. */
   var selM=d.getElementById('lib-momento');
   selM.value='Balón parado';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
-  ok('los filtros se combinan',d.querySelectorAll('.lib-card').length===0,
-     d.getElementById('lib-cuenta').textContent);
+  var conDos=d.querySelectorAll('.lib-card').length;
+  ok('los filtros se combinan: lo que queda cumple los dos',
+     conDos>0&&[].every.call(d.querySelectorAll('.lib-card .lib-tags'),function(t){
+       return /sala/i.test(t.textContent)&&/Balón parado/i.test(t.textContent);}),
+     conDos+' de '+cuantasSala+' de sala');
+  ok('y combinar filtra más que uno solo',conDos<cuantasSala,conDos+' < '+cuantasSala);
+
+  selM.value='Físico-técnico';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
+  /* Los dos mensajes valen: si la biblioteca común todavía está viniendo, lo
+     honrado es decir «trayendo» y no «no hay nada», porque puede que sí haya.
+     Exigir uno de los dos hacía que la prueba fallara o no según lo que tardara
+     el servidor en contestar. */
+  ok('una combinación sin resultados se queda vacía y lo dice',
+     d.querySelectorAll('.lib-card').length===0&&
+     /Ningún ejercicio|Trayendo/i.test(d.getElementById('lib-grid').textContent),
+     d.getElementById('lib-grid').textContent.slice(0,50));
+  selM.value='';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(200);
 
   d.getElementById('lib-limpiar').click();await wait(300);
   ok('quitar filtros vuelve a tu modalidad, no a todo',

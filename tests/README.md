@@ -25,3 +25,19 @@ node tests/run-headless.mjs
 ```
 
 Necesita un Chromium local; ajusta `executablePath` en `run-headless.mjs`.
+
+## El catálogo
+
+`catalogo.mjs` revisa los ejercicios que trae la aplicación (`assets/biblioteca.json`):
+que cada uno se pueda dibujar de verdad —modalidad y encuadre que existan, piezas que el
+motor sepa pintar, nada fuera del campo ni fuera del encuadre con el que se abre, fichas
+sin encimarse— y que la ficha esté completa y su momento sea uno de los que ofrece el
+filtro de la biblioteca. Colocando un ejercicio a ojo sobre la pantalla es fácil dejarse
+una pieza fuera del medio campo o dos fichas superpuestas, y eso no se nota hasta que
+alguien lo abre.
+
+```bash
+node tests/catalogo.mjs
+```
+
+No necesita navegador ni servidor.
