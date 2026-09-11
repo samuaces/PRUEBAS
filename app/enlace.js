@@ -55,12 +55,20 @@
     return bytes;
   }
 
+  /* El lado por el que se mete el texto en el comprimidor también avisa de los
+     fallos, además del lado por el que sale. Con un enlace cortado los dos se
+     quejan, y la queja del de entrada no la recoge nadie: el navegador la da
+     por error suelto de la página aunque el enlace roto ya esté resuelto y
+     avisado. Aquí se recoge y se calla; el aviso bueno sigue llegando por el
+     lado de salida, que es el que lee quien llama. */
+  function calla(p) { if (p && p.catch) p.catch(function () {}); }
+
   function comprime(texto) {
     var bytes = new TextEncoder().encode(texto);
     if (!HAY_ZIP) return Promise.resolve({ zip: false, bytes: bytes });
     var cs = new CompressionStream('deflate-raw');
     var w = cs.writable.getWriter();
-    w.write(bytes); w.close();
+    calla(w.write(bytes)); calla(w.close());
     return new Response(cs.readable).arrayBuffer()
       .then(function (b) { return { zip: true, bytes: new Uint8Array(b) }; })
       .catch(function () { return { zip: false, bytes: bytes }; });
@@ -71,7 +79,7 @@
     if (!HAY_ZIP) return Promise.reject(new Error('Este navegador no sabe abrir este enlace'));
     var ds = new DecompressionStream('deflate-raw');
     var w = ds.writable.getWriter();
-    w.write(bytes); w.close();
+    calla(w.write(bytes)); calla(w.close());
     return new Response(ds.readable).arrayBuffer()
       .then(function (b) { return new TextDecoder().decode(new Uint8Array(b)); });
   }

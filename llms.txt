@@ -71,7 +71,9 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   DENTRO del enlace, detrás del #. Sin cuenta, sin servidor, sin caducidad y sin que salga de
   los dos dispositivos: lo que va detrás del # ni siquiera se manda al abrir la dirección.
   Quien lo recibe pincha y le aparece la jugada montada. Una jugada normal ocupa entre 500 y
-  1.400 caracteres; una animación de 24 fotogramas con su ficha, unos 2.000.
+  1.400 caracteres; una animación de 24 fotogramas con su ficha, unos 2.000. Se manda desde el
+  menú de la pizarra y desde la biblioteca: cada ejercicio lleva su botón de compartir y se
+  pasa sin abrirlo, por la hoja del teléfono —WhatsApp, correo, lo que haya—.
 - Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.
 - Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
 - Guardado en el navegador, exportación del fotograma a PNG, exportación e importación

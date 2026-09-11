@@ -533,6 +533,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-pie .tbtn{padding:7px 12px;font-size:12.5px}
 .lib-pie .tbtn.sutil{opacity:.6}
 .lib-pie .tbtn.sutil:hover{opacity:1}
+/* Mandar el ejercicio por enlace: solo el icono, que el pie ya va justo de
+   sitio y la flecha se entiende sola. Cuadrado de 34 px, que es lo que pide
+   un dedo. */
+.lib-pie .tbtn.icono{padding:0;width:34px;height:34px;flex:0 0 auto;
+  display:inline-flex;align-items:center;justify-content:center;
+  /* Con su cajita y su borde: un icono suelto, sin nada detrás, no se lee como
+     algo que se pueda pulsar. */
+  background:var(--glass-2);border:1px solid var(--line);color:var(--text);
+  box-shadow:inset 0 1px 0 var(--sheen)}
+.lib-pie .tbtn.icono:hover{background:var(--glass-3);border-color:var(--line-strong)}
+.lib-pie .tbtn.icono svg{width:17px;height:17px;display:block}
 @media (max-width:560px){
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr}   /* a 16 px, dos por fila se cortan */
