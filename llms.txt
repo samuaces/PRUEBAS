@@ -36,16 +36,17 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   como GIF animado. Todo se genera en el navegador.
 - Regla para medir distancias reales sobre el campo.
 - Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
-- Biblioteca con diez ejercicios que vienen dentro de la aplicación —rondo, salida de balón,
-  finalización, transición, juego de posición, circuito, presión tras pérdida, córner,
-  superioridad en fútbol 7 y ataque en 3-1 de sala—, cada uno con su pizarra montada y su
+- Biblioteca con veinticuatro ejercicios que vienen dentro de la aplicación —trece de fútbol 11,
+  seis de fútbol 7 y cinco de fútbol sala—, repartidos por momento del juego: calentamiento,
+  técnica individual, ataque y defensa organizados, las dos transiciones, finalización, balón
+  parado, porteros, físico-técnico y partido condicionado. Cada uno trae su pizarra montada y su
   ficha rellena, más las pizarras que haya guardado el usuario. La lista abre siempre en una
   sola modalidad —la predeterminada del usuario, fútbol 11 si no ha elegido otra— y no mezcla
   disciplinas; para ver fútbol 7 o sala hay que seleccionarlo. Se filtra además por momento
   del juego, duración o texto libre.
 - La ficha va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
   rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
-- La biblioteca tiene dos pestañas: la general —los diez que trae la aplicación en
+- La biblioteca tiene dos pestañas: la general —los que trae la aplicación en
   assets/biblioteca.json más todo lo que van compartiendo los demás entrenadores, firmado con
   su nombre y su club— y las del propio usuario: lo guardado en ese navegador y, si ha entrado
   con su correo, lo que haya subido. Compartir es voluntario: lo que sube un entrenador es
