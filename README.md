@@ -181,6 +181,7 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 ├── supabase/                      schema.sql y cómo montar la biblioteca común
 ├── tools/                         build-single.mjs (archivo único) y build-icons.mjs (marca e iconos)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
+├── docs/PENDIENTE.md              Lo decidido y aún no construido, con su porqué
 ├── tests/                         Batería de pruebas de la pizarra en el navegador
 └── .github/workflows/deploy-pages.yml
 ```

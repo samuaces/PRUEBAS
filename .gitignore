@@ -1,2 +1,11 @@
 node_modules/
 *.pdf
+
+# La llave service_role de Supabase, cuando se monte el panel del ordenador
+# (docs/PENDIENTE.md). Puesto de antemano a propósito: quien tiene esa llave
+# tiene la base de datos entera, y un despiste al hacer «git add» la publicaría
+# para siempre. Mejor que el cortafuegos esté antes que el archivo.
+.env
+.env.*
+secretos.json
+supabase.local.json
