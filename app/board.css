@@ -1069,6 +1069,25 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    pantalla que se usa con el pulgar: se les pone. */
 .ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
 
+/* ---- proponer una sesión ----
+   Dos columnas en el móvil: son seis casillas cortas y una debajo de otra se
+   hacía una tira larguísima para preguntar seis cosas de una línea cada una. */
+.gen-campos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 4px}
+.gen-campos > *{min-width:0}
+.gen-campos .field.wide{grid-column:1 / -1}
+.gen-campos input,.gen-campos select{min-height:var(--touch)}
+@media (min-width:480px){ .gen-campos{grid-template-columns:repeat(3,1fr)} }
+/* El porqué de cada ejercicio, en la fila y en voz baja: es el argumento, no
+   el dato. Puede dar dos líneas antes que cortarse, porque una razón a medias
+   no sirve de nada. */
+#gen-lista .gen-porque{color:var(--brand-2);opacity:.85;white-space:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gen-lista .ses-ej-med{padding:6px 0}
+#gen-avisos .stats-olvido{margin:0 0 8px}
+/* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
+   rótulo del botón de al lado. */
+#gen-salida{margin-top:18px}
+
 /* ---- barras ----
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
    la fila se lea de un vistazo sin ocupar dos alturas. */

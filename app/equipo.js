@@ -911,6 +911,301 @@
     };
   }
 
+  /* =========================================================================
+     EL GENERADOR DE SESIONES
+
+     Le dices con cuántos estás, en cuánto campo y cuánto rato, y te propone una
+     sesión. No inventa ejercicios: elige entre los que ya hay —los del catálogo
+     y los tuyos— y los ordena.
+
+     Dos maneras de decidir QUÉ trabajar:
+
+       Por tus datos. Lo que menos has tocado esta temporada manda, y lo que
+       lleva más de tres semanas sin salir manda todavía más. Sale del mismo
+       radar que ya ves en Datos, así que la propuesta y el gráfico dicen lo
+       mismo: no hay dos opiniones dentro de la aplicación.
+
+       Por contexto. Un martes de carga y una víspera de partido no se parecen
+       en nada, y eso no lo dice ninguna estadística: lo dice el calendario. Los
+       contextos son plantillas de microciclo, con el orden que tiene una sesión
+       de verdad —calentar, la parte principal, y acabar compitiendo—.
+
+     Y cada ejercicio elegido dice POR QUÉ está ahí. Una propuesta que no se
+     explica no se puede discutir, y entonces o te la crees entera o la tiras
+     entera; ninguna de las dos cosas es lo que hace un entrenador.
+     ====================================================================== */
+
+  /* Cuánta gente de campo pide un ejercicio, leyendo lo que hay escrito.
+     Igual que con las duraciones: de lo más seguro a lo más dudoso, y lo que no
+     se entiende se dice que no se entiende en vez de inventarlo.
+
+       «4 vs 2»                    6
+       «6 vs 6 + 3 comodines»      15
+       «6 atacantes y 5 defensores» 11
+       «5 + portero»               5     (el portero va aparte)
+       «Grupo entero»              null  (los que haya) */
+  function jugadoresDe(texto) {
+    var t = String(texto == null ? '' : texto).toLowerCase();
+    if (!t.trim()) return null;
+    if (/grupo entero|los que haya|toda la plantilla|todo el grupo/.test(t)) return null;
+
+    var suma = null;
+    var vs = /(\d+)\s*(?:vs|v\.?s\.?|contra|x)\s*(\d+)/.exec(t);
+    if (vs) suma = Number(vs[1]) + Number(vs[2]);
+
+    if (suma === null) {
+      var bandos = /(\d+)\s*atacantes?\s*(?:y|contra|vs)\s*(\d+)\s*defensores?/.exec(t);
+      if (bandos) suma = Number(bandos[1]) + Number(bandos[2]);
+    }
+    if (suma === null) {
+      // «5 + portero», «1 portero + 1 lanzador»: el primer número que NO sea
+      // el de los porteros.
+      var solo = /(\d+)\s*(?:\+|jugadores?|de campo)/.exec(t.replace(/\d+\s*porteros?/g, ''));
+      if (solo) suma = Number(solo[1]);
+    }
+    if (suma === null) return null;
+
+    var comodines = /\+\s*(\d+)\s*comod/.exec(t);
+    if (comodines) suma += Number(comodines[1]);
+    return suma > 0 && suma <= 60 ? suma : null;
+  }
+
+  // Cuántos porteros pide. «Sin portero» es cero, y cero no es «da igual».
+  function porterosDe(texto) {
+    var t = String(texto == null ? '' : texto).toLowerCase().trim();
+    if (!t) return null;
+    if (/sin porter/.test(t)) return 0;
+    var n = /(\d+)/.exec(t);
+    return n ? Number(n[1]) : null;
+  }
+
+  /* El espacio, por tamaños que se contienen: lo que cabe en un área cabe en
+     medio campo, y lo que cabe en medio campo cabe en el campo entero. Al revés
+     no. «blank» es la pizarra sin campo: vale en cualquier sitio. */
+  var ESPACIOS = [
+    { id: 'area', nombre: 'Un área o un cuadrado', nivel: 1 },
+    { id: 'half', nombre: 'Medio campo',           nivel: 2 },
+    { id: 'full', nombre: 'El campo entero',       nivel: 3 }
+  ];
+  function nivelEspacio(id) {
+    if (id === 'blank') return 0;
+    for (var i = 0; i < ESPACIOS.length; i++) if (ESPACIOS[i].id === id) return ESPACIOS[i].nivel;
+    return 3;
+  }
+
+  /* Los contextos. Son plantillas de microciclo: el orden de los momentos que
+     tiene una sesión de ese día. No llevan minutos porque los minutos los pone
+     el que entrena, que sabe de cuánto rato dispone. */
+  /* «relleno» es de lo que se puede tirar si sobra tiempo, y NO es lo mismo que
+     el plan. La víspera de un partido, si falta un cuarto de hora, se mete otro
+     rondo o más remate: lo que no se hace jamás es meter un circuito físico. La
+     primera versión de esto no lo distinguía y proponía justo eso. */
+  var TODO_JUEGO = ['Ataque organizado', 'Defensa organizada', 'Transición ofensiva',
+                    'Transición defensiva', 'Finalización', 'Balón parado',
+                    'Partido condicionado'];
+
+  var CONTEXTOS = [
+    { id: 'datos', nombre: 'Lo que te hace falta',
+      pie: 'Lo decide lo que llevas trabajado esta temporada',
+      plan: null, relleno: TODO_JUEGO },
+    { id: 'post', nombre: 'El día después del partido',
+      pie: 'Poca carga: volver a tocar balón y corregir lo del domingo',
+      plan: ['Calentamiento', 'Técnica individual', 'Ataque organizado', 'Partido condicionado'],
+      relleno: ['Técnica individual', 'Ataque organizado', 'Partido condicionado'] },
+    { id: 'carga', nombre: 'Mitad de semana, con carga',
+      pie: 'El día largo de la semana: mucho juego y mucha intensidad',
+      plan: ['Calentamiento', 'Físico-técnico', 'Ataque organizado', 'Defensa organizada',
+             'Transición ofensiva', 'Partido condicionado'],
+      relleno: TODO_JUEGO.concat(['Físico-técnico']) },
+    { id: 'vispera', nombre: 'La víspera del partido',
+      pie: 'Corto y vivo: activar, rematar y repasar el balón parado',
+      plan: ['Calentamiento', 'Finalización', 'Balón parado'],
+      // Nada de carga física el día antes de jugar.
+      relleno: ['Finalización', 'Balón parado', 'Técnica individual'] },
+    { id: 'pretemporada', nombre: 'Pretemporada',
+      pie: 'Base física y técnica, con el balón siempre dentro',
+      plan: ['Calentamiento', 'Físico-técnico', 'Técnica individual', 'Ataque organizado',
+             'Partido condicionado'],
+      relleno: ['Físico-técnico', 'Técnica individual', 'Ataque organizado',
+                'Defensa organizada', 'Partido condicionado'] }
+  ];
+  function contextoPorId(id) {
+    for (var i = 0; i < CONTEXTOS.length; i++) if (CONTEXTOS[i].id === id) return CONTEXTOS[i];
+    return CONTEXTOS[0];
+  }
+
+  /* El plan cuando manda lo que dicen los datos.
+
+     Primero lo olvidado —más de tres semanas sin tocarse— y después las fases
+     con menos minutos en la temporada. Siempre se calienta al principio y, si
+     da tiempo, se acaba compitiendo: eso no lo decide ninguna estadística, lo
+     decide que una sesión es una sesión. */
+  function planDeLosDatos(ahora) {
+    var eq = equilibrio('temporada', ahora);
+    var olvido = {};
+    olvidados(loHecho(), ahora).forEach(function (o) { olvido[o.nombre] = o.dias; });
+
+    var fases = eq.ejes.slice().sort(function (a, b) {
+      var oa = olvido[a.nombre] || 0, ob = olvido[b.nombre] || 0;
+      if (oa !== ob) return ob - oa;                 // lo más olvidado, primero
+      if (a.minutos !== b.minutos) return a.minutos - b.minutos;   // lo menos trabajado
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+
+    var plan = ['Calentamiento'];
+    var porques = {};
+    fases.slice(0, 3).forEach(function (f) {
+      plan.push(f.nombre);
+      porques[f.nombre] = olvido[f.nombre]
+        ? 'llevas ' + olvido[f.nombre] + ' días sin trabajarlo'
+        : f.minutos === 0 ? 'no lo has trabajado esta temporada'
+        : 'es de lo que menos llevas: ' + f.minutos + ' min en la temporada';
+    });
+    plan.push('Partido condicionado');
+    return { plan: plan, porques: porques };
+  }
+
+  /* ¿Le vale este ejercicio a quien tengo delante? */
+  function encaja(it, op) {
+    var vista = it.view || 'full';
+    /* La modalidad solo manda cuando el ejercicio usa el campo de verdad. Un
+       rondo en un cuadrado de 19 × 18 no sabe de cuántos juegas, y dejar fuera
+       todos los calentamientos de un equipo de fútbol 7 porque están dibujados
+       sobre un campo de once es perder la mitad del catálogo por una etiqueta.
+       Una salida en 1-3-2, en cambio, sí es de fútbol 7 y de nada más. */
+    var deCualquiera = (vista === 'area' || vista === 'blank');
+    if (op.pitch && it.pitch !== op.pitch && !deCualquiera) return null;
+    if (nivelEspacio(vista) > nivelEspacio(op.espacio)) return null;
+    var card = it.card || {};
+    var pide = jugadoresDe(card.jugadores);
+    if (pide !== null && op.jugadores && pide > op.jugadores) return null;
+    var pidePorteros = porterosDe(card.porteros);
+    if (pidePorteros && op.porteros !== null && pidePorteros > op.porteros) return null;
+    return {
+      id: it.id, nombre: it.nombre, ref: it.ref || null,
+      titulo: String(card.titulo || it.nombre || 'Sin título'),
+      momento: String(card.momento || '').trim(),
+      duracion: String(card.duracion || ''),
+      minutos: minutosDe(card.duracion),
+      pide: pide, pidePorteros: pidePorteros
+    };
+  }
+
+  /* Cuántos días hace que no se hace este ejercicio. Entre dos que valen igual
+     gana el que lleva más tiempo sin salir: repetir el mismo rondo catorce
+     martes seguidos es la manera más rápida de que dejen de mirarlo. */
+  function ultimaVez(ahora) {
+    var s = sesionesEnteras(), visto = {};
+    var hoy = hoyISO(new Date(ahora == null ? Date.now() : ahora));
+    Object.keys(s).forEach(function (f) {
+      var dias = diasEntre(f, hoy);
+      s[f].ejercicios.forEach(function (e) {
+        var clave = (e.titulo || '').toLowerCase();
+        if (visto[clave] === undefined || dias < visto[clave]) visto[clave] = dias;
+      });
+    });
+    return visto;
+  }
+
+  /* op: { pitch, jugadores, porteros, espacio, minutos, contexto, ahora } */
+  function generaSesion(candidatos, op) {
+    op = op || {};
+    var objetivo = op.minutos > 0 ? op.minutos : 75;
+    var ctx = contextoPorId(op.contexto);
+    var datos = ctx.plan ? null : planDeLosDatos(op.ahora);
+    var plan = ctx.plan || datos.plan;
+    var porques = datos ? datos.porques : {};
+    var hace = ultimaVez(op.ahora);
+    // Los títulos que ya se propusieron y el entrenador no quiso.
+    var evita = {};
+    (op.evita || []).forEach(function (t) { evita[String(t).toLowerCase()] = true; });
+
+    var utiles = (candidatos || []).map(function (it) { return encaja(it, op); })
+                                   .filter(Boolean);
+    if (!utiles.length) {
+      return { ejercicios: [], minutos: 0, contexto: ctx, avisos: [
+        'Ninguno de los ejercicios que tienes encaja con eso. Prueba con más ' +
+        'espacio, con más jugadores o con otra modalidad.'] };
+    }
+
+    /* Entre los de un mismo momento: primero el que lleva más sin hacerse, y
+       después el que aprovecha a más gente de la que hay.
+       «tope» es lo que queda de tiempo: rellenando un hueco no vale meter algo
+       que se pase, que es lo que hacía antes —quitaba un ejercicio de 24 min por
+       pasarse y metía otro de 20 que también se pasaba—. */
+    function mejor(momento, usados, tope) {
+      var toca = utiles.filter(function (c) {
+        if (c.momento !== momento || usados[c.titulo.toLowerCase()]) return false;
+        if (tope != null && (c.minutos || 0) > tope) return false;
+        return true;
+      });
+      if (!toca.length) return null;
+      toca.sort(function (a, b) {
+        /* Lo que ya se propuso y no gustó, al final. No fuera: si es lo único
+           que hay, se vuelve a ofrecer, que es más honrado que no proponer
+           nada. Sin esto, «otra propuesta» devolvía la misma lista, porque el
+           resto del criterio no tiene ningún azar. */
+        var ea = evita[a.titulo.toLowerCase()] ? 1 : 0;
+        var eb = evita[b.titulo.toLowerCase()] ? 1 : 0;
+        if (ea !== eb) return ea - eb;
+        var da = hace[a.titulo.toLowerCase()], db = hace[b.titulo.toLowerCase()];
+        da = da === undefined ? 9999 : da;
+        db = db === undefined ? 9999 : db;
+        if (da !== db) return db - da;
+        var pa = a.pide === null ? 0 : a.pide, pb = b.pide === null ? 0 : b.pide;
+        if (pa !== pb) return pb - pa;
+        return a.titulo.localeCompare(b.titulo, 'es');
+      });
+      return toca[0];
+    }
+
+    var fuera = [], dentro = [], usados = {}, total = 0;
+    plan.forEach(function (momento) {
+      var c = mejor(momento, usados);
+      if (!c) { fuera.push(momento); return; }
+      usados[c.titulo.toLowerCase()] = true;
+      c.porque = porques[momento] ||
+        (hace[c.titulo.toLowerCase()] === undefined ? 'no lo has hecho nunca'
+         : 'la última vez fue hace ' + hace[c.titulo.toLowerCase()] + ' días');
+      dentro.push(c);
+      total += c.minutos || 0;
+    });
+
+    /* Ajuste al tiempo. Se quita por el final, que es lo prescindible, y nunca
+       el calentamiento: entrar en frío no se negocia. Y se rellena con más de
+       lo que el plan pedía antes que con cualquier cosa. */
+    while (total > objetivo + 5 && dentro.length > 1) {
+      var quita = dentro.pop();
+      total -= quita.minutos || 0;
+    }
+    /* El relleno sale de lo que ESTE contexto admite, no de cualquier cosa que
+       quepa. Sin esta lista, una víspera de partido a la que le faltaban quince
+       minutos se los llenaba con un circuito físico. */
+    var relleno = ctx.relleno || plan;
+    var vueltas = 0;
+    while (total < objetivo - 10 && vueltas++ < 8) {
+      var hueco = null, queda = objetivo + 5 - total;
+      for (var i = 0; i < relleno.length && !hueco; i++) hueco = mejor(relleno[i], usados, queda);
+      if (!hueco || !hueco.minutos) break;
+      usados[hueco.titulo.toLowerCase()] = true;
+      hueco.porque = 'para llegar al tiempo que tienes';
+      // Entra antes del último, que es con lo que se cierra la sesión.
+      dentro.splice(Math.max(1, dentro.length - 1), 0, hueco);
+      total += hueco.minutos;
+    }
+
+    var avisos = [];
+    if (fuera.length) {
+      avisos.push('No tienes ningún ejercicio de ' + fuera.join(', ').toLowerCase() +
+                  ' que encaje, así que la sesión va sin eso.');
+    }
+    if (total < objetivo - 10) {
+      avisos.push('Se queda en ' + total + ' de los ' + objetivo +
+                  ' min que pediste: no hay más ejercicios que encajen.');
+    }
+    return { ejercicios: dentro, minutos: total, contexto: ctx, avisos: avisos };
+  }
+
   /* ---- lo que se engancha a cada pizarra al guardarla --------------------
 
      Solo la temporada. Los nombres ya no se copian aquí: la pizarra guardada es
@@ -960,6 +1255,12 @@
     porMeses: porMeses,
 
     minutosDe: minutosDe,
+    jugadoresDe: jugadoresDe,
+    porterosDe: porterosDe,
+    ESPACIOS: ESPACIOS,
+    CONTEXTOS: CONTEXTOS,
+    generaSesion: generaSesion,
+
     estadisticas: estadisticas,
     FASES: FASES,
     equilibrio: equilibrio,

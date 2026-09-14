@@ -1069,6 +1069,185 @@ function siembra(lista){
   await wait(150);
 
   // =====================================================================
+  console.log('15b · el generador de sesiones');
+  limpia();
+  E.cambiaTemporada('2026/27');
+
+  // ---- leer cuánta gente pide un ejercicio ----
+  ok('«4 vs 2» son 6',                 E.jugadoresDe('4 vs 2') === 6);
+  ok('«7 vs 5» son 12',                E.jugadoresDe('7 vs 5') === 12);
+  ok('«6 vs 6 + 3 comodines» son 15',  E.jugadoresDe('6 vs 6 + 3 comodines') === 15,
+     E.jugadoresDe('6 vs 6 + 3 comodines'));
+  ok('«6 atacantes y 5 defensores» son 11',
+     E.jugadoresDe('6 atacantes y 5 defensores') === 11);
+  ok('«5 + portero» son 5 de campo: el portero va aparte',
+     E.jugadoresDe('5 + portero') === 5, E.jugadoresDe('5 + portero'));
+  ok('«3 vs 2 + portero» son 5',       E.jugadoresDe('3 vs 2 + portero') === 5);
+  ok('«Grupo entero» son los que haya', E.jugadoresDe('Grupo entero') === null);
+  ok('y lo que no se entiende se dice, no se inventa',
+     E.jugadoresDe('a discreción') === null);
+  ok('«Sin portero» son cero porteros, que no es lo mismo que «da igual»',
+     E.porterosDe('Sin portero') === 0 && E.porterosDe('') === null);
+  ok('«2» son dos porteros', E.porterosDe('2') === 2);
+
+  /* Un catálogo de mentira, corto y con las cuentas a la vista. Se prueba el
+     motor, no el catálogo: si mañana entran ejercicios nuevos, estas cuentas
+     tienen que seguir dando lo mismo. */
+  function ej(id, pitch, view, momento, duracion, jugadores, porteros){
+    return { id:id, nombre:id, pitch:pitch, view:view,
+             card:{ titulo:id, momento:momento, duracion:duracion,
+                    jugadores:jugadores, porteros:porteros },
+             ref:{ de:'catalogo', id:id } };
+  }
+  var CAT = [
+    ej('rondo',    'f11','area', 'Calentamiento',        '12 min', '4 vs 2',  'Sin portero'),
+    ej('tecnica',  'f11','area', 'Técnica individual',   '15 min', 'Grupo entero','Sin portero'),
+    ej('fisico',   'f11','area', 'Físico-técnico',       '16 min', 'Grupo entero','Sin portero'),
+    ej('remate',   'f11','half', 'Finalización',         '20 min', '5 + portero', '1'),
+    ej('corner',   'f11','half', 'Balón parado',         '12 min', '8 vs 5',  '1'),
+    ej('posesion', 'f11','half', 'Ataque organizado',    '24 min', '6 vs 6 + 3 comodines','1'),
+    ej('bloque',   'f11','full', 'Defensa organizada',   '20 min', '6 vs 6',  '2'),
+    ej('f7salida', 'f7', 'half', 'Ataque organizado',    '18 min', '6 vs 3',  '1')
+  ];
+
+  // ---- el espacio se contiene: lo de un área cabe en medio campo, no al revés
+  var conArea = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                      espacio:'area', minutos:60, contexto:'carga' });
+  ok('con solo un área no entra nada dibujado en medio campo',
+     conArea.ejercicios.every(function(e){
+       return ['rondo','tecnica','fisico'].indexOf(e.titulo) >= 0; }),
+     conArea.ejercicios.map(function(e){return e.titulo;}).join(','));
+  var conCampo = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                       espacio:'full', minutos:90, contexto:'carga' });
+  ok('con el campo entero sí entra lo de medio campo y lo del área',
+     conCampo.ejercicios.some(function(e){ return e.titulo === 'posesion'; }) &&
+     conCampo.ejercicios.some(function(e){ return e.titulo === 'rondo'; }),
+     conCampo.ejercicios.map(function(e){return e.titulo;}).join(','));
+
+  // ---- la gente que hay manda ----
+  var pocos = E.generaSesion(CAT, { pitch:'f11', jugadores:7, porteros:1,
+                                    espacio:'full', minutos:90, contexto:'carga' });
+  // posesión pide 15, bloque 12, córner 13: con siete no entra ninguno.
+  ok('con siete jugadores no propone un 6 contra 6',
+     pocos.ejercicios.every(function(e){
+       return ['posesion','bloque','corner'].indexOf(e.titulo) < 0; }),
+     pocos.ejercicios.map(function(e){return e.titulo;}).join(','));
+  ok('pero sí lo que sí cabe',
+     pocos.ejercicios.some(function(e){ return e.titulo === 'rondo'; }));
+
+  // ---- los porteros también ----
+  var sinPortero = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:0,
+                                         espacio:'full', minutos:90, contexto:'carga' });
+  ok('sin porteros no propone nada que necesite portero',
+     sinPortero.ejercicios.every(function(e){
+       return ['remate','corner','posesion','bloque'].indexOf(e.titulo) < 0; }),
+     sinPortero.ejercicios.map(function(e){return e.titulo;}).join(','));
+
+  // ---- la modalidad solo manda si el ejercicio usa el campo de verdad ----
+  var enF7 = E.generaSesion(CAT, { pitch:'f7', jugadores:14, porteros:1,
+                                   espacio:'full', minutos:70, contexto:'carga' });
+  ok('a un equipo de fútbol 7 se le ofrece el rondo de un cuadrado…',
+     enF7.ejercicios.some(function(e){ return e.titulo === 'rondo'; }),
+     enF7.ejercicios.map(function(e){return e.titulo;}).join(','));
+  ok('…pero no la posesión dibujada en medio campo de fútbol 11',
+     enF7.ejercicios.every(function(e){ return e.titulo !== 'posesion'; }));
+
+  // ---- el orden de una sesión ----
+  ok('siempre se calienta lo primero',
+     conCampo.ejercicios[0].momento === 'Calentamiento',
+     conCampo.ejercicios[0].momento);
+  var titulos = conCampo.ejercicios.map(function(e){ return e.titulo; });
+  ok('y ningún ejercicio se repite dentro de la misma sesión',
+     titulos.length === titulos.filter(function(t,i){ return titulos.indexOf(t) === i; }).length,
+     titulos.join(','));
+
+  /* ---- LA VÍSPERA NO LLEVA CARGA ----
+     La primera versión rellenaba el hueco con lo primero que cupiera, y en una
+     víspera de partido eso era un circuito físico de dieciséis minutos. El día
+     antes de jugar eso no se hace. */
+  var visp = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                   espacio:'full', minutos:90, contexto:'vispera' });
+  ok('la víspera del partido no mete nunca trabajo físico',
+     visp.ejercicios.every(function(e){ return e.momento !== 'Físico-técnico'; }),
+     visp.ejercicios.map(function(e){return e.momento;}).join(' · '));
+  ok('y sí lo suyo: activar, rematar y balón parado',
+     visp.ejercicios.some(function(e){ return e.momento === 'Finalización'; }) &&
+     visp.ejercicios.some(function(e){ return e.momento === 'Balón parado'; }));
+
+  // ---- el tiempo que has pedido ----
+  var corta = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                    espacio:'full', minutos:40, contexto:'carga' });
+  ok('no se pasa del tiempo que has pedido', corta.minutos <= 45, corta.minutos + ' min');
+  ok('ni se queda corta si hay con qué llenarlo',
+     conCampo.minutos >= 80 && conCampo.minutos <= 95, conCampo.minutos + ' min');
+
+  // ---- «lo que te hace falta» mira lo que llevas hecho ----
+  /* Se siembra una temporada en la que solo se ha trabajado ataque, y mucho.
+     El generador tiene que ir a por lo que NO está: defensa y balón parado. */
+  siembra([ dia(3, [['Mucho ataque','Ataque organizado','60 min',null]]) ]);
+  var porDatos = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                       espacio:'full', minutos:70,
+                                       contexto:'datos', ahora:AHORA });
+  var momsDatos = porDatos.ejercicios.map(function(e){ return e.momento; });
+  ok('por datos, va a por lo que no has trabajado',
+     momsDatos.indexOf('Defensa organizada') >= 0 || momsDatos.indexOf('Balón parado') >= 0,
+     momsDatos.join(' · '));
+  ok('y no repite el ataque, que es de lo que vas sobrado',
+     momsDatos.indexOf('Ataque organizado') < 0, momsDatos.join(' · '));
+  ok('cada ejercicio dice por qué está ahí',
+     porDatos.ejercicios.every(function(e){ return !!e.porque; }),
+     porDatos.ejercicios.map(function(e){return e.porque;}).join(' / '));
+
+  // ---- entre dos que valen, gana el que lleva más sin hacerse ----
+  siembra([ dia(1, [['rondo','Calentamiento','12 min',null]]) ]);
+  var CAT2 = CAT.concat([ ej('rondo nuevo','f11','area','Calentamiento','12 min','4 vs 2','Sin portero') ]);
+  var fresco = E.generaSesion(CAT2, { pitch:'f11', jugadores:20, porteros:2,
+                                      espacio:'full', minutos:70, contexto:'carga',
+                                      ahora:AHORA });
+  ok('no repite el rondo de anteayer habiendo otro sin estrenar',
+     fresco.ejercicios[0].titulo === 'rondo nuevo', fresco.ejercicios[0].titulo);
+
+  /* ---- «otra propuesta» tiene que traer otra cosa ----
+     El criterio de elección no lleva ningún azar, así que sin decirle lo que ya
+     se ha propuesto devolvía exactamente la misma lista: un botón que promete
+     algo y no lo hace. */
+  limpia(); E.cambiaTemporada('2026/27');
+  var uno = E.generaSesion(CAT2, { pitch:'f11', jugadores:20, porteros:2,
+                                   espacio:'full', minutos:70, contexto:'carga' });
+  var otra = E.generaSesion(CAT2, { pitch:'f11', jugadores:20, porteros:2,
+                                    espacio:'full', minutos:70, contexto:'carga',
+                                    evita: uno.ejercicios.map(function(e){ return e.titulo; }) });
+  ok('pidiendo otra propuesta, el calentamiento cambia',
+     otra.ejercicios[0].titulo !== uno.ejercicios[0].titulo,
+     uno.ejercicios[0].titulo + ' → ' + otra.ejercicios[0].titulo);
+  /* Pero si de un momento solo hay un ejercicio, se vuelve a ofrecer: es más
+     honrado que dejar el hueco vacío por no repetirse. */
+  var sinAlternativa = E.generaSesion(CAT, { pitch:'f11', jugadores:20, porteros:2,
+                                             espacio:'full', minutos:70, contexto:'carga',
+                                             evita:['rondo'] });
+  ok('y si no hay alternativa, se repite antes que dejar el hueco',
+     sinAlternativa.ejercicios[0].titulo === 'rondo',
+     sinAlternativa.ejercicios[0].titulo);
+
+  /* ---- cuando no hay nada que encaje, se dice ----
+     Un equipo de fútbol sala con un cuadrado, y un catálogo en el que todo está
+     dibujado sobre campo de once o de siete: ni la modalidad ni el espacio dan.
+     (Un ejercicio de cuadrado SÍ le valdría, y por eso aquí se quitan: lo que
+     se prueba es que cuando de verdad no hay nada, no se inventa nada.) */
+  var soloCampo = CAT.filter(function(e){ return e.view !== 'area'; });
+  var nada = E.generaSesion(soloCampo, { pitch:'futsal', jugadores:4, porteros:0,
+                                         espacio:'area', minutos:60, contexto:'carga' });
+  ok('si no encaja nada, no se inventa una sesión: se avisa',
+     nada.ejercicios.length === 0 && nada.avisos.length > 0, nada.avisos.join(' '));
+  /* Y con el catálogo entero sí encuentra algo, porque un circuito en un
+     cuadrado con «grupo entero» le vale a cuatro de fútbol sala. */
+  var algo = E.generaSesion(CAT, { pitch:'futsal', jugadores:4, porteros:0,
+                                   espacio:'area', minutos:60, contexto:'carga' });
+  ok('pero un ejercicio de cuadrado sí le vale a cualquiera',
+     algo.ejercicios.length > 0,
+     algo.ejercicios.map(function(e){return e.titulo;}).join(','));
+
+  // =====================================================================
   console.log('16 · pasar lista del día, sin salir de Sesiones');
   /* Antes esto llevaba al apartado Plantilla, que es donde se monta el equipo
      de la temporada. Apuntar quién vino un jueves de hace dos semanas es otra
@@ -1305,6 +1484,119 @@ function siembra(lista){
     .map(function(b){ return (b.id || b.className) + ' ' + Math.round(b.getBoundingClientRect().height); });
   ok('nada de lo que se toca al pasar lista baja de 44 px de alto',
      chicosL.length === 0, chicosL.join(' · '));
+
+  // =====================================================================
+  console.log('17 · proponer una sesión, en pantalla');
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var G1 = E.añade('2026/27', { dorsal:'1',  nombre:'Gen Portero', posicion:'Portero' }).jugador;
+  var G2 = E.añade('2026/27', { dorsal:'4',  nombre:'Gen Campo A', posicion:'Central' }).jugador;
+  var G3 = E.añade('2026/27', { dorsal:'9',  nombre:'Gen Campo B', posicion:'Delantero' }).jugador;
+  E.ponAsistenciaEn(E.hoyISO(), [G1.id, G2.id, G3.id]);
+
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  if (!d.getElementById('ses-asistencia').hidden) {
+    d.getElementById('ses-asis-volver').click(); await wait(250);
+  }
+  if (!d.getElementById('ses-detalle').hidden) { d.getElementById('ses-volver').click(); await wait(250); }
+  d.getElementById('ses-hoy').click();
+  await wait(300);
+  d.getElementById('ses-proponer').click();
+  await wait(350);
+  ok('se abre en la misma pestaña, sin ningún diálogo',
+     !d.getElementById('ses-generar').hidden && d.getElementById('ses-detalle').hidden &&
+     !d.querySelector('dialog[open]'));
+
+  /* El formulario viene relleno con lo que la aplicación ya sabe: quién vino y
+     cuántos de ellos son porteros. Tres vinieron, uno es portero. */
+  ok('viene con los jugadores de campo que vinieron hoy',
+     d.getElementById('gen-jugadores').value === '2',
+     d.getElementById('gen-jugadores').value);
+  ok('y con los porteros contados aparte',
+     d.getElementById('gen-porteros').value === '1',
+     d.getElementById('gen-porteros').value);
+  ok('están las tres modalidades', d.querySelectorAll('#gen-pitch option').length === 3);
+  ok('y los contextos que hay en el módulo',
+     d.querySelectorAll('#gen-contexto option').length === E.CONTEXTOS.length,
+     d.querySelectorAll('#gen-contexto option').length);
+  ok('cada contexto se explica al elegirlo',
+     d.getElementById('gen-pie').textContent.length > 10,
+     d.getElementById('gen-pie').textContent);
+
+  // Con dos jugadores de campo no va a salir gran cosa: se pide algo realista.
+  d.getElementById('gen-jugadores').value = '16';
+  d.getElementById('gen-porteros').value = '2';
+  d.getElementById('gen-minutos').value = '75';
+  d.getElementById('gen-contexto').value = 'carga';
+  d.getElementById('gen-proponer').click();
+  await wait(450);
+  var filasGen = d.querySelectorAll('#gen-lista .ses-ej');
+  ok('propone una sesión', filasGen.length >= 3, filasGen.length + ' ejercicios');
+  ok('empezando por el calentamiento',
+     /calentamiento/i.test(filasGen[0].querySelector('small').textContent),
+     filasGen[0].querySelector('small').textContent);
+  ok('y cada ejercicio dice por qué está ahí',
+     [].every.call(filasGen, function(f){
+       return f.querySelector('.gen-porque') &&
+              f.querySelector('.gen-porque').textContent.trim().length > 3; }),
+     [].map.call(filasGen, function(f){
+       return f.querySelector('.gen-porque') ? '·' : 'SIN PORQUÉ'; }).join(''));
+  ok('con el total de minutos a la vista',
+     /min en total/.test(d.getElementById('gen-resumen').textContent),
+     d.getElementById('gen-resumen').textContent);
+  ok('y nada de esto se ha guardado todavía',
+     E.sesionDe(E.hoyISO()).ejercicios.length === 0,
+     E.sesionDe(E.hoyISO()).ejercicios.length);
+
+  // Se puede quitar uno de la propuesta antes de quedársela.
+  var antesQuitar = filasGen.length;
+  filasGen[1].querySelector('.ses-ej-mandos .ses-mini').click();
+  await wait(300);
+  ok('se puede quitar uno de la propuesta',
+     d.querySelectorAll('#gen-lista .ses-ej').length === antesQuitar - 1,
+     d.querySelectorAll('#gen-lista .ses-ej').length);
+
+  // «Otra propuesta» trae otra cosa.
+  var primeros = [].map.call(d.querySelectorAll('#gen-lista .ses-ej-med b'),
+                             function(b){ return b.textContent; }).join('|');
+  d.getElementById('gen-otra').click();
+  await wait(450);
+  var segundos = [].map.call(d.querySelectorAll('#gen-lista .ses-ej-med b'),
+                             function(b){ return b.textContent; }).join('|');
+  ok('«otra propuesta» trae otra cosa, no la misma lista',
+     primeros !== segundos, primeros.slice(0, 40) + ' → ' + segundos.slice(0, 40));
+
+  // Y aceptarla la escribe en el día.
+  var cuantos = d.querySelectorAll('#gen-lista .ses-ej').length;
+  d.getElementById('gen-usar').click();
+  await wait(450);
+  ok('aceptarla la escribe en la sesión del día',
+     E.sesionDe(E.hoyISO()).ejercicios.length === cuantos,
+     E.sesionDe(E.hoyISO()).ejercicios.length + ' de ' + cuantos);
+  ok('y te devuelve al día, con los ejercicios puestos',
+     !d.getElementById('ses-detalle').hidden &&
+     d.querySelectorAll('#ses-lista .ses-ej').length === cuantos);
+  ok('cada uno apunta a su dibujo, para poder abrirlo',
+     E.sesionDe(E.hoyISO()).ejercicios.every(function(e){ return !!e.ref; }));
+
+  /* Añadir, no reemplazar: quien ya tenía algo apuntado no quiere que una
+     propuesta se lo borre sin avisar. */
+  d.getElementById('ses-proponer').click();
+  await wait(350);
+  d.getElementById('gen-jugadores').value = '16';
+  d.getElementById('gen-porteros').value = '2';
+  d.getElementById('gen-minutos').value = '30';
+  d.getElementById('gen-proponer').click();
+  await wait(450);
+  var añade = d.querySelectorAll('#gen-lista .ses-ej').length;
+  d.getElementById('gen-usar').click();
+  await wait(450);
+  ok('una segunda propuesta se añade a lo que ya había, no lo borra',
+     E.sesionDe(E.hoyISO()).ejercicios.length === cuantos + añade,
+     E.sesionDe(E.hoyISO()).ejercicios.length);
 
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);

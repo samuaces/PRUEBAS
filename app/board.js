@@ -3355,6 +3355,7 @@
   function pintaSesiones() {
     if (!sesFecha) sesVista = 'diario';
     if (sesVista === 'asistencia') pintaAsistenciaDeSesion();
+    else if (sesVista === 'generar') pintaGenerador();
     else if (sesVista === 'detalle') pintaDetalleSesion();
     else pintaDiario();
   }
@@ -3386,6 +3387,7 @@
     $('#ses-diario').hidden = false;
     $('#ses-detalle').hidden = true;
     $('#ses-asistencia').hidden = true;
+    $('#ses-generar').hidden = true;
 
     var lista = PTEquipo.diario();
     var meses = PTEquipo.porMeses(lista);
@@ -3469,6 +3471,7 @@
     $('#ses-diario').hidden = true;
     $('#ses-detalle').hidden = false;
     $('#ses-asistencia').hidden = true;
+    $('#ses-generar').hidden = true;
 
     var s = PTEquipo.sesionDe(sesFecha);
     var hoy = sesFecha === PTEquipo.hoyISO();
@@ -3597,6 +3600,7 @@
     $('#ses-diario').hidden = true;
     $('#ses-detalle').hidden = true;
     $('#ses-asistencia').hidden = false;
+    $('#ses-generar').hidden = true;
 
     var hoy = sesFecha === PTEquipo.hoyISO();
     $('#ses-asis-fecha').textContent = hoy ? 'Hoy, ' + diaLargo(sesFecha)
@@ -3656,6 +3660,200 @@
 
   function vuelveDeLaLista() {
     sesElegidos = null;
+    sesVista = 'detalle';
+    arriba();
+    pintaSesiones();
+  }
+
+  /* =========================================================================
+     Proponer una sesión
+
+     El formulario viene relleno con lo que la aplicación ya sabe: la modalidad
+     que usas, y cuánta gente vino ese día contando cuántos son porteros. Lo
+     normal es mirarlo, cambiar el espacio si hoy te toca medio campo, y darle.
+
+     La propuesta no se guarda hasta que se acepta, y se puede pedir otra. Y
+     cada ejercicio lleva escrito por qué está ahí: sin eso, una lista que sale
+     sola no se puede discutir, y lo que no se puede discutir o se traga entero
+     o se tira entero.
+     ====================================================================== */
+  var genPropuesta = null;
+  // Lo que ya se propuso en esta visita: «otra propuesta» tiene que traer otra
+  // cosa, y el criterio de elección no lleva ningún azar del que tirar.
+  var genDescartados = [];
+
+  function abreGenerador() {
+    sesVista = 'generar';
+    genPropuesta = null;
+    genDescartados = [];
+    arriba();
+    pintaSesiones();
+  }
+
+  function pintaGenerador() {
+    $('#ses-diario').hidden = true;
+    $('#ses-detalle').hidden = true;
+    $('#ses-asistencia').hidden = true;
+    $('#ses-generar').hidden = false;
+
+    var hoy = sesFecha === PTEquipo.hoyISO();
+    $('#ses-gen-fecha').textContent = hoy ? 'Hoy, ' + diaLargo(sesFecha)
+                                          : mayus(diaLargo(sesFecha, true));
+    if (!$('#gen-espacio').options.length) montaCamposDelGenerador();
+    if (!genPropuesta) rellenaGeneradorConLoQueSabemos();
+    $('#gen-salida').hidden = !genPropuesta;
+    $('#gen-otra').hidden = !genPropuesta;
+    diCualEsElContexto();
+  }
+
+  function montaCamposDelGenerador() {
+    PTEquipo.ESPACIOS.forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e.id; o.textContent = e.nombre;
+      $('#gen-espacio').appendChild(o);
+    });
+    PTEquipo.CONTEXTOS.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.id; o.textContent = c.nombre;
+      $('#gen-contexto').appendChild(o);
+    });
+    $('#gen-contexto').addEventListener('change', diCualEsElContexto);
+  }
+
+  function diCualEsElContexto() {
+    var id = $('#gen-contexto').value;
+    var c = PTEquipo.CONTEXTOS.filter(function (x) { return x.id === id; })[0];
+    $('#gen-pie').textContent = c ? c.pie : '';
+  }
+
+  /* Lo que la aplicación ya sabe de ese día: quién vino y cuántos de ellos son
+     porteros. Escribir a mano un número que está tres pantallas más allá es
+     justo lo que esta parte tenía que ahorrar. */
+  function rellenaGeneradorConLoQueSabemos() {
+    var s = PTEquipo.sesionDe(sesFecha);
+    var vinieron = s.hayAsistencia ? s.presentes : PTEquipo.presentesDe(sesFecha);
+    var porteros = 0;
+    vinieron.forEach(function (id) {
+      var j = PTEquipo.buscaJugador(id);
+      if (j && j.posicion === 'Portero') porteros++;
+    });
+    var deCampo = Math.max(0, vinieron.length - porteros);
+
+    $('#gen-pitch').value = prefs().pitch || 'f11';
+    $('#gen-espacio').value = 'full';
+    $('#gen-jugadores').value = deCampo || '';
+    $('#gen-porteros').value = String(porteros);
+    $('#gen-minutos').value = '75';
+    $('#gen-contexto').value = 'datos';
+  }
+
+  function numeroDe(sel, porDefecto) {
+    var n = parseInt(String($(sel).value).replace(/\D/g, ''), 10);
+    return isFinite(n) ? n : porDefecto;
+  }
+
+  function proponSesion(otra) {
+    if (otra === true && genPropuesta) {
+      genPropuesta.ejercicios.forEach(function (e) { genDescartados.push(e.titulo); });
+    } else if (otra !== true) {
+      genDescartados = [];            // cambió el formulario: se empieza de cero
+    }
+    var candidatos = bibliotecaItems().map(function (it) {
+      return {
+        id: it.id, nombre: it.nombre, pitch: it.pitch, view: it.view || 'full',
+        card: it.card,
+        ref: it.origen === 'mia' && it.fuente === 'local'
+          ? { de: 'guardado', nombre: it.nombre }
+          : { de: 'catalogo', id: it.id }
+      };
+    });
+    genPropuesta = PTEquipo.generaSesion(candidatos, {
+      pitch: $('#gen-pitch').value,
+      espacio: $('#gen-espacio').value,
+      jugadores: numeroDe('#gen-jugadores', 0),
+      porteros: numeroDe('#gen-porteros', 0),
+      minutos: numeroDe('#gen-minutos', 75),
+      contexto: $('#gen-contexto').value,
+      evita: genDescartados
+    });
+    pintaPropuesta();
+  }
+
+  function pintaPropuesta() {
+    var p = genPropuesta;
+    $('#gen-salida').hidden = false;
+    $('#gen-otra').hidden = false;
+
+    var avisos = $('#gen-avisos');
+    avisos.textContent = '';
+    p.avisos.forEach(function (t) {
+      var el = document.createElement('p');
+      el.className = 'stats-olvido';
+      el.textContent = t;
+      avisos.appendChild(el);
+    });
+
+    var ol = $('#gen-lista');
+    ol.textContent = '';
+    p.ejercicios.forEach(function (e, i) {
+      var li = document.createElement('li');
+      li.className = 'ses-ej';
+      var n = document.createElement('span');
+      n.className = 'ses-ej-n';
+      n.textContent = String(i + 1);
+      li.appendChild(n);
+
+      var med = document.createElement('div');
+      med.className = 'ses-ej-med';
+      var t = document.createElement('b');
+      t.textContent = e.titulo;
+      med.appendChild(t);
+      var sub = document.createElement('small');
+      sub.textContent = [e.momento, e.duracion].filter(Boolean).join(' · ');
+      med.appendChild(sub);
+      // El porqué, que es lo que convierte una lista en una propuesta.
+      var pq = document.createElement('small');
+      pq.className = 'gen-porque';
+      pq.textContent = e.porque || '';
+      if (e.porque) med.appendChild(pq);
+      li.appendChild(med);
+
+      var mandos = document.createElement('div');
+      mandos.className = 'ses-ej-mandos';
+      mandos.appendChild(botonMini('Quitar de la propuesta', '✕', function () {
+        genPropuesta.ejercicios.splice(i, 1);
+        genPropuesta.minutos = genPropuesta.ejercicios.reduce(function (a, x) {
+          return a + (x.minutos || 0); }, 0);
+        pintaPropuesta();
+      }));
+      li.appendChild(mandos);
+      ol.appendChild(li);
+    });
+
+    var n = p.ejercicios.length;
+    $('#gen-resumen').textContent = n
+      ? n + (n === 1 ? ' ejercicio · ' : ' ejercicios · ') + p.minutos + ' min en total'
+      : 'No queda ningún ejercicio en la propuesta.';
+    $('#gen-usar').disabled = !n;
+  }
+
+  /* Aceptarla la escribe en la sesión de ese día, AÑADIENDO a lo que ya
+     hubiera: quien ya tenía dos ejercicios apuntados no quiere que una
+     propuesta se los borre sin avisar. */
+  function usaLaPropuesta() {
+    if (!genPropuesta || !genPropuesta.ejercicios.length) return;
+    var metidos = 0;
+    genPropuesta.ejercicios.forEach(function (e) {
+      var r = PTEquipo.añadeEjercicio(sesFecha, {
+        titulo: e.titulo, momento: e.momento, duracion: e.duracion,
+        ref: e.ref, quienes: null
+      });
+      if (r.ok) metidos++;
+    });
+    toast(metidos === genPropuesta.ejercicios.length
+      ? 'Sesión propuesta añadida'
+      : 'Se han añadido ' + metidos + ' de ' + genPropuesta.ejercicios.length);
+    genPropuesta = null;
     sesVista = 'detalle';
     arriba();
     pintaSesiones();
@@ -5393,8 +5591,15 @@
     $('#ses-ej-duracion').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeEjercicioAMano(); }
     });
+    $('#ses-proponer').addEventListener('click', abreGenerador);
     $('#ses-traer').addEventListener('click', function () { openLibrary(sesFecha); });
     $('#ses-imprimir').addEventListener('click', imprimeSesion);
+    $('#ses-gen-volver').addEventListener('click', function () {
+      genPropuesta = null; sesVista = 'detalle'; arriba(); pintaSesiones();
+    });
+    $('#gen-proponer').addEventListener('click', function () { proponSesion(false); });
+    $('#gen-otra').addEventListener('click', function () { proponSesion(true); });
+    $('#gen-usar').addEventListener('click', usaLaPropuesta);
     $('#ses-asis-volver').addEventListener('click', vuelveDeLaLista);
     $('#ses-asis-todos').addEventListener('click', function () {
       sesElegidos = PTEquipo.jugadores().map(function (j) { return j.id; });

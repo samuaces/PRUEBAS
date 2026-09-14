@@ -357,6 +357,7 @@
       <button type="button" class="tbtn primary" id="ses-ej-add">Añadir</button>
     </div>
     <div class="ses-acciones">
+      <button type="button" class="tbtn marco" id="ses-proponer">Proponer una sesión</button>
       <button type="button" class="tbtn marco" id="ses-traer">Traer de la biblioteca</button>
       <button type="button" class="tbtn marco" id="ses-imprimir">Imprimir la sesión</button>
     </div>
@@ -379,6 +380,49 @@
     </div>
     <ul class="squad-lista" id="ses-asis-lista"></ul>
     <p class="block-note" id="ses-asis-nota"></p>
+  </div>
+
+  <!-- Proponer una sesión. Cuarta cara de la misma pestaña: se dice con cuánta
+       gente estás, en cuánto campo y cuánto rato, y sale una propuesta que se
+       puede cambiar antes de quedársela. -->
+  <div id="ses-generar" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-gen-volver">‹ Volver a la sesión</button>
+    <h3 class="ses-fecha" id="ses-gen-fecha"></h3>
+
+    <div class="gen-campos">
+      <label class="field"><span>Modalidad</span>
+        <select id="gen-pitch">
+          <option value="f11">Fútbol 11</option>
+          <option value="f7">Fútbol 7</option>
+          <option value="futsal">Fútbol sala</option>
+        </select></label>
+      <label class="field"><span>Espacio</span>
+        <select id="gen-espacio"></select></label>
+      <label class="field"><span>Jugadores <small>de campo</small></span>
+        <input type="text" id="gen-jugadores" inputmode="numeric" maxlength="2" placeholder="14"></label>
+      <label class="field"><span>Porteros</span>
+        <input type="text" id="gen-porteros" inputmode="numeric" maxlength="1" placeholder="1"></label>
+      <label class="field"><span>Tiempo <small>minutos</small></span>
+        <input type="text" id="gen-minutos" inputmode="numeric" maxlength="3" placeholder="75"></label>
+      <label class="field wide"><span>Qué toca hoy</span>
+        <select id="gen-contexto"></select></label>
+    </div>
+    <p class="block-note" id="gen-pie"></p>
+
+    <div class="ses-acciones">
+      <button type="button" class="tbtn primary" id="gen-proponer">Proponer</button>
+      <button type="button" class="tbtn marco" id="gen-otra" hidden>Otra propuesta</button>
+    </div>
+
+    <div id="gen-salida" hidden>
+      <p class="form-group">La propuesta</p>
+      <div id="gen-avisos"></div>
+      <ol class="ses-lista" id="gen-lista"></ol>
+      <p class="block-note" id="gen-resumen"></p>
+      <div class="ses-acciones">
+        <button type="button" class="tbtn primary" id="gen-usar">Usar esta sesión</button>
+      </div>
+    </div>
   </div>
       </div>
 
