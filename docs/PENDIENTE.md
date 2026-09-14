@@ -107,7 +107,49 @@ semana** en vez del día suelto en que hace falta dibujar algo.
 
 ---
 
-## 3 · Dos arreglos pequeños de la biblioteca
+## 3 · Cargar un entrenamiento desde una foto
+
+**Qué es.** El entrenador tiene la sesión escrita —en una libreta, en una hoja
+que le han pasado, en la pizarra del vestuario—. Le hace una foto, la adjunta, y
+la aplicación la convierte en ejercicios.
+
+**Por qué no está hecho.** Leer una foto necesita reconocer el texto, y esta
+aplicación no tiene dependencias, no tiene compilador y funciona sin internet.
+Las tres salidas posibles, medidas:
+
+| | Peso | Coste | Sin conexión | Sale del dispositivo | Letra a mano |
+|---|---|---|---|---|---|
+| OCR en el navegador (Tesseract) | +15 MB sobre 630 KB | 0 | sí | no | mal |
+| Servidor con modelo de visión | 0 | por foto | **no** | **sí** | bien |
+| Que lo haga el sistema y se pegue | 0 | 0 | sí | no | según el sistema |
+
+**El dato que decide.** La tercera parecía la buena hasta que se dijo en voz
+alta: *«yo tengo iPhone, pero mucha gente no»*. En iOS el propio Fotos te da el
+texto en dos toques; en Android y en escritorio existe (Google Lens, Recortes de
+Windows, Vista Previa) pero con pasos distintos en cada sitio. Apoyarse en eso
+es hacer una función de primera para unos y de tercera para otros.
+
+**Lo que queda decidido, entonces:** si algún día se hace, se hace **en el
+servidor**, para que sea igual en todos los dispositivos. Y eso arrastra tres
+cosas que hay que aceptar a la vez, no de una en una:
+
+1. La foto **sale del dispositivo**. Una pizarra de entrenamiento puede llevar
+   nombres de críos escritos. La frase «nada sale de aquí» dejaría de ser
+   verdad para esta función y habría que decirlo donde se use, no en una
+   política que nadie lee.
+2. Cuesta dinero por foto, así que hace falta un límite por cuenta.
+3. La llave del modelo vive en una función de Supabase, **nunca en el
+   navegador**. Misma regla que la del panel de administración.
+
+**Y la mitad que sí se puede hacer sin nada de eso:** el **analizador de
+texto** —convertir un texto suelto («1. Rondo 4v2 … 12'») en ejercicios con su
+título, su momento y su duración—. Hace falta igual en las tres salidas, vale
+para texto que llega por WhatsApp, por correo o de un PDF, y funciona en
+cualquier dispositivo. Es por donde hay que empezar el día que se retome.
+
+---
+
+## 4 · Dos arreglos pequeños de la biblioteca
 
 - **Favoritos.** Marcar un ejercicio y tenerlo a mano. Cuando la biblioteca
   común crezca, el problema será encontrar el tuyo.

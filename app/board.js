@@ -3227,8 +3227,6 @@
      llegar al campo, una vez, y de ahí sale sola en cada ejercicio que se
      guarde ese día. Nadie tiene que volver a escribir un nombre.
      ====================================================================== */
-  function abreEquipo() { vaModo('equipo', 'plantilla'); }
-
   function pintaApartadoPlantilla() {
     if (!window.PTEquipo) return;
     pintaPosiciones();
@@ -3327,7 +3325,7 @@
         if (t === null) return;
         if (!PTEquipo.temporadaValida(t)) { toast('El formato es 2026/27'); return; }
         if (!PTEquipo.cambiaTemporada(t)) { toast('No se ha podido guardar'); return; }
-        pintaTemporadas(); pintaPlantilla();
+        pintaTemporadas(); pintaPlantilla(); sueltaElDiaAbierto();
         toast('Temporada ' + t);
       });
   }
@@ -3349,8 +3347,6 @@
      ====================================================================== */
   var sesFecha = null;              // el día abierto, o null si se ve el diario
   var sesVista = 'diario';          // diario · detalle · asistencia
-
-  function abreSesiones() { vaModo('equipo', 'sesiones'); }
 
   function pintaSesiones() {
     if (!sesFecha) sesVista = 'diario';
@@ -3497,6 +3493,11 @@
       ir.textContent = s.hayAsistencia ? 'Cambiar quién vino' : 'Pasar lista';
       ir.addEventListener('click', abrePasarLista);
       asis.appendChild(ir);
+    } else {
+      // Sin plantilla no hay a quién pasar lista, pero dejarlo ahí sin decir
+      // nada es dejar a alguien mirando una frase y sin saber qué hacer.
+      asis.appendChild(document.createTextNode(
+        'Monta tu plantilla en Plantilla y podrás pasarla.'));
     }
 
     pintaEjerciciosDeSesion(s);
@@ -3729,6 +3730,14 @@
   /* Lo que la aplicación ya sabe de ese día: quién vino y cuántos de ellos son
      porteros. Escribir a mano un número que está tres pantallas más allá es
      justo lo que esta parte tenía que ahorrar. */
+  /* Cuántos suele haber cuando la aplicación todavía no sabe nada de ti: sin
+     plantilla montada el campo salía vacío, y vacío significa «no filtres por
+     gente», con lo que proponía un 6 contra 6 a un equipo de cero jugadores.
+     Un número de partida verosímil es más útil que un hueco. */
+  var CUANTOS_POR_DEFECTO = { f11: { campo: 14, porteros: 1 },
+                              f7:  { campo: 10, porteros: 1 },
+                              futsal: { campo: 8, porteros: 2 } };
+
   function rellenaGeneradorConLoQueSabemos() {
     var s = PTEquipo.sesionDe(sesFecha);
     var vinieron = s.hayAsistencia ? s.presentes : PTEquipo.presentesDe(sesFecha);
@@ -3739,10 +3748,12 @@
     });
     var deCampo = Math.max(0, vinieron.length - porteros);
 
-    $('#gen-pitch').value = prefs().pitch || 'f11';
+    var pitch = prefs().pitch || 'f11';
+    var porSiAcaso = CUANTOS_POR_DEFECTO[pitch] || CUANTOS_POR_DEFECTO.f11;
+    $('#gen-pitch').value = pitch;
     $('#gen-espacio').value = 'full';
-    $('#gen-jugadores').value = deCampo || '';
-    $('#gen-porteros').value = String(porteros);
+    $('#gen-jugadores').value = String(deCampo || porSiAcaso.campo);
+    $('#gen-porteros').value = String(vinieron.length ? porteros : porSiAcaso.porteros);
     $('#gen-minutos').value = '75';
     $('#gen-contexto').value = 'datos';
   }
@@ -3857,6 +3868,27 @@
     sesVista = 'detalle';
     arriba();
     pintaSesiones();
+  }
+
+  /* Cambiar de temporada deja el día que tuvieras abierto en Sesiones fuera de
+     sitio: es un día de OTRA temporada, y quedarte dentro de él sin que nada lo
+     diga es quedarte mirando datos que ya no son los de la temporada que has
+     elegido. Se vuelve al diario, que sí es el de la nueva. */
+  function sueltaElDiaAbierto() {
+    sesFecha = null;
+    sesVista = 'diario';
+    genPropuesta = null;
+    sesElegidos = null;
+    if (modo === 'equipo' && eqApartado === 'sesiones') pintaSesiones();
+  }
+
+  /* Hacer algo cuando el que escribe para de escribir. */
+  function conRespiro(fn, ms) {
+    var t = null;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(fn, ms);
+    };
   }
 
   function mismosQue(a, b) {
@@ -3978,8 +4010,6 @@
      ====================================================================== */
   var statsPeriodo = 'micro';
   var statsOrden = 'minutos';
-
-  function abreStats() { vaModo('equipo', 'datos'); }
 
   /* De menos a más asistencia: si la lista se ordena para encontrar al que
      falta, el que falta va arriba. A igualdad, primero el que menos minutos
@@ -5486,6 +5516,7 @@
     $('#squad-nueva').addEventListener('click', nuevaTemporada);
     $('#squad-temporada').addEventListener('change', function () {
       PTEquipo.cambiaTemporada(this.value);
+      sueltaElDiaAbierto();
       pintaPlantilla();
     });
     $('#squad-todos').addEventListener('click', function () {
@@ -5580,9 +5611,19 @@
     })();
     $('#ses-hoy').addEventListener('click', function () { abreSesion(PTEquipo.hoyISO()); });
     $('#ses-volver').addEventListener('click', vaAlDiario);
+    /* Se guarda mientras se escribe, no al salir del campo.
+
+       Con «change» a secas, escribías el nombre de la sesión, tocabas otra
+       pestaña de la barra de abajo y se perdía: el evento no llega a tiempo, y
+       al volver la pantalla se repinta con lo que hay guardado, que era nada.
+       Con un respiro de medio segundo no se escribe en el almacén en cada
+       tecla, y «change» se queda como red por si se sale muy rápido. */
+    var guardaNombre = conRespiro(function () {
+      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: $('#ses-nombre').value });
+    }, 500);
+    $('#ses-nombre').addEventListener('input', guardaNombre);
     $('#ses-nombre').addEventListener('change', function () {
-      if (!sesFecha) return;
-      PTEquipo.guardaSesion(sesFecha, { nombre: this.value });
+      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: this.value });
     });
     $('#ses-ej-add').addEventListener('click', añadeEjercicioAMano);
     $('#ses-ej-titulo').addEventListener('keydown', function (e) {

@@ -1598,6 +1598,100 @@ function siembra(lista){
      E.sesionDe(E.hoyISO()).ejercicios.length === cuantos + añade,
      E.sesionDe(E.hoyISO()).ejercicios.length);
 
+  // =====================================================================
+  console.log('18 · los casos raros, que es donde se rompen las cosas');
+
+  /* ---- escribir el nombre y salir corriendo ----
+     Con «change» a secas el nombre se perdía: el evento no llega antes de que
+     la otra pestaña repinte la pantalla con lo que hay guardado, que era nada. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  E.añadeEjercicio(E.hoyISO(), { titulo:'Para el nombre', duracion:'10 min' });
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  if (!d.getElementById('ses-generar').hidden) { d.getElementById('ses-gen-volver').click(); await wait(250); }
+  if (!d.getElementById('ses-asistencia').hidden) { d.getElementById('ses-asis-volver').click(); await wait(250); }
+  if (d.getElementById('ses-detalle').hidden) { d.getElementById('ses-hoy').click(); await wait(300); }
+  (function(){
+    var c = d.getElementById('ses-nombre');
+    c.value = 'Escrito y me voy';
+    c.dispatchEvent(new w.Event('input', { bubbles:true }));
+  })();
+  await wait(700);                      // el respiro antes de guardar
+  d.querySelector('.tabbar-eq [data-eq="datos"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  ok('el nombre se guarda mientras escribes, no al salir del campo',
+     E.sesionDe(E.hoyISO()).nombre === 'Escrito y me voy',
+     E.sesionDe(E.hoyISO()).nombre || '(se perdió)');
+
+  /* ---- cambiar de temporada con un día abierto ----
+     Ese día es de OTRA temporada. Quedarte dentro sin que nada lo diga es
+     quedarte mirando datos que ya no son los de la temporada que has elegido. */
+  d.querySelector('.tabbar-eq [data-eq="plantilla"]').click();
+  await wait(300);
+  (function(){
+    var sel = d.getElementById('squad-temporada');
+    var o = d.createElement('option');
+    o.value = '2030/31'; o.textContent = '2030/31';
+    sel.appendChild(o);
+    sel.value = '2030/31';
+    sel.dispatchEvent(new w.Event('change', { bubbles:true }));
+  })();
+  await wait(400);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(400);
+  ok('cambiar de temporada te devuelve al diario, no te deja en un día de la otra',
+     !d.getElementById('ses-diario').hidden && d.getElementById('ses-detalle').hidden);
+  ok('y el diario es el de la temporada nueva, que está vacía',
+     d.querySelectorAll('#ses-meses .ses-dia').length === 0,
+     d.querySelectorAll('#ses-meses .ses-dia').length);
+
+  /* ---- sin plantilla montada ---- */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  d.querySelector('.tabbar-eq [data-eq="plantilla"]').click();
+  await wait(250);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  d.getElementById('ses-hoy').click();
+  await wait(350);
+  ok('sin plantilla, el día dice qué hacer en vez de dejarte mirando',
+     /plantilla/i.test(d.getElementById('ses-asis').textContent) &&
+     !d.querySelector('#ses-asis .linkish'),
+     d.getElementById('ses-asis').textContent);
+
+  /* El generador, sin plantilla, traía el campo de jugadores vacío. Y vacío
+     quiere decir «no filtres por gente»: proponía un 6 contra 6 a un equipo de
+     cero jugadores. */
+  d.getElementById('ses-proponer').click();
+  await wait(350);
+  ok('el generador propone un número de partida verosímil, no un hueco',
+     Number(d.getElementById('gen-jugadores').value) >= 8,
+     '«' + d.getElementById('gen-jugadores').value + '»');
+  d.getElementById('gen-proponer').click();
+  await wait(450);
+  ok('y con eso propone algo que se puede hacer',
+     d.querySelectorAll('#gen-lista .ses-ej').length > 0,
+     d.querySelectorAll('#gen-lista .ses-ej').length + ' ejercicios');
+  d.getElementById('ses-gen-volver').click();
+  await wait(250);
+
+  /* ---- vaciar el día estando dentro ---- */
+  (function(){
+    var s = E.sesionDe(E.hoyISO());
+    s.ejercicios.forEach(function(e){ E.quitaEjercicio(E.hoyISO(), e.id); });
+  })();
+  d.querySelector('.tabbar-eq [data-eq="datos"]').click();
+  await wait(250);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  ok('vaciar el día estando dentro no deja la pantalla en blanco',
+     !d.getElementById('ses-detalle').hidden || !d.getElementById('ses-diario').hidden);
+
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);
 

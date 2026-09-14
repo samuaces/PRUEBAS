@@ -140,7 +140,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
    más oscuro, nunca hacia arriba y a más claro: sobre un rojo aclarado el texto
    blanco se queda en 3,9:1 y deja de cumplir el mínimo legible. El relieve lo
    da el filo de luz de dentro, no un tono más claro. */
-.tbtn.primary{background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
+/* La acción principal de una pantalla se pulsa con el pulgar: nunca por debajo
+   del alto mínimo. «.tbtn» no lo trae, y así se quedaban en 34 px «La sesión de
+   hoy» y «Usar esta sesión», que son los dos botones grandes de sus pantallas. */
+.tbtn.primary{min-height:var(--touch);
+  background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
   font-weight:700;font-family:var(--ff-display);
   box-shadow:0 8px 20px -10px rgba(225,26,65,.95),inset 0 1px 0 rgba(255,255,255,.22)}
 .tbtn.primary:hover{background:linear-gradient(180deg,var(--brand),#CB1739);color:var(--brand-ink);
@@ -221,7 +225,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 
 .seg{display:flex;gap:4px;padding:4px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r2);box-shadow:inset 0 1px 0 var(--sheen)}
-.seg button{flex:1;min-height:36px;padding:7px 6px;border-radius:var(--r1);font-size:12px;color:var(--muted);
+/* 36 px era el alto de un mando de escritorio. Estos se pulsan en un teléfono. */
+.seg button{flex:1;min-height:var(--touch);padding:7px 6px;border-radius:var(--r1);font-size:12px;color:var(--muted);
   transition:background .16s,color .16s,box-shadow .16s}
 .seg button:hover{color:var(--text)}
 .seg button[aria-pressed="true"]{background:var(--glass-3);color:var(--text);font-weight:600;
@@ -230,7 +235,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
    propósito: el de arriba manda sobre toda la pantalla, este solo sobre estas
    filas, y esa diferencia tiene que verse sin leerla. */
 .seg-mini{margin:0 0 8px;width:max-content;max-width:100%}
-.seg-mini button{flex:0 0 auto;min-height:32px;padding:5px 11px;font-size:11.5px}
+/* «Pequeño» es de ancho y de letra, no de alto: lo que se toca llega al dedo
+   igual que todo lo demás. */
+.seg-mini button{flex:0 0 auto;padding:5px 12px;font-size:11.5px}
 
 .stack{display:grid;gap:6px}
 .row-btn{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:9px 11px;border-radius:var(--r2);

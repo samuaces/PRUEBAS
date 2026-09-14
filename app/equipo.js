@@ -235,13 +235,6 @@
     });
   }
 
-  // Para pintar historial: incluye a los de baja, que también entrenaron.
-  function jugadorPorId(id, temp) {
-    var l = jugadores(temp, true);
-    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
-    return null;
-  }
-
   function cambiaTemporada(temp) {
     if (!temporadaValida(temp)) return false;
     var p = plantillaEntera();
@@ -1231,7 +1224,6 @@
     cambiaTemporada: cambiaTemporada,
 
     jugadores: jugadores,
-    jugadorPorId: jugadorPorId,
     buscaJugador: buscaJugador,
     añade: añade,
     quita: quita,
