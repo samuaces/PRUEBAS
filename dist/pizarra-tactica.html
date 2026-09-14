@@ -708,20 +708,33 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   }
   /* Sin altura fija: los botones rellenan lo que la barra les deja, así que el
      píxel del borde de arriba no los empuja fuera. */
-  .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    min-height:0;font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
+  .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:0;font-size:10px;line-height:1.1;text-align:center;padding:0 2px;
     color:var(--muted);transition:color .18s}
-  /* Pastilla encendida detrás del icono de la sección abierta. El z-index
-     negativo es lo que la deja DEBAJO del icono y del rótulo: un pseudo-
-     elemento posicionado se pinta, si no, por encima del contenido. */
-  .tab::before{content:"";position:absolute;left:50%;top:7px;z-index:-1;width:48px;height:27px;border-radius:var(--r1);
-    transform:translateX(-50%) scale(.7);opacity:0;
-    background:color-mix(in srgb,var(--brand) 24%,transparent);
-    transition:opacity .18s,transform .18s var(--ease)}
-  .tab svg{width:20px;height:20px}
-  .tab[aria-pressed="true"]{color:var(--brand-2)}
-  .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scale(1)}
-  .tab[aria-pressed="true"] svg{filter:drop-shadow(0 0 8px color-mix(in srgb,var(--brand) 55%,transparent))}
+  .tab svg{width:21px;height:21px}
+
+  /* La pestaña abierta.
+
+     Aquí había una pastilla de 48 × 27 px puesta a ojo, a 7 px del borde de
+     arriba. Al ser de tamaño fijo no tenía nada que ver con la pestaña que la
+     contiene —98 px de ancho en Pizarra, 130 en Equipo— y envolvía el icono
+     dejando el rótulo fuera: una caja flotando encima de un texto que no le
+     pertenecía. Eso, más el color del texto, más un resplandor detrás del
+     icono, eran tres avisos para decir una sola cosa.
+
+     Ahora lo dice una: un filo encendido en el canto de arriba, del lado por el
+     que se abre el contenido, y el icono y el rótulo del color de la marca. El
+     filo mide lo que mide el icono y va pegado al borde; no hay ninguna caja a
+     la que quepa estar mal encuadrada. */
+  .tab::before{content:"";position:absolute;top:0;left:50%;width:22px;height:2.5px;
+    border-radius:0 0 3px 3px;background:var(--brand);
+    transform:translateX(-50%) scaleX(0);transform-origin:50% 0;opacity:0;
+    transition:opacity .18s,transform .22s var(--ease)}
+  /* El rótulo en negrita no es adorno: es la segunda señal, la que no depende
+     del color. Quien no distingue el rojo del gris distingue la letra gruesa de
+     la fina, y el filo de arriba. */
+  .tab[aria-pressed="true"]{color:var(--brand-2);font-weight:600}
+  .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scaleX(1)}
 
   .timeline{padding:8px 10px;gap:7px}
   .stage{padding:8px}
@@ -758,7 +771,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 @media (max-width:420px){
   .chip#speed{min-width:48px;padding:0 8px}
   .tab{font-size:9.5px}
-  .tab::before{width:44px}
+  /* Aquí había un «.tab::before{width:44px}»: encogía la pastilla vieja de 48
+     px en pantallas estrechas. Al cambiar la pastilla por un filo de 22, este
+     resto se lo duplicaba. El filo mide lo que mide el icono en todos los
+     anchos, así que no hay nada que ajustar. */
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
 }
 

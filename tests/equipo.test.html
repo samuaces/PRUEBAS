@@ -1235,6 +1235,37 @@ function siembra(lista){
     await nadaSeSale(anchos[iA]);
   }
 
+  /* ---- el filo de la pestaña abierta ----
+     La pestaña abierta se marca con un filo en el canto de arriba, del ancho
+     del icono. Antes era una pastilla de 48 × 27 px puesta a ojo, que no tenía
+     que ver con el ancho de la pestaña y dejaba el rótulo fuera; al cambiarla
+     quedó suelta una regla de aquel diseño —«.tab::before{width:44px}» para
+     pantallas estrechas— que le ponía el doble de ancho. Esto lo vigila. */
+  async function elFiloCuadra(ancho){
+    fr.style.width = ancho + 'px';
+    await wait(320);
+    var bar = [].filter.call(d.querySelectorAll('.tabbar'), function(b){
+      return b.offsetParent !== null; })[0];
+    var tab = bar.querySelector('[aria-pressed="true"]');
+    var ico = tab.querySelector('svg').getBoundingClientRect();
+    var cs = w.getComputedStyle(tab, '::before');
+    var anchoFilo = parseFloat(cs.width);
+    ok('a ' + ancho + ' px el filo mide lo que el icono, no el doble',
+       anchoFilo > 0 && anchoFilo <= ico.width + 6,
+       Math.round(anchoFilo) + 'px sobre un icono de ' + Math.round(ico.width));
+    ok('a ' + ancho + ' px va dentro de la barra, pegado al canto de arriba',
+       parseFloat(cs.top) === 0 &&
+       tab.getBoundingClientRect().top >= bar.getBoundingClientRect().top - 0.1 &&
+       Number(cs.opacity) === 1, cs.top + ' · opacidad ' + cs.opacity);
+    var dormida = [].filter.call(bar.querySelectorAll('.tab'), function(t){
+      return t.getAttribute('aria-pressed') !== 'true'; })[0];
+    ok('a ' + ancho + ' px las cerradas no llevan filo',
+       Number(w.getComputedStyle(dormida, '::before').opacity) === 0,
+       w.getComputedStyle(dormida, '::before').opacity);
+  }
+  await elFiloCuadra(390);
+  await elFiloCuadra(400);      // dentro del tramo que traía el resto viejo
+
   /* Y en una pantalla ancha, lo contrario: la columna NO se estira. Una lista
      de nombres a mil cien píxeles de ancho deja el dorsal en una punta y la
      posición en la otra, y no hay ojo que recorra eso. Tiene su ancho de
