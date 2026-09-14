@@ -290,6 +290,7 @@
       <div class="eq-nav">
         <div class="seg" id="eq-tabs" role="tablist">
           <button type="button" data-eq="plantilla" role="tab" aria-selected="true">Plantilla</button>
+          <button type="button" data-eq="sesiones" role="tab" aria-selected="false">Sesiones</button>
           <button type="button" data-eq="datos" role="tab" aria-selected="false">Datos</button>
         </div>
       </div>
@@ -322,6 +323,45 @@
   <p class="block-note" id="squad-nota"></p>
   <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
     a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-sesiones" role="tabpanel" hidden>
+  <!-- El diario: los días que tienen algo, por meses. -->
+  <div id="ses-diario">
+    <div class="ses-cabeza">
+      <p class="stats-resumen" id="ses-resumen"></p>
+      <button type="button" class="tbtn primary" id="ses-hoy">La sesión de hoy</button>
+    </div>
+    <div id="ses-meses"></div>
+    <p class="block-note" id="ses-nota"></p>
+  </div>
+
+  <!-- Un día, por dentro. Es la misma pestaña, no un diálogo encima. -->
+  <div id="ses-detalle" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-volver">‹ Todas las sesiones</button>
+    <h3 class="ses-fecha" id="ses-fecha"></h3>
+    <label class="field wide"><span>Nombre de la sesión <small>opcional</small></span>
+      <input type="text" id="ses-nombre" maxlength="80" placeholder="Salida de balón bajo presión"></label>
+    <p class="block-note" id="ses-asis"></p>
+
+    <p class="form-group">Ejercicios</p>
+    <ol class="ses-lista" id="ses-lista"></ol>
+
+    <p class="form-group">Añadir uno</p>
+    <div class="ses-nuevo">
+      <input type="text" id="ses-ej-titulo" maxlength="80" placeholder="Título del ejercicio"
+             aria-label="Título del ejercicio" autocomplete="off">
+      <select id="ses-ej-momento" aria-label="Momento del juego"></select>
+      <input type="text" id="ses-ej-duracion" maxlength="20" placeholder="15 min"
+             aria-label="Duración" autocomplete="off">
+      <button type="button" class="tbtn primary" id="ses-ej-add">Añadir</button>
+    </div>
+    <div class="ses-acciones">
+      <button type="button" class="tbtn" id="ses-traer">Traer de la biblioteca</button>
+      <button type="button" class="tbtn" id="ses-imprimir">Imprimir la sesión</button>
+    </div>
+    <p class="block-note" id="ses-pie"></p>
+  </div>
       </div>
 
       <div class="eq-cuerpo" id="eq-datos" role="tabpanel" hidden>
@@ -399,6 +439,9 @@
     <button class="tab" data-eq="plantilla">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
       Plantilla</button>
+    <button class="tab" data-eq="sesiones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M3.5 9.5h17"/><path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h4M7.5 16.5h7"/></svg>
+      Sesiones</button>
     <button class="tab" data-eq="datos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
       Datos</button>
@@ -672,7 +715,9 @@
       <input type="text" id="save-nombre" maxlength="80" placeholder="Rondo de los martes"></label>
 
     <div id="save-part">
-      <p class="save-part-t">
+      <label class="check check-fila"><input type="checkbox" id="save-hoy" checked>
+        <span>Apuntarlo como hecho hoy, <span id="save-hoy-fecha"></span></span></label>
+      <p class="save-part-t" id="save-part-t">
         <span id="save-part-cuenta"></span>
         <button type="button" class="linkish" id="save-part-cambiar">cambiar</button>
       </p>

@@ -31,11 +31,13 @@ var w, d, E;
 var AHORA = new Date('2026-09-15T12:00:00').getTime();
 
 function limpia(){
-  ['pt-squad','pt-asistencia','pt-boards','pt-autosave','pt-prefs','pt-catalogo','pt-nube']
+  ['pt-squad','pt-asistencia','pt-sesiones','pt-boards','pt-autosave','pt-prefs',
+   'pt-catalogo','pt-nube']
     .forEach(function(k){ try{ w.localStorage.removeItem(k); }catch(e){} });
 }
 
-// Una pizarra guardada como la que escribe la aplicación de verdad.
+// Una pizarra guardada a la manera VIEJA, con los jugadores enganchados. Ya no
+// se escribe así: se conserva para probar que lo de antes se pasa bien.
 function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   return [nombre, {
     at: AHORA - diasAtras * DIA,
@@ -47,6 +49,34 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
               return { id:x[0], nombre:x[1], dorsal:x[2] };
             }) }
   }];
+}
+
+function iso(t){
+  var d = new Date(t);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') +
+         '-' + String(d.getDate()).padStart(2,'0');
+}
+
+/* Una sesión, a la manera nueva: un día, lo que se hizo y quién vino.
+     dia(1, [['Rondo','Calentamiento','12 min',[idA,idB]]], [idA,idB], '2026/27') */
+function dia(diasAtras, ejercicios, presentes, temporada){
+  return { fecha: iso(AHORA - diasAtras*DIA), temporada: temporada || '2026/27',
+           ejercicios: ejercicios, presentes: presentes || null };
+}
+
+// Escribe las sesiones y la asistencia de golpe, como quedarían en el almacén.
+function siembra(lista){
+  var S = {}, A = {};
+  lista.forEach(function(s, n){
+    S[s.fecha] = { temporada: s.temporada, nombre: s.nombre || '',
+      ejercicios: s.ejercicios.map(function(e, i){
+        return { id: 'ej' + n + i + 'abc', titulo: e[0], momento: e[1],
+                 duracion: e[2], ref: null, quienes: e[3] || null };
+      }) };
+    if (s.presentes) A[s.fecha] = { temporada: s.temporada, presentes: s.presentes };
+  });
+  w.localStorage.setItem('pt-sesiones', JSON.stringify(S));
+  w.localStorage.setItem('pt-asistencia', JSON.stringify(A));
 }
 
 (async function(){
@@ -172,18 +202,22 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   var C = E.añade('2026/27', { dorsal:'11', nombre:'Cleo',  posicion:'Interior' }).jugador;
 
   var a = [A.id,'Ana','7'], b = [B.id,'Bruno','9'], c = [C.id,'Cleo','11'];
-  var tablero = {};
-  [
-    // nombre                días  momento               duración   quiénes
-    pizarra('Rondo',            1, 'Calentamiento',      '12 min',  [a,b,c]),
-    pizarra('Finalización',     2, 'Finalización',       '4 × 5 min',[a,b]),      // 20 min
-    pizarra('Salida',           5, 'Ataque organizado',  '18 min',  [a,b,c]),
-    pizarra('Repliegue',        9, 'Defensa organizada', '15 min',  [a,c]),       // fuera del micro
-    pizarra('Juego libre',     20, 'Partido condicionado','sin apuntar',[a,b,c]), // sin duración
-    pizarra('Corner',          40, 'Balón parado',       '10 min',  [a]),         // fuera del mes
-    pizarra('Pretemporada',   120, 'Físico-técnico',     '30 min',  [b], '2025/26')
-  ].forEach(function(p){ tablero[p[0]] = p[1]; });
-  w.localStorage.setItem('pt-boards', JSON.stringify(tablero));
+  var todos = [A.id,B.id,C.id], ab = [A.id,B.id], ac = [A.id,C.id];
+
+  /* Siete ejercicios repartidos en siete días. Cada uno dice quién lo hizo, que
+     es lo que hace que las cuentas por jugador se puedan echar a mano. */
+  var LAS_SESIONES = [
+    // díasAtrás  [ título, momento, duración, quiénes ]
+    dia(  1, [['Rondo',        'Calentamiento',        '12 min',    todos]]),
+    dia(  2, [['Finalización', 'Finalización',         '4 × 5 min', ab]]),     // 20 min
+    dia(  5, [['Salida',       'Ataque organizado',    '18 min',    todos]]),
+    dia(  9, [['Repliegue',    'Defensa organizada',   '15 min',    ac]]),     // fuera del micro
+    dia( 20, [['Juego libre',  'Partido condicionado', 'sin apuntar', todos]]),// sin duración
+    dia( 40, [['Corner',       'Balón parado',         '10 min',    [A.id]]]), // fuera del mes
+    dia(120, [['Pretemporada', 'Físico-técnico',       '30 min',    [B.id]]],
+         null, '2025/26')
+  ];
+  siembra(LAS_SESIONES);
 
   // ---- MICROCICLO: 7 días. Entran Rondo(1), Finalización(2) y Salida(5).
   //      Minutos: 12 + 20 + 18 = 50
@@ -222,7 +256,7 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   var pc = mes.momentos.filter(function(x){ return x.nombre === 'Partido condicionado'; })[0];
   ok('mes · un ejercicio sin duración sale con 0, no desaparece', !!pc && pc.minutos === 0);
 
-  // ---- TEMPORADA: manda meta.season, no la fecha.
+  // ---- TEMPORADA: manda la temporada de la sesión, no la fecha.
   //      Todos los 2026/27: 12+20+18+15+0+10 = 75. El de 2025/26 queda fuera.
   var tmp = E.estadisticas('temporada', AHORA);
   ok('temporada · 6 ejercicios (el de la temporada pasada no entra)',
@@ -236,10 +270,8 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   ok('temporada · Bruno 50: el córner fue solo de Ana', tj.Bruno === 50, tj.Bruno);
 
   // ---- Empate a minutos: por orden alfabético, para que no baile.
-  var empate = {};
-  empate['Uno']  = pizarra('Uno',  1, 'Zaga alta',  '10 min', [a])[1];
-  empate['Dos']  = pizarra('Dos',  1, 'Achique',    '10 min', [a])[1];
-  w.localStorage.setItem('pt-boards', JSON.stringify(empate));
+  siembra([ dia(1, [['Uno', 'Zaga alta', '10 min', [A.id]],
+                    ['Dos', 'Achique',   '10 min', [A.id]]]) ]);
   var emp = E.estadisticas('micro', AHORA);
   ok('con los mismos minutos, orden alfabético',
      emp.momentos[0].nombre === 'Achique' && emp.momentos[1].nombre === 'Zaga alta',
@@ -247,7 +279,7 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
 
   // =====================================================================
   console.log('7 · el aviso de lo que lleva sin trabajarse');
-  w.localStorage.setItem('pt-boards', JSON.stringify(tablero));
+  siembra(LAS_SESIONES);
   var av = E.estadisticas('micro', AHORA);
   var avn = {}; av.olvidados.forEach(function(o){ avn[o.nombre] = o.dias; });
   // Balón parado: hace 40 días. Partido condicionado: 20 (por debajo de 21).
@@ -264,7 +296,7 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
 
   // =====================================================================
   console.log('7b · el radar de equilibrio por fase de juego');
-  /* De los siete ejercicios del tablero, solo cuatro son FASES DE JUEGO:
+  /* De los siete ejercicios de las sesiones, solo cuatro son FASES DE JUEGO:
        Finalización 20 · Ataque organizado 18 · Defensa organizada 15 · Balón parado 10
      Calentamiento, Partido condicionado y Físico-técnico son contenido de
      sesión, no fases, y el radar los deja fuera a propósito. */
@@ -313,12 +345,11 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   ok('radar · los seis porcentajes suman 100', Math.abs(suma - 100) < 0.01, suma.toFixed(2));
 
   //   sin nada guardado, ni figura ni división por cero
-  var boardsAntes = w.localStorage.getItem('pt-boards');
-  w.localStorage.setItem('pt-boards', '{}');
+  w.localStorage.setItem('pt-sesiones', '{}');
   var rVacio = E.equilibrio('micro', AHORA);
   ok('radar · sin ejercicios no hay figura, y no revienta',
      rVacio.total === 0 && rVacio.ejes.every(function(e){ return e.pct === 0; }));
-  w.localStorage.setItem('pt-boards', boardsAntes);
+  siembra(LAS_SESIONES);
 
   // =====================================================================
   console.log('8 · sesiones: quién asiste a cada entrenamiento');
@@ -341,11 +372,15 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
 
   // =====================================================================
   console.log('9 · PRIVACIDAD · los nombres no salen del dispositivo');
-  // Se monta una pizarra y se guarda con participantes, como haría la aplicación.
-  var meta = E.metaDeHoy([A.id, B.id]);
-  ok('metaDeHoy trae los jugadores con su nombre y su dorsal',
-     meta.participants.length === 2 && meta.participants[0].nombre === 'Ana');
-  ok('y la temporada', meta.season === '2026/27', meta.season);
+  /* Lo que se engancha a una pizarra guardada es ya solo la temporada. Los
+     nombres se quedan en la plantilla, y quién hizo qué, en la sesión. Un dato
+     que no se copia es un dato que no se puede escapar por la copia. */
+  var meta = E.metaDeHoy();
+  ok('lo que se guarda con la pizarra es solo la temporada',
+     meta.season === '2026/27' && Object.keys(meta).length === 1,
+     Object.keys(meta).join(','));
+  ok('y ya no lleva ninguna lista de jugadores',
+     meta.participants === undefined);
 
   var guardada = { at: Date.now(), doc: { pitch:'f11', view:'full',
                     card:{titulo:'Secreto'}, frames:[{objects:[],strokes:[]}] }, meta: meta };
@@ -356,6 +391,22 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
      texto.indexOf(A.id) < 0 && texto.indexOf(B.id) < 0);
   ok('ni la palabra participants ni season',
      texto.indexOf('participants') < 0 && texto.indexOf('season') < 0);
+
+  // Y la entrada entera, «meta» incluida, tampoco lleva nombres.
+  var entera = JSON.stringify(guardada);
+  ok('la pizarra guardada, con su meta y todo, tampoco lleva nombres',
+     entera.indexOf('Ana') < 0 && entera.indexOf('Bruno') < 0 &&
+     entera.indexOf(A.id) < 0, entera.length + ' caracteres');
+
+  // Las sesiones guardan identificadores, nunca nombres.
+  E.apuntaHecho(E.hoyISO(new Date(AHORA)), { titulo:'Rondo secreto', duracion:'10 min',
+                                             quienes:[A.id, B.id] });
+  var crudo = w.localStorage.getItem('pt-sesiones');
+  ok('la sesión guardada no contiene ningún nombre, solo identificadores',
+     crudo.indexOf('Ana') < 0 && crudo.indexOf('Bruno') < 0 &&
+     crudo.indexOf(A.id) >= 0, crudo.length + ' caracteres');
+  ok('y el nombre se busca al pintar, desde la plantilla',
+     E.buscaJugador(A.id).nombre === 'Ana');
 
   // Lo que se sube a la biblioteca común es exactamente ese documento.
   // Se comprueba interceptando la petición de verdad.
@@ -454,11 +505,15 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
      d.querySelector('.stage').offsetParent !== null &&
      d.getElementById('equipo').offsetParent === null);
 
-  // ---- guardar con participantes ----
+  // ---- guardar, y de paso apuntarlo como hecho hoy ----
   d.getElementById('save').click();
   await wait(350);
   ok('Guardar abre el diálogo nuevo', d.getElementById('dlg-save').open);
-  ok('y dice cuántos van sin tener que abrir nada',
+  ok('la casilla de «hecho hoy» viene marcada: es lo que se hace casi siempre',
+     d.getElementById('save-hoy').checked);
+  ok('y dice de qué día habla', /septiembre/.test(d.getElementById('save-hoy-fecha').textContent),
+     d.getElementById('save-hoy-fecha').textContent);
+  ok('y cuántos van, sin tener que abrir nada',
      /3 jugadores/.test(d.getElementById('save-part-cuenta').textContent),
      d.getElementById('save-part-cuenta').textContent);
   ok('la lista viene plegada: no estorba', d.getElementById('save-part-caja').hidden);
@@ -473,26 +528,52 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   var boards = JSON.parse(w.localStorage.getItem('pt-boards') || '{}');
   var g = boards['Ejercicio de prueba'];
   ok('se guarda la pizarra', !!g && !!g.doc);
-  ok('con los participantes en meta, fuera del documento',
-     !!g.meta && g.meta.participants.length === 3, g.meta && g.meta.participants.length);
-  ok('y con la temporada', g.meta.season === '2026/27', g.meta && g.meta.season);
-  ok('el documento guardado sigue limpio de nombres',
-     JSON.stringify(g.doc).indexOf('Ana Ferrer') < 0);
+  ok('con la temporada y nada más: los nombres no se copian aquí',
+     !!g.meta && g.meta.season === '2026/27' && g.meta.participants === undefined,
+     g.meta && Object.keys(g.meta).join(','));
+  ok('la pizarra guardada entera, meta incluida, no lleva ningún nombre',
+     JSON.stringify(g).indexOf('Ana Ferrer') < 0);
+
+  // Y lo mismo se ha apuntado en la sesión de hoy, que es el otro lado.
+  var hoySes = E.sesionDe(E.hoyISO());
+  ok('guardar con la casilla marcada lo apunta en la sesión de hoy',
+     hoySes.ejercicios.length === 1 &&
+     hoySes.ejercicios[0].titulo === 'Ejercicio de prueba',
+     hoySes.ejercicios.map(function(e){return e.titulo;}).join(','));
+  ok('con los 3 que lo hicieron', hoySes.ejercicios[0].quienes.length === 3,
+     hoySes.ejercicios[0].quienes && hoySes.ejercicios[0].quienes.length);
+  ok('y apuntando de paso que ese día vinieron, que si no sus minutos no serían de nadie',
+     hoySes.hayAsistencia && hoySes.presentes.length === 3, hoySes.presentes.length);
+  ok('la sesión apunta a la pizarra guardada, para poder abrirla',
+     hoySes.ejercicios[0].ref && hoySes.ejercicios[0].ref.de === 'guardado' &&
+     hoySes.ejercicios[0].ref.nombre === 'Ejercicio de prueba');
+
+  /* Desmarcando la casilla se guarda y no se apunta: es el domingo por la noche
+     preparando el martes, que antes salía como si el equipo hubiera entrenado. */
+  d.getElementById('save').click();
+  await wait(300);
+  d.getElementById('save-hoy').checked = false;
+  d.getElementById('save-hoy').dispatchEvent(new w.Event('change'));
+  await wait(100);
+  ok('sin «hecho hoy», la lista de quiénes desaparece: ya no viene a cuento',
+     d.getElementById('save-part-t').hidden);
+  d.getElementById('save-nombre').value = 'Para el martes';
+  d.getElementById('save-ok').click();
+  await wait(300);
+  ok('se guarda en la biblioteca',
+     !!JSON.parse(w.localStorage.getItem('pt-boards'))['Para el martes']);
+  ok('y NO se apunta como entrenado hoy',
+     E.sesionDe(E.hoyISO()).ejercicios.length === 1,
+     E.sesionDe(E.hoyISO()).ejercicios.length + ' en la sesión de hoy');
 
   // ---- estadísticas en pantalla ----
-  /* El radar solo se dibuja si hay minutos de FASE DE JUEGO. El ejercicio que
-     se acaba de guardar no lleva momento, así que aquí se le ponen dos que sí,
-     para poder mirar la figura. Sin esto, lo correcto es que no haya figura. */
-  (function(){
-    var t = JSON.parse(w.localStorage.getItem('pt-boards') || '{}');
-    t['Con fase A'] = { at: Date.now(), doc: { pitch:'f11', view:'full',
-      card:{titulo:'Con fase A', momento:'Ataque organizado', duracion:'20 min'},
-      frames:[{objects:[],strokes:[]}] } };
-    t['Con fase B'] = { at: Date.now(), doc: { pitch:'f11', view:'full',
-      card:{titulo:'Con fase B', momento:'Defensa organizada', duracion:'10 min'},
-      frames:[{objects:[],strokes:[]}] } };
-    w.localStorage.setItem('pt-boards', JSON.stringify(t));
-  })();
+  /* El radar solo se dibuja si hay minutos de FASE DE JUEGO. Lo que se acaba de
+     apuntar no lleva momento, así que aquí se añaden dos que sí, para poder
+     mirar la figura. Sin esto, lo correcto es que no haya figura. */
+  E.añadeEjercicio(E.hoyISO(), { titulo:'Con fase A', momento:'Ataque organizado',
+                                 duracion:'20 min' });
+  E.añadeEjercicio(E.hoyISO(), { titulo:'Con fase B', momento:'Defensa organizada',
+                                 duracion:'10 min' });
   d.querySelector('#modos [data-modo="equipo"]').click();
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="datos"]').click();
@@ -553,23 +634,18 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
        12 sep   Ana
      Asistencia:  Ana 4/4 (100 %) · Bruno 2/4 (50 %) · Carla 1/4 (25 %)
      El aviso es «menos de la mitad», y la mitad justa no lo es: solo Carla. */
-  w.localStorage.setItem('pt-asistencia', JSON.stringify({
-    '2026-09-15': { temporada:'2026/27', presentes:[ana.id, bru.id, car.id] },
-    '2026-09-14': { temporada:'2026/27', presentes:[ana.id, bru.id] },
-    '2026-09-13': { temporada:'2026/27', presentes:[ana.id] },
-    '2026-09-12': { temporada:'2026/27', presentes:[ana.id] }
-  }));
-
-  /* Dos ejercicios de la temporada:
+  /* Dos ejercicios el día 14:
        T1   30 min   Ataque organizado     Ana  Bruno  Carla
        T2   20 min   Defensa organizada    Ana
      Total 50 min.   Ana 30 + 20 = 50 · Bruno 30 · Carla 30
      Por momento: Ataque 30 (60 % de 50) · Defensa 20 (40 % de 50). */
-  w.localStorage.setItem('pt-boards', JSON.stringify(Object.fromEntries([
-    pizarra('T1', 1, 'Ataque organizado',  '30 min',
-            [[ana.id,'Ana Ferrer','7'],[bru.id,'Bruno Gil','9'],[car.id,'Carla Ruiz','5']]),
-    pizarra('T2', 1, 'Defensa organizada', '20 min', [[ana.id,'Ana Ferrer','7']])
-  ])));
+  siembra([
+    dia(0, [], [ana.id, bru.id, car.id]),
+    dia(1, [['T1', 'Ataque organizado',  '30 min', [ana.id, bru.id, car.id]],
+            ['T2', 'Defensa organizada', '20 min', [ana.id]]], [ana.id, bru.id]),
+    dia(2, [], [ana.id]),
+    dia(3, [], [ana.id])
+  ]);
 
   d.querySelector('#modos [data-modo="equipo"]').click();
   await wait(300);
@@ -709,6 +785,288 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   ok('volver a minutos devuelve el orden de antes',
      d.querySelectorAll('#stats-jugadores .barra')[0]
       .querySelector('.barra-nombre').textContent.indexOf('Ana') === 0);
+
+  // =====================================================================
+  console.log('12 · la sesión como objeto: un día, quién vino y qué se hizo');
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var P1 = E.añade('2026/27', { dorsal:'1', nombre:'Portero Uno', posicion:'Portero' }).jugador;
+  var P2 = E.añade('2026/27', { dorsal:'4', nombre:'Campo Dos',   posicion:'Central' }).jugador;
+  var HOY = E.hoyISO();
+
+  var vac = E.sesionDe(HOY);
+  ok('un día sin nada devuelve una sesión vacía, no un nulo',
+     !!vac && vac.ejercicios.length === 0 && vac.vacia === true);
+
+  var r1 = E.añadeEjercicio(HOY, { titulo:'Rondo', momento:'Calentamiento', duracion:'12 min' });
+  ok('se añade un ejercicio a mano', r1.ok === true);
+  E.añadeEjercicio(HOY, { titulo:'Finalización', momento:'Finalización', duracion:'3 × 5 min' });
+  E.añadeEjercicio(HOY, { titulo:'Solo porteros', momento:'Porteros', duracion:'10 min',
+                          quienes:[P1.id] });
+  var s12 = E.sesionDe(HOY);
+  ok('los tres, en el orden en que se metieron',
+     s12.ejercicios.map(function(e){ return e.titulo; }).join(',') ===
+     'Rondo,Finalización,Solo porteros',
+     s12.ejercicios.map(function(e){ return e.titulo; }).join(','));
+  // 12 + 15 + 10 = 37
+  ok('y los minutos echados: 12 + 15 + 10 = 37', s12.minutos === 37, s12.minutos);
+  ok('sin duración no hay ninguno', s12.sinDuracion === 0, s12.sinDuracion);
+  ok('un ejercicio sin título no entra',
+     E.añadeEjercicio(HOY, { titulo:'  ', duracion:'5 min' }).ok === false);
+
+  // El orden importa: un rondo de calentamiento al final no es lo mismo.
+  E.mueveEjercicio(HOY, s12.ejercicios[2].id, 'arriba');
+  ok('subir uno lo cambia de sitio',
+     E.sesionDe(HOY).ejercicios.map(function(e){ return e.titulo; }).join(',') ===
+     'Rondo,Solo porteros,Finalización',
+     E.sesionDe(HOY).ejercicios.map(function(e){ return e.titulo; }).join(','));
+  ok('el primero no puede subir más',
+     E.mueveEjercicio(HOY, E.sesionDe(HOY).ejercicios[0].id, 'arriba') === false);
+  ok('ni el último bajar',
+     E.mueveEjercicio(HOY, E.sesionDe(HOY).ejercicios[2].id, 'abajo') === false);
+
+  E.guardaSesion(HOY, { nombre: 'Martes de salida' });
+  ok('la sesión se puede nombrar', E.sesionDe(HOY).nombre === 'Martes de salida');
+
+  /* Lo que hace solo una parte del equipo va a nombre de esa parte. Si no, los
+     diez minutos de porteros saldrían en las cuentas de los diez de campo. */
+  E.ponAsistencia([P1.id, P2.id], new Date());
+  var e12 = E.estadisticas('micro');
+  var q12 = {}; e12.jugadores.forEach(function(j){ q12[j.nombre] = j.minutos; });
+  ok('el de campo suma 12 + 15 = 27, sin los minutos de portero',
+     q12['Campo Dos'] === 27, q12['Campo Dos']);
+  ok('y el portero 12 + 15 + 10 = 37', q12['Portero Uno'] === 37, q12['Portero Uno']);
+
+  E.quitaEjercicio(HOY, E.sesionDe(HOY).ejercicios[0].id);
+  ok('quitar uno lo quita', E.sesionDe(HOY).ejercicios.length === 2);
+
+  // ---- el diario ----
+  E.añadeEjercicio(iso(AHORA - 40*DIA), { titulo:'De hace mes y medio', duracion:'20 min' });
+  var dia12 = E.diario('2026/27');
+  ok('el diario trae los días con algo, del más nuevo al más viejo',
+     dia12.length >= 2 && dia12[0].fecha > dia12[dia12.length - 1].fecha,
+     dia12.map(function(s){ return s.fecha; }).join(' '));
+  var meses12 = E.porMeses(dia12);
+  ok('y agrupados por meses', meses12.length === 2 && /agosto/.test(meses12[1].nombre),
+     meses12.map(function(m){ return m.nombre; }).join(' · '));
+
+  // Vaciar una sesión del todo la borra, en vez de dejar una ficha hueca.
+  E.guardaSesion(HOY, { ejercicios: [], nombre: '' });
+  ok('una sesión sin nombre y sin ejercicios se borra sola',
+     E.sesionDe(HOY).vacia === true &&
+     JSON.parse(w.localStorage.getItem('pt-sesiones'))[HOY] === undefined);
+
+  // =====================================================================
+  console.log('13 · quitar a un jugador con historial no borra su historial');
+  /* Tres casos distintos: el que se apuntó por error y no ha pisado el campo,
+     el que solo sale en una lista de asistencia, y el que además tiene minutos.
+     Al primero se le borra; a los otros dos se les da de baja, porque su nombre
+     es lo único que da sentido a lo que ya está apuntado. */
+  var P3 = E.añade('2026/27', { dorsal:'33', nombre:'Error Tipográfico' }).jugador;
+  ok('al que no ha pisado el campo se le borra', E.quita('2026/27', P3.id) === 'borrado');
+  ok('y desaparece de la plantilla',
+     E.jugadores('2026/27').every(function(j){ return j.id !== P3.id; }));
+  ok('y del todo: no queda ni de baja', E.buscaJugador(P3.id) === null);
+
+  ok('al que solo sale en una lista de asistencia se le da de baja',
+     E.quita('2026/27', P2.id) === 'baja');
+
+  var r13 = E.quita('2026/27', P1.id);
+  ok('al que ya ha entrenado se le da de baja, no se le borra', r13 === 'baja', r13);
+  ok('no sale en la plantilla de hoy',
+     E.jugadores('2026/27').every(function(j){ return j.id !== P1.id; }));
+  ok('pero sigue guardado, con su nombre',
+     E.buscaJugador(P1.id) && E.buscaJugador(P1.id).nombre === 'Portero Uno');
+  var e13 = E.estadisticas('micro');
+  var f13 = e13.jugadores.filter(function(j){ return j.id === P1.id; })[0];
+  ok('y sus minutos siguen saliendo en las cuentas, a su nombre',
+     !!f13 && f13.nombre === 'Portero Uno' && f13.fuera === true,
+     f13 && f13.nombre + ' ' + f13.minutos);
+
+  // =====================================================================
+  console.log('14 · lo apuntado a la manera vieja se pasa solo');
+  /* Antes, cada pizarra guardada llevaba enganchado quién estaba el día que se
+     guardó. Eso era una sesión sin decirlo. Al abrir por primera vez, se pasa a
+     su sitio y no se pierde nada. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var V1 = E.añade('2026/27', { dorsal:'7', nombre:'Vieja Uno' }).jugador;
+  var V2 = E.añade('2026/27', { dorsal:'9', nombre:'Vieja Dos' }).jugador;
+  var v1 = [V1.id,'Vieja Uno','7'], v2 = [V2.id,'Vieja Dos','9'];
+  var viejo = {};
+  [ pizarra('Antiguo A', 3, 'Ataque organizado',  '20 min', [v1, v2]),
+    pizarra('Antiguo B', 3, 'Defensa organizada', '10 min', [v1]),
+    pizarra('Sin gente', 3, 'Finalización',       '99 min', [])   // nunca fue una sesión
+  ].forEach(function(p){ viejo[p[0]] = p[1]; });
+  w.localStorage.setItem('pt-boards', JSON.stringify(viejo));
+  w.localStorage.removeItem('pt-sesiones');
+  w.localStorage.removeItem('pt-asistencia');
+
+  var fv = iso(AHORA - 3*DIA);
+  var sv = E.sesionDe(fv);
+  ok('los dos que llevaban gente se convierten en la sesión de su día',
+     sv.ejercicios.length === 2,
+     sv.ejercicios.map(function(e){ return e.titulo; }).join(','));
+  ok('el que no llevaba a nadie no era una sesión y no se cuela',
+     sv.ejercicios.every(function(e){ return e.titulo !== 'Sin gente'; }));
+  ok('cada uno con quien lo hizo',
+     sv.ejercicios[0].quienes.length === 2 && sv.ejercicios[1].quienes.length === 1,
+     sv.ejercicios.map(function(e){ return e.quienes.length; }).join(','));
+  ok('y apuntando a la pizarra, para poder abrirla',
+     sv.ejercicios[0].ref.de === 'guardado' && sv.ejercicios[0].ref.nombre === 'Antiguo A');
+  ok('de aquel día no había lista, y se deja la de quienes aparecen',
+     sv.hayAsistencia && sv.presentes.length === 2, sv.presentes.length);
+  // 20 + 10 = 30 · Vieja Uno los dos = 30 · Vieja Dos solo el primero = 20
+  var e14 = E.estadisticas('micro', AHORA);
+  var q14 = {}; e14.jugadores.forEach(function(j){ q14[j.nombre] = j.minutos; });
+  ok('las cuentas salen igual que antes: 20 + 10 = 30',
+     e14.minutos === 30, e14.minutos);
+  ok('Vieja Uno 30', q14['Vieja Uno'] === 30, q14['Vieja Uno']);
+  ok('Vieja Dos 20', q14['Vieja Dos'] === 20, q14['Vieja Dos']);
+  ok('la biblioteca no se toca: las pizarras siguen donde estaban',
+     Object.keys(JSON.parse(w.localStorage.getItem('pt-boards'))).length === 3);
+  // Y no se repite: añadir algo y volver a leer no duplica nada.
+  E.añadeEjercicio(fv, { titulo:'Metido después', duracion:'5 min' });
+  ok('y no se vuelve a hacer: lo añadido después sigue ahí y nada se duplica',
+     E.sesionDe(fv).ejercicios.length === 3,
+     E.sesionDe(fv).ejercicios.map(function(e){ return e.titulo; }).join(','));
+
+  // =====================================================================
+  console.log('15 · las sesiones en pantalla');
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var Z = E.añade('2026/27', { dorsal:'10', nombre:'Zoe Pantalla' }).jugador;
+  E.ponAsistencia([Z.id], new Date());
+  E.añadeEjercicio(E.hoyISO(), { titulo:'Rondo de pantalla', momento:'Calentamiento',
+                                 duracion:'12 min' });
+  E.guardaSesion(E.hoyISO(), { nombre:'Sesión de pantalla' });
+
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+  ok('hay una tercera pestaña y lleva a Sesiones',
+     !d.getElementById('eq-sesiones').hidden &&
+     d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
+  ok('las tres pestañas de abajo caben, una por columna',
+     d.querySelectorAll('.tabbar-eq .tab').length === 3);
+  ok('se entra por el diario, no por un día suelto',
+     !d.getElementById('ses-diario').hidden && d.getElementById('ses-detalle').hidden);
+  ok('y sale el día de hoy en la lista',
+     d.querySelectorAll('#ses-meses .ses-dia').length === 1,
+     d.querySelectorAll('#ses-meses .ses-dia').length);
+  var filaHoy = d.querySelector('#ses-meses .ses-dia');
+  ok('marcado como hoy', filaHoy.classList.contains('es-hoy'));
+  ok('con su nombre, tal cual se escribió',
+     filaHoy.querySelector('.ses-dia-med b').textContent === 'Sesión de pantalla',
+     filaHoy.querySelector('.ses-dia-med b').textContent);
+
+  filaHoy.querySelector('.ses-dia-btn').click();
+  await wait(250);
+  ok('al pulsar se abre el día, en la misma pestaña y sin ningún diálogo',
+     d.getElementById('ses-diario').hidden && !d.getElementById('ses-detalle').hidden &&
+     !d.querySelector('dialog[open]'));
+  ok('con su ejercicio, numerado',
+     d.querySelectorAll('#ses-lista .ses-ej').length === 1 &&
+     d.querySelector('#ses-lista .ses-ej-n').textContent === '1');
+
+  // Un título con etiquetas HTML se enseña como texto, nunca interpretado.
+  d.getElementById('ses-ej-titulo').value = 'Malo <b>x</b> & Cía';
+  d.getElementById('ses-ej-duracion').value = '8 min';
+  d.getElementById('ses-ej-add').click();
+  await wait(250);
+  var ejs = d.querySelectorAll('#ses-lista .ses-ej');
+  ok('se añade uno a mano desde la pantalla', ejs.length === 2, ejs.length);
+  ok('y un título con etiquetas sale como texto, no se interpreta',
+     ejs[1].querySelector('b').textContent === 'Malo <b>x</b> & Cía' &&
+     ejs[1].querySelectorAll('.ses-ej-med b').length === 1);
+  ok('el campo se vacía para seguir metiendo',
+     d.getElementById('ses-ej-titulo').value === '');
+
+  /* El ejercicio escrito a mano no tiene dibujo, y por tanto su título no abre
+     nada. Entre cuatro iconos al título le quedaban 130 px y salía cortado:
+     ahora el propio texto es el botón, y solo cuando hay algo que abrir. */
+  ok('el escrito a mano no tiene dibujo, y su título no es un botón',
+     ejs[1].querySelector('.ses-ej-med').tagName !== 'BUTTON');
+  ok('tres mandos por fila, no cuatro',
+     ejs[1].querySelectorAll('.ses-ej-mandos .ses-mini').length === 3,
+     ejs[1].querySelectorAll('.ses-ej-mandos .ses-mini').length);
+  (function(){
+    var caja = ejs[1].querySelector('.ses-ej-med').getBoundingClientRect();
+    ok('y al título le queda de sobra para leerse', caja.width > 200,
+       Math.round(caja.width) + 'px');
+  })();
+
+  // Los mandos de mover: el primero no sube y el último no baja.
+  var mandos0 = ejs[0].querySelectorAll('.ses-ej-mandos .ses-mini');
+  ok('el primero tiene el subir apagado',
+     [].some.call(mandos0, function(b){ return b.title === 'Subir' && b.disabled; }));
+  [].forEach.call(ejs[1].querySelectorAll('.ses-ej-mandos .ses-mini'), function(b){
+    if (b.title === 'Subir') b.click();
+  });
+  await wait(250);
+  ok('subir uno lo mueve también en la pantalla',
+     d.querySelector('#ses-lista .ses-ej-med b').textContent === 'Malo <b>x</b> & Cía',
+     d.querySelector('#ses-lista .ses-ej-med b').textContent);
+
+  /* Todo lo que se toca llega al dedo. Se mira solo lo que se ve: un botón del
+     diario mientras el diario está escondido mide cero, y contarlo daría un
+     fallo que no existe. */
+  var chicos = [].filter.call(
+    d.querySelectorAll('#ses-detalle button, #ses-detalle input, #ses-detalle select'),
+    function(b){
+      var r = b.getBoundingClientRect();
+      return r.height > 0 && r.height < 44 - 0.5;
+    }).map(function(b){ return (b.title || b.id || b.className) + ' ' + Math.round(b.getBoundingClientRect().height); });
+  ok('nada de lo que se toca en el detalle de la sesión baja de 44 px de alto',
+     chicos.length === 0, chicos.join(' · '));
+
+  d.getElementById('ses-volver').click();
+  await wait(250);
+  ok('«todas las sesiones» vuelve al diario',
+     !d.getElementById('ses-diario').hidden && d.getElementById('ses-detalle').hidden);
+
+  // La biblioteca, en modo elegir.
+  d.querySelector('#ses-meses .ses-dia-btn').click();
+  await wait(200);
+  d.getElementById('ses-traer').click();
+  await wait(500);
+  ok('«traer de la biblioteca» abre la biblioteca de siempre, no una pantalla nueva',
+     d.getElementById('dlg-lib').open);
+  ok('y se nota que está eligiendo, no abriendo',
+     /sesión/i.test(d.getElementById('dlg-lib-t').textContent),
+     d.getElementById('dlg-lib-t').textContent);
+  var tarj = d.querySelector('#lib-grid .lib-card .lib-pie .primary');
+  ok('el botón grande de cada tarjeta dice Añadir, no Abrir',
+     !!tarj && tarj.textContent === 'Añadir', tarj && tarj.textContent);
+  var antes15 = E.sesionDe(E.hoyISO()).ejercicios.length;
+  tarj.click();
+  await wait(300);
+  ok('y al pulsarlo entra en la sesión, sin salir de la biblioteca',
+     E.sesionDe(E.hoyISO()).ejercicios.length === antes15 + 1,
+     E.sesionDe(E.hoyISO()).ejercicios.length);
+  ok('apuntando de dónde salió, para poder abrirlo',
+     !!E.sesionDe(E.hoyISO()).ejercicios[antes15].ref);
+  d.getElementById('dlg-lib').close();
+  await wait(300);
+  // Ese sí tiene dibujo: su título abre la pizarra.
+  var conDibujo = d.querySelectorAll('#ses-lista .ses-ej')[antes15].querySelector('.ses-ej-med');
+  ok('el traído de la biblioteca sí tiene dibujo, y su título lo abre',
+     conDibujo.tagName === 'BUTTON' && /pizarra/i.test(conDibujo.title),
+     conDibujo.tagName + ' · ' + conDibujo.title);
+  conDibujo.click();
+  await wait(400);
+  ok('al pulsarlo se va a la pizarra con el ejercicio puesto',
+     d.querySelector('.app').dataset.modo === 'pizarra');
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.getElementById('open').click();
+  await wait(500);
+  ok('y la biblioteca normal vuelve a abrir, no a añadir',
+     d.querySelector('#lib-grid .lib-card .lib-pie .primary').textContent === 'Abrir' &&
+     d.getElementById('dlg-lib-t').textContent === 'Biblioteca');
+  d.getElementById('dlg-lib').close();
+  await wait(150);
 
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);

@@ -60,9 +60,26 @@ a día sin construir nada.
 
 ---
 
-## 2 · La sesión de entrenamiento
+## 2 · La sesión de entrenamiento · HECHO EN PARTE
 
-**Qué es.** Hoy la aplicación piensa en ejercicios sueltos. Un entrenador no
+**Ya está**: la sesión existe como objeto (`pt-sesiones`, una fecha con su
+nombre, sus ejercicios en orden y quién vino), tiene su pestaña en Equipo con
+diario por meses y detalle del día, se monta a mano o trayendo de la biblioteca,
+y saca su hoja para imprimir. Las estadísticas cuentan desde ahí.
+
+**Falta todavía** de lo de abajo: avisar si los minutos no cuadran con el tiempo
+disponible, meter el **dibujo de cada ejercicio** en la hoja impresa (hoy va solo
+el texto), y **mandar la sesión entera por enlace**.
+
+Y falta **el generador**: proponer una sesión a partir de lo que está sin
+trabajar (radar y aviso de 21 días), cuántos han venido, cuántos porteros hay y
+dos desplegables de espacio y tiempo. El lector de jugadores del catálogo ya está
+medido: 21 de 24 ejercicios dicen cuánta gente necesitan, 3 son «los que haya»,
+0 ilegibles; el espacio sale del `view` de cada uno (area ⊂ half ⊂ full).
+
+**Lo que era, tal cual se habló:**
+
+Hoy la aplicación piensa en ejercicios sueltos. Un entrenador no
 entrena ejercicios: entrena **el martes**, que es una lista con un tiempo total.
 
 ```

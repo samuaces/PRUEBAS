@@ -3025,20 +3025,10 @@
           (etiquetas ? '<div class="lib-tags">' + etiquetas + '</div>' : '') +
         '</div>';
 
-      /* Quién participó, si es una pizarra tuya y quedó apuntado. Se añade por
-         el DOM y no con innerHTML: son nombres de personas. */
-      var quienes = it.meta && Array.isArray(it.meta.participants) ? it.meta.participants : null;
-      if (quienes && quienes.length) {
-        var linea = document.createElement('p');
-        linea.className = 'lib-part';
-        var cuantos = document.createElement('b');
-        cuantos.textContent = quienes.length + (quienes.length === 1 ? ' jugador' : ' jugadores');
-        linea.appendChild(cuantos);
-        linea.appendChild(document.createTextNode(' · ' +
-          quienes.slice(0, 4).map(function (p) { return p.nombre; }).join(', ') +
-          (quienes.length > 4 ? ' y ' + (quienes.length - 4) + ' más' : '')));
-        $('.lib-txt', art).appendChild(linea);
-      }
+      /* Aquí iba antes «quién participó», con los nombres copiados dentro de
+         cada pizarra guardada. Ya no: quién hizo un ejercicio es cosa de la
+         sesión de ese día, y los nombres viven en un solo sitio. La biblioteca
+         vuelve a ser una biblioteca. */
 
       var pie = document.createElement('div');
       pie.className = 'lib-pie';
@@ -3065,11 +3055,19 @@
       pie.appendChild(enlazar);
 
       var abrir = document.createElement('button');
-      abrir.className = 'tbtn primary'; abrir.textContent = 'Abrir';
-      abrir.addEventListener('click', function () { abreItem(it); });
+      abrir.className = 'tbtn primary';
+      if (libParaSesion) {
+        abrir.textContent = 'Añadir';
+        abrir.title = 'Añadir a la sesión';
+        abrir.addEventListener('click', function () { meteEnLaSesion(it); });
+      } else {
+        abrir.textContent = 'Abrir';
+        abrir.addEventListener('click', function () { abreItem(it); });
+      }
       pie.appendChild(abrir);
 
-      botonesDeItem(it).forEach(function (b) { pie.appendChild(b); });
+      // Eligiendo para una sesión, borrar o publicar no viene a cuento.
+      if (!libParaSesion) botonesDeItem(it).forEach(function (b) { pie.appendChild(b); });
       art.appendChild(pie);
       grid.appendChild(art);
       encargaMini(art.firstChild, it);
@@ -3335,9 +3333,350 @@
   }
 
   /* =========================================================================
+     LAS SESIONES
+
+     Un día de entrenamiento: quién vino y qué se hizo, en orden.
+
+     La pestaña tiene dos caras y ninguna es un diálogo: el DIARIO, que son los
+     días que tienen algo agrupados por meses, y el DETALLE de un día. Se va de
+     una a la otra dentro de la misma pestaña, como quien abre una carpeta. Un
+     diálogo más encima de los diez que ya hay no le hacía falta a nadie.
+
+     Montar una sesión se puede hacer de dos maneras, y las dos están a la vista
+     en el detalle: escribir un ejercicio a mano —«estiramientos, 10 min», que no
+     necesita dibujo— o traerlo de la biblioteca, que es la biblioteca de
+     siempre abierta en modo «elegir» en vez de en modo «abrir».
+     ====================================================================== */
+  var sesFecha = null;              // el día abierto, o null si se ve el diario
+
+  function abreSesiones() { vaModo('equipo', 'sesiones'); }
+
+  function pintaSesiones() {
+    if (sesFecha) pintaDetalleSesion(); else pintaDiario();
+  }
+
+  function vaAlDiario() { sesFecha = null; pintaSesiones(); }
+
+  function abreSesion(fecha) {
+    sesFecha = fecha;
+    pintaSesiones();
+    var caja = $('#equipo');
+    if (caja) caja.scrollTop = 0;
+  }
+
+  function pintaDiario() {
+    $('#ses-diario').hidden = false;
+    $('#ses-detalle').hidden = true;
+
+    var lista = PTEquipo.diario();
+    var meses = PTEquipo.porMeses(lista);
+    var totalEj = 0, totalMin = 0;
+    lista.forEach(function (s) { totalEj += s.ejercicios.length; totalMin += s.minutos; });
+
+    var trozos = [lista.length + (lista.length === 1 ? ' sesión' : ' sesiones')];
+    if (totalEj) trozos.push(totalEj + (totalEj === 1 ? ' ejercicio' : ' ejercicios'));
+    if (totalMin) trozos.push(totalMin + ' min');
+    $('#ses-resumen').textContent = lista.length
+      ? 'Temporada ' + PTEquipo.temporadaActual() + ': ' + trozos.join(' · ')
+      : 'Temporada ' + PTEquipo.temporadaActual() + ', todavía sin sesiones.';
+
+    var caja = $('#ses-meses');
+    caja.textContent = '';
+    meses.forEach(function (m) {
+      var h = document.createElement('p');
+      h.className = 'ses-mes';
+      h.textContent = m.nombre;
+      caja.appendChild(h);
+
+      var ul = document.createElement('ul');
+      ul.className = 'ses-dias';
+      m.sesiones.forEach(function (s) { ul.appendChild(filaSesion(s)); });
+      caja.appendChild(ul);
+    });
+
+    $('#ses-nota').textContent = lista.length
+      ? 'Cada sesión es un día. Todo se queda en este dispositivo.'
+      : 'Una sesión es un día de entrenamiento: quién vino y qué hicisteis. ' +
+        'Empieza por la de hoy, o guarda un ejercicio desde la pizarra y se apunta solo.';
+  }
+
+  function filaSesion(s) {
+    var hoy = PTEquipo.hoyISO();
+    var li = document.createElement('li');
+    li.className = 'ses-dia' + (s.fecha === hoy ? ' es-hoy' : '');
+
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ses-dia-btn';
+
+    var fecha = document.createElement('span');
+    fecha.className = 'ses-dia-fecha';
+    fecha.textContent = s.fecha === hoy ? 'Hoy' : diaCorto(s.fecha);
+    b.appendChild(fecha);
+
+    var med = document.createElement('span');
+    med.className = 'ses-dia-med';
+    // El nombre lo escribe el entrenador: por el DOM, nunca por innerHTML.
+    var tit = document.createElement('b');
+    tit.textContent = s.nombre || (s.ejercicios.length
+      ? s.ejercicios[0].titulo + (s.ejercicios.length > 1
+          ? ' y ' + (s.ejercicios.length - 1) + ' más' : '')
+      : 'Sin ejercicios apuntados');
+    if (!s.nombre && !s.ejercicios.length) tit.className = 'flojo';
+    med.appendChild(tit);
+
+    var sub = document.createElement('small');
+    var t = [];
+    if (s.ejercicios.length) t.push(s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+    if (s.minutos) t.push(s.minutos + ' min');
+    if (s.hayAsistencia) t.push(s.presentes.length + (s.presentes.length === 1 ? ' jugador' : ' jugadores'));
+    sub.textContent = t.join(' · ') || 'Nada apuntado todavía';
+    med.appendChild(sub);
+    b.appendChild(med);
+
+    var fl = document.createElement('span');
+    fl.className = 'ses-dia-fl';
+    fl.setAttribute('aria-hidden', 'true');
+    fl.textContent = '›';
+    b.appendChild(fl);
+
+    b.setAttribute('aria-label', 'Abrir la sesión del ' + diaLargo(s.fecha, true));
+    b.addEventListener('click', function () { abreSesion(s.fecha); });
+    li.appendChild(b);
+    return li;
+  }
+
+  function pintaDetalleSesion() {
+    $('#ses-diario').hidden = true;
+    $('#ses-detalle').hidden = false;
+
+    var s = PTEquipo.sesionDe(sesFecha);
+    var hoy = sesFecha === PTEquipo.hoyISO();
+    $('#ses-fecha').textContent = hoy ? 'Hoy, ' + diaLargo(sesFecha)
+                                      : mayus(diaLargo(sesFecha, true));
+    var campo = $('#ses-nombre');
+    if (campo.value !== s.nombre) campo.value = s.nombre;
+
+    // La asistencia se marca en Plantilla, que es donde se pasa lista. Aquí se
+    // dice cómo quedó y se lleva allí, en vez de repetir la lista entera.
+    var asis = $('#ses-asis');
+    asis.textContent = '';
+    if (s.hayAsistencia) {
+      asis.appendChild(document.createTextNode(
+        'Vinieron ' + s.presentes.length +
+        (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '));
+    } else {
+      asis.appendChild(document.createTextNode('De este día no quedó apuntado quién vino. '));
+    }
+    if (hoy) {
+      var ir = document.createElement('button');
+      ir.type = 'button';
+      ir.className = 'linkish';
+      ir.textContent = 'Pasar lista';
+      ir.addEventListener('click', function () { vaApartado('plantilla'); });
+      asis.appendChild(ir);
+    }
+
+    pintaEjerciciosDeSesion(s);
+
+    var pie = [];
+    if (s.ejercicios.length) {
+      pie.push(s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+      if (s.minutos) pie.push(s.minutos + ' min en total');
+      if (s.sinDuracion) pie.push(s.sinDuracion + ' sin duración apuntada');
+    }
+    $('#ses-pie').textContent = pie.length ? pie.join(' · ')
+      : 'Escribe uno a mano o tráelo de la biblioteca. Los que guardes desde la ' +
+        'pizarra marcando «hecho hoy» entran aquí solos.';
+    $('#ses-imprimir').disabled = !s.ejercicios.length;
+  }
+
+  function pintaEjerciciosDeSesion(s) {
+    var ol = $('#ses-lista');
+    ol.textContent = '';
+    if (!s.ejercicios.length) {
+      var p = document.createElement('li');
+      p.className = 'ses-vacia';
+      p.textContent = 'Todavía no hay ejercicios en esta sesión.';
+      ol.appendChild(p);
+      return;
+    }
+    s.ejercicios.forEach(function (e, i) {
+      ol.appendChild(filaEjercicio(s, e, i));
+    });
+  }
+
+  function filaEjercicio(s, e, i) {
+    var li = document.createElement('li');
+    li.className = 'ses-ej';
+
+    var orden = document.createElement('span');
+    orden.className = 'ses-ej-n';
+    orden.textContent = String(i + 1);
+    li.appendChild(orden);
+
+    /* El texto es el botón que abre el dibujo, cuando lo hay. Antes eso era un
+       icono más en la fila de mandos, y entre cuatro iconos al título le
+       quedaban 130 px: salía «Finalización tras c…». Tocar el ejercicio para
+       verlo es además lo que uno hace sin que se lo expliquen. */
+    var med = document.createElement(e.ref ? 'button' : 'div');
+    med.className = 'ses-ej-med' + (e.ref ? ' abrible' : '');
+    if (e.ref) {
+      med.type = 'button';
+      med.title = 'Abrir «' + e.titulo + '» en la pizarra';
+      med.addEventListener('click', function () { abreRefDeSesion(e.ref); });
+    }
+    var tit = document.createElement('b');
+    tit.textContent = e.titulo;
+    med.appendChild(tit);
+    var sub = document.createElement('small');
+    var t = [];
+    if (e.momento) t.push(e.momento);
+    if (e.duracion) t.push(e.duracion);
+    /* Cuántos lo hicieron, solo cuando NO lo hizo todo el que vino: eso es lo
+       que hay que ver de un vistazo, porque sus minutos van a otra cuenta.
+       Ponerlo también cuando coincide con la asistencia llenaría todas las
+       filas de un dato que ya está arriba, y se comía el momento y la duración,
+       que sí cambian de una fila a otra. */
+    if (e.quienes && !mismosQue(e.quienes, s.presentes)) {
+      t.push(e.quienes.length + (e.quienes.length === 1 ? ' jugador' : ' jugadores'));
+    }
+    sub.textContent = t.join(' · ');
+    if (t.length) med.appendChild(sub);
+    li.appendChild(med);
+
+    var mandos = document.createElement('div');
+    mandos.className = 'ses-ej-mandos';
+
+    mandos.appendChild(botonMini('Subir', '↑', function () {
+      PTEquipo.mueveEjercicio(s.fecha, e.id, 'arriba'); pintaSesiones();
+    }, i === 0));
+    mandos.appendChild(botonMini('Bajar', '↓', function () {
+      PTEquipo.mueveEjercicio(s.fecha, e.id, 'abajo'); pintaSesiones();
+    }, i === s.ejercicios.length - 1));
+    mandos.appendChild(botonMini('Quitar de la sesión', '✕', function () {
+      PTEquipo.quitaEjercicio(s.fecha, e.id); pintaSesiones();
+    }));
+
+    li.appendChild(mandos);
+    return li;
+  }
+
+  function mismosQue(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    var hay = {};
+    b.forEach(function (x) { hay[x] = true; });
+    return a.every(function (x) { return hay[x]; });
+  }
+
+  function botonMini(titulo, dentro, alPulsar, apagado) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tbtn icono ses-mini';
+    b.title = titulo;
+    b.setAttribute('aria-label', titulo);
+    if (dentro.charAt(0) === '<') b.innerHTML = dentro; else b.textContent = dentro;
+    if (apagado) b.disabled = true;
+    b.addEventListener('click', alPulsar);
+    return b;
+  }
+
+  /* Abrir el dibujo de un ejercicio de la sesión. Puede que ya no exista —lo
+     borraste de tu biblioteca—, y entonces se dice, que es mejor que no hacer
+     nada al pulsar. La sesión no se toca: sigue contando lo que se hizo. */
+  function abreRefDeSesion(ref) {
+    if (ref.de === 'guardado') {
+      var todas = savedBoards();
+      if (!todas[ref.nombre] || !todas[ref.nombre].doc) {
+        toast('«' + ref.nombre + '» ya no está en tu biblioteca. La sesión lo sigue contando.');
+        return;
+      }
+      doc = clone(todas[ref.nombre].doc);
+      ui.frame = 0; ui.sel = null; ui.multi = [];
+      syncViewButtons(); buildFrames(); hideInspector(); commit();
+      vaModo('pizarra');               // resize() va dentro: el campo ya tiene hueco
+      toast('«' + ref.nombre + '» abierto');
+      return;
+    }
+    var it = bibliotecaItems().filter(function (x) { return x.id === ref.id; })[0];
+    if (!it) { toast('Ese ejercicio ya no está en la biblioteca'); return; }
+    /* El modo, antes de cargar: «abreItem» mide el campo contra el hueco que
+       tiene, y estando en Equipo ese hueco es cero. Se escribió para abrirse
+       desde la biblioteca, con la pizarra ya delante. */
+    vaModo('pizarra');
+    abreItem(it);
+  }
+
+  function añadeEjercicioAMano() {
+    var tit = $('#ses-ej-titulo'), mom = $('#ses-ej-momento'), dur = $('#ses-ej-duracion');
+    var r = PTEquipo.añadeEjercicio(sesFecha, {
+      titulo: tit.value, momento: mom.value, duracion: dur.value, ref: null, quienes: null
+    });
+    if (!r.ok) {
+      toast(r.porque === 'tope' ? 'La sesión ya lleva ' + PTEquipo.TOPE_EJERCICIOS + ' ejercicios'
+          : r.porque === 'no-cabe' ? 'No cabe en el almacenamiento del navegador'
+          : 'Hace falta el título');
+      if (r.porque === 'sin-titulo') tit.focus();
+      return;
+    }
+    tit.value = ''; dur.value = '';          // el momento se queda: suelen ir seguidos
+    pintaSesiones();
+    tit.focus();
+  }
+
+  /* La hoja de la sesión para imprimir o guardar en PDF. No es una pantalla
+     nueva: es una ventana con el texto y un poco de CSS, que es lo que hace
+     falta para llevarla al campo en papel. Se abre sin nombres si no los hay. */
+  function imprimeSesion() {
+    var s = PTEquipo.sesionDe(sesFecha);
+    if (!s.ejercicios.length) { toast('Esta sesión no tiene ejercicios'); return; }
+    var v = window.open('', '_blank');
+    if (!v) { toast('El navegador ha bloqueado la ventana de impresión'); return; }
+
+    var d = v.document;
+    d.title = 'Sesión · ' + diaLargo(s.fecha, true);
+    var est = d.createElement('style');
+    est.textContent =
+      'body{font:13px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;' +
+      'margin:28px;max-width:720px}' +
+      'h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:0 0 18px;font-weight:400;color:#555}' +
+      'ol{padding-left:20px;margin:0}li{margin:0 0 12px;break-inside:avoid}' +
+      'li b{display:block;font-size:14px}li small{color:#555;font-size:12px}' +
+      '.tot{margin:20px 0 0;padding-top:10px;border-top:1px solid #ccc;color:#555;font-size:12px}' +
+      '@media print{body{margin:0}}';
+    d.head.appendChild(est);
+
+    function mete(padre, etiqueta, texto, clase) {
+      var el = d.createElement(etiqueta);
+      el.textContent = texto;
+      if (clase) el.className = clase;
+      padre.appendChild(el);
+      return el;
+    }
+    mete(d.body, 'h1', s.nombre || 'Sesión de entrenamiento');
+    mete(d.body, 'h2', diaLargo(s.fecha, true) +
+         (s.hayAsistencia ? ' · ' + s.presentes.length +
+            (s.presentes.length === 1 ? ' jugador' : ' jugadores') : ''));
+    var ol = d.createElement('ol');
+    s.ejercicios.forEach(function (e) {
+      var li = d.createElement('li');
+      mete(li, 'b', e.titulo);
+      var t = [e.momento, e.duracion].filter(Boolean).join(' · ');
+      if (t) mete(li, 'small', t);
+      ol.appendChild(li);
+    });
+    d.body.appendChild(ol);
+    var tot = [s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios')];
+    if (s.minutos) tot.push(s.minutos + ' min');
+    mete(d.body, 'p', tot.join(' · '), 'tot');
+    v.focus();
+    setTimeout(function () { v.print(); }, 120);
+  }
+
+  /* =========================================================================
      ESTADÍSTICAS
 
-     Se calcula todo aquí, leyendo las pizarras guardadas en este navegador.
+     Se calcula todo aquí, leyendo las sesiones guardadas en este navegador.
      Ni una llamada a la red.
      ====================================================================== */
   var statsPeriodo = 'micro';
@@ -3728,29 +4067,63 @@
     }
   }
 
+  var APARTADOS = { plantilla: 1, sesiones: 1, datos: 1 };
+
   function vaApartado(cual) {
-    eqApartado = (cual === 'datos') ? 'datos' : 'plantilla';
+    eqApartado = APARTADOS[cual] ? cual : 'plantilla';
     $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
+    $('#eq-sesiones').hidden  = eqApartado !== 'sesiones';
     $('#eq-datos').hidden     = eqApartado !== 'datos';
     $$('[data-eq]').forEach(function (b) {
       var suyo = b.dataset.eq === eqApartado;
       b.setAttribute('aria-selected', String(suyo));
       b.setAttribute('aria-pressed', String(suyo));
     });
-    if (eqApartado === 'plantilla') pintaApartadoPlantilla(); else pintaStats();
+    if (eqApartado === 'plantilla') pintaApartadoPlantilla();
+    else if (eqApartado === 'sesiones') pintaSesiones();
+    else pintaStats();
     var cuerpo = $('#equipo');
     if (cuerpo) cuerpo.scrollTop = 0;
   }
 
-  function openLibrary() {
+  /* La biblioteca, en modo «elegir». Es la misma de siempre, con sus filtros y
+     su buscador: lo único que cambia es que el botón grande de cada tarjeta
+     añade el ejercicio a la sesión en vez de abrirlo en la pizarra. Una
+     pantalla que ya se sabe usar vale más que otra nueva parecida. */
+  var libParaSesion = null;         // fecha de la sesión, o null en modo normal
+
+  function openLibrary(paraSesion) {
+    libParaSesion = paraSesion || null;
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
     libFiltros = filtrosPorDefecto();
     $('#lib-q').value = '';
     $('#lib-momento').value = ''; $('#lib-duracion').value = '';
     $('#lib-pitch').value = libFiltros.pitch;
+    $('#dlg-lib-t').textContent = libParaSesion ? 'Elegir para la sesión' : 'Biblioteca';
     pintaBiblioteca();
     $('#dlg-lib').showModal();
     cargaNube();
+  }
+
+  function meteEnLaSesion(it) {
+    var c = it.card || {};
+    var r = PTEquipo.añadeEjercicio(libParaSesion, {
+      titulo: (c.titulo || it.nombre || '').trim() || 'Sin título',
+      momento: c.momento || '',
+      duracion: c.duracion || '',
+      ref: it.origen === 'mia' && it.fuente === 'local'
+        ? { de: 'guardado', nombre: it.nombre }
+        : { de: 'catalogo', id: it.id },
+      quienes: null
+    });
+    if (!r.ok) {
+      toast(r.porque === 'tope'
+        ? 'La sesión ya lleva ' + PTEquipo.TOPE_EJERCICIOS + ' ejercicios'
+        : 'No se ha podido añadir');
+      return;
+    }
+    toast('Añadido a la sesión');
+    pintaSesiones();
   }
 
   // ---- Sugerencias campo a campo ----
@@ -4486,16 +4859,22 @@
   function writeBoards(o) {
     try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
   }
-  /* Guardar la pizarra, con quién ha participado.
+  /* Guardar la pizarra, y de paso apuntarla como hecha.
+
+     Son dos cosas distintas y por eso hay una casilla que las separa. Guardar
+     mete el ejercicio en TU BIBLIOTECA. Apuntarlo como hecho lo mete en la
+     SESIÓN DE HOY, con quién lo hizo.
+
+     Casi siempre van juntas —acabas de dibujar el rondo que habéis hecho— y por
+     eso la casilla viene marcada. Pero un domingo por la noche preparando el
+     martes no: se desmarca, el ejercicio se guarda, y el martes se añade a la
+     sesión desde Equipo · Sesiones. Antes esto no se podía decir, y ese domingo
+     salía en las cuentas como si el equipo hubiera entrenado.
 
      Los participantes vienen ya marcados de la asistencia del día: lo normal es
-     escribir el nombre del ejercicio y darle a Guardar, sin tocar nada más. La
-     lista solo se abre si hace falta cambiarla —un ejercicio de porteros, uno
-     que se lesionó a mitad—, y por eso empieza plegada detrás de un «cambiar».
-
-     Lo que se guarda va en dos ramas separadas: «doc» es la pizarra, y es lo
-     único que se sube a la biblioteca común. «meta» son los jugadores, y no
-     sale de aquí. */
+     escribir el nombre y darle a Guardar, sin tocar nada más. La lista solo se
+     abre si hace falta cambiarla —un ejercicio de porteros, uno que se lesionó
+     a mitad—, y por eso empieza plegada detrás de un «cambiar». */
   var saveElegidos = null;          // ids marcados en el diálogo abierto
 
   function saveBoard() {
@@ -4510,6 +4889,8 @@
     saveElegidos = PTEquipo.presentesHoy();
     $('#save-part-plantilla').checked = false;
     $('#save-part-caja').hidden = true;
+    $('#save-hoy').checked = true;
+    $('#save-hoy-fecha').textContent = diaLargo(PTEquipo.hoyISO());
     pintaParticipantes();
 
     // Sin plantilla montada, la sección entera sobra: no se enseña un hueco.
@@ -4518,6 +4899,30 @@
     dlg.showModal();
     setTimeout(function () { campo.select(); }, 30);
   }
+
+  /* «2026-09-14» → «lunes 14 de septiembre». Sin el año, que casi siempre es el
+     de ahora y solo hace la frase más larga; se pone cuando no lo es. */
+  var DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                  'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  function diaLargo(iso, conAño) {
+    var p = String(iso).split('-');
+    var d = new Date(iso + 'T12:00:00');
+    if (isNaN(d)) return String(iso);
+    var t = DIAS_SEM[d.getDay()] + ' ' + Number(p[2]) + ' de ' + MESES_ES[Number(p[1]) - 1];
+    if (conAño || p[0] !== String(new Date().getFullYear())) t += ' de ' + p[0];
+    return t;
+  }
+  function diaCorto(iso) {
+    var p = String(iso).split('-');
+    var d = new Date(iso + 'T12:00:00');
+    if (isNaN(d)) return String(iso);
+    return mayus(DIAS_SEM[d.getDay()].slice(0, 3)) + ' ' + Number(p[2]);
+  }
+  // Solo la primera letra. El CSS «capitalize» las pone todas y deja cosas como
+  // «Viernes 11 De Septiembre De 2026».
+  function mayus(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 
   // Si por lo que sea no está el módulo del equipo, guardar sigue funcionando.
   function saveBoardSimple() {
@@ -4756,7 +5161,10 @@
     $('#ex-gif').addEventListener('click', exportar(exportGif));
     $('#ex-json').addEventListener('click', exportar(exportJSON));
     $('#save').addEventListener('click', saveBoard);
-    $('#open').addEventListener('click', openLibrary);
+    // Sin envolver, el «click» llegaría como si fuera una fecha de sesión y la
+    // biblioteca se abriría en modo elegir desde el botón de siempre.
+    $('#open').addEventListener('click', function () { openLibrary(null); });
+    $('#dlg-lib').addEventListener('close', function () { libParaSesion = null; });
 
     // ---- Mi equipo, participantes y estadísticas ----
     // El interruptor de modo y los apartados de Equipo.
@@ -4809,11 +5217,39 @@
       saveElegidos = [];
       pintaParticipantes();
     });
+    $('#save-hoy').addEventListener('change', function () {
+      // Si no se apunta como hecho, a quién se lo apuntas no viene a cuento.
+      var pon = this.checked;
+      $('#save-part-t').hidden = !pon;
+      if (!pon) { $('#save-part-caja').hidden = true; $('#save-part-cambiar').textContent = 'cambiar'; }
+    });
     $('#save-ok').addEventListener('click', function () {
       var nombre = $('#save-nombre').value.trim();
       if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
-      var meta = PTEquipo.jugadores().length ? PTEquipo.metaDeHoy(saveElegidos) : null;
-      if (guardaConNombre(nombre, meta)) $('#dlg-save').close();
+      var hayPlantilla = PTEquipo.jugadores().length > 0;
+      if (!guardaConNombre(nombre, hayPlantilla ? PTEquipo.metaDeHoy() : null)) return;
+
+      if (hayPlantilla && $('#save-hoy').checked) {
+        var card = doc.card || {};
+        var r = PTEquipo.apuntaHecho(PTEquipo.hoyISO(), {
+          // El nombre que acaba de escribir, no el de la ficha. Si no coinciden
+          // —y muchas veces no coinciden— ver en la sesión un título distinto
+          // del que acabas de teclear no se entiende.
+          titulo: nombre,
+          momento: card.momento || '',
+          duracion: card.duracion || '',
+          ref: { de: 'guardado', nombre: nombre },
+          quienes: saveElegidos.slice()
+        });
+        if (!r.ok) {
+          toast(r.porque === 'tope'
+            ? 'La sesión de hoy ya lleva ' + PTEquipo.TOPE_EJERCICIOS + ' ejercicios'
+            : 'Guardada, pero no ha podido apuntarse en la sesión de hoy');
+        } else if (modo === 'equipo') {
+          pintaSesiones();
+        }
+      }
+      $('#dlg-save').close();
     });
     $('#save-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('#save-ok').click(); }
@@ -4831,6 +5267,35 @@
         pintaStats();
       });
     });
+
+    // ---- Sesiones ----
+    // El desplegable de momentos se copia del de la ficha en vez de escribirlo
+    // otra vez: una lista en dos sitios acaba siendo dos listas distintas.
+    (function () {
+      var origen = $('#f-momento'), destino = $('#ses-ej-momento');
+      if (!origen || !destino) return;
+      $$('option', origen).forEach(function (o) {
+        var n = document.createElement('option');
+        n.value = o.value;
+        n.textContent = o.value === '' ? 'Momento del juego' : o.textContent;
+        destino.appendChild(n);
+      });
+    })();
+    $('#ses-hoy').addEventListener('click', function () { abreSesion(PTEquipo.hoyISO()); });
+    $('#ses-volver').addEventListener('click', vaAlDiario);
+    $('#ses-nombre').addEventListener('change', function () {
+      if (!sesFecha) return;
+      PTEquipo.guardaSesion(sesFecha, { nombre: this.value });
+    });
+    $('#ses-ej-add').addEventListener('click', añadeEjercicioAMano);
+    $('#ses-ej-titulo').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); añadeEjercicioAMano(); }
+    });
+    $('#ses-ej-duracion').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); añadeEjercicioAMano(); }
+    });
+    $('#ses-traer').addEventListener('click', function () { openLibrary(sesFecha); });
+    $('#ses-imprimir').addEventListener('click', imprimeSesion);
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

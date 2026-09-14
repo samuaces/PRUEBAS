@@ -242,6 +242,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
   font-size:12.5px;cursor:pointer;transition:background .16s,border-color .16s}
 .check:hover{background:var(--glass-2);border-color:var(--line-strong)}
 .check input{accent-color:var(--brand);width:17px;height:17px}
+/* Una casilla suelta dentro de un formulario, con aire por debajo. */
+.check-fila{margin:0 0 10px}
 
 /* Un único estilo de campo para toda la aplicación: el panel, los diálogos y
    los filtros. Antes había cinco, cada uno con su tamaño y su borde.
@@ -766,7 +768,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .eq-cuerpo{max-width:560px;margin:0 auto}
 /* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
    abajo, que es donde llega el pulgar. */
-.tabbar-eq{grid-template-columns:repeat(2,1fr)}
+.tabbar-eq{grid-template-columns:repeat(3,1fr)}
 /* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
    lo que mide un dedo. Es la red que faltaba cuando lo de arriba se rompió. */
 .tabbar .tab{min-height:var(--touch)}
@@ -837,6 +839,85 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .linkish:hover{color:var(--text)}
 #save-part-caja{margin-top:11px}
 #save-part-caja .squad-lista{margin-top:9px;max-height:38dvh;overflow:auto}
+
+/* ---- las sesiones ----
+   El diario y el detalle viven en la misma pestaña, uno escondiendo al otro.
+   Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
+.ses-cabeza{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
+.ses-cabeza .stats-resumen{flex:1;min-width:180px;margin:0}
+.ses-mes{margin:20px 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted)}
+.ses-dias{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+/* Toda la fila es el botón: en el móvil se busca con el pulgar, no con puntería. */
+.ses-dia-btn{display:flex;align-items:center;gap:12px;width:100%;
+  min-height:var(--touch);padding:10px 12px;border-radius:var(--r2);text-align:left;
+  border:1px solid var(--line);background:var(--well);color:var(--text);
+  transition:border-color .16s,background .16s}
+.ses-dia-btn:hover{border-color:var(--line-strong);background:var(--glass)}
+.ses-dia.es-hoy .ses-dia-btn{border-color:var(--brand)}
+.ses-dia-fecha{flex:0 0 58px;font-family:var(--ff-display);font-size:12.5px;
+  color:var(--muted)}
+.ses-dia.es-hoy .ses-dia-fecha{color:var(--brand-2)}
+.ses-dia-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ses-dia-med b{font-size:13.5px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere}
+.ses-dia-med b.flojo{font-weight:400;color:var(--muted)}
+.ses-dia-med small{font-size:11.5px;color:var(--muted)}
+.ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
+
+.ses-volver{display:inline-block;margin:0 0 10px}
+/* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
+   Septiembre De 2026». La primera letra se pone al escribir el texto. */
+.ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
+  letter-spacing:-.01em}
+
+.ses-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ses-vacia{padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.ses-ej{display:flex;align-items:center;gap:10px;min-height:var(--touch);
+  padding:8px 10px;border-radius:var(--r2);border:1px solid var(--line);background:var(--well)}
+/* El número de orden no es decoración: una sesión es una secuencia. */
+.ses-ej-n{flex:0 0 22px;text-align:center;font-family:var(--ff-display);font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.ses-ej-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;
+  align-items:flex-start;text-align:left;color:var(--text);
+  background:none;border:0;padding:0;min-height:var(--touch);justify-content:center}
+.ses-ej-med.abrible{cursor:pointer}
+.ses-ej-med.abrible:hover b{text-decoration:underline;text-underline-offset:2px}
+/* El título puede dar dos líneas antes de cortarse. Los nombres de ejercicio
+   son largos de verdad («Finalización tras centro lateral y 1 vs 1») y en una
+   línea a 390 px se quedaban en «Finalización tras centro l…»: cortar el dato
+   principal para ahorrar 18 px de alto no sale a cuenta. */
+.ses-ej-med b{max-width:100%;font-size:13.5px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere}
+.ses-ej-med small{max-width:100%;font-size:11.5px;color:var(--muted);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.ses-ej-mandos{flex:0 0 auto;display:flex;gap:3px}
+/* Hasta cuatro mandos en una fila de móvil: estrechos de ancho, porque tienen
+   que caber los cuatro, pero nunca por debajo del alto mínimo de algo que se
+   toca. A 390 px quedan 36 × 44 cada uno y siguen sobrando 150 px para el
+   título, que es lo que de verdad se lee. */
+.ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:13px}
+.ses-mini:disabled{opacity:.3}
+
+.ses-nuevo{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.ses-nuevo input,.ses-nuevo select{min-height:var(--touch);padding:8px 10px;
+  border-radius:var(--r2);border:1px solid var(--line);background:var(--well);
+  color:var(--text);font:inherit;font-size:13px}
+.ses-nuevo #ses-ej-titulo{flex:1 1 100%;min-width:0}
+.ses-nuevo #ses-ej-momento{flex:1 1 150px;min-width:0}
+.ses-nuevo #ses-ej-duracion{flex:0 1 92px;min-width:0}
+.ses-nuevo #ses-ej-add{flex:0 0 auto}
+/* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
+   pantalla que se usa con el pulgar: se les pone. */
+.ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
+/* Sueltos sobre el fondo, sin marco, un «.tbtn» se lee como un enlace. Aquí son
+   dos acciones de verdad y tienen que parecerlo. */
+.ses-acciones .tbtn{min-height:var(--touch);border:1px solid var(--line);
+  background:var(--well)}
+.ses-acciones .tbtn:hover{border-color:var(--line-strong);background:var(--glass)}
+.ses-acciones .tbtn:disabled{opacity:.45}
 
 /* ---- barras ----
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
