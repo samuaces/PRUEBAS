@@ -2466,6 +2466,14 @@
     if (typeof window !== 'undefined' && window.__BIBLIOTECA__) {
       yaHay = aplicaCatalogo(window.__BIBLIOTECA__, false);
     }
+    /* Si el catálogo viene incrustado en la propia página —el archivo único,
+       que se abre a doble clic y sin servidor—, no hay red a la que ir: esa
+       petición no puede salir bien nunca y lo único que deja es un error en la
+       consola. En el sitio de verdad no se incrusta, así que allí se sigue
+       pidiendo la versión nueva como siempre. */
+    if (yaHay && typeof window !== 'undefined' && window.__BIBLIOTECA__) {
+      return Promise.resolve();
+    }
     if (!yaHay) yaHay = aplicaCatalogo(leeCacheCatalogo(), true);
 
     if (typeof fetch !== 'function') return Promise.resolve();
