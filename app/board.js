@@ -3634,10 +3634,18 @@
   }
 
   function cuentaAsistenciaDeSesion(total) {
+    var hay = PTEquipo.jugadores();
     var dentro = sesElegidos.filter(function (id) {
-      return PTEquipo.jugadores().some(function (j) { return j.id === id; });
+      return hay.some(function (j) { return j.id === id; });
     }).length;
-    $('#ses-asis-cuenta').textContent = dentro + ' de ' + total;
+    var p = $('#ses-asis-cuenta');
+    p.textContent = '';
+    var n = document.createElement('b');
+    n.textContent = dentro + ' de ' + total;
+    p.appendChild(n);
+    p.appendChild(document.createTextNode(
+      total - dentro === 0 ? ' · no falta nadie'
+      : total - dentro === 1 ? ' · falta uno' : ' · faltan ' + (total - dentro)));
   }
 
   function guardaAsistenciaDeSesion() {

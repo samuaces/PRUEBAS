@@ -299,7 +299,7 @@
   <div class="squad-temp">
     <label class="field"><span>Temporada</span>
       <select id="squad-temporada"></select></label>
-    <button type="button" class="tbtn" id="squad-nueva">Nueva temporada</button>
+    <button type="button" class="tbtn marco" id="squad-nueva">Nueva temporada</button>
   </div>
 
   <div class="squad-hoy">
@@ -357,8 +357,8 @@
       <button type="button" class="tbtn primary" id="ses-ej-add">Añadir</button>
     </div>
     <div class="ses-acciones">
-      <button type="button" class="tbtn" id="ses-traer">Traer de la biblioteca</button>
-      <button type="button" class="tbtn" id="ses-imprimir">Imprimir la sesión</button>
+      <button type="button" class="tbtn marco" id="ses-traer">Traer de la biblioteca</button>
+      <button type="button" class="tbtn marco" id="ses-imprimir">Imprimir la sesión</button>
     </div>
     <p class="block-note" id="ses-pie"></p>
   </div>
@@ -370,10 +370,12 @@
     <button type="button" class="linkish ses-volver" id="ses-asis-volver">‹ Volver a la sesión</button>
     <h3 class="ses-fecha" id="ses-asis-fecha"></h3>
     <p class="block-note" id="ses-asis-como"></p>
-    <div class="squad-hoy-btns">
-      <button type="button" class="tbtn" id="ses-asis-todos">Todos</button>
-      <button type="button" class="tbtn" id="ses-asis-ninguno">Ninguno</button>
-      <span class="ses-asis-cuenta" id="ses-asis-cuenta"></span>
+    <div class="squad-hoy">
+      <p class="squad-hoy-t" id="ses-asis-cuenta"></p>
+      <div class="squad-hoy-btns">
+        <button type="button" class="tbtn" id="ses-asis-todos">Todos</button>
+        <button type="button" class="tbtn" id="ses-asis-ninguno">Ninguno</button>
+      </div>
     </div>
     <ul class="squad-lista" id="ses-asis-lista"></ul>
     <p class="block-note" id="ses-asis-nota"></p>
@@ -738,11 +740,13 @@
         <button type="button" class="linkish" id="save-part-cambiar">cambiar</button>
       </p>
       <div id="save-part-caja" hidden>
-        <div class="squad-hoy-btns">
-          <button type="button" class="tbtn" id="save-part-todos">Todos</button>
-          <button type="button" class="tbtn" id="save-part-ninguno">Ninguno</button>
-          <label class="check"><input type="checkbox" id="save-part-plantilla">
+        <div class="squad-hoy">
+          <label class="check check-llano"><input type="checkbox" id="save-part-plantilla">
             <span>Ver toda la plantilla</span></label>
+          <div class="squad-hoy-btns">
+            <button type="button" class="tbtn" id="save-part-todos">Todos</button>
+            <button type="button" class="tbtn" id="save-part-ninguno">Ninguno</button>
+          </div>
         </div>
         <ul class="squad-lista" id="save-part-lista"></ul>
       </div>

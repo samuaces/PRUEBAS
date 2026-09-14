@@ -129,6 +129,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .tbtn:hover{background:var(--glass-2);color:var(--text)}
 .tbtn:active{transform:scale(.96)}
 .tbtn[aria-pressed="true"],.tbtn.on{background:var(--glass-3);color:var(--text);box-shadow:inset 0 1px 0 var(--sheen)}
+/* Un «.tbtn» no lleva filo: cuenta con estar dentro de una barra o de un
+   diálogo, que es lo que lo sostiene. Suelto sobre el fondo de la página se lee
+   como una palabra, no como algo que se pueda pulsar. «marco» es para esos. */
+.tbtn.marco{min-height:var(--touch);border:1px solid var(--line);background:var(--well)}
+.tbtn.marco:hover{border-color:var(--line-strong);background:var(--glass)}
+.tbtn.marco:disabled{opacity:.45}
 .tbtn svg{width:16px;height:16px;flex:none}
 /* Los degradados de los botones de color van del tono de marca hacia ABAJO y a
    más oscuro, nunca hacia arriba y a más claro: sobre un rojo aclarado el texto
@@ -241,9 +247,34 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
   background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--sheen);
   font-size:12.5px;cursor:pointer;transition:background .16s,border-color .16s}
 .check:hover{background:var(--glass-2);border-color:var(--line-strong)}
-.check input{accent-color:var(--brand);width:17px;height:17px}
+/* La casilla, dibujada aquí y no por el navegador.
+
+   Con «accent-color» y nada más, cada sistema pinta la suya: en un tema oscuro
+   sale un cuadradito gris de bordes duros que no se parece a nada del resto de
+   la aplicación. Esto es la misma casilla —el input sigue siendo un input, con
+   su teclado y su lector de pantalla— con el filo, el radio y el color de aquí.
+
+   La marca es un trazado recortado, no un carácter de texto: un «✓» de fuente
+   cambia de forma y de tamaño según el sistema, y aquí se ve igual en todos. */
+.check input[type=checkbox]{appearance:none;-webkit-appearance:none;
+  flex:none;width:20px;height:20px;margin:0;border-radius:6px;
+  border:1px solid var(--line-strong);background:var(--well);
+  display:inline-grid;place-content:center;cursor:pointer;
+  transition:background .14s,border-color .14s}
+.check input[type=checkbox]::before{content:"";width:11px;height:11px;
+  background:var(--brand-ink);transform:scale(0);
+  transition:transform .14s var(--ease);
+  clip-path:polygon(14% 46%,0 62%,40% 100%,100% 18%,86% 4%,40% 72%)}
+.check input[type=checkbox]:checked{background:var(--brand);border-color:var(--brand)}
+.check input[type=checkbox]:checked::before{transform:scale(1)}
+.check:hover input[type=checkbox]{border-color:var(--text)}
+.check:hover input[type=checkbox]:checked{border-color:var(--brand)}
 /* Una casilla suelta dentro de un formulario, con aire por debajo. */
 .check-fila{margin:0 0 10px}
+/* Dentro de una cabecera que ya tiene su marco, la casilla no necesita el suyo:
+   dos marcos anidados a dos píxeles el uno del otro se ven como un error. */
+.check-llano{flex:1;min-width:130px;padding:0;background:none;border:0;box-shadow:none}
+.check-llano:hover{background:none}
 
 /* Un único estilo de campo para toda la aplicación: el panel, los diálogos y
    los filtros. Antes había cinco, cada uno con su tamaño y su borde.
@@ -781,42 +812,123 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .squad-temp .field{flex:1;min-width:0}
 .squad-temp .tbtn{flex:0 0 auto;height:var(--touch)}
 
-/* La cabecera de la asistencia se queda pegada arriba al bajar por una
-   plantilla de cuarenta: el recuento es lo que se está mirando. */
-.squad-hoy{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;
-  flex-wrap:wrap;margin:16px 0 9px;padding:9px 0;background:var(--panel)}
-.squad-hoy-t{margin:0;flex:1;min-width:130px;font-size:12.5px;color:var(--muted)}
-.squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums}
-.squad-hoy-btns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-/* «.tbtn» no trae alto mínimo. Estos dos se pulsan con el pulgar en mitad de
-   una lista de nombres, y se quedaban en 33 px. */
-.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 14px;font-size:12.5px;
-  border:1px solid var(--line);background:var(--well)}
-.squad-hoy-btns .tbtn:hover{border-color:var(--line-strong);background:var(--glass)}
+/* ---- la tarjeta de la plantilla ----
 
-.squad-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+   La cabecera y la lista son las dos mitades de UNA tarjeta, no dos cosas
+   sueltas encima del fondo. Antes la cabecera iba pegada arriba al hacer
+   scroll, y eso ya no puede ser: el fondo de la aplicación es un degradado, y
+   una barra fija tiene que ser opaca para tapar lo que pasa por debajo, así que
+   dejaba un rectángulo de otro color a media pantalla. Entre una costura
+   permanente y perder el recuento al bajar, se pierde el recuento: son dos
+   botones que se pulsan al principio y una cifra que se lee de una vez.
+
+   Los lados de la cabecera no llevan radio abajo ni borde inferior: se cosen
+   con la lista y las dos parecen una pieza. */
+.squad-hoy{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:16px 0 0;padding:10px 12px;
+  border:1px solid var(--line);border-bottom:0;
+  border-radius:var(--r2) var(--r2) 0 0;
+  background:var(--glass);box-shadow:inset 0 1px 0 var(--sheen)}
+/* Sin lista debajo —una plantilla recién empezada— la cabecera se cierra sola
+   en vez de quedarse como una caja sin fondo. */
+.squad-hoy:has(+ .squad-lista:empty){border-bottom:1px solid var(--line);
+  border-radius:var(--r2)}
+.squad-hoy-t{margin:0;flex:1;min-width:120px;font-size:12.5px;color:var(--muted)}
+.squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums;
+  font-family:var(--ff-display);font-size:14px}
+/* Los dos atajos van juntos y en una sola pieza: son la misma decisión tomada
+   en dos direcciones, no dos botones que no tienen nada que ver. */
+.squad-hoy-btns{display:inline-flex;flex:0 0 auto;align-items:center;
+  border:1px solid var(--line-strong);border-radius:var(--r1);overflow:hidden}
+/* Sin fondo propio: dentro de una cabecera que ya tiene el suyo, un relleno más
+   oscuro se lee como un agujero. Lo que los agrupa es el filo, no el color.
+   Y «.tbtn» no trae alto mínimo: se pulsan con el pulgar en mitad de una lista
+   de nombres y se quedaban en 33 px. */
+.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 15px;font-size:12.5px;
+  border-radius:0;background:none}
+.squad-hoy-btns .tbtn + .tbtn{border-left:1px solid var(--line-strong)}
+.squad-hoy-btns .tbtn:hover{background:var(--glass-2)}
+
+/* ---- la lista de jugadores ----
+
+   Aquí había una casilla de las que pinta el navegador, con «accent-color» y
+   poco más: un cuadradito de diecinueve píxeles pegado al borde izquierdo de
+   una fila de cuarenta y cuatro, sin encuadrar con nada.
+
+   La casilla sigue existiendo —es la que oyen los lectores de pantalla y la que
+   entiende el teclado— pero no se ve. Lo que se ve es la FILA, que es lo que se
+   toca: el que ha venido va entero y en firme, y el que falta va en trazo
+   discontinuo, apagado y con su etiqueta al lado.
+
+   Está montado así a propósito y no al revés —marcar al presente— porque una
+   plantilla se mira para encontrar a los dos que no están, no a los veinte que
+   sí. Lo normal no debe llamar la atención; la excepción, sí.
+
+   Un tablón de un vestuario tiene exactamente esta pinta. */
+.squad-lista{list-style:none;margin:0;padding:0;--marca-no:"Falta";
+  border:1px solid var(--line);border-radius:0 0 var(--r2) var(--r2);
+  background:var(--glass);overflow:hidden}
 .squad-lista:empty{display:none}
-.squad-fila{display:flex;align-items:center;gap:10px;padding:0 10px;min-height:var(--touch);
-  border:1px solid var(--line);border-radius:var(--r2);background:var(--glass);
-  box-shadow:inset 0 1px 0 var(--sheen);transition:background .16s,border-color .16s}
-.squad-fila:hover{background:var(--glass-2);border-color:var(--line-strong)}
-/* Quien no ha venido se apaga, pero sigue legible: es información, no un error. */
-.squad-fila.falta{opacity:.5}
-.squad-fila input[type=checkbox]{accent-color:var(--brand);width:19px;height:19px;flex:none;cursor:pointer}
-/* La etiqueta ocupa la fila de arriba abajo: se marca a quien ha venido
-   tocando su nombre, no apuntando a una casilla de diecinueve píxeles. */
-.squad-marca{display:flex;align-items:center;align-self:stretch;min-height:var(--touch);
-  flex:1;min-width:0;gap:10px;cursor:pointer}
-.squad-dorsal{flex:0 0 28px;text-align:right;font-family:var(--ff-display);font-size:13.5px;
-  font-variant-numeric:tabular-nums;color:var(--text)}
-.squad-dorsal:empty::before{content:"—";color:var(--muted);opacity:.5}
-.squad-nombre{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Filas separadas por filete, sin marco ni hueco cada una. Doce pastillas
+   flotando son doce cajas que el ojo tiene que recorrer una a una; una lista
+   con filetes se lee de arriba abajo de un tirón, que es como se lee una
+   plantilla. */
+.squad-fila{display:flex;align-items:center;gap:12px;padding:0 12px;min-height:52px;
+  border-bottom:1px solid var(--line);transition:background .16s}
+.squad-fila:last-child{border-bottom:0}
+.squad-fila:hover{background:var(--glass-2)}
+/* El foco se pinta en la fila, que es lo que se ve; la casilla que lo recibe
+   está escondida y su anillo no lo vería nadie. */
+.squad-fila:has(input:focus-visible){outline:2px solid var(--brand-2);
+  outline-offset:-2px;border-radius:var(--r1)}
+
+/* Escondida a la vista, no del teclado ni de quien usa lector de pantalla:
+   «display:none» la sacaría también de ahí. */
+.squad-fila input[type=checkbox]{position:absolute;width:1px;height:1px;margin:-1px;
+  padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
+  white-space:nowrap}
+
+/* La etiqueta ocupa la fila de arriba abajo: se marca tocando el nombre, no
+   apuntando a un cuadradito. */
+.squad-marca{display:flex;align-items:center;align-self:stretch;min-height:52px;
+  flex:1;min-width:0;gap:12px;cursor:pointer}
+
+/* El dorsal, en su chapa. Es el número de la camiseta: redondo. */
+.squad-dorsal{flex:0 0 30px;height:30px;display:inline-flex;align-items:center;
+  justify-content:center;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--glass-2);
+  font-family:var(--ff-display);font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:var(--text);transition:border-color .16s,background .16s,color .16s}
+.squad-dorsal:empty::before{content:"·";color:var(--muted)}
+.squad-nombre{flex:1;min-width:0;font-size:13.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
 .squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);white-space:nowrap}
+
+/* La etiqueta del que falta. El hueco está reservado siempre, aunque no se vea:
+   si apareciera y desapareciera, cada vez que marcas a uno se moverían de sitio
+   los nombres de toda la lista. */
+.squad-marca::after{content:var(--marca-no);flex:0 0 auto;
+  font-size:10px;letter-spacing:.07em;text-transform:uppercase;line-height:1;
+  padding:4px 8px;border-radius:999px;color:var(--brand-2);
+  background:color-mix(in srgb,var(--brand) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--brand) 32%,transparent);
+  visibility:hidden;transition:opacity .16s;opacity:0}
+
+/* Quien no ha venido: la fila se tiñe un punto, el dorsal se queda en trazo
+   discontinuo y el nombre se apaga. Se distingue por la forma y por la palabra
+   de al lado, no solo por el color, que hay quien no lo distingue. Y sigue
+   legible: es información, no un error. */
+.squad-fila.falta{background:color-mix(in srgb,var(--brand) 5%,transparent)}
+.squad-fila.falta:hover{background:color-mix(in srgb,var(--brand) 10%,transparent)}
+.squad-fila.falta .squad-dorsal{background:transparent;border-style:dashed;
+  border-color:var(--line);color:var(--muted)}
+.squad-fila.falta .squad-nombre{color:var(--muted);font-weight:400}
+.squad-fila.falta .squad-marca::after{visibility:visible;opacity:1}
 /* El aspa se ve pequeña —quitar a alguien no debe ser fácil de rozar— pero lo
    que se toca es alto como la fila entera. Verse pequeño y ser pequeño son
    cosas distintas: lo segundo deja el botón fuera del alcance de un dedo. */
-.squad-quita{flex:0 0 auto;width:40px;align-self:stretch;min-height:var(--touch);
+.squad-quita{flex:0 0 auto;width:40px;align-self:stretch;min-height:48px;
   padding:0;display:inline-flex;align-items:center;justify-content:center;
   border-radius:var(--r1);opacity:.55}
 .squad-quita:hover{opacity:1}
@@ -842,7 +954,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   display:inline-flex;align-items:center;min-height:var(--touch);padding:0 6px}
 .linkish:hover{color:var(--text)}
 #save-part-caja{margin-top:11px}
-#save-part-caja .squad-lista{margin-top:9px;max-height:38dvh;overflow:auto}
+/* Aquí la lista no es «quién vino» sino «quién hizo este ejercicio»: el que no
+   está no falta al entrenamiento, se ha quedado fuera de esta tarea. */
+#save-part-caja .squad-lista{max-height:38dvh;overflow:auto;--marca-no:"Fuera"}
 
 /* ---- las sesiones ----
    El diario y el detalle viven en la misma pestaña, uno escondiendo al otro.
@@ -870,14 +984,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-dia-med small{font-size:11.5px;color:var(--muted)}
 .ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
 
-/* El modo Equipo tiene el eje vertical en «auto», y por regla de CSS eso deja
-   el horizontal también en «auto»: un solo hijo que se pase de ancho y sale
-   barra lateral, con la pantalla entera corrida. */
-.equipo,.eq-cuerpo{max-width:100%}
-
 .ses-volver{display:inline-block;margin:0 0 10px}
-.ses-asis-cuenta{margin-left:auto;font-size:12.5px;font-variant-numeric:tabular-nums;
-  color:var(--muted)}
 /* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
    Septiembre De 2026». La primera letra se pone al escribir el texto. */
 .ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
@@ -945,12 +1052,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
    pantalla que se usa con el pulgar: se les pone. */
 .ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
-/* Sueltos sobre el fondo, sin marco, un «.tbtn» se lee como un enlace. Aquí son
-   dos acciones de verdad y tienen que parecerlo. */
-.ses-acciones .tbtn{min-height:var(--touch);border:1px solid var(--line);
-  background:var(--well)}
-.ses-acciones .tbtn:hover{border-color:var(--line-strong);background:var(--glass)}
-.ses-acciones .tbtn:disabled{opacity:.45}
 
 /* ---- barras ----
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que

@@ -1126,7 +1126,8 @@ function siembra(lista){
      d.querySelectorAll('#ses-asis-lista .squad-fila').length);
   ok('y vienen TODOS marcados, que es lo que se pidió',
      d.querySelectorAll('#ses-asis-lista .squad-fila.falta').length === 0 &&
-     d.getElementById('ses-asis-cuenta').textContent === '3 de 3',
+     /3 de 3/.test(d.getElementById('ses-asis-cuenta').textContent) &&
+     /no falta nadie/.test(d.getElementById('ses-asis-cuenta').textContent),
      d.getElementById('ses-asis-cuenta').textContent);
   ok('el texto de arriba lo explica',
      /todos marcados/i.test(d.getElementById('ses-asis-como').textContent),
@@ -1140,10 +1141,44 @@ function siembra(lista){
      E.sesionDe(AYER).presentes.length === 2 &&
      E.sesionDe(AYER).presentes.indexOf(L2.id) < 0,
      E.sesionDe(AYER).presentes.length + ' presentes');
-  ok('y el recuento lo acompaña', d.getElementById('ses-asis-cuenta').textContent === '2 de 3',
+  ok('y el recuento lo acompaña, diciendo cuántos faltan',
+     /2 de 3/.test(d.getElementById('ses-asis-cuenta').textContent) &&
+     /falta uno/.test(d.getElementById('ses-asis-cuenta').textContent),
      d.getElementById('ses-asis-cuenta').textContent);
   ok('se guarda en el día que toca, no en hoy',
      E.sesionDe(E.hoyISO()).hayAsistencia === false);
+
+  /* La casilla del navegador ya no se ve —era un cuadradito gris pegado al
+     borde, sin encuadrar con nada—, pero no se ha ido: es la que oye el lector
+     de pantalla y la que entiende el teclado. Esconderla con «display:none» la
+     sacaría también de ahí, y eso es lo que aquí se vigila. */
+  var cb0 = d.querySelector('#ses-asis-lista .squad-fila input[type=checkbox]');
+  var estC = w.getComputedStyle(cb0);
+  ok('la casilla no se ve', Math.round(cb0.getBoundingClientRect().width) <= 1,
+     Math.round(cb0.getBoundingClientRect().width) + 'px');
+  ok('pero sigue existiendo para el lector de pantalla',
+     estC.display !== 'none' && estC.visibility !== 'hidden' &&
+     !!cb0.getAttribute('aria-label'), cb0.getAttribute('aria-label'));
+  cb0.focus();
+  ok('y el teclado la alcanza', d.activeElement === cb0);
+
+  /* Y quien falta se distingue por la PALABRA de al lado, no solo por el color:
+     con el color solo, quien no lo distingue se queda sin el dato. */
+  var filaFalta = d.querySelector('#ses-asis-lista .squad-fila.falta .squad-marca');
+  var filaVino  = d.querySelector('#ses-asis-lista .squad-fila:not(.falta) .squad-marca');
+  ok('el que falta lleva su etiqueta escrita',
+     /falta/i.test(w.getComputedStyle(filaFalta, '::after').content) &&
+     w.getComputedStyle(filaFalta, '::after').visibility === 'visible',
+     w.getComputedStyle(filaFalta, '::after').content);
+  ok('y al que vino no le sobra ninguna',
+     w.getComputedStyle(filaVino, '::after').visibility === 'hidden');
+  /* El hueco de la etiqueta está reservado siempre: si apareciera y
+     desapareciera, al marcar a uno se moverían los nombres de toda la lista. */
+  ok('el hueco está reservado, para que la lista no baile al marcar',
+     Math.abs(filaFalta.querySelector('.squad-nombre').getBoundingClientRect().width -
+              filaVino.querySelector('.squad-nombre').getBoundingClientRect().width) < 1,
+     Math.round(filaFalta.querySelector('.squad-nombre').getBoundingClientRect().width) + ' vs ' +
+     Math.round(filaVino.querySelector('.squad-nombre').getBoundingClientRect().width));
 
   d.getElementById('ses-asis-ninguno').click();
   await wait(250);
@@ -1197,9 +1232,26 @@ function siembra(lista){
   }
   for (var iA = 0; iA < 3; iA++) {
     var anchos = [390, 360, 320];
-    d.querySelector('#ses-meses .ses-dia-btn') && null;
     await nadaSeSale(anchos[iA]);
   }
+
+  /* Y en una pantalla ancha, lo contrario: la columna NO se estira. Una lista
+     de nombres a mil cien píxeles de ancho deja el dorsal en una punta y la
+     posición en la otra, y no hay ojo que recorra eso. Tiene su ancho de
+     lectura y se queda centrada.
+     (Esto se rompió arreglando lo de arriba: un «max-width:100%» puesto para
+     que nada desbordara pisó el ancho de la columna, porque iba después y con
+     la misma especificidad.) */
+  fr.style.width = '1100px';
+  await wait(350);
+  (function(){
+    var c = d.getElementById('eq-sesiones').getBoundingClientRect();
+    var caja = d.getElementById('equipo').getBoundingClientRect();
+    var izq = c.left - caja.left, der = caja.right - c.right;
+    ok('en pantalla ancha la columna no se estira', c.width <= 600, Math.round(c.width) + 'px');
+    ok('y se queda centrada', Math.abs(izq - der) < 2,
+       Math.round(izq) + ' · ' + Math.round(der));
+  })();
   fr.style.width = '900px';
   await wait(300);
 
