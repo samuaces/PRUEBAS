@@ -1004,6 +1004,42 @@ async function run(w,d){
      medidas.every(function(m){return m.botones>=34;}),
      medidas.map(function(m){return m.ancho+'px:'+m.botones+'px';}).join(' · '));
 
+  /* --- el hueco seguro del iPhone, en los DOS modos ---
+     Aquí no existe env(safe-area-inset-bottom): en un navegador de escritorio
+     vale cero, así que todo cuadra y los fallos se esconden. Se inyectan a mano
+     los 34 px que reserva un iPhone para el indicador de inicio.
+
+     Así salió que en modo Equipo la barra se quedaba 34 px corta —se metía
+     debajo del indicador— y sus pestañas pasaban de 59 px de alto a 25. Eran
+     dos reglas con la misma especificidad peleándose en la cascada, y ganaba
+     la que no sabía del hueco seguro. */
+  var marco3=w.frameElement;
+  marco3.style.width='390px';await wait(650);
+  d.documentElement.style.setProperty('--safe-b','34px');await wait(450);
+  function mideBarra(sel){
+    var b=d.querySelector(sel),r=b.getBoundingClientRect();
+    var alturas=[].map.call(b.querySelectorAll('.tab'),
+      function(t){return Math.round(t.getBoundingClientRect().height);});
+    return {alto:Math.round(r.height),abajo:Math.round(r.bottom),
+            minTab:alturas.length?Math.min.apply(null,alturas):0};
+  }
+  d.querySelector('#modos [data-modo="pizarra"]').click();await wait(450);
+  var bPiz=mideBarra('.tabbar.solo-pizarra');
+  d.querySelector('#modos [data-modo="equipo"]').click();await wait(550);
+  var bEq=mideBarra('.tabbar-eq');
+  ok('con el hueco del iPhone, la barra de la pizarra lo cubre',
+     bPiz.alto>=94,bPiz.alto+' px de alto');
+  ok('y la del equipo mide lo mismo, no 34 px menos',
+     bEq.alto===bPiz.alto,'pizarra '+bPiz.alto+' · equipo '+bEq.alto);
+  ok('las dos llegan al borde de abajo, sin dejar franja',
+     Math.abs(bPiz.abajo-bEq.abajo)<1,'pizarra '+bPiz.abajo+' · equipo '+bEq.abajo);
+  ok('y ninguna pestaña baja de lo que toca un dedo en ningún modo',
+     bPiz.minTab>=44&&bEq.minTab>=44,
+     'pizarra '+bPiz.minTab+' px · equipo '+bEq.minTab+' px');
+  d.querySelector('#modos [data-modo="pizarra"]').click();await wait(450);
+  d.documentElement.style.removeProperty('--safe-b');
+  marco3.style.width='1200px';await wait(600);
+
   // --- la hoja del móvil no se mete debajo de la barra de pestañas ---
   var marco2=w.frameElement;marco2.style.width='390px';await wait(650);
   d.querySelector('.tab[data-section="b-teams"]').click();await wait(500);

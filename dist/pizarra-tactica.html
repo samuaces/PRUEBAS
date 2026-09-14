@@ -608,7 +608,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .modo[aria-selected="true"] span{display:inline}
   .modo{padding:7px 10px}
   .equipo{padding:14px 14px 24px}
-  .app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
   /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
      el selector de arriba sería el mismo mando dos veces. */
   .eq-nav{display:none}
@@ -732,8 +731,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .app[data-modo="pizarra"] .solo-equipo,
 .app[data-modo="equipo"]  .solo-pizarra{display:none}
 /* Sin transporte no hace falta su fila: si se deja, queda una franja vacía
-   abajo. Es el mismo fallo que ya nos comimos una vez con la barra de pestañas. */
-.app[data-modo="equipo"]{grid-template-rows:auto 1fr var(--tabbar)}
+   abajo. Es el mismo fallo que ya nos comimos una vez con la barra de pestañas.
+
+   La fila mide la barra MÁS el hueco seguro del iPhone. Y va en una sola regla,
+   no repetida dentro del @media: había dos con la misma especificidad, esta
+   quedaba después y le ganaba a la del móvil. Resultado: la barra se quedaba
+   34 px corta, se metía debajo del indicador de inicio, y sus pestañas
+   pasaban de 59 px de alto a 25. En el escritorio las dos medidas son cero,
+   así que la misma cuenta sirve para los dos tamaños. */
+.app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
 
 .modos{display:flex;flex:none;gap:3px;padding:3px;border-radius:var(--r3);
   background:var(--well);border:1px solid var(--line)}
@@ -765,6 +771,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
    abajo, que es donde llega el pulgar. */
 .tabbar-eq{grid-template-columns:repeat(2,1fr)}
+/* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
+   lo que mide un dedo. Es la red que faltaba cuando lo de arriba se rompió. */
+.tabbar .tab{min-height:var(--touch)}
 
 /* ---------------- Mi equipo, asistencia y estadísticas ----------------
    Todo con las variables del tema; ni un color suelto. Pensado para el dedo
