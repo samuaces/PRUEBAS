@@ -643,20 +643,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
     font-family:var(--ff-display);font-size:15.5px;font-weight:700;letter-spacing:-.01em}
   .aside[data-grupo] .block{display:none}
-  .aside[data-grupo="tools"] .block[data-grupo="tools"],
-  .aside[data-grupo="trazo"] .block[data-grupo="trazo"],
-  .aside[data-grupo="equipos"] .block[data-grupo="equipos"],
-  .aside[data-grupo="material"] .block[data-grupo="material"],
-  .aside[data-grupo="campo"] .block[data-grupo="campo"],
-  .aside[data-grupo="pizarra"] .block[data-grupo="pizarra"]{display:block}
-  .aside[data-grupo] .block > h2{display:none}          /* el título ya está arriba */
-  .aside[data-grupo] .block[data-grupo="equipos"] > h2{display:block}  /* salvo si hay dos */
+  .aside[data-grupo="dibujar"] .block[data-grupo="dibujar"],
+  .aside[data-grupo="colocar"] .block[data-grupo="colocar"],
+  .aside[data-grupo="campo"]   .block[data-grupo="campo"],
+  .aside[data-grupo="mas"]     .block[data-grupo="mas"]{display:block}
+  /* Los títulos de dentro se quedan. Ninguno repite el de la hoja —«Dibujar»
+     contiene «Herramientas» y «Color del trazo»— y ahora que cada pestaña
+     agrupa varias cosas, son ellos los que dicen dónde acaba una y empieza
+     la otra. Antes se escondían y por eso la hoja parecía un revoltijo. */
   .block{margin-bottom:16px;scroll-margin-top:30px}
   .tools{grid-template-columns:repeat(4,1fr)}
   .mats{grid-template-columns:repeat(5,1fr)}
 
   .tabbar{
-    display:grid;grid-template-columns:repeat(6,1fr);
+    display:grid;grid-template-columns:repeat(4,1fr);
     background:var(--bar);border-top:1px solid var(--line);
     padding-bottom:var(--safe-b);z-index:41;position:relative;
   }

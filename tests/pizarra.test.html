@@ -829,19 +829,43 @@ async function run(w,d){
 
   // --- cada pestaña abre su sección (solo en pantalla estrecha) ---
   var marco=w.frameElement;marco.style.width='390px';await wait(600);
-  d.querySelectorAll('.tab')[3].click();await wait(400);
-  var visibles=[].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;});
-  ok('la pestaña de material abre solo material',
-     visibles.length===1&&visibles[0].id==='b-mats',visibles.map(function(b){return b.id;}).join(','));
-  ok('la hoja dice en qué sección estás',d.getElementById('sheet-tit').textContent==='Material',
+  /* Cada pestaña abre SU grupo y nada más. Se comprueba por el identificador
+     de la pestaña, no por su posición en la barra: así reordenar la barra no
+     rompe la prueba, que es justo lo que tiene que poder hacerse. */
+  var vistos=function(){return [].filter.call(d.querySelectorAll('.block'),
+    function(b){return b.offsetParent!==null;}).map(function(b){return b.id;});};
+  function abrePestana(sec){d.querySelector('.tab[data-section="'+sec+'"]').click();}
+
+  abrePestana('b-tools');await wait(400);
+  ok('«Dibujar» trae la herramienta y cómo pinta, juntas',
+     vistos().join(',')==='b-tools,b-color',vistos().join(','));
+  ok('la hoja dice en qué sección estás',d.getElementById('sheet-tit').textContent==='Dibujar',
      d.getElementById('sheet-tit').textContent);
-  d.querySelectorAll('.tab')[5].click();await wait(400);
-  var vis2=[].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;});
-  ok('la pestaña de pizarra lleva a las acciones',vis2.length===1&&vis2[0].id==='b-actions',
-     vis2.map(function(b){return b.id;}).join(','));
-  // Las pestañas del panel son las que llevan data-section; el modo Equipo
-  // tiene las suyas y no cuentan aquí.
-  ok('hay una pestaña por sección',d.querySelectorAll('.tab[data-section]').length===6);
+  abrePestana('b-teams');await wait(400);
+  ok('«Colocar» trae jugadores, formaciones y material',
+     vistos().join(',')==='b-teams,b-forms,b-mats',vistos().join(','));
+  abrePestana('b-view');await wait(400);
+  ok('«Campo» trae la modalidad y el encuadre',vistos().join(',')==='b-view',vistos().join(','));
+  abrePestana('b-actions');await wait(400);
+  ok('«Más» lleva a las acciones',vistos().join(',')==='b-actions',vistos().join(','));
+  /* Y al revés: ningún bloque se queda sin pestaña que lo abra. Es el fallo
+     que no se ve —una sección entera inalcanzable en el móvil— y el que más
+     tardaría en salir. */
+  (function(){
+    var grupos={};
+    [].forEach.call(d.querySelectorAll('.aside .block[data-grupo]'),
+      function(b){grupos[b.dataset.grupo]=true;});
+    var conPestana={};
+    [].forEach.call(d.querySelectorAll('.tab[data-section]'),function(t){
+      var b=d.getElementById(t.dataset.section);
+      if(b) conPestana[b.dataset.grupo]=true;});
+    var huerfanos=Object.keys(grupos).filter(function(g){return !conPestana[g];});
+    ok('ningún apartado se queda sin pestaña que lo abra',huerfanos.length===0,
+       huerfanos.join(', ')||Object.keys(grupos).length+' apartados, todos alcanzables');
+  })();
+  ok('hay una pestaña por apartado, ni más ni menos',
+     d.querySelectorAll('.tab[data-section]').length===4,
+     d.querySelectorAll('.tab[data-section]').length);
   d.getElementById('scrim').click();await wait(300);
   marco.style.width='1200px';await wait(500);
   ok('en pantalla ancha el panel las enseña todas',
@@ -982,7 +1006,7 @@ async function run(w,d){
 
   // --- la hoja del móvil no se mete debajo de la barra de pestañas ---
   var marco2=w.frameElement;marco2.style.width='390px';await wait(650);
-  d.querySelectorAll('.tab')[2].click();await wait(500);
+  d.querySelector('.tab[data-section="b-teams"]').click();await wait(500);
   var caja=d.getElementById('aside').getBoundingClientRect();
   var barra=d.querySelector('.tabbar').getBoundingClientRect();
   ok('la hoja se apoya encima de la barra, no debajo',caja.bottom<=barra.top+0.5,

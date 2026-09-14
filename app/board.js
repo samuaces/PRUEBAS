@@ -4987,8 +4987,8 @@
     var current = null;
 
     // Cada pestaña abre lo suyo y nada más: la hoja enseña un solo grupo.
-    var TITULOS = { tools: 'Herramientas', trazo: 'Trazo', equipos: 'Equipos y formaciones',
-                    material: 'Material', campo: 'Campo', pizarra: 'Pizarra' };
+    var TITULOS = { dibujar: 'Dibujar', colocar: 'Colocar en el campo',
+                    campo: 'El campo', mas: 'Más' };
 
     function sheetOpen(id) {
       current = id;
