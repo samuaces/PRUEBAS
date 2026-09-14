@@ -3341,8 +3341,20 @@
      Ni una llamada a la red.
      ====================================================================== */
   var statsPeriodo = 'micro';
+  var statsOrden = 'minutos';
 
   function abreStats() { vaModo('equipo', 'datos'); }
+
+  /* De menos a más asistencia: si la lista se ordena para encontrar al que
+     falta, el que falta va arriba. A igualdad, primero el que menos minutos
+     lleva, que es el que más razones tiene para estar en lo alto. */
+  function porAsistencia(a, b) {
+    var ra = a.deSesiones ? a.sesiones / a.deSesiones : 1;
+    var rb = b.deSesiones ? b.sesiones / b.deSesiones : 1;
+    if (ra !== rb) return ra - rb;
+    if (a.minutos !== b.minutos) return a.minutos - b.minutos;
+    return String(a.nombre).localeCompare(String(b.nombre), 'es');
+  }
 
   function pintaStats() {
     var d = PTEquipo.estadisticas(statsPeriodo);
@@ -3380,12 +3392,32 @@
 
     pintaBarras($('#stats-momentos'), d.momentos.map(function (m) {
       return { nombre: m.nombre, minutos: m.minutos };
-    }), d.minutos);
+    }), { total: d.minutos, destaca: true });
 
-    pintaBarras($('#stats-jugadores'), d.jugadores.map(function (j) {
+    var jug = d.jugadores.map(function (j) {
       return { dorsal: j.dorsal, nombre: j.nombre, minutos: j.minutos,
                sesiones: j.sesiones, deSesiones: j.deSesiones, fuera: j.fuera };
-    }), d.minutos);
+    });
+    // La lista viene ordenada por minutos. Ordenarla por asistencia es lo que
+    // contesta a «¿quién me está faltando?», que es la pregunta por la que se
+    // abre esta pantalla la mitad de las veces.
+    if (statsOrden === 'asistencia') jug.sort(porAsistencia);
+    $$('#stats-orden [data-orden]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.orden === statsOrden));
+    });
+    pintaBarras($('#stats-jugadores'), jug,
+                { asistencia: true, destaca: statsOrden === 'minutos' });
+
+    var faltones = jug.filter(function (j) {
+      return j.deSesiones > 0 && j.sesiones < j.deSesiones * POCO;
+    }).length;
+    $('#stats-jugadores-pie').textContent = !d.sesiones
+      ? 'Apunta quién viene a cada entrenamiento en Plantilla y aquí saldrá la asistencia.'
+      : 'Asistencia: entrenamientos a los que ha venido, de ' + d.sesiones +
+        ' apuntados en el periodo. ' + (faltones
+          ? 'El aviso ⚠ marca a ' + (faltones === 1 ? 'quien ha venido' : faltones +
+            ' que han venido') + ' a menos de la mitad.'
+          : 'Nadie baja de la mitad.');
 
     $('#stats-nota').textContent = d.ejercicios
       ? 'Todo se calcula en este dispositivo, con lo que has guardado. No sale nada a internet.'
@@ -3556,16 +3588,30 @@
   /* Barras con div y CSS. El porcentaje se mide contra el total de minutos del
      periodo; el ancho, contra el mayor de la lista, que es lo que se compara de
      un vistazo. Si midiera el ancho contra el total, con diez filas todas serían
-     rayitas y no se distinguiría nada. */
-  function pintaBarras(caja, filas, totalMin) {
+     rayitas y no se distinguiría nada.
+
+     Cada cifra va en una columna de ancho fijo y con su nombre escrito en una
+     cabecera. Antes la asistencia salía como un «4/5» en gris entre el nombre y
+     los minutos, sin que en ninguna parte pusiera de qué era: una cifra suelta
+     que nadie podía leer. Ahora la columna se llama «asistencia» y punto.
+
+     opciones: { total, asistencia, destaca }
+       total       minutos del periodo, para la columna «del total»
+       asistencia  true en la lista de jugadores: cambia el % por «vino/de»
+       destaca     pinta la primera fila con el color de la marca             */
+  var POCO = 0.5;                 // venir a menos de la mitad es lo que se avisa
+
+  function pintaBarras(caja, filas, op) {
+    op = op || {};
     caja.textContent = '';
     var mayor = 0;
     filas.forEach(function (f) { if (f.minutos > mayor) mayor = f.minutos; });
+    if (filas.length) caja.appendChild(cabeceraBarras(op.asistencia));
 
     filas.forEach(function (f, i) {
       var row = document.createElement('div');
-      row.className = 'barra' + (i === 0 && f.minutos > 0 ? ' top' : '') +
-                                (f.deSesiones ? ' conses' : '');
+      row.className = 'barra' + (op.destaca && i === 0 && f.minutos > 0 ? ' top' : '') +
+                                (op.asistencia ? ' conses' : '');
 
       var pista = document.createElement('div');
       pista.className = 'barra-pista';
@@ -3587,27 +3633,63 @@
       nom.textContent = f.nombre + (f.fuera ? ' (ya no está)' : '');
       row.appendChild(nom);
 
-      if (f.deSesiones) {
-        var ses = document.createElement('span');
-        ses.className = 'barra-sesiones' +
-          (f.deSesiones && f.sesiones * 2 < f.deSesiones ? ' poco' : '');
-        ses.textContent = f.sesiones + '/' + f.deSesiones;
-        ses.title = 'Ha venido a ' + f.sesiones + ' de ' + f.deSesiones + ' entrenamientos';
-        row.appendChild(ses);
-      }
-
       var cif = document.createElement('span');
       cif.className = 'barra-cifra';
-      cif.textContent = f.minutos + ' min';
+      cif.textContent = String(f.minutos);
       row.appendChild(cif);
 
-      var pct = document.createElement('span');
-      pct.className = 'barra-pct';
-      pct.textContent = totalMin > 0 ? Math.round(f.minutos / totalMin * 100) + '%' : '—';
-      row.appendChild(pct);
+      if (op.asistencia) {
+        var poco = f.deSesiones > 0 && f.sesiones < f.deSesiones * POCO;
+        var asis = document.createElement('span');
+        asis.className = 'barra-asis' + (poco ? ' poco' : '');
+        asis.textContent = f.deSesiones ? f.sesiones + '/' + f.deSesiones : '—';
+        asis.title = f.deSesiones
+          ? 'Ha venido a ' + f.sesiones + ' de ' + f.deSesiones + ' entrenamientos'
+          : 'En este periodo no has apuntado ningún entrenamiento';
+        row.appendChild(asis);
+
+        // El aviso no puede ser solo el color: quien no lo distingue se queda
+        // sin el dato. La marca ocupa su hueco en todas las filas, tenga o no
+        // aviso, para que las columnas no bailen de una fila a otra.
+        var al = document.createElement('span');
+        al.className = 'barra-alerta';
+        al.textContent = poco ? '⚠' : '';
+        if (poco) al.title = 'Ha venido a menos de la mitad';
+        row.appendChild(al);
+      } else {
+        var pct = document.createElement('span');
+        pct.className = 'barra-pct';
+        pct.textContent = op.total > 0 ? Math.round(f.minutos / op.total * 100) + '%' : '—';
+        row.appendChild(pct);
+      }
 
       caja.appendChild(row);
     });
+  }
+
+  function cabeceraBarras(conAsistencia) {
+    var h = document.createElement('div');
+    h.className = 'barra-cab' + (conAsistencia ? ' conses' : '');
+    var hueco = document.createElement('span');
+    hueco.className = 'barra-nombre';
+    h.appendChild(hueco);
+
+    var min = document.createElement('span');
+    min.className = 'barra-cifra';
+    min.textContent = 'minutos';
+    h.appendChild(min);
+
+    var otra = document.createElement('span');
+    otra.className = conAsistencia ? 'barra-asis' : 'barra-pct';
+    otra.textContent = conAsistencia ? 'asistencia' : 'del total';
+    h.appendChild(otra);
+
+    if (conAsistencia) {
+      var al = document.createElement('span');
+      al.className = 'barra-alerta';
+      h.appendChild(al);
+    }
+    return h;
   }
 
   /* =========================================================================
@@ -4740,6 +4822,12 @@
     $$('#stats-periodo [data-periodo]').forEach(function (b) {
       b.addEventListener('click', function () {
         statsPeriodo = b.dataset.periodo;
+        pintaStats();
+      });
+    });
+    $$('#stats-orden [data-orden]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        statsOrden = b.dataset.orden;
         pintaStats();
       });
     });

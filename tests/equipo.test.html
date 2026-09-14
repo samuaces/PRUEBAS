@@ -531,6 +531,185 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
        var c = w.getComputedStyle(t).fill.replace(/\s/g,'');
        return c !== 'rgb(225,26,65)' && c !== 'rgb(255,92,122)';
      }));
+  // =====================================================================
+  console.log('11 · minutos y asistencia, cada uno en su columna');
+  /* La asistencia salía como un «4/5» en gris en mitad de la fila, sin que en
+     ninguna parte pusiera de qué era. Aquí se comprueba que ahora cada cifra
+     tiene su columna con el nombre escrito encima, y que la lista se puede
+     ordenar por asistencia, que es como se busca a quien está faltando. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  E.añade('2026/27', { dorsal:'7', nombre:'Ana Ferrer', posicion:'Extremo derecho' });
+  E.añade('2026/27', { dorsal:'9', nombre:'Bruno Gil',  posicion:'Delantero' });
+  E.añade('2026/27', { dorsal:'5', nombre:'Carla Ruiz', posicion:'Central' });
+  var J11 = E.jugadores('2026/27');
+  function quien(n){ return J11.filter(function(j){ return j.nombre === n; })[0]; }
+  var ana = quien('Ana Ferrer'), bru = quien('Bruno Gil'), car = quien('Carla Ruiz');
+
+  /* Cuatro entrenamientos de la temporada:
+       15 sep   Ana  Bruno  Carla
+       14 sep   Ana  Bruno
+       13 sep   Ana
+       12 sep   Ana
+     Asistencia:  Ana 4/4 (100 %) · Bruno 2/4 (50 %) · Carla 1/4 (25 %)
+     El aviso es «menos de la mitad», y la mitad justa no lo es: solo Carla. */
+  w.localStorage.setItem('pt-asistencia', JSON.stringify({
+    '2026-09-15': { temporada:'2026/27', presentes:[ana.id, bru.id, car.id] },
+    '2026-09-14': { temporada:'2026/27', presentes:[ana.id, bru.id] },
+    '2026-09-13': { temporada:'2026/27', presentes:[ana.id] },
+    '2026-09-12': { temporada:'2026/27', presentes:[ana.id] }
+  }));
+
+  /* Dos ejercicios de la temporada:
+       T1   30 min   Ataque organizado     Ana  Bruno  Carla
+       T2   20 min   Defensa organizada    Ana
+     Total 50 min.   Ana 30 + 20 = 50 · Bruno 30 · Carla 30
+     Por momento: Ataque 30 (60 % de 50) · Defensa 20 (40 % de 50). */
+  w.localStorage.setItem('pt-boards', JSON.stringify(Object.fromEntries([
+    pizarra('T1', 1, 'Ataque organizado',  '30 min',
+            [[ana.id,'Ana Ferrer','7'],[bru.id,'Bruno Gil','9'],[car.id,'Carla Ruiz','5']]),
+    pizarra('T2', 1, 'Defensa organizada', '20 min', [[ana.id,'Ana Ferrer','7']])
+  ])));
+
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="datos"]').click();
+  await wait(200);
+  // Por temporada, para que el resultado no dependa de la hora a la que se
+  // ejecute la prueba: manda la temporada con la que se guardó, no la fecha.
+  d.querySelector('#stats-periodo [data-periodo="temporada"]').click();
+  await wait(300);
+
+  var cajaJ = d.getElementById('stats-jugadores');
+  var cab = cajaJ.querySelector('.barra-cab');
+  ok('la lista de jugadores lleva cabecera', !!cab);
+  if(!cab){ limpia(); pinta(); return; }
+  ok('y dice que una columna son los minutos',
+     /minutos/i.test(cab.querySelector('.barra-cifra').textContent));
+  ok('y que la otra es la asistencia: ya no es un «4/5» sin explicar',
+     /asistencia/i.test(cab.querySelector('.barra-asis').textContent));
+
+  var cabM = d.querySelector('#stats-momentos .barra-cab');
+  ok('la de momentos lleva la suya, con el tanto por ciento nombrado',
+     !!cabM && /minutos/i.test(cabM.querySelector('.barra-cifra').textContent) &&
+     /del total/i.test(cabM.querySelector('.barra-pct').textContent));
+
+  function fila(caja, nombre){
+    return [].filter.call(caja.querySelectorAll('.barra'), function(r){
+      return r.querySelector('.barra-nombre').textContent.indexOf(nombre) === 0;
+    })[0];
+  }
+  function txt(r, sel){ return r.querySelector(sel).textContent; }
+
+  var fj = cajaJ.querySelectorAll('.barra');
+  ok('salen los tres jugadores', fj.length === 3, fj.length);
+  var rA = fila(cajaJ, 'Ana'), rB = fila(cajaJ, 'Bruno'), rC = fila(cajaJ, 'Carla');
+  ok('Ana: 30 + 20 = 50 minutos', txt(rA, '.barra-cifra') === '50', txt(rA, '.barra-cifra'));
+  ok('y vino a los cuatro entrenamientos', txt(rA, '.barra-asis') === '4/4',
+     txt(rA, '.barra-asis'));
+  ok('Bruno: 30 minutos y 2 de 4',
+     txt(rB, '.barra-cifra') === '30' && txt(rB, '.barra-asis') === '2/4',
+     txt(rB, '.barra-cifra') + ' · ' + txt(rB, '.barra-asis'));
+  ok('Carla: 30 minutos y 1 de 4',
+     txt(rC, '.barra-cifra') === '30' && txt(rC, '.barra-asis') === '1/4',
+     txt(rC, '.barra-cifra') + ' · ' + txt(rC, '.barra-asis'));
+  var rAt = fila(d.getElementById('stats-momentos'), 'Ataque organizado');
+  ok('y el ataque son 30 de 50 minutos, o sea el 60 %',
+     txt(rAt, '.barra-cifra') === '30' && txt(rAt, '.barra-pct') === '60%',
+     txt(rAt, '.barra-cifra') + ' · ' + txt(rAt, '.barra-pct'));
+
+  ok('la unidad va una vez en la cabecera, no repetida en cada fila',
+     [].every.call(fj, function(r){ return !/min/.test(txt(r, '.barra-cifra')); }));
+
+  ok('a Carla, que ha venido a 1 de 4, se la avisa',
+     rC.querySelector('.barra-asis').classList.contains('poco') &&
+     txt(rC, '.barra-alerta') === '⚠');
+  ok('a Bruno, que ha venido a la mitad justa, no',
+     !rB.querySelector('.barra-asis').classList.contains('poco') &&
+     txt(rB, '.barra-alerta') === '');
+  ok('el aviso no es solo el color: lleva un símbolo al lado',
+     cajaJ.querySelectorAll('.barra .barra-alerta').length === 3 &&
+     [].filter.call(cajaJ.querySelectorAll('.barra .barra-alerta'), function(a){
+       return a.textContent === '⚠'; }).length === 1,
+     cajaJ.querySelectorAll('.barra .barra-alerta').length + ' huecos');
+  ok('y su hueco está en todas las filas, para que las columnas no bailen',
+     Math.abs(rA.querySelector('.barra-alerta').getBoundingClientRect().left -
+              rC.querySelector('.barra-alerta').getBoundingClientRect().left) < 0.6);
+
+  /* Un nombre de columna torcido no explica nada: tiene que caer justo encima
+     de sus números y caber en su hueco. Y se mira en las dos rejillas, la ancha
+     y la del móvil, que no tienen los mismos anchos de columna. */
+  async function columnasCuadradas(ancho){
+    fr.style.width = ancho + 'px';
+    await wait(300);
+    var c = d.querySelector('#stats-jugadores .barra-cab');
+    var m = d.querySelector('#stats-momentos .barra-cab');
+    var uno = fila(d.getElementById('stats-jugadores'), 'Ana');
+
+    var torcidas = ['.barra-cifra', '.barra-asis'].filter(function(sel){
+      var a = c.querySelector(sel).getBoundingClientRect();
+      var b = uno.querySelector(sel).getBoundingClientRect();
+      return Math.abs(a.right - b.right) >= 0.6 || Math.abs(a.width - b.width) >= 0.6;
+    });
+    ok('a ' + ancho + ' px, cada nombre de columna cae justo encima de sus cifras',
+       torcidas.length === 0, torcidas.join(' · '));
+
+    /* Con «min-width:0» una etiqueta larga ya no empuja a las demás, pero se
+       saldría de su hueco sin que nada lo cantara. Esto lo canta. */
+    var fuera = [c.querySelector('.barra-cifra'), c.querySelector('.barra-asis'),
+                 m.querySelector('.barra-cifra'), m.querySelector('.barra-pct')]
+      .filter(function(e){ return e.scrollWidth > e.clientWidth + 1; })
+      .map(function(e){ return '«' + e.textContent + '» ' + e.scrollWidth + '>' + e.clientWidth; });
+    ok('a ' + ancho + ' px, cada nombre cabe en su columna sin pisar a la de al lado',
+       fuera.length === 0, fuera.join(' · '));
+  }
+  await columnasCuadradas(900);
+  await columnasCuadradas(360);
+  fr.style.width = '900px';
+  await wait(300);
+
+  (function(){
+    var pista = rA.querySelector('.barra-pista').getBoundingClientRect();
+    var cifra = rA.querySelector('.barra-cifra').getBoundingClientRect();
+    ok('el carril de la barra acaba antes de las cifras',
+       pista.right <= cifra.left + 0.6,
+       Math.round(cifra.left - pista.right) + 'px de aire');
+  })();
+
+  ok('por minutos manda Ana, que es la que más lleva',
+     fj[0].querySelector('.barra-nombre').textContent.indexOf('Ana') === 0,
+     fj[0].querySelector('.barra-nombre').textContent);
+
+  d.querySelector('#stats-orden [data-orden="asistencia"]').click();
+  await wait(250);
+  var fj2 = d.querySelectorAll('#stats-jugadores .barra');
+  ok('ordenado por asistencia, arriba va quien más falta',
+     fj2[0].querySelector('.barra-nombre').textContent.indexOf('Carla') === 0,
+     fj2[0].querySelector('.barra-nombre').textContent);
+  ok('luego quien falta a la mitad',
+     fj2[1].querySelector('.barra-nombre').textContent.indexOf('Bruno') === 0,
+     fj2[1].querySelector('.barra-nombre').textContent);
+  ok('y abajo quien no falta nunca',
+     fj2[2].querySelector('.barra-nombre').textContent.indexOf('Ana') === 0,
+     fj2[2].querySelector('.barra-nombre').textContent);
+  ok('el mando dice cuál de los dos órdenes está puesto',
+     d.querySelector('#stats-orden [data-orden="asistencia"]').getAttribute('aria-pressed') === 'true' &&
+     d.querySelector('#stats-orden [data-orden="minutos"]').getAttribute('aria-pressed') === 'false');
+  ok('y la cabecera sigue ahí después de reordenar',
+     !!d.querySelector('#stats-jugadores .barra-cab'));
+
+  var pie11 = d.getElementById('stats-jugadores-pie').textContent;
+  ok('debajo se explica de qué son esos números y sobre cuántos entrenamientos',
+     /asistencia/i.test(pie11) && /4 apuntados/.test(pie11), pie11);
+  ok('y se dice a cuántos avisa el símbolo',
+     pie11.indexOf('⚠') >= 0 && /quien ha venido a menos de la mitad/.test(pie11), pie11);
+
+  d.querySelector('#stats-orden [data-orden="minutos"]').click();
+  await wait(200);
+  ok('volver a minutos devuelve el orden de antes',
+     d.querySelectorAll('#stats-jugadores .barra')[0]
+      .querySelector('.barra-nombre').textContent.indexOf('Ana') === 0);
+
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);
 
