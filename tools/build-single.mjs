@@ -40,7 +40,10 @@ const cabecera = [
 // --- El cuerpo de la aplicación, tal cual ---
 // El motor se copia entero: el registro del service worker sólo se activa en
 // https, así que abriendo el archivo con doble clic no hace nada.
-const desde = html.indexOf('<div class="app">');
+// Se busca por el principio de la etiqueta, no por la etiqueta entera: en
+// cuanto se le añade un atributo —data-modo, por ejemplo— la búsqueda literal
+// deja de encontrarla y el empaquetado se cae sin decir por qué.
+const desde = html.indexOf('<div class="app"');
 const hasta = html.indexOf('<script src="config.js"');
 if (desde < 0 || hasta < 0) throw new Error('app/index.html no tiene la forma esperada');
 const cuerpo = html.slice(desde, hasta).trimEnd()

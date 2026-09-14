@@ -839,7 +839,9 @@ async function run(w,d){
   var vis2=[].filter.call(d.querySelectorAll('.block'),function(b){return b.offsetParent!==null;});
   ok('la pestaña de pizarra lleva a las acciones',vis2.length===1&&vis2[0].id==='b-actions',
      vis2.map(function(b){return b.id;}).join(','));
-  ok('hay una pestaña por sección',d.querySelectorAll('.tab').length===6);
+  // Las pestañas del panel son las que llevan data-section; el modo Equipo
+  // tiene las suyas y no cuentan aquí.
+  ok('hay una pestaña por sección',d.querySelectorAll('.tab[data-section]').length===6);
   d.getElementById('scrim').click();await wait(300);
   marco.style.width='1200px';await wait(500);
   ok('en pantalla ancha el panel las enseña todas',
@@ -904,18 +906,31 @@ async function run(w,d){
   // Había dos «Ajustes» a la vez en el móvil (el engranaje y una fila del
   // panel), la ficha estaba en el panel y dentro de Exportar, y la hoja de
   // sesión salía dos veces.
-  function cuantos(fn){return [].filter.call(d.querySelectorAll('button,label'),fn).length;}
-  ok('los ajustes están en un solo sitio',
-     cuantos(function(b){return /^ajustes$/i.test((b.textContent||'').trim())||
-       /^ajustes$/i.test(b.getAttribute('aria-label')||'');})===1);
-  ok('la ayuda está en un solo sitio',
-     cuantos(function(b){return /cómo se usa/i.test((b.textContent||'').trim());})===1);
-  ok('la ficha está en un solo sitio',
-     cuantos(function(b){return /^ficha( del ejercicio)?$/i.test((b.textContent||'').trim());})===1);
-  ok('la hoja de sesión está en un solo sitio',
-     cuantos(function(b){return /hoja de sesión/i.test((b.textContent||'').trim());})===1);
+  /* Son DOS reglas distintas y se comprueban por separado, porque juntarlas
+     en un «=== 1» daba falsos fallos en cuanto un mando cambió de sitio:
+
+       existe        al menos una vez en la página, aunque esté dentro de un
+                     diálogo cerrado (la ayuda vive en Ajustes);
+       no se duplica nunca hay dos a la vez EN PANTALLA. Algunos existen por
+                     duplicado a propósito —Ajustes, Ficha y Exportar están en
+                     la barra cuando hay ancho y en el panel cuando no—, pero
+                     jamás los dos al mismo tiempo. */
+  function todos(fn){return [].filter.call(d.querySelectorAll('button,label'),fn);}
+  function manda(nombre,fn){
+    var hay=todos(fn);
+    var viendo=hay.filter(function(b){return b.offsetParent!==null;});
+    ok(nombre+' existe', hay.length>=1, hay.length+' en la página');
+    ok(nombre+' no sale dos veces a la vez', viendo.length<=1, viendo.length+' en pantalla');
+  }
+  manda('Ajustes', function(b){return /^ajustes$/i.test((b.textContent||'').trim())||
+    /^ajustes$/i.test(b.getAttribute('aria-label')||'');});
+  manda('La ayuda', function(b){return /cómo se usa/i.test((b.textContent||'').trim());});
+  manda('La ficha', function(b){return /^ficha( del ejercicio)?$/i.test((b.textContent||'').trim());});
+  manda('La hoja de sesión', function(b){return /hoja de sesión/i.test((b.textContent||'').trim());});
   ok('la ficha tiene sitio propio en la barra de arriba',
-     !!d.querySelector('.topbar #card-edit'));
+     /* La ficha tiene su sitio: en la barra cuando hay ancho, y en el panel
+        cuando no lo hay. Lo que no puede es no estar en ninguno. */
+     !!d.querySelector('.topbar #card-edit') || !!d.querySelector('.aside #ficha-row'));
 
   // --- ningún botón muerto en el panel ni en la barra ---
   // «Hoja de sesión para imprimir» llevaba tiempo en el panel sin un solo

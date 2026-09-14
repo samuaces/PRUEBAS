@@ -3229,12 +3229,13 @@
      llegar al campo, una vez, y de ahí sale sola en cada ejercicio que se
      guarde ese día. Nadie tiene que volver a escribir un nombre.
      ====================================================================== */
-  function abreEquipo() {
-    if (!window.PTEquipo) { toast('No se ha podido cargar Mi equipo'); return; }
+  function abreEquipo() { vaModo('equipo', 'plantilla'); }
+
+  function pintaApartadoPlantilla() {
+    if (!window.PTEquipo) return;
     pintaPosiciones();
     pintaTemporadas();
     pintaPlantilla();
-    $('#dlg-squad').showModal();
   }
 
   function pintaPosiciones() {
@@ -3341,11 +3342,7 @@
      ====================================================================== */
   var statsPeriodo = 'micro';
 
-  function abreStats() {
-    if (!window.PTEquipo) { toast('No se han podido cargar las estadísticas'); return; }
-    pintaStats();
-    $('#dlg-stats').showModal();
-  }
+  function abreStats() { vaModo('equipo', 'datos'); }
 
   function pintaStats() {
     var d = PTEquipo.estadisticas(statsPeriodo);
@@ -3611,6 +3608,56 @@
 
       caja.appendChild(row);
     });
+  }
+
+  /* =========================================================================
+     Los dos modos
+
+     Dibujar una jugada y llevar un equipo son dos trabajos distintos, y antes
+     se peleaban por la misma barra: cada función nueva tenía que buscarse un
+     hueco entre botones que eran de otra cosa. Ahora son dos modos, y cada uno
+     enseña lo suyo y esconde lo del otro.
+
+     El modo no se guarda entre visitas a propósito: la aplicación es una
+     pizarra, y quien la abre viene a dibujar.
+     ====================================================================== */
+  var modo = 'pizarra', eqApartado = 'plantilla';
+  /* La hoja del móvil se abre y se cierra dentro del cableado, con su estado
+     propio. Cambiar de modo tiene que poder cerrarla, así que se deja aquí una
+     referencia en vez de repetir la lógica o sacarla de su sitio. */
+  var cierraLaHoja = function () {};
+
+  function vaModo(cual, apartado) {
+    if (cual === 'equipo' && !window.PTEquipo) {
+      toast('No se ha podido cargar la parte del equipo');
+      return;
+    }
+    modo = cual === 'equipo' ? 'equipo' : 'pizarra';
+    document.querySelector('.app').dataset.modo = modo;
+    $$('#modos .modo').forEach(function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.modo === modo));
+    });
+    cierraLaHoja();
+    if (modo === 'equipo') { vaApartado(apartado || eqApartado); }
+    else {
+      /* Volver a la pizarra la deja como estaba: el campo se mide contra el
+         hueco que tiene, y mientras estaba escondido ese hueco era cero. */
+      resize();
+    }
+  }
+
+  function vaApartado(cual) {
+    eqApartado = (cual === 'datos') ? 'datos' : 'plantilla';
+    $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
+    $('#eq-datos').hidden     = eqApartado !== 'datos';
+    $$('[data-eq]').forEach(function (b) {
+      var suyo = b.dataset.eq === eqApartado;
+      b.setAttribute('aria-selected', String(suyo));
+      b.setAttribute('aria-pressed', String(suyo));
+    });
+    if (eqApartado === 'plantilla') pintaApartadoPlantilla(); else pintaStats();
+    var cuerpo = $('#equipo');
+    if (cuerpo) cuerpo.scrollTop = 0;
   }
 
   function openLibrary() {
@@ -4630,12 +4677,18 @@
     $('#open').addEventListener('click', openLibrary);
 
     // ---- Mi equipo, participantes y estadísticas ----
-    // Los mismos dos, arriba en escritorio y en el panel en el móvil, donde la
-    // barra ya no da para más botones.
-    $('#squad').addEventListener('click', abreEquipo);
-    $('#stats').addEventListener('click', abreStats);
-    $('#squad-row').addEventListener('click', function () { sheetClose(); abreEquipo(); });
-    $('#stats-row').addEventListener('click', function () { sheetClose(); abreStats(); });
+    // El interruptor de modo y los apartados de Equipo.
+    $$('#modos .modo').forEach(function (b) {
+      b.addEventListener('click', function () { vaModo(b.dataset.modo); });
+    });
+    $$('[data-eq]').forEach(function (b) {
+      b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
+    });
+    // En el móvil, Ajustes vive en el panel: en la barra ya no cabía.
+    $('#cfg-row').addEventListener('click', function () { sheetClose(); $('#dlg-cfg').showModal(); });
+    // Exportar no cabe en la barra del móvil; desde el panel hace lo mismo.
+    $('#export-row').addEventListener('click', function () { sheetClose(); $('#export').click(); });
+    $('#ficha-row').addEventListener('click', function () { sheetClose(); openCard(); });
     $('#squad-add').addEventListener('click', añadeJugador);
     $('#squad-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
@@ -4945,17 +4998,18 @@
       $('#sheet-tit').textContent = TITULOS[grupo] || '';
       aside.classList.add('open');
       scrim.classList.add('show');
-      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
+      $$('.tab[data-section]').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
       requestAnimationFrame(function () { aside.scrollTop = 0; });
     }
+    cierraLaHoja = sheetClose;
     function sheetClose() {
       current = null;
       aside.classList.remove('open');
       scrim.classList.remove('show');
-      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
+      $$('.tab[data-section]').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
     }
 
-    $$('.tab').forEach(function (t) {
+    $$('.tab[data-section]').forEach(function (t) {
       t.addEventListener('click', function () {
         if (current === t.dataset.section) sheetClose();
         else sheetOpen(t.dataset.section);

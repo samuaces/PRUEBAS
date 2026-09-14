@@ -563,6 +563,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .lib-origen{flex:1 0 100%}
 }
 
+/* Un bloque del panel puede tener más de un apartado: «Pizarra», «Compartir»…
+   Así el cajón de sastre deja de serlo sin repartirlo en más pestañas. */
+.block h2.sub{margin-top:18px}
+.solo-estrecho{display:none}
+.solo-ancho{display:flex}
+
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
   padding:12px 19px;border-radius:var(--r3);background:var(--bar);border:1px solid var(--line-strong);
@@ -592,8 +598,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      último se sale de la pantalla. Mi equipo y Estadísticas se bajan al panel,
      donde tienen su fila con su nombre escrito y se ven mejor que como un icono
      más apretado aquí arriba. */
-  #g-equipo{display:none}
-  .topbar{gap:6px;padding-left:10px;padding-right:10px}
+  /* En el móvil la barra de arriba va al límite. Ajustes se baja al panel:
+     se usa de higos a brevas, y el interruptor de modo se usa cada día. */
+  .solo-estrecho{display:block}
+  .solo-ancho{display:none}
+  /* Dos iconos sueltos no dicen nada. Se enseña el nombre del modo en el que
+     estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
+  .modo span{display:none}
+  .modo[aria-selected="true"] span{display:inline}
+  .modo{padding:7px 10px}
+  .equipo{padding:14px 14px 24px}
+  .app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
+  /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
+     el selector de arriba sería el mismo mando dos veces. */
+  .eq-nav{display:none}
+  .topbar{gap:5px;padding-left:8px;padding-right:8px}
+  .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
 
@@ -705,6 +725,47 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
 }
 
+/* ================= LOS DOS MODOS =================
+   Dibujar una jugada y llevar un equipo son dos trabajos distintos. Cada modo
+   enseña lo suyo y esconde lo del otro, y así lo nuevo entra por dentro en vez
+   de pedir otro botón en una barra que ya iba llena. */
+.app[data-modo="pizarra"] .solo-equipo,
+.app[data-modo="equipo"]  .solo-pizarra{display:none}
+/* Sin transporte no hace falta su fila: si se deja, queda una franja vacía
+   abajo. Es el mismo fallo que ya nos comimos una vez con la barra de pestañas. */
+.app[data-modo="equipo"]{grid-template-rows:auto 1fr var(--tabbar)}
+
+.modos{display:flex;flex:none;gap:3px;padding:3px;border-radius:var(--r3);
+  background:var(--well);border:1px solid var(--line)}
+.modo{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r1);
+  font-size:13px;color:var(--muted);white-space:nowrap;
+  transition:background .16s,color .16s}
+.modo svg{width:16px;height:16px;flex:none}
+.modo:hover{color:var(--text)}
+.modo[aria-selected="true"]{background:var(--glass-3);color:var(--text);
+  box-shadow:inset 0 1px 0 var(--sheen)}
+
+/* La pantalla de Equipo: una columna centrada y legible, no un diálogo. */
+.equipo{grid-column:1 / -1;min-width:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:18px 18px 28px}
+/* Los apartados NO son una pastilla como los filtros. Si lo fueran, en la
+   pantalla de Datos habría dos mandos idénticos uno encima de otro y no se
+   sabría cuál manda sobre cuál. Aquí son pestañas subrayadas: se leen como
+   navegación, y la pastilla de debajo se lee como lo que es, un filtro. */
+.eq-nav{max-width:560px;margin:0 auto 16px;border-bottom:1px solid var(--line)}
+.eq-nav .seg{display:flex;gap:4px;background:none;border:0;padding:0}
+.eq-nav .seg button{position:relative;padding:10px 4px 12px;margin-right:18px;
+  font-family:var(--ff-display);font-size:17px;font-weight:700;letter-spacing:-.01em;
+  color:var(--muted);background:none;border:0;border-radius:0;transition:color .16s}
+.eq-nav .seg button:hover{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]::after{content:"";position:absolute;
+  left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
+.eq-cuerpo{max-width:560px;margin:0 auto}
+/* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
+   abajo, que es donde llega el pulgar. */
+.tabbar-eq{grid-template-columns:repeat(2,1fr)}
+
 /* ---------------- Mi equipo, asistencia y estadísticas ----------------
    Todo con las variables del tema; ni un color suelto. Pensado para el dedo
    primero: las filas miden --touch de alto y se pulsan enteras. */
@@ -731,15 +792,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Quien no ha venido se apaga, pero sigue legible: es información, no un error. */
 .squad-fila.falta{opacity:.5}
 .squad-fila input[type=checkbox]{accent-color:var(--brand);width:19px;height:19px;flex:none;cursor:pointer}
-.squad-marca{display:flex;align-items:center;flex:1;min-width:0;gap:10px;cursor:pointer}
+/* La etiqueta ocupa la fila de arriba abajo: se marca a quien ha venido
+   tocando su nombre, no apuntando a una casilla de diecinueve píxeles. */
+.squad-marca{display:flex;align-items:center;align-self:stretch;min-height:var(--touch);
+  flex:1;min-width:0;gap:10px;cursor:pointer}
 .squad-dorsal{flex:0 0 28px;text-align:right;font-family:var(--ff-display);font-size:13.5px;
   font-variant-numeric:tabular-nums;color:var(--text)}
 .squad-dorsal:empty::before{content:"—";color:var(--muted);opacity:.5}
 .squad-nombre{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);white-space:nowrap}
-.squad-quita{flex:0 0 auto;width:30px;height:30px;padding:0;display:inline-flex;
-  align-items:center;justify-content:center;opacity:.55}
+/* El aspa se ve pequeña —quitar a alguien no debe ser fácil de rozar— pero lo
+   que se toca es alto como la fila entera. Verse pequeño y ser pequeño son
+   cosas distintas: lo segundo deja el botón fuera del alcance de un dedo. */
+.squad-quita{flex:0 0 auto;width:40px;align-self:stretch;min-height:var(--touch);
+  padding:0;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--r1);opacity:.55}
 .squad-quita:hover{opacity:1}
 .squad-quita svg{width:15px;height:15px}
 
@@ -847,7 +915,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 }
 
 </style>
-<div class="app">
+<div class="app" data-modo="pizarra">
 
   <!-- ==================== BARRA SUPERIOR ==================== -->
   <header class="topbar">
@@ -867,9 +935,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       
     </div>
 
+    <!-- Dos modos, un interruptor. Dibujar una jugada y llevar un equipo son
+         dos trabajos distintos que antes compartían la misma barra. -->
+    <div class="modos" id="modos" role="tablist" aria-label="Qué estás haciendo">
+      <button class="modo" data-modo="pizarra" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
+        <span>Pizarra</span></button>
+      <button class="modo" data-modo="equipo" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+        <span>Equipo</span></button>
+    </div>
+
     <span class="spacer"></span>
 
-    <div class="group">
+    <div class="group solo-pizarra">
       <button class="tbtn" id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10h-3"/><path d="M8 5L4 9l4 4"/></svg>
       </button>
@@ -878,22 +957,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       </button>
     </div>
 
-    <div class="group">
+    <div class="group solo-pizarra">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
-      <button class="tbtn" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
-      <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
+      <button class="tbtn solo-ancho" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
+      <button class="tbtn primary solo-ancho" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
       </button>
     </div>
 
-    <div class="group" id="g-equipo">
-      <button class="tbtn" id="squad" title="Mi equipo y la asistencia de hoy" aria-label="Mi equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg><span class="hide-sm">Equipo</span></button>
-      <button class="tbtn" id="stats" title="Estadísticas de minutos y asistencia" aria-label="Estadísticas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg><span class="hide-sm">Datos</span></button>
-    </div>
 
-    <div class="group">
+    <div class="group solo-ancho">
       <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
@@ -903,7 +978,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   <div class="middle">
 
     <!-- ======== PANEL: barra lateral en escritorio, hoja inferior en móvil ======== -->
-    <aside class="aside" id="aside" aria-label="Herramientas">
+    <aside class="aside solo-pizarra" id="aside" aria-label="Herramientas">
       <button class="sheet-grab" id="sheet-grab" aria-label="Cerrar el panel"></button>
       <p class="sheet-tit" id="sheet-tit" aria-hidden="true"></p>
 
@@ -1040,29 +1115,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <div class="block" id="b-actions" data-grupo="pizarra">
         <h2>Pizarra</h2>
         <div class="stack">
-          <button class="row-btn" id="install" hidden>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
-            Instalar en este dispositivo
-          </button>
-          <button class="row-btn sm-only" id="squad-row">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="6.5" r="2.7"/><path d="M2.5 16.5a5 5 0 0 1 10 0"/><path d="M13.6 4.4a2.7 2.7 0 0 1 0 4.9"/><path d="M14.8 12a5 5 0 0 1 2.7 4.5"/></svg>
-            Mi equipo y la asistencia
-          </button>
-          <button class="row-btn sm-only" id="stats-row">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5h14"/><rect x="4.2" y="9" width="3" height="5" rx=".8"/><rect x="8.5" y="5" width="3" height="9" rx=".8"/><rect x="12.8" y="11" width="3" height="3" rx=".8"/></svg>
-            Estadísticas
-          </button>
-          <button class="row-btn" id="enlace">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 1 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 1 0 4.2 4.2l1-1"/></svg>
-            Enviar la jugada por enlace
-          </button>
-          <button class="row-btn" id="compartir">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
-            Compartir en la biblioteca
-          </button>
-          <button class="row-btn" id="help">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
-            Cómo se usa
+          <button class="row-btn solo-estrecho" id="ficha-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="13" height="15" rx="1.8"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4"/></svg>
+            Ficha del ejercicio
           </button>
           <button class="row-btn" id="clear">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
@@ -1073,11 +1128,35 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             Empezar pizarra nueva
           </button>
         </div>
+
+        <h2 class="sub">Sacar esta jugada de aquí</h2>
+        <div class="stack">
+          <button class="row-btn solo-estrecho" id="export-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 16h12"/></svg>
+            Descargar: vídeo, GIF, imagen o archivo
+          </button>
+          <button class="row-btn" id="enlace">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 1 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 1 0 4.2 4.2l1-1"/></svg>
+            Mandársela a alguien por enlace
+          </button>
+          <button class="row-btn" id="compartir">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
+            Subirla a la biblioteca común
+          </button>
+        </div>
+
+        <h2 class="sub solo-estrecho">Aplicación</h2>
+        <div class="stack solo-estrecho">
+          <button class="row-btn" id="cfg-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M16.2 12.5a1.3 1.3 0 0 0 .3 1.5l.1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.3 1.3 0 0 0-2.2.9v.2a1.7 1.7 0 1 1-3.4 0v-.1a1.3 1.3 0 0 0-2.2-.9l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.3 1.3 0 0 0-.9-2.2H2.8a1.7 1.7 0 1 1 0-3.4h.1a1.3 1.3 0 0 0 .9-2.2l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.3 1.3 0 0 0 2.2-.9V2.8a1.7 1.7 0 1 1 3.4 0v.1a1.3 1.3 0 0 0 2.2.9l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.3 1.3 0 0 0 .9 2.2h.2a1.7 1.7 0 1 1 0 3.4h-.1a1.3 1.3 0 0 0-1.2.8z"/></svg>
+            Ajustes
+          </button>
+        </div>
       </div>
     </aside>
 
     <!-- ==================== CAMPO ==================== -->
-    <section class="stage">
+    <section class="stage solo-pizarra">
       <canvas id="board" aria-label="Campo de fútbol. Arrastra las fichas y dibuja la jugada." role="img"></canvas>
       <div class="inspector" id="inspector" role="toolbar" aria-label="Objeto seleccionado"></div>
       <button class="zoom-reset" id="zoom" hidden title="Ver el campo entero" aria-label="Ver el campo entero">
@@ -1087,10 +1166,73 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       </button>
       <div class="hint" id="hint"></div>
     </section>
+
+    <!-- ==================== EQUIPO ====================
+         Antes eran dos diálogos sueltos. Ahora es una pantalla con sus
+         apartados, que es donde caben las sesiones sin pelear por un botón. -->
+    <section class="equipo solo-equipo" id="equipo" aria-label="Mi equipo">
+      <div class="eq-nav">
+        <div class="seg" id="eq-tabs" role="tablist">
+          <button type="button" data-eq="plantilla" role="tab" aria-selected="true">Plantilla</button>
+          <button type="button" data-eq="datos" role="tab" aria-selected="false">Datos</button>
+        </div>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-plantilla" role="tabpanel">
+  <div class="squad-temp">
+    <label class="field"><span>Temporada</span>
+      <select id="squad-temporada"></select></label>
+    <button type="button" class="tbtn" id="squad-nueva">Nueva temporada</button>
+  </div>
+
+  <div class="squad-hoy">
+    <p class="squad-hoy-t">Han venido hoy <b id="squad-cuenta">0 de 0</b></p>
+    <div class="squad-hoy-btns">
+      <button type="button" class="tbtn" id="squad-todos">Todos</button>
+      <button type="button" class="tbtn" id="squad-ninguno">Ninguno</button>
+    </div>
+  </div>
+
+  <ul class="squad-lista" id="squad-lista"></ul>
+
+  <div class="squad-alta">
+    <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
+           placeholder="Nº" aria-label="Dorsal">
+    <input type="text" id="squad-nombre" maxlength="40"
+           placeholder="Nombre y apellido" aria-label="Nombre del jugador">
+    <select id="squad-posicion" aria-label="Posición"></select>
+    <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
+  </div>
+  <p class="block-note" id="squad-nota"></p>
+  <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
+    a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-datos" role="tabpanel" hidden>
+  <div class="seg" id="stats-periodo">
+    <button type="button" data-periodo="micro" aria-pressed="true">Microciclo</button>
+    <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
+    <button type="button" data-periodo="temporada" aria-pressed="false">Temporada</button>
+  </div>
+
+  <p class="stats-resumen" id="stats-resumen"></p>
+  <div id="stats-olvido"></div>
+
+  <p class="form-group">Equilibrio por fase de juego</p>
+  <div id="stats-radar"></div>
+
+  <p class="form-group">Por momento del juego</p>
+  <div class="barras" id="stats-momentos"></div>
+
+  <p class="form-group">Por jugador</p>
+  <div class="barras" id="stats-jugadores"></div>
+  <p class="block-note" id="stats-nota"></p>
+      </div>
+    </section>
   </div>
 
   <!-- ==================== TRANSPORTE ==================== -->
-  <footer class="timeline">
+  <footer class="timeline solo-pizarra">
     <button class="play" id="play" aria-label="Reproducir" title="Reproducir la animación (Espacio)">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
     </button>
@@ -1110,7 +1252,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   </footer>
 
   <!-- ============== NAVEGACIÓN INFERIOR (solo pantallas pequeñas) ============== -->
-  <nav class="tabbar" aria-label="Secciones">
+  <nav class="tabbar solo-pizarra" aria-label="Secciones">
     <button class="tab" data-section="b-tools">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3l14 8-6 1.6L10 19z"/></svg>
       Herramientas</button>
@@ -1129,6 +1271,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <button class="tab" data-section="b-actions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7.5 8.5h9M7.5 12h9M7.5 15.5h5"/></svg>
       Pizarra</button>
+  </nav>
+
+  <nav class="tabbar tabbar-eq solo-equipo" aria-label="Apartados del equipo">
+    <button class="tab" data-eq="plantilla">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+      Plantilla</button>
+    <button class="tab" data-eq="datos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
+      Datos</button>
   </nav>
 
   <div class="scrim" id="scrim"></div>
@@ -1383,68 +1534,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 <!-- ================= MI EQUIPO =================
      La plantilla se escribe una vez por temporada; la asistencia se marca cada
      día. Nada de esto sale del dispositivo: son nombres de menores. -->
-<dialog id="dlg-squad" aria-labelledby="dlg-squad-t">
-  <div class="dhead"><h3 id="dlg-squad-t">Mi equipo</h3>
-    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
-  <div class="dbody">
-    <div class="squad-temp">
-      <label class="field"><span>Temporada</span>
-        <select id="squad-temporada"></select></label>
-      <button type="button" class="tbtn" id="squad-nueva">Nueva temporada</button>
-    </div>
-
-    <div class="squad-hoy">
-      <p class="squad-hoy-t">Han venido hoy <b id="squad-cuenta">0 de 0</b></p>
-      <div class="squad-hoy-btns">
-        <button type="button" class="tbtn" id="squad-todos">Todos</button>
-        <button type="button" class="tbtn" id="squad-ninguno">Ninguno</button>
-      </div>
-    </div>
-
-    <ul class="squad-lista" id="squad-lista"></ul>
-
-    <div class="squad-alta">
-      <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
-             placeholder="Nº" aria-label="Dorsal">
-      <input type="text" id="squad-nombre" maxlength="40"
-             placeholder="Nombre y apellido" aria-label="Nombre del jugador">
-      <select id="squad-posicion" aria-label="Posición"></select>
-      <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
-    </div>
-    <p class="block-note" id="squad-nota"></p>
-    <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
-      a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
-  </div>
-  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
-</dialog>
 
 <!-- ================= ESTADÍSTICAS =================
      Todo se calcula aquí, leyendo las pizarras guardadas. Sin red. -->
-<dialog id="dlg-stats" aria-labelledby="dlg-stats-t">
-  <div class="dhead"><h3 id="dlg-stats-t">Estadísticas</h3>
-    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
-  <div class="dbody">
-    <div class="seg" id="stats-periodo">
-      <button type="button" data-periodo="micro" aria-pressed="true">Microciclo</button>
-      <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
-      <button type="button" data-periodo="temporada" aria-pressed="false">Temporada</button>
-    </div>
-
-    <p class="stats-resumen" id="stats-resumen"></p>
-    <div id="stats-olvido"></div>
-
-    <p class="form-group">Equilibrio por fase de juego</p>
-    <div id="stats-radar"></div>
-
-    <p class="form-group">Por momento del juego</p>
-    <div class="barras" id="stats-momentos"></div>
-
-    <p class="form-group">Por jugador</p>
-    <div class="barras" id="stats-jugadores"></div>
-    <p class="block-note" id="stats-nota"></p>
-  </div>
-  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
-</dialog>
 
 <!-- ================= GUARDAR =================
      Antes era un cuadro de una línea. Ahora lleva debajo quién ha participado,
@@ -1496,6 +1588,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <div class="form-grid">
       <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
+    </div>
+
+    <p class="form-group">La aplicación</p>
+    <div class="stack">
+      <button class="row-btn" id="install" hidden>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
+        Instalar en este dispositivo
+      </button>
+      <button class="row-btn" id="help">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
+        Cómo se usa
+      </button>
     </div>
 
     <p class="form-group">Tu cuenta</p>
@@ -10446,12 +10550,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      llegar al campo, una vez, y de ahí sale sola en cada ejercicio que se
      guarde ese día. Nadie tiene que volver a escribir un nombre.
      ====================================================================== */
-  function abreEquipo() {
-    if (!window.PTEquipo) { toast('No se ha podido cargar Mi equipo'); return; }
+  function abreEquipo() { vaModo('equipo', 'plantilla'); }
+
+  function pintaApartadoPlantilla() {
+    if (!window.PTEquipo) return;
     pintaPosiciones();
     pintaTemporadas();
     pintaPlantilla();
-    $('#dlg-squad').showModal();
   }
 
   function pintaPosiciones() {
@@ -10558,11 +10663,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      ====================================================================== */
   var statsPeriodo = 'micro';
 
-  function abreStats() {
-    if (!window.PTEquipo) { toast('No se han podido cargar las estadísticas'); return; }
-    pintaStats();
-    $('#dlg-stats').showModal();
-  }
+  function abreStats() { vaModo('equipo', 'datos'); }
 
   function pintaStats() {
     var d = PTEquipo.estadisticas(statsPeriodo);
@@ -10828,6 +10929,56 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
       caja.appendChild(row);
     });
+  }
+
+  /* =========================================================================
+     Los dos modos
+
+     Dibujar una jugada y llevar un equipo son dos trabajos distintos, y antes
+     se peleaban por la misma barra: cada función nueva tenía que buscarse un
+     hueco entre botones que eran de otra cosa. Ahora son dos modos, y cada uno
+     enseña lo suyo y esconde lo del otro.
+
+     El modo no se guarda entre visitas a propósito: la aplicación es una
+     pizarra, y quien la abre viene a dibujar.
+     ====================================================================== */
+  var modo = 'pizarra', eqApartado = 'plantilla';
+  /* La hoja del móvil se abre y se cierra dentro del cableado, con su estado
+     propio. Cambiar de modo tiene que poder cerrarla, así que se deja aquí una
+     referencia en vez de repetir la lógica o sacarla de su sitio. */
+  var cierraLaHoja = function () {};
+
+  function vaModo(cual, apartado) {
+    if (cual === 'equipo' && !window.PTEquipo) {
+      toast('No se ha podido cargar la parte del equipo');
+      return;
+    }
+    modo = cual === 'equipo' ? 'equipo' : 'pizarra';
+    document.querySelector('.app').dataset.modo = modo;
+    $$('#modos .modo').forEach(function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.modo === modo));
+    });
+    cierraLaHoja();
+    if (modo === 'equipo') { vaApartado(apartado || eqApartado); }
+    else {
+      /* Volver a la pizarra la deja como estaba: el campo se mide contra el
+         hueco que tiene, y mientras estaba escondido ese hueco era cero. */
+      resize();
+    }
+  }
+
+  function vaApartado(cual) {
+    eqApartado = (cual === 'datos') ? 'datos' : 'plantilla';
+    $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
+    $('#eq-datos').hidden     = eqApartado !== 'datos';
+    $$('[data-eq]').forEach(function (b) {
+      var suyo = b.dataset.eq === eqApartado;
+      b.setAttribute('aria-selected', String(suyo));
+      b.setAttribute('aria-pressed', String(suyo));
+    });
+    if (eqApartado === 'plantilla') pintaApartadoPlantilla(); else pintaStats();
+    var cuerpo = $('#equipo');
+    if (cuerpo) cuerpo.scrollTop = 0;
   }
 
   function openLibrary() {
@@ -11847,12 +11998,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#open').addEventListener('click', openLibrary);
 
     // ---- Mi equipo, participantes y estadísticas ----
-    // Los mismos dos, arriba en escritorio y en el panel en el móvil, donde la
-    // barra ya no da para más botones.
-    $('#squad').addEventListener('click', abreEquipo);
-    $('#stats').addEventListener('click', abreStats);
-    $('#squad-row').addEventListener('click', function () { sheetClose(); abreEquipo(); });
-    $('#stats-row').addEventListener('click', function () { sheetClose(); abreStats(); });
+    // El interruptor de modo y los apartados de Equipo.
+    $$('#modos .modo').forEach(function (b) {
+      b.addEventListener('click', function () { vaModo(b.dataset.modo); });
+    });
+    $$('[data-eq]').forEach(function (b) {
+      b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
+    });
+    // En el móvil, Ajustes vive en el panel: en la barra ya no cabía.
+    $('#cfg-row').addEventListener('click', function () { sheetClose(); $('#dlg-cfg').showModal(); });
+    // Exportar no cabe en la barra del móvil; desde el panel hace lo mismo.
+    $('#export-row').addEventListener('click', function () { sheetClose(); $('#export').click(); });
+    $('#ficha-row').addEventListener('click', function () { sheetClose(); openCard(); });
     $('#squad-add').addEventListener('click', añadeJugador);
     $('#squad-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
@@ -12162,17 +12319,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#sheet-tit').textContent = TITULOS[grupo] || '';
       aside.classList.add('open');
       scrim.classList.add('show');
-      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
+      $$('.tab[data-section]').forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.section === id)); });
       requestAnimationFrame(function () { aside.scrollTop = 0; });
     }
+    cierraLaHoja = sheetClose;
     function sheetClose() {
       current = null;
       aside.classList.remove('open');
       scrim.classList.remove('show');
-      $$('.tab').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
+      $$('.tab[data-section]').forEach(function (t) { t.setAttribute('aria-pressed', 'false'); });
     }
 
-    $$('.tab').forEach(function (t) {
+    $$('.tab[data-section]').forEach(function (t) {
       t.addEventListener('click', function () {
         if (current === t.dataset.section) sheetClose();
         else sheetOpen(t.dataset.section);

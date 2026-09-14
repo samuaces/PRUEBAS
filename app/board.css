@@ -554,6 +554,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .lib-origen{flex:1 0 100%}
 }
 
+/* Un bloque del panel puede tener más de un apartado: «Pizarra», «Compartir»…
+   Así el cajón de sastre deja de serlo sin repartirlo en más pestañas. */
+.block h2.sub{margin-top:18px}
+.solo-estrecho{display:none}
+.solo-ancho{display:flex}
+
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
   padding:12px 19px;border-radius:var(--r3);background:var(--bar);border:1px solid var(--line-strong);
@@ -583,8 +589,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      último se sale de la pantalla. Mi equipo y Estadísticas se bajan al panel,
      donde tienen su fila con su nombre escrito y se ven mejor que como un icono
      más apretado aquí arriba. */
-  #g-equipo{display:none}
-  .topbar{gap:6px;padding-left:10px;padding-right:10px}
+  /* En el móvil la barra de arriba va al límite. Ajustes se baja al panel:
+     se usa de higos a brevas, y el interruptor de modo se usa cada día. */
+  .solo-estrecho{display:block}
+  .solo-ancho{display:none}
+  /* Dos iconos sueltos no dicen nada. Se enseña el nombre del modo en el que
+     estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
+  .modo span{display:none}
+  .modo[aria-selected="true"] span{display:inline}
+  .modo{padding:7px 10px}
+  .equipo{padding:14px 14px 24px}
+  .app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
+  /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
+     el selector de arriba sería el mismo mando dos veces. */
+  .eq-nav{display:none}
+  .topbar{gap:5px;padding-left:8px;padding-right:8px}
+  .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
 
@@ -696,6 +716,47 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
 }
 
+/* ================= LOS DOS MODOS =================
+   Dibujar una jugada y llevar un equipo son dos trabajos distintos. Cada modo
+   enseña lo suyo y esconde lo del otro, y así lo nuevo entra por dentro en vez
+   de pedir otro botón en una barra que ya iba llena. */
+.app[data-modo="pizarra"] .solo-equipo,
+.app[data-modo="equipo"]  .solo-pizarra{display:none}
+/* Sin transporte no hace falta su fila: si se deja, queda una franja vacía
+   abajo. Es el mismo fallo que ya nos comimos una vez con la barra de pestañas. */
+.app[data-modo="equipo"]{grid-template-rows:auto 1fr var(--tabbar)}
+
+.modos{display:flex;flex:none;gap:3px;padding:3px;border-radius:var(--r3);
+  background:var(--well);border:1px solid var(--line)}
+.modo{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r1);
+  font-size:13px;color:var(--muted);white-space:nowrap;
+  transition:background .16s,color .16s}
+.modo svg{width:16px;height:16px;flex:none}
+.modo:hover{color:var(--text)}
+.modo[aria-selected="true"]{background:var(--glass-3);color:var(--text);
+  box-shadow:inset 0 1px 0 var(--sheen)}
+
+/* La pantalla de Equipo: una columna centrada y legible, no un diálogo. */
+.equipo{grid-column:1 / -1;min-width:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:18px 18px 28px}
+/* Los apartados NO son una pastilla como los filtros. Si lo fueran, en la
+   pantalla de Datos habría dos mandos idénticos uno encima de otro y no se
+   sabría cuál manda sobre cuál. Aquí son pestañas subrayadas: se leen como
+   navegación, y la pastilla de debajo se lee como lo que es, un filtro. */
+.eq-nav{max-width:560px;margin:0 auto 16px;border-bottom:1px solid var(--line)}
+.eq-nav .seg{display:flex;gap:4px;background:none;border:0;padding:0}
+.eq-nav .seg button{position:relative;padding:10px 4px 12px;margin-right:18px;
+  font-family:var(--ff-display);font-size:17px;font-weight:700;letter-spacing:-.01em;
+  color:var(--muted);background:none;border:0;border-radius:0;transition:color .16s}
+.eq-nav .seg button:hover{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]::after{content:"";position:absolute;
+  left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
+.eq-cuerpo{max-width:560px;margin:0 auto}
+/* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
+   abajo, que es donde llega el pulgar. */
+.tabbar-eq{grid-template-columns:repeat(2,1fr)}
+
 /* ---------------- Mi equipo, asistencia y estadísticas ----------------
    Todo con las variables del tema; ni un color suelto. Pensado para el dedo
    primero: las filas miden --touch de alto y se pulsan enteras. */
@@ -722,15 +783,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Quien no ha venido se apaga, pero sigue legible: es información, no un error. */
 .squad-fila.falta{opacity:.5}
 .squad-fila input[type=checkbox]{accent-color:var(--brand);width:19px;height:19px;flex:none;cursor:pointer}
-.squad-marca{display:flex;align-items:center;flex:1;min-width:0;gap:10px;cursor:pointer}
+/* La etiqueta ocupa la fila de arriba abajo: se marca a quien ha venido
+   tocando su nombre, no apuntando a una casilla de diecinueve píxeles. */
+.squad-marca{display:flex;align-items:center;align-self:stretch;min-height:var(--touch);
+  flex:1;min-width:0;gap:10px;cursor:pointer}
 .squad-dorsal{flex:0 0 28px;text-align:right;font-family:var(--ff-display);font-size:13.5px;
   font-variant-numeric:tabular-nums;color:var(--text)}
 .squad-dorsal:empty::before{content:"—";color:var(--muted);opacity:.5}
 .squad-nombre{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);white-space:nowrap}
-.squad-quita{flex:0 0 auto;width:30px;height:30px;padding:0;display:inline-flex;
-  align-items:center;justify-content:center;opacity:.55}
+/* El aspa se ve pequeña —quitar a alguien no debe ser fácil de rozar— pero lo
+   que se toca es alto como la fila entera. Verse pequeño y ser pequeño son
+   cosas distintas: lo segundo deja el botón fuera del alcance de un dedo. */
+.squad-quita{flex:0 0 auto;width:40px;align-self:stretch;min-height:var(--touch);
+  padding:0;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--r1);opacity:.55}
 .squad-quita:hover{opacity:1}
 .squad-quita svg{width:15px;height:15px}
 

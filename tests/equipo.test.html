@@ -411,9 +411,17 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   E.añade('2026/27', { dorsal:'7', nombre:'Ana Ferrer', posicion:'Extremo derecho' });
   E.añade('2026/27', { dorsal:'9', nombre:'Bruno Gil',  posicion:'Delantero' });
 
-  d.getElementById('squad').click();
-  await wait(350);
-  ok('el botón abre Mi equipo', d.getElementById('dlg-squad').open);
+  /* Ya no son diálogos: son los dos apartados del modo Equipo. Lo que se
+     comprueba es lo mismo —que el mando lleva a su sitio y que el sitio trae
+     lo que tiene que traer—, pero contra la pantalla de verdad. */
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(400);
+  ok('el interruptor lleva al modo Equipo',
+     d.querySelector('.app').dataset.modo === 'equipo');
+  ok('y abre por la plantilla',
+     !d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
+  ok('la pizarra se esconde mientras tanto',
+     d.querySelector('.stage').offsetParent === null);
   ok('salen los dos jugadores', d.querySelectorAll('#squad-lista .squad-fila').length === 2,
      d.querySelectorAll('#squad-lista .squad-fila').length);
   ok('y el recuento del día', /2 de 2/.test(d.getElementById('squad-cuenta').textContent),
@@ -439,7 +447,12 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   await wait(200);
   ok('«Todos» los vuelve a marcar',
      d.querySelectorAll('#squad-lista .squad-fila.falta').length === 0);
-  d.getElementById('dlg-squad').close();
+  d.querySelector('#modos [data-modo="pizarra"]').click();
+  await wait(400);
+  ok('y al volver, la pizarra está donde estaba',
+     d.querySelector('.app').dataset.modo === 'pizarra' &&
+     d.querySelector('.stage').offsetParent !== null &&
+     d.getElementById('equipo').offsetParent === null);
 
   // ---- guardar con participantes ----
   d.getElementById('save').click();
@@ -480,11 +493,14 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
       frames:[{objects:[],strokes:[]}] } };
     w.localStorage.setItem('pt-boards', JSON.stringify(t));
   })();
-  d.getElementById('stats').click();
-  await wait(350);
-  ok('el botón abre las estadísticas', d.getElementById('dlg-stats').open);
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="datos"]').click();
+  await wait(400);
+  ok('el apartado Datos se abre desde la barra de abajo',
+     !d.getElementById('eq-datos').hidden && d.getElementById('eq-plantilla').hidden);
   ok('y pinta barras con div, sin ningún lienzo',
-     d.querySelectorAll('#dlg-stats canvas').length === 0);
+     d.querySelectorAll('#eq-datos canvas').length === 0);
   d.querySelector('#stats-periodo [data-periodo="mes"]').click();
   await wait(200);
   ok('cambiar de periodo repinta',
@@ -502,8 +518,8 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
      d.querySelectorAll('#stats-radar .radar-clave').length);
   (function(){
     var svg = d.querySelector('#stats-radar svg.radar');
-    var caja = svg.getBoundingClientRect(), dlg = d.getElementById('dlg-stats').getBoundingClientRect();
-    ok('y el radar cabe dentro del diálogo, sin salirse por los lados',
+    var caja = svg.getBoundingClientRect(), dlg = d.getElementById('equipo').getBoundingClientRect();
+    ok('y el radar cabe dentro de la pantalla, sin salirse por los lados',
        caja.left >= dlg.left - 0.6 && caja.right <= dlg.right + 0.6,
        Math.round(caja.width) + 'px de ancho');
   })();
@@ -515,7 +531,8 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
        var c = w.getComputedStyle(t).fill.replace(/\s/g,'');
        return c !== 'rgb(225,26,65)' && c !== 'rgb(255,92,122)';
      }));
-  d.getElementById('dlg-stats').close();
+  d.querySelector('#modos [data-modo="pizarra"]').click();
+  await wait(300);
 
   limpia();
   pinta();
