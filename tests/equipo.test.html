@@ -263,6 +263,64 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
      av.olvidados.length + ' avisos en los dos periodos');
 
   // =====================================================================
+  console.log('7b · el radar de equilibrio por fase de juego');
+  /* De los siete ejercicios del tablero, solo cuatro son FASES DE JUEGO:
+       Finalización 20 · Ataque organizado 18 · Defensa organizada 15 · Balón parado 10
+     Calentamiento, Partido condicionado y Físico-técnico son contenido de
+     sesión, no fases, y el radar los deja fuera a propósito. */
+  var rMic = E.equilibrio('micro', AHORA);
+  //   micro (7 días): Finalización 20 + Ataque 18 = 38 minutos de fase
+  ok('radar · micro suma 38 minutos de fase (20 + 18)', rMic.total === 38, rMic.total);
+  ok('radar · siempre son seis ejes, pase lo que pase', rMic.ejes.length === 6, rMic.ejes.length);
+  var eje = function(r,n){ return r.ejes.filter(function(e){return e.nombre===n;})[0]; };
+  //   20/38 = 52,6 %   ·   18/38 = 47,4 %
+  ok('radar · micro, Finalización 53 %',
+     Math.round(eje(rMic,'Finalización').pct) === 53, Math.round(eje(rMic,'Finalización').pct));
+  ok('radar · micro, Ataque organizado 47 %',
+     Math.round(eje(rMic,'Ataque organizado').pct) === 47, Math.round(eje(rMic,'Ataque organizado').pct));
+  ok('radar · micro, cuatro fases sin tocar', rMic.sinTocar === 4, rMic.sinTocar);
+  ok('radar · el calentamiento no entra: no es una fase de juego',
+     rMic.ejes.every(function(e){ return e.nombre !== 'Calentamiento'; }));
+  ok('radar · ni el partido condicionado',
+     rMic.ejes.every(function(e){ return e.nombre !== 'Partido condicionado'; }));
+
+  //   mes: + Defensa 15 → 53 minutos. 20/53=37,7 · 18/53=34,0 · 15/53=28,3
+  var rMes = E.equilibrio('mes', AHORA);
+  ok('radar · mes suma 53 (20 + 18 + 15)', rMes.total === 53, rMes.total);
+  ok('radar · mes, Defensa organizada 28 %',
+     Math.round(eje(rMes,'Defensa organizada').pct) === 28, Math.round(eje(rMes,'Defensa organizada').pct));
+  ok('radar · mes, tres fases sin tocar', rMes.sinTocar === 3, rMes.sinTocar);
+
+  //   temporada: + Balón parado 10 → 63. El de la 2025/26 sigue fuera.
+  var rTem = E.equilibrio('temporada', AHORA);
+  ok('radar · temporada suma 63 (20 + 18 + 15 + 10)', rTem.total === 63, rTem.total);
+  ok('radar · el físico-técnico de la temporada pasada no entra',
+     rTem.ejes.every(function(e){ return e.nombre !== 'Físico-técnico'; }));
+  ok('radar · temporada, dos fases sin tocar (las dos transiciones)',
+     rTem.sinTocar === 2, rTem.sinTocar);
+
+  //   la referencia es SIEMPRE la temporada, se mire el periodo que se mire.
+  //   10/63 = 15,9 %
+  ok('radar · la referencia de fondo es la temporada, no el periodo',
+     Math.round(eje(rMic,'Balón parado').refPct) === 16 &&
+     eje(rMic,'Balón parado').pct === 0,
+     'ref ' + Math.round(eje(rMic,'Balón parado').refPct) + '% · periodo 0%');
+  ok('radar · el reparto igualado es un sexto', Math.round(rMic.igualado * 10) === 167,
+     rMic.igualado.toFixed(1) + '%');
+
+  //   los porcentajes de cada figura suman 100 (o 0 si no hay nada)
+  var suma = rTem.ejes.reduce(function(a,e){ return a + e.pct; }, 0);
+  ok('radar · los seis porcentajes suman 100', Math.abs(suma - 100) < 0.01, suma.toFixed(2));
+
+  //   sin nada guardado, ni figura ni división por cero
+  var boardsAntes = w.localStorage.getItem('pt-boards');
+  w.localStorage.setItem('pt-boards', '{}');
+  var rVacio = E.equilibrio('micro', AHORA);
+  ok('radar · sin ejercicios no hay figura, y no revienta',
+     rVacio.total === 0 && rVacio.ejes.every(function(e){ return e.pct === 0; }));
+  w.localStorage.setItem('pt-boards', boardsAntes);
+
+  // =====================================================================
   console.log('8 · sesiones: quién asiste a cada entrenamiento');
   var asis = {};
   asis[E.hoyISO(new Date(AHORA))]           = { temporada:'2026/27', presentes:[A.id,B.id,C.id] };
@@ -409,6 +467,19 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
      JSON.stringify(g.doc).indexOf('Ana Ferrer') < 0);
 
   // ---- estadísticas en pantalla ----
+  /* El radar solo se dibuja si hay minutos de FASE DE JUEGO. El ejercicio que
+     se acaba de guardar no lleva momento, así que aquí se le ponen dos que sí,
+     para poder mirar la figura. Sin esto, lo correcto es que no haya figura. */
+  (function(){
+    var t = JSON.parse(w.localStorage.getItem('pt-boards') || '{}');
+    t['Con fase A'] = { at: Date.now(), doc: { pitch:'f11', view:'full',
+      card:{titulo:'Con fase A', momento:'Ataque organizado', duracion:'20 min'},
+      frames:[{objects:[],strokes:[]}] } };
+    t['Con fase B'] = { at: Date.now(), doc: { pitch:'f11', view:'full',
+      card:{titulo:'Con fase B', momento:'Defensa organizada', duracion:'10 min'},
+      frames:[{objects:[],strokes:[]}] } };
+    w.localStorage.setItem('pt-boards', JSON.stringify(t));
+  })();
   d.getElementById('stats').click();
   await wait(350);
   ok('el botón abre las estadísticas', d.getElementById('dlg-stats').open);
@@ -418,6 +489,32 @@ function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
   await wait(200);
   ok('cambiar de periodo repinta',
      d.querySelector('#stats-periodo [data-periodo="mes"]').getAttribute('aria-pressed') === 'true');
+  ok('el radar se dibuja en SVG, sin lienzo ni librería',
+     d.querySelectorAll('#stats-radar svg.radar').length === 1 &&
+     d.querySelectorAll('#stats-radar canvas').length === 0);
+  ok('con sus seis ejes escritos',
+     d.querySelectorAll('#stats-radar .radar-eje').length === 6,
+     d.querySelectorAll('#stats-radar .radar-eje').length);
+  ok('y sus seis puntos, cada uno con su dato al tocarlo',
+     d.querySelectorAll('#stats-radar .radar-diana title').length === 6);
+  ok('la leyenda está: son dos figuras y no se distinguen solo por el color',
+     d.querySelectorAll('#stats-radar .radar-clave').length >= 2,
+     d.querySelectorAll('#stats-radar .radar-clave').length);
+  (function(){
+    var svg = d.querySelector('#stats-radar svg.radar');
+    var caja = svg.getBoundingClientRect(), dlg = d.getElementById('dlg-stats').getBoundingClientRect();
+    ok('y el radar cabe dentro del diálogo, sin salirse por los lados',
+       caja.left >= dlg.left - 0.6 && caja.right <= dlg.right + 0.6,
+       Math.round(caja.width) + 'px de ancho');
+  })();
+  /* Los nombres de los ejes llevan tinta de texto. Si alguno se pintara del
+     color de la serie, la identidad dependería del color y se perderia para
+     quien no lo distingue. */
+  ok('los nombres de los ejes no van del color de la figura',
+     [].every.call(d.querySelectorAll('#stats-radar .radar-eje'), function(t){
+       var c = w.getComputedStyle(t).fill.replace(/\s/g,'');
+       return c !== 'rgb(225,26,65)' && c !== 'rgb(255,92,122)';
+     }));
   d.getElementById('dlg-stats').close();
 
   limpia();

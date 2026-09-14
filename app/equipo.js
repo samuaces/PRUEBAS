@@ -467,6 +467,76 @@
     });
   }
 
+  /* ---- el equilibrio por fase de juego ----------------------------------
+
+     Las barras de arriba ya dicen cuántos minutos lleva cada cosa. Lo que no
+     dicen es la FORMA del reparto: si el equipo entrena las seis fases del
+     juego de manera parecida o si va cojo de una.
+
+     Por eso el radar coge solo las seis fases —lo que pasa dentro de un
+     partido— y deja fuera el calentamiento, el físico, la técnica individual,
+     los porteros y el partido condicionado, que son contenido de sesión y no
+     fases del juego. Mezclarlos daría una figura que no responde a ninguna
+     pregunta: ni «cómo reparto mis minutos» (para eso están las barras) ni
+     «entreno equilibrado» (para eso está esto).
+
+     Los ejes van en el orden en que ocurren las cosas en un partido: el ataque
+     arriba, la defensa abajo, y las transiciones a los lados.
+
+     La escala es en TANTO POR CIENTO de los minutos de fase, no en minutos.
+     Así una semana corta y una temporada entera se pueden superponer: lo que
+     se compara es la forma, no el tamaño. El hexágono perfecto —todo al
+     16,7 %— es el reparto exactamente igualado. */
+
+  var FASES = [
+    { nombre: 'Ataque organizado',    corto: 'Ataque' },
+    { nombre: 'Finalización',         corto: 'Finalización' },
+    { nombre: 'Transición defensiva', corto: 'Trans. def.' },
+    { nombre: 'Defensa organizada',   corto: 'Defensa' },
+    { nombre: 'Transición ofensiva',  corto: 'Trans. of.' },
+    { nombre: 'Balón parado',         corto: 'Balón parado' }
+  ];
+
+  function repartoDeFases(lista) {
+    var min = {}, total = 0;
+    FASES.forEach(function (f) { min[f.nombre] = 0; });
+    lista.forEach(function (e) {
+      if (min[e.momento] === undefined) return;     // no es una fase de juego
+      var m = e.minutos || 0;
+      min[e.momento] += m;
+      total += m;
+    });
+    return { min: min, total: total };
+  }
+
+  function equilibrio(periodo, ahora) {
+    var todas = pizarrasGuardadas();
+    var ahoraR = repartoDeFases(delPeriodo(todas, periodo, ahora));
+    var refR   = repartoDeFases(delPeriodo(todas, 'temporada', ahora));
+
+    var ejes = FASES.map(function (f) {
+      return {
+        nombre: f.nombre,
+        corto: f.corto,
+        minutos: ahoraR.min[f.nombre],
+        pct: ahoraR.total ? ahoraR.min[f.nombre] / ahoraR.total * 100 : 0,
+        refPct: refR.total ? refR.min[f.nombre] / refR.total * 100 : 0,
+        refMin: refR.min[f.nombre]
+      };
+    });
+
+    return {
+      ejes: ejes,
+      total: ahoraR.total,
+      totalRef: refR.total,
+      // El reparto perfectamente igualado, para dibujar la referencia.
+      igualado: 100 / FASES.length,
+      // Cuántas fases no se han tocado en el periodo. Es el dato que de verdad
+      // se lee en la figura: un pico solo significa algo si hay huecos.
+      sinTocar: ejes.filter(function (e) { return e.minutos === 0; }).length
+    };
+  }
+
   /* ---- lo que se engancha a cada pizarra al guardarla -------------------- */
 
   function metaDeHoy(ids) {
@@ -507,6 +577,8 @@
 
     minutosDe: minutosDe,
     estadisticas: estadisticas,
+    FASES: FASES,
+    equilibrio: equilibrio,
     metaDeHoy: metaDeHoy
   };
 })();
