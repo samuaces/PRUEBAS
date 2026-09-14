@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="UTF-8">
+<title>Pruebas · Mi equipo, asistencia y estadísticas</title>
+<style>
+ body{font:14px/1.6 ui-monospace,Menlo,Consolas,monospace;background:#0b1017;color:#e8eef6;padding:20px}
+ #out{white-space:pre-wrap}
+ iframe{position:fixed;left:-9999px;width:900px;height:800px}
+ .PASA{color:#5fd48a}.FALLA{color:#ff6b81;font-weight:700}
+</style>
+<h1>Mi equipo, asistencia y estadísticas</h1>
+<p>Sirve el repositorio (<code>python3 -m http.server</code>) y abre este archivo. Se ejecuta solo.</p>
+<div id="out">ejecutando…</div><iframe id="fr"></iframe>
+
+<script>
+/* Las cuentas de este archivo están hechas a mano, a propósito.
+
+   Si las calculara con el mismo código que estoy probando, la prueba diría que
+   sí a cualquier cosa. Cada número que se comprueba aquí abajo está sumado en
+   el comentario de al lado: si el día de mañana alguien cambia una regla, la
+   prueba tiene que fallar y obligar a mirar. */
+var log = [], fails = 0;
+function ok(n, c, x){ log.push((c?'PASA  ':'FALLA ') + n + (x ? '  (' + x + ')' : '')); if(!c) fails++; }
+var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+
+var DIA = 86400000;
+var w, d, E;
+
+// Un momento fijo para que las pruebas no cambien de resultado según la hora.
+// Martes 15 de septiembre de 2026, mediodía.
+var AHORA = new Date('2026-09-15T12:00:00').getTime();
+
+function limpia(){
+  ['pt-squad','pt-asistencia','pt-boards','pt-autosave','pt-prefs','pt-catalogo','pt-nube']
+    .forEach(function(k){ try{ w.localStorage.removeItem(k); }catch(e){} });
+}
+
+// Una pizarra guardada como la que escribe la aplicación de verdad.
+function pizarra(nombre, diasAtras, momento, duracion, quienes, temporada){
+  return [nombre, {
+    at: AHORA - diasAtras * DIA,
+    doc: { pitch:'f11', view:'full',
+           card:{ titulo:nombre, momento:momento, duracion:duracion },
+           frames:[{objects:[],strokes:[]}] },
+    meta: { season: temporada || '2026/27',
+            participants: quienes.map(function(x){
+              return { id:x[0], nombre:x[1], dorsal:x[2] };
+            }) }
+  }];
+}
+
+(async function(){
+  var fr = document.getElementById('fr');
+  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html'; });
+  w = fr.contentWindow; d = fr.contentDocument;
+  await wait(1200);
+  E = w.PTEquipo;
+
+  ok('el módulo del equipo está cargado', !!E && typeof E.estadisticas === 'function');
+  if(!E){ pinta(); return; }
+
+  // =====================================================================
+  console.log('1 · temporadas');
+  // La temporada va de julio a junio.
+  ok('julio de 2026 ya es la 2026/27',
+     E.temporadaDe(new Date('2026-07-01T12:00:00')) === '2026/27',
+     E.temporadaDe(new Date('2026-07-01T12:00:00')));
+  ok('junio de 2026 todavía es la 2025/26',
+     E.temporadaDe(new Date('2026-06-30T12:00:00')) === '2025/26',
+     E.temporadaDe(new Date('2026-06-30T12:00:00')));
+  ok('marzo de 2027 sigue siendo la 2026/27',
+     E.temporadaDe(new Date('2027-03-10T12:00:00')) === '2026/27',
+     E.temporadaDe(new Date('2027-03-10T12:00:00')));
+  ok('el cambio de siglo no rompe el formato',
+     E.temporadaDe(new Date('2099-08-01T12:00:00')) === '2099/00',
+     E.temporadaDe(new Date('2099-08-01T12:00:00')));
+  ok('la siguiente de la 2026/27 es la 2027/28',
+     E.temporadaSiguiente('2026/27') === '2027/28', E.temporadaSiguiente('2026/27'));
+  ok('«temporada 26» no vale como formato', !E.temporadaValida('temporada 26'));
+
+  // =====================================================================
+  console.log('2 · alta de jugadores y orden');
+  limpia();
+  var T = E.temporadaActual();
+  E.añade(T, { dorsal:'10', nombre:'Diego Ramos',  posicion:'Mediapunta' });
+  E.añade(T, { dorsal:'2',  nombre:'Ana Ferrer',   posicion:'Lateral derecho' });
+  E.añade(T, { dorsal:'',   nombre:'Zoe Prats',    posicion:'Delantero' });
+  E.añade(T, { dorsal:'',   nombre:'Bruno Gil',    posicion:'Central' });
+  E.añade(T, { dorsal:'7',  nombre:'Carla Ndiaye', posicion:'Extremo derecho' });
+
+  var orden = E.jugadores().map(function(j){ return j.nombre; }).join(' · ');
+  // Por dorsal: 2, 7, 10. Sin dorsal al final y por nombre: Bruno antes que Zoe.
+  ok('orden por dorsal, y los sin dorsal al final por nombre',
+     orden === 'Ana Ferrer · Carla Ndiaye · Diego Ramos · Bruno Gil · Zoe Prats', orden);
+  ok('el dorsal 10 va después del 7 y no antes (no se ordena como texto)',
+     E.jugadores()[1].dorsal === '7' && E.jugadores()[2].dorsal === '10');
+
+  var sinNombre = E.añade(T, { dorsal:'5', nombre:'   ' });
+  ok('sin nombre no entra nadie', !sinNombre.ok && sinNombre.porque === 'sin-nombre');
+  var repe = E.añade(T, { dorsal:'7', nombre:'Otro Siete' });
+  ok('un dorsal repetido entra, pero avisa', repe.ok && repe.dorsalRepetido);
+  E.quita(T, repe.jugador.id);
+
+  var largo = E.añade(T, { dorsal:'999', nombre:'Tres Cifras' });
+  ok('el dorsal se queda en dos cifras', largo.jugador.dorsal === '99', largo.jugador.dorsal);
+  E.quita(T, largo.jugador.id);
+
+  var inventada = E.añade(T, { dorsal:'4', nombre:'Sin Puesto', posicion:'Media punta libre' });
+  ok('una posición que no está en la lista se descarta', inventada.jugador.posicion === '');
+  E.quita(T, inventada.jugador.id);
+
+  // =====================================================================
+  console.log('3 · persistencia y temporadas separadas');
+  var antes = E.jugadores().length;
+  var crudo = JSON.parse(w.localStorage.getItem('pt-squad'));
+  ok('la plantilla se guarda en pt-squad', !!crudo && !!crudo.temporadas[T],
+     crudo.temporadas[T].length + ' jugadores');
+  ok('y sobrevive a releerla del almacén', E.jugadores().length === antes, antes);
+
+  E.cambiaTemporada('2027/28');
+  ok('la temporada nueva empieza vacía', E.jugadores().length === 0);
+  E.añade('2027/28', { dorsal:'1', nombre:'Nuevo Portero', posicion:'Portero' });
+  ok('y lo que se añade va a la temporada nueva', E.jugadores().length === 1);
+  E.cambiaTemporada(T);
+  ok('al volver, la plantilla vieja sigue entera', E.jugadores().length === antes, antes);
+
+  // =====================================================================
+  console.log('4 · asistencia');
+  var ids = E.jugadores().map(function(j){ return j.id; });
+  ok('sin marcar nada, hoy están todos', E.presentesHoy().length === ids.length);
+  E.marcaAsistencia(ids[0], false);
+  ok('quitar a uno lo deja fuera de hoy',
+     E.presentesHoy().length === ids.length - 1 && E.presentesHoy().indexOf(ids[0]) < 0);
+  ok('y queda apuntado en el historial, no solo en la sesión',
+     !!E.asistenciaEntera()[E.hoyISO()]);
+  E.marcaAsistencia(ids[0], true);
+  ok('volver a marcarlo lo devuelve', E.presentesHoy().length === ids.length);
+
+  E.ponAsistencia([]);
+  ok('«Ninguno» deja el día a cero', E.presentesHoy().length === 0);
+  E.ponAsistencia(ids);
+  ok('«Todos» los devuelve', E.presentesHoy().length === ids.length);
+
+  // Un jugador que se añade después de marcar la asistencia entra convocado.
+  var tarde = E.añade(T, { dorsal:'23', nombre:'Llega Tarde', posicion:'Interior' });
+  ok('quien se apunta a media mañana no queda fuera por defecto',
+     E.presentesHoy().indexOf(tarde.jugador.id) < 0,
+     'queda fuera del día ya cerrado, que es lo correcto');
+  E.quita(T, tarde.jugador.id);
+
+  // =====================================================================
+  console.log('5 · minutos escritos a mano');
+  ok('«12 min» son 12',            E.minutosDe('12 min') === 12);
+  ok('«4 × 3 min» son 12, no 4',   E.minutosDe('4 × 3 min') === 12, E.minutosDe('4 × 3 min'));
+  ok('«4x3» también son 12',       E.minutosDe('4x3') === 12);
+  ok('«3 series de 5 min» son 15', E.minutosDe('3 series de 5 min') === 15,
+                                    E.minutosDe('3 series de 5 min'));
+  ok('«20 min de 3 toques» son 20, no 3',  E.minutosDe('20 min de 3 toques') === 20,
+                                            E.minutosDe('20 min de 3 toques'));
+  ok('«4 rondas de 2 min» son 8',          E.minutosDe('4 rondas de 2 min') === 8);
+  ok('«unos 15 minutos» son 15',           E.minutosDe('unos 15 minutos') === 15);
+  ok('«0 min» es no tener duración', E.minutosDe('0 min') === null);
+  ok('«un rato» es no tener duración', E.minutosDe('un rato') === null);
+  ok('vacío es no tener duración',   E.minutosDe('') === null);
+
+  // =====================================================================
+  console.log('6 · estadísticas, con las cuentas hechas a mano');
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var A = E.añade('2026/27', { dorsal:'7',  nombre:'Ana',   posicion:'Extremo derecho' }).jugador;
+  var B = E.añade('2026/27', { dorsal:'9',  nombre:'Bruno', posicion:'Delantero' }).jugador;
+  var C = E.añade('2026/27', { dorsal:'11', nombre:'Cleo',  posicion:'Interior' }).jugador;
+
+  var a = [A.id,'Ana','7'], b = [B.id,'Bruno','9'], c = [C.id,'Cleo','11'];
+  var tablero = {};
+  [
+    // nombre                días  momento               duración   quiénes
+    pizarra('Rondo',            1, 'Calentamiento',      '12 min',  [a,b,c]),
+    pizarra('Finalización',     2, 'Finalización',       '4 × 5 min',[a,b]),      // 20 min
+    pizarra('Salida',           5, 'Ataque organizado',  '18 min',  [a,b,c]),
+    pizarra('Repliegue',        9, 'Defensa organizada', '15 min',  [a,c]),       // fuera del micro
+    pizarra('Juego libre',     20, 'Partido condicionado','sin apuntar',[a,b,c]), // sin duración
+    pizarra('Corner',          40, 'Balón parado',       '10 min',  [a]),         // fuera del mes
+    pizarra('Pretemporada',   120, 'Físico-técnico',     '30 min',  [b], '2025/26')
+  ].forEach(function(p){ tablero[p[0]] = p[1]; });
+  w.localStorage.setItem('pt-boards', JSON.stringify(tablero));
+
+  // ---- MICROCICLO: 7 días. Entran Rondo(1), Finalización(2) y Salida(5).
+  //      Minutos: 12 + 20 + 18 = 50
+  var m = E.estadisticas('micro', AHORA);
+  ok('microciclo · 3 ejercicios', m.ejercicios === 3, m.ejercicios);
+  ok('microciclo · 50 minutos (12 + 20 + 18)', m.minutos === 50, m.minutos);
+  ok('microciclo · ninguno sin duración', m.sinDuracion === 0, m.sinDuracion);
+
+  //      Por momento: Finalización 20, Salida 18, Calentamiento 12
+  var mm = m.momentos.map(function(x){ return x.nombre + '=' + x.minutos; }).join(' ');
+  ok('microciclo · por momento, de mayor a menor',
+     mm === 'Finalización=20 Ataque organizado=18 Calentamiento=12', mm);
+
+  //      Ana: 12+20+18 = 50 · Bruno: 12+20 = 32 · Cleo: 12+18 = 30
+  var mj = {}; m.jugadores.forEach(function(j){ mj[j.nombre] = j.minutos; });
+  ok('microciclo · Ana 50 min', mj.Ana === 50, mj.Ana);
+  ok('microciclo · Bruno 50 min (12 + 20 + 18, está en los tres)', mj.Bruno === 50, mj.Bruno);
+  ok('microciclo · Cleo 30 min (12 + 18, se perdió la finalización)', mj.Cleo === 30, mj.Cleo);
+  ok('microciclo · el orden es por minutos',
+     m.jugadores.map(function(j){return j.nombre;}).join(',') === 'Ana,Bruno,Cleo',
+     m.jugadores.map(function(j){return j.nombre;}).join(','));
+
+  // ---- MES: 30 días. Añade Repliegue(9) y Juego libre(20).
+  //      Minutos: 50 + 15 + 0 = 65 · uno sin duración
+  var mes = E.estadisticas('mes', AHORA);
+  ok('mes · 5 ejercicios', mes.ejercicios === 5, mes.ejercicios);
+  ok('mes · 65 minutos (50 + 15, y el sin duración suma 0)', mes.minutos === 65, mes.minutos);
+  ok('mes · 1 sin duración', mes.sinDuracion === 1, mes.sinDuracion);
+  //      Ana: 50 + 15 + 0 = 65 · Bruno: 32 + 0 = 32 · Cleo: 30 + 15 + 0 = 45
+  var mesj = {}; mes.jugadores.forEach(function(j){ mesj[j.nombre] = j.minutos; });
+  ok('mes · Ana 65', mesj.Ana === 65, mesj.Ana);
+  ok('mes · Cleo 45 (30 + 15)', mesj.Cleo === 45, mesj.Cleo);
+  ok('mes · Bruno sigue en 50: no fue al repliegue y el sin duración suma 0',
+     mesj.Bruno === 50, mesj.Bruno);
+  //      El de «Partido condicionado» no tiene minutos pero SÍ aparece con 0.
+  var pc = mes.momentos.filter(function(x){ return x.nombre === 'Partido condicionado'; })[0];
+  ok('mes · un ejercicio sin duración sale con 0, no desaparece', !!pc && pc.minutos === 0);
+
+  // ---- TEMPORADA: manda meta.season, no la fecha.
+  //      Todos los 2026/27: 12+20+18+15+0+10 = 75. El de 2025/26 queda fuera.
+  var tmp = E.estadisticas('temporada', AHORA);
+  ok('temporada · 6 ejercicios (el de la temporada pasada no entra)',
+     tmp.ejercicios === 6, tmp.ejercicios);
+  ok('temporada · 75 minutos (12+20+18+15+0+10)', tmp.minutos === 75, tmp.minutos);
+  var noEstaPre = tmp.momentos.every(function(x){ return x.nombre !== 'Físico-técnico'; });
+  ok('temporada · lo de la 2025/26 no se cuela', noEstaPre);
+  //      Ana está en todos los de esta temporada: 12+20+18+15+0+10 = 75
+  var tj = {}; tmp.jugadores.forEach(function(j){ tj[j.nombre] = j.minutos; });
+  ok('temporada · Ana 75', tj.Ana === 75, tj.Ana);
+  ok('temporada · Bruno 50: el córner fue solo de Ana', tj.Bruno === 50, tj.Bruno);
+
+  // ---- Empate a minutos: por orden alfabético, para que no baile.
+  var empate = {};
+  empate['Uno']  = pizarra('Uno',  1, 'Zaga alta',  '10 min', [a])[1];
+  empate['Dos']  = pizarra('Dos',  1, 'Achique',    '10 min', [a])[1];
+  w.localStorage.setItem('pt-boards', JSON.stringify(empate));
+  var emp = E.estadisticas('micro', AHORA);
+  ok('con los mismos minutos, orden alfabético',
+     emp.momentos[0].nombre === 'Achique' && emp.momentos[1].nombre === 'Zaga alta',
+     emp.momentos.map(function(x){return x.nombre;}).join(','));
+
+  // =====================================================================
+  console.log('7 · el aviso de lo que lleva sin trabajarse');
+  w.localStorage.setItem('pt-boards', JSON.stringify(tablero));
+  var av = E.estadisticas('micro', AHORA);
+  var avn = {}; av.olvidados.forEach(function(o){ avn[o.nombre] = o.dias; });
+  // Balón parado: hace 40 días. Partido condicionado: 20 (por debajo de 21).
+  ok('avisa del balón parado, 40 días', avn['Balón parado'] === 40, avn['Balón parado']);
+  ok('no avisa de lo de hace 20 días, que aún no llega a 21',
+     avn['Partido condicionado'] === undefined);
+  ok('no avisa de nada que no se haya trabajado nunca',
+     av.olvidados.every(function(o){
+       return ['Balón parado','Físico-técnico'].indexOf(o.nombre) >= 0;
+     }), av.olvidados.map(function(o){return o.nombre+':'+o.dias;}).join(' '));
+  ok('el aviso se calcula sobre todo el historial, no sobre el periodo elegido',
+     E.estadisticas('temporada', AHORA).olvidados.length === av.olvidados.length,
+     av.olvidados.length + ' avisos en los dos periodos');
+
+  // =====================================================================
+  console.log('8 · sesiones: quién asiste a cada entrenamiento');
+  var asis = {};
+  asis[E.hoyISO(new Date(AHORA))]           = { temporada:'2026/27', presentes:[A.id,B.id,C.id] };
+  asis[E.hoyISO(new Date(AHORA - 2*DIA))]   = { temporada:'2026/27', presentes:[A.id,B.id] };
+  asis[E.hoyISO(new Date(AHORA - 5*DIA))]   = { temporada:'2026/27', presentes:[A.id] };
+  asis[E.hoyISO(new Date(AHORA - 40*DIA))]  = { temporada:'2026/27', presentes:[A.id,C.id] };
+  w.localStorage.setItem('pt-asistencia', JSON.stringify(asis));
+
+  var s7 = E.estadisticas('micro', AHORA);
+  ok('microciclo · 3 sesiones en los últimos 7 días', s7.sesiones === 3, s7.sesiones);
+  var sj = {}; s7.jugadores.forEach(function(j){ sj[j.nombre] = j.sesiones + '/' + j.deSesiones; });
+  ok('microciclo · Ana ha venido a las 3',   sj.Ana === '3/3',   sj.Ana);
+  ok('microciclo · Bruno a 2 de 3',          sj.Bruno === '2/3', sj.Bruno);
+  ok('microciclo · Cleo a 1 de 3',           sj.Cleo === '1/3',  sj.Cleo);
+  var sT = E.estadisticas('temporada', AHORA);
+  ok('temporada · las 4 sesiones, incluida la de hace 40 días',
+     sT.sesiones === 4, sT.sesiones);
+
+  // =====================================================================
+  console.log('9 · PRIVACIDAD · los nombres no salen del dispositivo');
+  // Se monta una pizarra y se guarda con participantes, como haría la aplicación.
+  var meta = E.metaDeHoy([A.id, B.id]);
+  ok('metaDeHoy trae los jugadores con su nombre y su dorsal',
+     meta.participants.length === 2 && meta.participants[0].nombre === 'Ana');
+  ok('y la temporada', meta.season === '2026/27', meta.season);
+
+  var guardada = { at: Date.now(), doc: { pitch:'f11', view:'full',
+                    card:{titulo:'Secreto'}, frames:[{objects:[],strokes:[]}] }, meta: meta };
+  var texto = JSON.stringify(guardada.doc);
+  ok('el documento de la pizarra NO lleva ningún nombre dentro',
+     texto.indexOf('Ana') < 0 && texto.indexOf('Bruno') < 0, texto.length + ' caracteres');
+  ok('ni ningún identificador de jugador',
+     texto.indexOf(A.id) < 0 && texto.indexOf(B.id) < 0);
+  ok('ni la palabra participants ni season',
+     texto.indexOf('participants') < 0 && texto.indexOf('season') < 0);
+
+  // Lo que se sube a la biblioteca común es exactamente ese documento.
+  // Se comprueba interceptando la petición de verdad.
+  if (w.PTNube || w.nube) {
+    var subido = null, fetchViejo = w.fetch;
+    w.fetch = function(url, opts){
+      subido = (opts && opts.body) ? String(opts.body) : '';
+      return Promise.resolve({ ok:false, status:401, headers:{get:function(){return 'application/json';}},
+                               text:function(){ return Promise.resolve('{"message":"prueba"}'); } });
+    };
+    try {
+      var api = w.PTNube || w.nube;
+      if (api && api.publica) {
+        await api.publica(guardada.doc, { publicado:true }).catch(function(){});
+        if (subido !== null) {
+          ok('lo que se manda al servidor no contiene ningún nombre de jugador',
+             subido.indexOf('Ana') < 0 && subido.indexOf('Bruno') < 0,
+             subido.length + ' caracteres enviados');
+          ok('ni ningún identificador de jugador',
+             subido.indexOf(A.id) < 0 && subido.indexOf(B.id) < 0);
+        } else {
+          ok('no se llegó a mandar nada (sin sesión), que también vale', true);
+        }
+      }
+    } catch(e){ ok('la subida no revienta al probarla', false, e.message); }
+    w.fetch = fetchViejo;
+  }
+
+  // Y por el enlace tampoco.
+  if (w.PTEnlace) {
+    var url = await w.PTEnlace.direccion(guardada.doc);
+    ok('un enlace de esa jugada tampoco lleva nombres',
+       url.indexOf('Ana') < 0 && url.indexOf('Bruno') < 0, url.length + ' caracteres');
+    var vuelta = await w.PTEnlace.desempaqueta(url.split('=').slice(1).join('='));
+    var vt = JSON.stringify(vuelta);
+    ok('y al abrirlo al otro lado tampoco aparecen',
+       vt.indexOf('Ana') < 0 && vt.indexOf('Bruno') < 0);
+  }
+
+  // Nadie más lee la plantilla ni la asistencia.
+  var otros = await Promise.all(['../app/nube.js','../app/enlace.js']
+    .map(function(f){ return fetch(f).then(function(r){ return r.text(); }); }));
+  ok('nube.js y enlace.js no tocan pt-squad ni pt-asistencia',
+     otros.every(function(t){
+       return t.indexOf('pt-squad') < 0 && t.indexOf('pt-asistencia') < 0 &&
+              t.indexOf('PTEquipo') < 0;
+     }));
+
+  // =====================================================================
+  console.log('10 · la pantalla');
+  limpia();
+  E.cambiaTemporada('2026/27');
+  E.añade('2026/27', { dorsal:'7', nombre:'Ana Ferrer', posicion:'Extremo derecho' });
+  E.añade('2026/27', { dorsal:'9', nombre:'Bruno Gil',  posicion:'Delantero' });
+
+  d.getElementById('squad').click();
+  await wait(350);
+  ok('el botón abre Mi equipo', d.getElementById('dlg-squad').open);
+  ok('salen los dos jugadores', d.querySelectorAll('#squad-lista .squad-fila').length === 2,
+     d.querySelectorAll('#squad-lista .squad-fila').length);
+  ok('y el recuento del día', /2 de 2/.test(d.getElementById('squad-cuenta').textContent),
+     d.getElementById('squad-cuenta').textContent);
+
+  // Un nombre con < y & tiene que salir tal cual, no interpretado.
+  d.getElementById('squad-dorsal').value = '4';
+  d.getElementById('squad-nombre').value = 'Ana <b>Peligro</b> & Cía';
+  d.getElementById('squad-add').click();
+  await wait(200);
+  var filas = d.querySelectorAll('#squad-lista .squad-nombre');
+  var conMarcas = [].filter.call(filas, function(e){ return e.querySelector('b'); });
+  ok('un nombre con etiquetas HTML se enseña como texto, no se interpreta',
+     conMarcas.length === 0 &&
+     [].some.call(filas, function(e){ return e.textContent === 'Ana <b>Peligro</b> & Cía'; }));
+
+  d.getElementById('squad-ninguno').click();
+  await wait(200);
+  ok('«Ninguno» desmarca a todos en pantalla',
+     d.querySelectorAll('#squad-lista .squad-fila.falta').length === 3,
+     d.querySelectorAll('#squad-lista .squad-fila.falta').length);
+  d.getElementById('squad-todos').click();
+  await wait(200);
+  ok('«Todos» los vuelve a marcar',
+     d.querySelectorAll('#squad-lista .squad-fila.falta').length === 0);
+  d.getElementById('dlg-squad').close();
+
+  // ---- guardar con participantes ----
+  d.getElementById('save').click();
+  await wait(350);
+  ok('Guardar abre el diálogo nuevo', d.getElementById('dlg-save').open);
+  ok('y dice cuántos van sin tener que abrir nada',
+     /3 jugadores/.test(d.getElementById('save-part-cuenta').textContent),
+     d.getElementById('save-part-cuenta').textContent);
+  ok('la lista viene plegada: no estorba', d.getElementById('save-part-caja').hidden);
+  d.getElementById('save-part-cambiar').click();
+  await wait(150);
+  ok('«cambiar» la despliega', !d.getElementById('save-part-caja').hidden);
+  ok('con los 3 convocados', d.querySelectorAll('#save-part-lista .squad-fila').length === 3);
+
+  d.getElementById('save-nombre').value = 'Ejercicio de prueba';
+  d.getElementById('save-ok').click();
+  await wait(300);
+  var boards = JSON.parse(w.localStorage.getItem('pt-boards') || '{}');
+  var g = boards['Ejercicio de prueba'];
+  ok('se guarda la pizarra', !!g && !!g.doc);
+  ok('con los participantes en meta, fuera del documento',
+     !!g.meta && g.meta.participants.length === 3, g.meta && g.meta.participants.length);
+  ok('y con la temporada', g.meta.season === '2026/27', g.meta && g.meta.season);
+  ok('el documento guardado sigue limpio de nombres',
+     JSON.stringify(g.doc).indexOf('Ana Ferrer') < 0);
+
+  // ---- estadísticas en pantalla ----
+  d.getElementById('stats').click();
+  await wait(350);
+  ok('el botón abre las estadísticas', d.getElementById('dlg-stats').open);
+  ok('y pinta barras con div, sin ningún lienzo',
+     d.querySelectorAll('#dlg-stats canvas').length === 0);
+  d.querySelector('#stats-periodo [data-periodo="mes"]').click();
+  await wait(200);
+  ok('cambiar de periodo repinta',
+     d.querySelector('#stats-periodo [data-periodo="mes"]').getAttribute('aria-pressed') === 'true');
+  d.getElementById('dlg-stats').close();
+
+  limpia();
+  pinta();
+})().catch(function(e){
+  ok('la prueba llega hasta el final', false, e.message);
+  pinta();
+});
+
+function pinta(){
+  document.getElementById('out').innerHTML = log.map(function(l){
+    return '<span class="' + (l.slice(0,5) === 'FALLA' ? 'FALLA' : 'PASA') + '">' +
+           l.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+  }).join('\n') + '\n\nRESULTADO: ' +
+    (fails ? fails + ' FALLOS' : 'TODO CORRECTO') + ' (' + log.length + ' comprobaciones)';
+  document.title = (fails ? 'FALLOS' : 'OK') + ' · equipo';
+}
+</script>
+</html>

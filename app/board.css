@@ -521,6 +521,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 #cfg-cuenta-bloque{margin-top:22px;border-top:1px solid var(--line)}
 #cuenta-aviso{color:var(--brand-2)}
 
+.lib-part{margin:9px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lib-part b{color:var(--text);font-weight:600}
 .lib-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
 .lib-tags span{font-size:10.5px;line-height:1;padding:5px 9px;border-radius:100px;
   background:var(--glass-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
@@ -576,6 +579,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .middle{grid-template-columns:1fr}
   .sm-only{display:flex}
   .topbar .hide-sm{display:none}
+  /* En el móvil la barra de arriba va al límite: siete botones ya no caben y el
+     último se sale de la pantalla. Mi equipo y Estadísticas se bajan al panel,
+     donde tienen su fila con su nombre escrito y se ven mejor que como un icono
+     más apretado aquí arriba. */
+  #g-equipo{display:none}
   .topbar{gap:6px;padding-left:10px;padding-right:10px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
@@ -686,6 +694,116 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .tab{font-size:9.5px}
   .tab::before{width:44px}
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
+}
+
+/* ---------------- Mi equipo, asistencia y estadísticas ----------------
+   Todo con las variables del tema; ni un color suelto. Pensado para el dedo
+   primero: las filas miden --touch de alto y se pulsan enteras. */
+
+.squad-temp{display:flex;gap:9px;align-items:flex-end}
+.squad-temp .field{flex:1;min-width:0}
+.squad-temp .tbtn{flex:0 0 auto;height:var(--touch)}
+
+/* La cabecera de la asistencia se queda pegada arriba al bajar por una
+   plantilla de cuarenta: el recuento es lo que se está mirando. */
+.squad-hoy{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;
+  flex-wrap:wrap;margin:16px 0 9px;padding:9px 0;background:var(--panel)}
+.squad-hoy-t{margin:0;flex:1;min-width:130px;font-size:12.5px;color:var(--muted)}
+.squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums}
+.squad-hoy-btns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.squad-hoy-btns .tbtn{padding:7px 12px;font-size:12.5px}
+
+.squad-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.squad-lista:empty{display:none}
+.squad-fila{display:flex;align-items:center;gap:10px;padding:0 10px;min-height:var(--touch);
+  border:1px solid var(--line);border-radius:var(--r2);background:var(--glass);
+  box-shadow:inset 0 1px 0 var(--sheen);transition:background .16s,border-color .16s}
+.squad-fila:hover{background:var(--glass-2);border-color:var(--line-strong)}
+/* Quien no ha venido se apaga, pero sigue legible: es información, no un error. */
+.squad-fila.falta{opacity:.5}
+.squad-fila input[type=checkbox]{accent-color:var(--brand);width:19px;height:19px;flex:none;cursor:pointer}
+.squad-marca{display:flex;align-items:center;flex:1;min-width:0;gap:10px;cursor:pointer}
+.squad-dorsal{flex:0 0 28px;text-align:right;font-family:var(--ff-display);font-size:13.5px;
+  font-variant-numeric:tabular-nums;color:var(--text)}
+.squad-dorsal:empty::before{content:"—";color:var(--muted);opacity:.5}
+.squad-nombre{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap}
+.squad-quita{flex:0 0 auto;width:30px;height:30px;padding:0;display:inline-flex;
+  align-items:center;justify-content:center;opacity:.55}
+.squad-quita:hover{opacity:1}
+.squad-quita svg{width:15px;height:15px}
+
+.squad-alta{display:grid;grid-template-columns:58px 1fr;gap:7px;margin-top:14px}
+.squad-alta #squad-nombre{grid-column:2}
+.squad-alta #squad-posicion{grid-column:1 / -1}
+.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch)}
+.squad-alta input,.squad-alta select{min-height:var(--touch)}
+.squad-aviso{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);opacity:.8}
+
+/* ---- participantes dentro de Guardar ---- */
+#save-part{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.save-part-t{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--muted)}
+/* Un botón que se lee como un enlace: «cambiar» es una salida discreta, no una
+   acción que compita con Guardar. */
+.linkish{background:none;border:0;font:inherit;font-size:12.5px;
+  color:var(--brand-2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+  /* Se lee como un enlace, pero se pulsa como un botón: el alto es el del dedo,
+     no el de la palabra. */
+  display:inline-flex;align-items:center;min-height:var(--touch);padding:0 6px}
+.linkish:hover{color:var(--text)}
+#save-part-caja{margin-top:11px}
+#save-part-caja .squad-lista{margin-top:9px;max-height:38dvh;overflow:auto}
+
+/* ---- barras ----
+   div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
+   la fila se lea de un vistazo sin ocupar dos alturas. */
+.barras{display:flex;flex-direction:column;gap:5px}
+.barras:empty::before{content:"Todavía no hay nada que contar aquí.";
+  display:block;padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.barra{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:var(--r2);overflow:hidden;
+  border:1px solid var(--line);background:var(--well);
+  --cifras:112px}                    /* lo que ocupan los minutos y el tanto por ciento */
+/* Cuando la fila lleva además las sesiones (4/5), el carril acaba antes: si no,
+   según los datos, el canto de la barra caía justo encima de esas cifras. */
+.barra.conses{--cifras:152px}
+/* El relleno corre por su carril, que acaba antes de las cifras. Si llegara
+   hasta ellas, el canto de la barra partiría un número por la mitad y se
+   quedaría medio sobre un fondo y medio sobre otro: se lee fatal. */
+.barra-pista{position:absolute;inset:0 var(--cifras) 0 0;pointer-events:none}
+.barra-relleno{position:absolute;inset:0 auto 0 0;background:var(--glass-3);
+  border-right:1px solid var(--line-strong)}
+.barra.top .barra-relleno{background:color-mix(in srgb,var(--brand) 26%,transparent);
+  border-right-color:var(--brand)}
+/* El texto va por encima del relleno. El relleno queda fuera de este selector a
+   propósito: si le cae el «position:relative» deja de estar absoluto, entra en
+   la fila como un hijo más y empuja al nombre hasta hacerlo desaparecer. */
+.barra > :not(.barra-pista){position:relative}
+.barra-dorsal{flex:0 0 24px;text-align:right;font-family:var(--ff-display);font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.barra-nombre{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra-cifra{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--text)}
+.barra-pct{flex:0 0 46px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
+/* A quien le falta la mitad de los entrenamientos hay que verlo sin buscarlo. */
+.barra-sesiones{flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.barra-sesiones.poco{color:var(--brand-2)}
+
+.stats-resumen{margin:14px 0 0;font-size:13px;line-height:1.5}
+.stats-resumen b{font-variant-numeric:tabular-nums}
+.stats-olvido{margin:12px 0 0;padding:11px 13px;border-radius:var(--r2);
+  border:1px solid var(--line-strong);background:var(--glass);font-size:12.5px;line-height:1.5}
+.stats-olvido b{color:var(--brand-2)}
+
+@media (max-width:560px){
+  .squad-temp{flex-wrap:wrap}
+  .squad-temp .tbtn{width:100%}
+  .squad-pos{display:none}          /* a 320 px no cabe, y el nombre manda */
+  .barra-pct{flex-basis:40px}
+  .barra{--cifras:104px}
+  .barra.conses{--cifras:142px}
 }
 
 @media (prefers-reduced-motion:reduce){

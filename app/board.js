@@ -2850,7 +2850,10 @@
         var d = mias[n].doc || {};
         items.push({ id: 'mia:' + n, origen: 'mia', fuente: 'local', nombre: n, guardada: n,
                      pitch: d.pitch || 'f11', card: d.card || emptyCard(),
-                     doc: d, at: mias[n].at });
+                     doc: d, at: mias[n].at,
+                     // Quién participó. Va aparte del documento a propósito: al
+                     // compartir se sube «doc», y los nombres no están ahí.
+                     meta: mias[n].meta || null });
       });
     return items.concat(nubeMios);
   }
@@ -3013,6 +3016,21 @@
           (c.objetivo ? '<small>' + esc(c.objetivo) + '</small>' : '') +
           (etiquetas ? '<div class="lib-tags">' + etiquetas + '</div>' : '') +
         '</div>';
+
+      /* Quién participó, si es una pizarra tuya y quedó apuntado. Se añade por
+         el DOM y no con innerHTML: son nombres de personas. */
+      var quienes = it.meta && Array.isArray(it.meta.participants) ? it.meta.participants : null;
+      if (quienes && quienes.length) {
+        var linea = document.createElement('p');
+        linea.className = 'lib-part';
+        var cuantos = document.createElement('b');
+        cuantos.textContent = quienes.length + (quienes.length === 1 ? ' jugador' : ' jugadores');
+        linea.appendChild(cuantos);
+        linea.appendChild(document.createTextNode(' · ' +
+          quienes.slice(0, 4).map(function (p) { return p.nombre; }).join(', ') +
+          (quienes.length > 4 ? ' y ' + (quienes.length - 4) + ' más' : '')));
+        $('.lib-txt', art).appendChild(linea);
+      }
 
       var pie = document.createElement('div');
       pie.className = 'lib-pie';
@@ -3194,6 +3212,234 @@
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
     $('#dlg-lib').close();
     toast('«' + (it.nombre || 'Ejercicio') + '» abierto');
+  }
+
+  /* =========================================================================
+     MI EQUIPO · la plantilla y quién ha venido hoy
+
+     La plantilla se escribe una vez por temporada. La asistencia se marca al
+     llegar al campo, una vez, y de ahí sale sola en cada ejercicio que se
+     guarde ese día. Nadie tiene que volver a escribir un nombre.
+     ====================================================================== */
+  function abreEquipo() {
+    if (!window.PTEquipo) { toast('No se ha podido cargar Mi equipo'); return; }
+    pintaPosiciones();
+    pintaTemporadas();
+    pintaPlantilla();
+    $('#dlg-squad').showModal();
+  }
+
+  function pintaPosiciones() {
+    var sel = $('#squad-posicion');
+    if (sel.options.length) return;                    // solo la primera vez
+    var vacia = document.createElement('option');
+    vacia.value = ''; vacia.textContent = 'Posición…';
+    sel.appendChild(vacia);
+    PTEquipo.POSICIONES.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      sel.appendChild(o);
+    });
+  }
+
+  function pintaTemporadas() {
+    var sel = $('#squad-temporada'), actual = PTEquipo.temporadaActual();
+    sel.textContent = '';
+    PTEquipo.temporadas().forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      if (t === actual) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  function pintaPlantilla() {
+    var lista = PTEquipo.jugadores();
+    var deHoy = PTEquipo.presentesHoy();
+    var ul = $('#squad-lista');
+    ul.textContent = '';
+
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, deHoy.indexOf(j.id) >= 0, function (marcado) {
+        PTEquipo.marcaAsistencia(j.id, marcado);
+        cuentaEquipo();
+      }, function (quien) {
+        ask({ title: 'Quitar a ' + quien.nombre,
+              message: 'Sale de la plantilla de esta temporada. Lo que ya haya entrenado se ' +
+                       'queda en las estadísticas: no se borra nada del historial.',
+              ok: 'Quitar', danger: true })
+          .then(function (si) {
+            if (!si) return;
+            PTEquipo.quita($('#squad-temporada').value, quien.id);
+            pintaPlantilla();
+          });
+      }));
+    });
+
+    var nota = $('#squad-nota');
+    nota.textContent = lista.length
+      ? lista.length + ' de ' + PTEquipo.TOPE_JUGADORES + ' jugadores'
+      : 'Añade a tus jugadores una vez y ya no vuelves a escribir un nombre: en cada ' +
+        'entrenamiento solo marcas quién ha venido.';
+    cuentaEquipo();
+  }
+
+  function cuentaEquipo() {
+    var total = PTEquipo.jugadores().length;
+    var dentro = PTEquipo.presentesHoy().filter(function (id) {
+      return PTEquipo.jugadores().some(function (j) { return j.id === id; });
+    }).length;
+    $('#squad-cuenta').textContent = dentro + ' de ' + total;
+  }
+
+  function añadeJugador() {
+    var dorsal = $('#squad-dorsal'), nombre = $('#squad-nombre'), pos = $('#squad-posicion');
+    var r = PTEquipo.añade($('#squad-temporada').value, {
+      dorsal: dorsal.value, nombre: nombre.value, posicion: pos.value
+    });
+    if (!r.ok) {
+      toast(r.porque === 'tope' ? 'La plantilla ya tiene ' + PTEquipo.TOPE_JUGADORES + ' jugadores'
+          : r.porque === 'no-cabe' ? 'No cabe en el almacenamiento del navegador'
+          : 'Hace falta el nombre');
+      if (r.porque === 'sin-nombre') nombre.focus();
+      return;
+    }
+    dorsal.value = ''; nombre.value = ''; pos.value = '';
+    pintaPlantilla();
+    dorsal.focus();                                    // para seguir metiendo
+    if (r.dorsalRepetido) toast('Ojo: ya había alguien con el dorsal ' + r.jugador.dorsal);
+  }
+
+  function nuevaTemporada() {
+    var propuesta = PTEquipo.temporadaSiguiente(PTEquipo.temporadaActual());
+    ask({ title: 'Nueva temporada', input: propuesta, placeholder: '2026/27',
+          message: 'Empieza con la plantilla vacía. Las temporadas anteriores se quedan ' +
+                   'guardadas con sus jugadores y sus estadísticas.',
+          ok: 'Crear' })
+      .then(function (t) {
+        if (t === null) return;
+        if (!PTEquipo.temporadaValida(t)) { toast('El formato es 2026/27'); return; }
+        if (!PTEquipo.cambiaTemporada(t)) { toast('No se ha podido guardar'); return; }
+        pintaTemporadas(); pintaPlantilla();
+        toast('Temporada ' + t);
+      });
+  }
+
+  /* =========================================================================
+     ESTADÍSTICAS
+
+     Se calcula todo aquí, leyendo las pizarras guardadas en este navegador.
+     Ni una llamada a la red.
+     ====================================================================== */
+  var statsPeriodo = 'micro';
+
+  function abreStats() {
+    if (!window.PTEquipo) { toast('No se han podido cargar las estadísticas'); return; }
+    pintaStats();
+    $('#dlg-stats').showModal();
+  }
+
+  function pintaStats() {
+    var d = PTEquipo.estadisticas(statsPeriodo);
+    $$('#stats-periodo [data-periodo]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.periodo === statsPeriodo));
+    });
+
+    var cuando = statsPeriodo === 'micro' ? 'los últimos 7 días'
+               : statsPeriodo === 'mes' ? 'los últimos 30 días'
+               : 'la temporada ' + PTEquipo.temporadaActual();
+    var trozos = [d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios'),
+                  d.minutos + ' min'];
+    if (d.sesiones) trozos.push(d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones'));
+    if (d.sinDuracion) trozos.push(d.sinDuracion + ' sin duración');
+    $('#stats-resumen').textContent = 'En ' + cuando + ': ' + trozos.join(' · ');
+
+    // El aviso de lo que lleva mucho sin tocarse. Va sobre todo el historial,
+    // no sobre el periodo: la pregunta no cambia porque mires la semana.
+    var caja = $('#stats-olvido');
+    caja.textContent = '';
+    if (d.olvidados.length) {
+      var p = document.createElement('p');
+      p.className = 'stats-olvido';
+      p.appendChild(document.createTextNode('Llevas sin trabajar: '));
+      d.olvidados.forEach(function (o, i) {
+        if (i) p.appendChild(document.createTextNode(' · '));
+        var b = document.createElement('b');
+        b.textContent = o.nombre + ' (' + o.dias + ' días)';
+        p.appendChild(b);
+      });
+      caja.appendChild(p);
+    }
+
+    pintaBarras($('#stats-momentos'), d.momentos.map(function (m) {
+      return { nombre: m.nombre, minutos: m.minutos };
+    }), d.minutos);
+
+    pintaBarras($('#stats-jugadores'), d.jugadores.map(function (j) {
+      return { dorsal: j.dorsal, nombre: j.nombre, minutos: j.minutos,
+               sesiones: j.sesiones, deSesiones: j.deSesiones, fuera: j.fuera };
+    }), d.minutos);
+
+    $('#stats-nota').textContent = d.ejercicios
+      ? 'Todo se calcula en este dispositivo, con lo que has guardado. No sale nada a internet.'
+      : 'Guarda algún ejercicio con su duración y su momento del juego, y aquí saldrán las cuentas.';
+  }
+
+  /* Barras con div y CSS. El porcentaje se mide contra el total de minutos del
+     periodo; el ancho, contra el mayor de la lista, que es lo que se compara de
+     un vistazo. Si midiera el ancho contra el total, con diez filas todas serían
+     rayitas y no se distinguiría nada. */
+  function pintaBarras(caja, filas, totalMin) {
+    caja.textContent = '';
+    var mayor = 0;
+    filas.forEach(function (f) { if (f.minutos > mayor) mayor = f.minutos; });
+
+    filas.forEach(function (f, i) {
+      var row = document.createElement('div');
+      row.className = 'barra' + (i === 0 && f.minutos > 0 ? ' top' : '') +
+                                (f.deSesiones ? ' conses' : '');
+
+      var pista = document.createElement('div');
+      pista.className = 'barra-pista';
+      var rell = document.createElement('div');
+      rell.className = 'barra-relleno';
+      rell.style.width = (mayor > 0 ? Math.round(f.minutos / mayor * 100) : 0) + '%';
+      pista.appendChild(rell);
+      row.appendChild(pista);
+
+      if (f.dorsal !== undefined) {
+        var dor = document.createElement('span');
+        dor.className = 'barra-dorsal';
+        dor.textContent = f.dorsal || '';
+        row.appendChild(dor);
+      }
+
+      var nom = document.createElement('span');
+      nom.className = 'barra-nombre';
+      nom.textContent = f.nombre + (f.fuera ? ' (ya no está)' : '');
+      row.appendChild(nom);
+
+      if (f.deSesiones) {
+        var ses = document.createElement('span');
+        ses.className = 'barra-sesiones' +
+          (f.deSesiones && f.sesiones * 2 < f.deSesiones ? ' poco' : '');
+        ses.textContent = f.sesiones + '/' + f.deSesiones;
+        ses.title = 'Ha venido a ' + f.sesiones + ' de ' + f.deSesiones + ' entrenamientos';
+        row.appendChild(ses);
+      }
+
+      var cif = document.createElement('span');
+      cif.className = 'barra-cifra';
+      cif.textContent = f.minutos + ' min';
+      row.appendChild(cif);
+
+      var pct = document.createElement('span');
+      pct.className = 'barra-pct';
+      pct.textContent = totalMin > 0 ? Math.round(f.minutos / totalMin * 100) + '%' : '—';
+      row.appendChild(pct);
+
+      caja.appendChild(row);
+    });
   }
 
   function openLibrary() {
@@ -3940,24 +4186,138 @@
   function writeBoards(o) {
     try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
   }
+  /* Guardar la pizarra, con quién ha participado.
+
+     Los participantes vienen ya marcados de la asistencia del día: lo normal es
+     escribir el nombre del ejercicio y darle a Guardar, sin tocar nada más. La
+     lista solo se abre si hace falta cambiarla —un ejercicio de porteros, uno
+     que se lesionó a mitad—, y por eso empieza plegada detrás de un «cambiar».
+
+     Lo que se guarda va en dos ramas separadas: «doc» es la pizarra, y es lo
+     único que se sube a la biblioteca común. «meta» son los jugadores, y no
+     sale de aquí. */
+  var saveElegidos = null;          // ids marcados en el diálogo abierto
+
   function saveBoard() {
+    var dlg = $('#dlg-save');
+    if (!dlg || !window.PTEquipo) { saveBoardSimple(); return; }
+
+    var campo = $('#save-nombre');
     // El nombre que propone es el de la ficha, si la hay: es el que el
     // entrenador ya ha escrito y por el que va a buscarla después.
+    campo.value = (doc.card && doc.card.titulo || '').trim();
+
+    saveElegidos = PTEquipo.presentesHoy();
+    $('#save-part-plantilla').checked = false;
+    $('#save-part-caja').hidden = true;
+    pintaParticipantes();
+
+    // Sin plantilla montada, la sección entera sobra: no se enseña un hueco.
+    $('#save-part').hidden = PTEquipo.jugadores().length === 0;
+
+    dlg.showModal();
+    setTimeout(function () { campo.select(); }, 30);
+  }
+
+  // Si por lo que sea no está el módulo del equipo, guardar sigue funcionando.
+  function saveBoardSimple() {
     ask({ title: 'Guardar pizarra', input: (doc.card && doc.card.titulo || '').trim(),
           placeholder: 'Nombre del ejercicio', ok: 'Guardar' })
-      .then(function (name) {
-        if (name === null) return;                       // ha cancelado
-        if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
-        var all = savedBoards();
-        var nueva = !all[name];
-        all[name] = { at: Date.now(), doc: doc };
-        if (!writeBoards(all)) {
-          toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
-          return;
-        }
-        olvidaMini('mia:' + name);
-        toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
-      });
+      .then(function (name) { if (name !== null) guardaConNombre(name, null); });
+  }
+
+  function guardaConNombre(name, meta) {
+    if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return false; }
+    var all = savedBoards();
+    var nueva = !all[name];
+    var entrada = { at: Date.now(), doc: doc };
+    if (meta) entrada.meta = meta;
+    all[name] = entrada;
+    if (!writeBoards(all)) {
+      toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
+      return false;
+    }
+    olvidaMini('mia:' + name);
+    toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
+    return true;
+  }
+
+  function pintaParticipantes() {
+    var todos = $('#save-part-plantilla').checked;
+    var deHoy = PTEquipo.presentesHoy();
+    var lista = PTEquipo.jugadores().filter(function (j) {
+      return todos || deHoy.indexOf(j.id) >= 0;
+    });
+    var ul = $('#save-part-lista');
+    ul.textContent = '';
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, saveElegidos.indexOf(j.id) >= 0, function (marcado) {
+        var i = saveElegidos.indexOf(j.id);
+        if (marcado && i < 0) saveElegidos.push(j.id);
+        if (!marcado && i >= 0) saveElegidos.splice(i, 1);
+        cuentaParticipantes();
+      }));
+    });
+    cuentaParticipantes();
+  }
+
+  function cuentaParticipantes() {
+    var n = saveElegidos.length;
+    $('#save-part-cuenta').textContent =
+      n === 0 ? 'Sin jugadores apuntados'
+              : n + (n === 1 ? ' jugador' : ' jugadores') + ' en este ejercicio';
+  }
+
+  /* Una fila de jugador, la misma en «Mi equipo» y en «Guardar».
+     Se construye con el DOM, nunca con innerHTML: aquí dentro va el nombre de
+     una persona, escrito por el usuario. */
+  function filaJugador(j, marcado, alCambiar, alQuitar) {
+    var li = document.createElement('li');
+    li.className = 'squad-fila' + (marcado ? '' : ' falta');
+    li.dataset.id = j.id;
+
+    var lab = document.createElement('label');
+    lab.className = 'squad-marca';
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!marcado;
+    cb.setAttribute('aria-label', 'Ha venido ' + j.nombre);
+    cb.addEventListener('change', function () {
+      li.classList.toggle('falta', !cb.checked);
+      alCambiar(cb.checked);
+    });
+
+    var dor = document.createElement('span');
+    dor.className = 'squad-dorsal';
+    dor.textContent = j.dorsal;
+
+    var nom = document.createElement('span');
+    nom.className = 'squad-nombre';
+    nom.textContent = j.nombre;
+
+    lab.appendChild(cb); lab.appendChild(dor); lab.appendChild(nom);
+
+    if (j.posicion) {
+      var pos = document.createElement('span');
+      pos.className = 'squad-pos';
+      pos.textContent = j.posicion;
+      lab.appendChild(pos);
+    }
+    li.appendChild(lab);
+
+    if (alQuitar) {
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'tbtn squad-quita';
+      x.title = 'Quitar a ' + j.nombre;
+      x.setAttribute('aria-label', x.title);
+      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                    'stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.addEventListener('click', function () { alQuitar(j); });
+      li.appendChild(x);
+    }
+    return li;
   }
   function syncViewButtons() {
     $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === doc.view); });
@@ -4097,6 +4457,68 @@
     $('#ex-json').addEventListener('click', exportar(exportJSON));
     $('#save').addEventListener('click', saveBoard);
     $('#open').addEventListener('click', openLibrary);
+
+    // ---- Mi equipo, participantes y estadísticas ----
+    // Los mismos dos, arriba en escritorio y en el panel en el móvil, donde la
+    // barra ya no da para más botones.
+    $('#squad').addEventListener('click', abreEquipo);
+    $('#stats').addEventListener('click', abreStats);
+    $('#squad-row').addEventListener('click', function () { sheetClose(); abreEquipo(); });
+    $('#stats-row').addEventListener('click', function () { sheetClose(); abreStats(); });
+    $('#squad-add').addEventListener('click', añadeJugador);
+    $('#squad-nombre').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
+    });
+    $('#squad-dorsal').addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 2);   // solo dos cifras
+    });
+    $('#squad-nueva').addEventListener('click', nuevaTemporada);
+    $('#squad-temporada').addEventListener('change', function () {
+      PTEquipo.cambiaTemporada(this.value);
+      pintaPlantilla();
+    });
+    $('#squad-todos').addEventListener('click', function () {
+      PTEquipo.ponAsistencia(PTEquipo.jugadores().map(function (j) { return j.id; }));
+      pintaPlantilla();
+    });
+    $('#squad-ninguno').addEventListener('click', function () {
+      PTEquipo.ponAsistencia([]);
+      pintaPlantilla();
+    });
+
+    $('#save-part-cambiar').addEventListener('click', function () {
+      var caja = $('#save-part-caja');
+      caja.hidden = !caja.hidden;
+      this.textContent = caja.hidden ? 'cambiar' : 'listo';
+    });
+    $('#save-part-plantilla').addEventListener('change', pintaParticipantes);
+    $('#save-part-todos').addEventListener('click', function () {
+      var deHoy = $('#save-part-plantilla').checked
+        ? PTEquipo.jugadores().map(function (j) { return j.id; })
+        : PTEquipo.presentesHoy();
+      saveElegidos = deHoy.slice();
+      pintaParticipantes();
+    });
+    $('#save-part-ninguno').addEventListener('click', function () {
+      saveElegidos = [];
+      pintaParticipantes();
+    });
+    $('#save-ok').addEventListener('click', function () {
+      var nombre = $('#save-nombre').value.trim();
+      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
+      var meta = PTEquipo.jugadores().length ? PTEquipo.metaDeHoy(saveElegidos) : null;
+      if (guardaConNombre(nombre, meta)) $('#dlg-save').close();
+    });
+    $('#save-nombre').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('#save-ok').click(); }
+    });
+
+    $$('#stats-periodo [data-periodo]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        statsPeriodo = b.dataset.periodo;
+        pintaStats();
+      });
+    });
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

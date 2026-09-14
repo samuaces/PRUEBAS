@@ -530,6 +530,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 #cfg-cuenta-bloque{margin-top:22px;border-top:1px solid var(--line)}
 #cuenta-aviso{color:var(--brand-2)}
 
+.lib-part{margin:9px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lib-part b{color:var(--text);font-weight:600}
 .lib-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
 .lib-tags span{font-size:10.5px;line-height:1;padding:5px 9px;border-radius:100px;
   background:var(--glass-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
@@ -585,6 +588,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .middle{grid-template-columns:1fr}
   .sm-only{display:flex}
   .topbar .hide-sm{display:none}
+  /* En el móvil la barra de arriba va al límite: siete botones ya no caben y el
+     último se sale de la pantalla. Mi equipo y Estadísticas se bajan al panel,
+     donde tienen su fila con su nombre escrito y se ven mejor que como un icono
+     más apretado aquí arriba. */
+  #g-equipo{display:none}
   .topbar{gap:6px;padding-left:10px;padding-right:10px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
@@ -697,6 +705,116 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
 }
 
+/* ---------------- Mi equipo, asistencia y estadísticas ----------------
+   Todo con las variables del tema; ni un color suelto. Pensado para el dedo
+   primero: las filas miden --touch de alto y se pulsan enteras. */
+
+.squad-temp{display:flex;gap:9px;align-items:flex-end}
+.squad-temp .field{flex:1;min-width:0}
+.squad-temp .tbtn{flex:0 0 auto;height:var(--touch)}
+
+/* La cabecera de la asistencia se queda pegada arriba al bajar por una
+   plantilla de cuarenta: el recuento es lo que se está mirando. */
+.squad-hoy{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;
+  flex-wrap:wrap;margin:16px 0 9px;padding:9px 0;background:var(--panel)}
+.squad-hoy-t{margin:0;flex:1;min-width:130px;font-size:12.5px;color:var(--muted)}
+.squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums}
+.squad-hoy-btns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.squad-hoy-btns .tbtn{padding:7px 12px;font-size:12.5px}
+
+.squad-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.squad-lista:empty{display:none}
+.squad-fila{display:flex;align-items:center;gap:10px;padding:0 10px;min-height:var(--touch);
+  border:1px solid var(--line);border-radius:var(--r2);background:var(--glass);
+  box-shadow:inset 0 1px 0 var(--sheen);transition:background .16s,border-color .16s}
+.squad-fila:hover{background:var(--glass-2);border-color:var(--line-strong)}
+/* Quien no ha venido se apaga, pero sigue legible: es información, no un error. */
+.squad-fila.falta{opacity:.5}
+.squad-fila input[type=checkbox]{accent-color:var(--brand);width:19px;height:19px;flex:none;cursor:pointer}
+.squad-marca{display:flex;align-items:center;flex:1;min-width:0;gap:10px;cursor:pointer}
+.squad-dorsal{flex:0 0 28px;text-align:right;font-family:var(--ff-display);font-size:13.5px;
+  font-variant-numeric:tabular-nums;color:var(--text)}
+.squad-dorsal:empty::before{content:"—";color:var(--muted);opacity:.5}
+.squad-nombre{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap}
+.squad-quita{flex:0 0 auto;width:30px;height:30px;padding:0;display:inline-flex;
+  align-items:center;justify-content:center;opacity:.55}
+.squad-quita:hover{opacity:1}
+.squad-quita svg{width:15px;height:15px}
+
+.squad-alta{display:grid;grid-template-columns:58px 1fr;gap:7px;margin-top:14px}
+.squad-alta #squad-nombre{grid-column:2}
+.squad-alta #squad-posicion{grid-column:1 / -1}
+.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch)}
+.squad-alta input,.squad-alta select{min-height:var(--touch)}
+.squad-aviso{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);opacity:.8}
+
+/* ---- participantes dentro de Guardar ---- */
+#save-part{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.save-part-t{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--muted)}
+/* Un botón que se lee como un enlace: «cambiar» es una salida discreta, no una
+   acción que compita con Guardar. */
+.linkish{background:none;border:0;font:inherit;font-size:12.5px;
+  color:var(--brand-2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+  /* Se lee como un enlace, pero se pulsa como un botón: el alto es el del dedo,
+     no el de la palabra. */
+  display:inline-flex;align-items:center;min-height:var(--touch);padding:0 6px}
+.linkish:hover{color:var(--text)}
+#save-part-caja{margin-top:11px}
+#save-part-caja .squad-lista{margin-top:9px;max-height:38dvh;overflow:auto}
+
+/* ---- barras ----
+   div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
+   la fila se lea de un vistazo sin ocupar dos alturas. */
+.barras{display:flex;flex-direction:column;gap:5px}
+.barras:empty::before{content:"Todavía no hay nada que contar aquí.";
+  display:block;padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.barra{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:var(--r2);overflow:hidden;
+  border:1px solid var(--line);background:var(--well);
+  --cifras:112px}                    /* lo que ocupan los minutos y el tanto por ciento */
+/* Cuando la fila lleva además las sesiones (4/5), el carril acaba antes: si no,
+   según los datos, el canto de la barra caía justo encima de esas cifras. */
+.barra.conses{--cifras:152px}
+/* El relleno corre por su carril, que acaba antes de las cifras. Si llegara
+   hasta ellas, el canto de la barra partiría un número por la mitad y se
+   quedaría medio sobre un fondo y medio sobre otro: se lee fatal. */
+.barra-pista{position:absolute;inset:0 var(--cifras) 0 0;pointer-events:none}
+.barra-relleno{position:absolute;inset:0 auto 0 0;background:var(--glass-3);
+  border-right:1px solid var(--line-strong)}
+.barra.top .barra-relleno{background:color-mix(in srgb,var(--brand) 26%,transparent);
+  border-right-color:var(--brand)}
+/* El texto va por encima del relleno. El relleno queda fuera de este selector a
+   propósito: si le cae el «position:relative» deja de estar absoluto, entra en
+   la fila como un hijo más y empuja al nombre hasta hacerlo desaparecer. */
+.barra > :not(.barra-pista){position:relative}
+.barra-dorsal{flex:0 0 24px;text-align:right;font-family:var(--ff-display);font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.barra-nombre{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra-cifra{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--text)}
+.barra-pct{flex:0 0 46px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
+/* A quien le falta la mitad de los entrenamientos hay que verlo sin buscarlo. */
+.barra-sesiones{flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.barra-sesiones.poco{color:var(--brand-2)}
+
+.stats-resumen{margin:14px 0 0;font-size:13px;line-height:1.5}
+.stats-resumen b{font-variant-numeric:tabular-nums}
+.stats-olvido{margin:12px 0 0;padding:11px 13px;border-radius:var(--r2);
+  border:1px solid var(--line-strong);background:var(--glass);font-size:12.5px;line-height:1.5}
+.stats-olvido b{color:var(--brand-2)}
+
+@media (max-width:560px){
+  .squad-temp{flex-wrap:wrap}
+  .squad-temp .tbtn{width:100%}
+  .squad-pos{display:none}          /* a 320 px no cabe, y el nombre manda */
+  .barra-pct{flex-basis:40px}
+  .barra{--cifras:104px}
+  .barra.conses{--cifras:142px}
+}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
   .aside{transition:none}
@@ -742,6 +860,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
       </button>
+    </div>
+
+    <div class="group" id="g-equipo">
+      <button class="tbtn" id="squad" title="Mi equipo y la asistencia de hoy" aria-label="Mi equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg><span class="hide-sm">Equipo</span></button>
+      <button class="tbtn" id="stats" title="Estadísticas de minutos y asistencia" aria-label="Estadísticas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg><span class="hide-sm">Datos</span></button>
     </div>
 
     <div class="group">
@@ -894,6 +1017,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           <button class="row-btn" id="install" hidden>
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
             Instalar en este dispositivo
+          </button>
+          <button class="row-btn sm-only" id="squad-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="6.5" r="2.7"/><path d="M2.5 16.5a5 5 0 0 1 10 0"/><path d="M13.6 4.4a2.7 2.7 0 0 1 0 4.9"/><path d="M14.8 12a5 5 0 0 1 2.7 4.5"/></svg>
+            Mi equipo y la asistencia
+          </button>
+          <button class="row-btn sm-only" id="stats-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5h14"/><rect x="4.2" y="9" width="3" height="5" rx=".8"/><rect x="8.5" y="5" width="3" height="9" rx=".8"/><rect x="12.8" y="11" width="3" height="3" rx=".8"/></svg>
+            Estadísticas
           </button>
           <button class="row-btn" id="enlace">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 1 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 1 0 4.2 4.2l1-1"/></svg>
@@ -1221,6 +1352,102 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <div class="lib-grid" id="lib-grid"></div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<!-- ================= MI EQUIPO =================
+     La plantilla se escribe una vez por temporada; la asistencia se marca cada
+     día. Nada de esto sale del dispositivo: son nombres de menores. -->
+<dialog id="dlg-squad" aria-labelledby="dlg-squad-t">
+  <div class="dhead"><h3 id="dlg-squad-t">Mi equipo</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <div class="squad-temp">
+      <label class="field"><span>Temporada</span>
+        <select id="squad-temporada"></select></label>
+      <button type="button" class="tbtn" id="squad-nueva">Nueva temporada</button>
+    </div>
+
+    <div class="squad-hoy">
+      <p class="squad-hoy-t">Han venido hoy <b id="squad-cuenta">0 de 0</b></p>
+      <div class="squad-hoy-btns">
+        <button type="button" class="tbtn" id="squad-todos">Todos</button>
+        <button type="button" class="tbtn" id="squad-ninguno">Ninguno</button>
+      </div>
+    </div>
+
+    <ul class="squad-lista" id="squad-lista"></ul>
+
+    <div class="squad-alta">
+      <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
+             placeholder="Nº" aria-label="Dorsal">
+      <input type="text" id="squad-nombre" maxlength="40"
+             placeholder="Nombre y apellido" aria-label="Nombre del jugador">
+      <select id="squad-posicion" aria-label="Posición"></select>
+      <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
+    </div>
+    <p class="block-note" id="squad-nota"></p>
+    <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
+      a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<!-- ================= ESTADÍSTICAS =================
+     Todo se calcula aquí, leyendo las pizarras guardadas. Sin red. -->
+<dialog id="dlg-stats" aria-labelledby="dlg-stats-t">
+  <div class="dhead"><h3 id="dlg-stats-t">Estadísticas</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <div class="seg" id="stats-periodo">
+      <button type="button" data-periodo="micro" aria-pressed="true">Microciclo</button>
+      <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
+      <button type="button" data-periodo="temporada" aria-pressed="false">Temporada</button>
+    </div>
+
+    <p class="stats-resumen" id="stats-resumen"></p>
+    <div id="stats-olvido"></div>
+
+    <p class="form-group">Por momento del juego</p>
+    <div class="barras" id="stats-momentos"></div>
+
+    <p class="form-group">Por jugador</p>
+    <div class="barras" id="stats-jugadores"></div>
+    <p class="block-note" id="stats-nota"></p>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<!-- ================= GUARDAR =================
+     Antes era un cuadro de una línea. Ahora lleva debajo quién ha participado,
+     que viene marcado de la asistencia del día: si no se toca, no hay nada que
+     hacer más que darle a Guardar. -->
+<dialog id="dlg-save" aria-labelledby="dlg-save-t">
+  <div class="dhead"><h3 id="dlg-save-t">Guardar pizarra</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <label class="field wide"><span>Nombre del ejercicio</span>
+      <input type="text" id="save-nombre" maxlength="80" placeholder="Rondo de los martes"></label>
+
+    <div id="save-part">
+      <p class="save-part-t">
+        <span id="save-part-cuenta"></span>
+        <button type="button" class="linkish" id="save-part-cambiar">cambiar</button>
+      </p>
+      <div id="save-part-caja" hidden>
+        <div class="squad-hoy-btns">
+          <button type="button" class="tbtn" id="save-part-todos">Todos</button>
+          <button type="button" class="tbtn" id="save-part-ninguno">Ninguno</button>
+          <label class="check"><input type="checkbox" id="save-part-plantilla">
+            <span>Ver toda la plantilla</span></label>
+        </div>
+        <ul class="squad-lista" id="save-part-lista"></ul>
+      </div>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cancelar</button>
+    <button class="tbtn primary" id="save-ok">Guardar</button>
+  </div>
 </dialog>
 
 <dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
@@ -2028,6 +2255,521 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     limpiaDireccion: limpiaDireccion,
     comodo: COMODO,
     comprime: HAY_ZIP
+  };
+})();
+
+</script>
+<script>
+/* =============================================================================
+   Mi equipo · asistencia · estadísticas
+
+   Tres cosas que van juntas:
+
+     La PLANTILLA se escribe una vez por temporada. Dorsal, nombre y posición.
+     La ASISTENCIA se marca una vez al día, al llegar al campo.
+     Cada EJERCICIO que se guarda ese día se queda con quién estaba.
+
+   Así los nombres se escriben una sola vez en la vida y después solo se marcan
+   casillas. De ahí salen las dos preguntas que un entrenador se hace de verdad:
+   quién le está faltando, y en qué se le van los minutos a cada uno.
+
+   ---------------------------------------------------------------------------
+   PRIVACIDAD · esto es lo importante de este archivo
+
+   Son datos de menores: nombres y apellidos de críos. No salen del dispositivo.
+
+   Este módulo no habla con la red. No importa nada de nube.js ni de enlace.js,
+   y nadie le pide sus datos para subirlos. Lo que se sube a la biblioteca común
+   es el DOCUMENTO de la pizarra (doc), y los jugadores no viven ahí: viven en
+   'pt-squad', en 'pt-asistencia' y en la rama «meta» de cada pizarra guardada,
+   que es hermana de «doc» y no viaja con él.
+
+   Las fichas dibujadas en el campo siguen siendo anónimas: un dorsal y ya.
+   Nadie escribe el nombre de un chaval encima del césped.
+
+   Hay pruebas que fallan si esto se rompe (tests/equipo.test.html).
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var LLAVE_PLANTILLA  = 'pt-squad';
+  var LLAVE_ASISTENCIA = 'pt-asistencia';
+  var TOPE_JUGADORES   = 40;
+  var DIAS_AVISO       = 21;          // sin trabajar un momento del juego
+  var TOPE_DIAS        = 400;         // historial de asistencia que se conserva
+
+  var POSICIONES = ['Portero', 'Lateral derecho', 'Central', 'Lateral izquierdo',
+                    'Pivote', 'Interior', 'Mediapunta', 'Extremo derecho',
+                    'Extremo izquierdo', 'Delantero'];
+
+  /* ---- el almacén, que puede fallar y no por eso se cae la aplicación ---- */
+
+  function lee(llave, porDefecto) {
+    try {
+      var t = localStorage.getItem(llave);
+      if (!t) return porDefecto;
+      var v = JSON.parse(t);
+      return (v && typeof v === 'object') ? v : porDefecto;
+    } catch (e) { return porDefecto; }
+  }
+  function escribe(llave, valor) {
+    try { localStorage.setItem(llave, JSON.stringify(valor)); return true; }
+    catch (e) { return false; }
+  }
+
+  /* ---- temporadas -------------------------------------------------------
+
+     La temporada va de julio a junio: en septiembre de 2026 estamos en la
+     2026/27, y en marzo de 2027 seguimos en la misma. */
+
+  function temporadaDe(fecha) {
+    var d = fecha || new Date();
+    var a = d.getFullYear(), m = d.getMonth();       // 0 = enero, 6 = julio
+    var inicio = m >= 6 ? a : a - 1;
+    return inicio + '/' + String((inicio + 1) % 100).padStart(2, '0');
+  }
+  function temporadaSiguiente(t) {
+    var a = parseInt(String(t).slice(0, 4), 10);
+    if (!isFinite(a)) return temporadaDe();
+    return (a + 1) + '/' + String((a + 2) % 100).padStart(2, '0');
+  }
+  // 2026/27 → válida. Se comprueba porque el usuario puede escribirla.
+  function temporadaValida(t) { return /^\d{4}\/\d{2}$/.test(String(t || '')); }
+
+  function hoyISO(fecha) {
+    var d = fecha || new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+  }
+  function diasEntre(isoA, isoB) {
+    var a = new Date(isoA + 'T00:00:00'), b = new Date(isoB + 'T00:00:00');
+    return Math.round((b - a) / 86400000);
+  }
+
+  /* ---- la plantilla ------------------------------------------------------
+
+     { actual: '2026/27', temporadas: { '2026/27': [jugador, …] } }
+
+     Cada jugador que entra pasa por aquí, venga de donde venga: un
+     localStorage manipulado a mano no puede dejar la pantalla en blanco. */
+
+  function saneaJugador(j) {
+    if (!j || typeof j !== 'object') return null;
+    var nombre = String(j.nombre == null ? '' : j.nombre).trim().slice(0, 40);
+    if (!nombre) return null;                        // sin nombre no es nadie
+    var dorsal = String(j.dorsal == null ? '' : j.dorsal).replace(/\D/g, '').slice(0, 2);
+    var pos = POSICIONES.indexOf(String(j.posicion || '')) >= 0 ? j.posicion : '';
+    return {
+      id: /^[a-z0-9]{4,16}$/.test(String(j.id || '')) ? j.id : nuevoId(),
+      dorsal: dorsal, nombre: nombre, posicion: pos
+    };
+  }
+  function nuevoId() {
+    return (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(-10);
+  }
+
+  function plantillaEntera() {
+    var p = lee(LLAVE_PLANTILLA, null);
+    var out = { actual: temporadaDe(), temporadas: {} };
+    if (!p) return out;
+    if (temporadaValida(p.actual)) out.actual = p.actual;
+    var t = p.temporadas;
+    if (t && typeof t === 'object') {
+      Object.keys(t).forEach(function (k) {
+        if (!temporadaValida(k) || !Array.isArray(t[k])) return;
+        var vistos = {};
+        out.temporadas[k] = t[k].map(saneaJugador).filter(function (j) {
+          if (!j || vistos[j.id]) return false;      // ids repetidos, fuera
+          vistos[j.id] = true;
+          return true;
+        }).slice(0, TOPE_JUGADORES);
+      });
+    }
+    if (!out.temporadas[out.actual]) out.temporadas[out.actual] = [];
+    return out;
+  }
+
+  /* El orden es siempre el mismo, y esto importa más de lo que parece: una
+     lista que baila entre aperturas se lee fatal. Por dorsal de menor a mayor;
+     los que no tienen dorsal, al final y por nombre. */
+  function ordena(lista) {
+    return lista.slice().sort(function (a, b) {
+      var da = a.dorsal === '' ? null : Number(a.dorsal);
+      var db = b.dorsal === '' ? null : Number(b.dorsal);
+      if (da === null && db === null) return a.nombre.localeCompare(b.nombre, 'es');
+      if (da === null) return 1;
+      if (db === null) return -1;
+      if (da !== db) return da - db;
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+  }
+
+  function temporadas() {
+    var p = plantillaEntera();
+    var ks = Object.keys(p.temporadas);
+    if (ks.indexOf(p.actual) < 0) ks.push(p.actual);
+    return ks.sort().reverse();                      // la más reciente arriba
+  }
+  function temporadaActual() { return plantillaEntera().actual; }
+
+  function jugadores(temp) {
+    var p = plantillaEntera();
+    return ordena(p.temporadas[temp || p.actual] || []);
+  }
+
+  function guardaPlantilla(temp, lista) {
+    var p = plantillaEntera();
+    var vistos = {};
+    p.temporadas[temp] = lista.map(saneaJugador).filter(function (j) {
+      if (!j || vistos[j.id]) return false;
+      vistos[j.id] = true;
+      return true;
+    }).slice(0, TOPE_JUGADORES);
+    return escribe(LLAVE_PLANTILLA, p);
+  }
+
+  function añade(temp, datos) {
+    var lista = jugadores(temp);
+    if (lista.length >= TOPE_JUGADORES) return { ok: false, porque: 'tope' };
+    var j = saneaJugador({ dorsal: datos.dorsal, nombre: datos.nombre, posicion: datos.posicion });
+    if (!j) return { ok: false, porque: 'sin-nombre' };
+    // Dos jugadores con el mismo dorsal se confunden en la pizarra y en las
+    // cuentas. Se avisa, pero decide el entrenador: en pretemporada pasa.
+    var choca = j.dorsal && lista.some(function (o) { return o.dorsal === j.dorsal; });
+    lista.push(j);
+    if (!guardaPlantilla(temp, lista)) return { ok: false, porque: 'no-cabe' };
+    return { ok: true, jugador: j, dorsalRepetido: !!choca };
+  }
+
+  function quita(temp, id) {
+    var lista = jugadores(temp).filter(function (j) { return j.id !== id; });
+    return guardaPlantilla(temp, lista);
+  }
+
+  function cambiaTemporada(temp) {
+    if (!temporadaValida(temp)) return false;
+    var p = plantillaEntera();
+    p.actual = temp;
+    if (!p.temporadas[temp]) p.temporadas[temp] = [];
+    return escribe(LLAVE_PLANTILLA, p);
+  }
+
+  /* ---- la asistencia -----------------------------------------------------
+
+     Una ficha por día:
+       { '2026-09-14': { temporada: '2026/27', presentes: ['j1','j2'] } }
+
+     Se guarda quién ESTÁ, no quién falta, porque el historial tiene que poder
+     leerse dentro de seis meses aunque la plantilla haya cambiado: si guardara
+     ausencias, un jugador dado de baja en enero apareceria como presente en
+     todos los entrenamientos de septiembre.
+
+     Pero el día en curso empieza con todos dentro, que es lo normal: se marca
+     al que falta, no al que viene. */
+
+  function asistenciaEntera() {
+    var a = lee(LLAVE_ASISTENCIA, {});
+    var out = {};
+    Object.keys(a).forEach(function (f) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return;
+      var d = a[f];
+      if (!d || !Array.isArray(d.presentes)) return;
+      out[f] = {
+        temporada: temporadaValida(d.temporada) ? d.temporada : temporadaDe(new Date(f + 'T12:00:00')),
+        presentes: d.presentes.filter(function (x) { return typeof x === 'string'; })
+      };
+    });
+    return out;
+  }
+
+  // Quién está hoy. Si el día todavía no tiene ficha, están todos.
+  function presentesHoy(fecha) {
+    var f = hoyISO(fecha), a = asistenciaEntera();
+    if (a[f]) return a[f].presentes.slice();
+    return jugadores().map(function (j) { return j.id; });
+  }
+
+  function marcaAsistencia(id, viene, fecha) {
+    var f = hoyISO(fecha);
+    var a = asistenciaEntera();
+    var dentro = a[f] ? a[f].presentes.slice() : jugadores().map(function (j) { return j.id; });
+    var i = dentro.indexOf(id);
+    if (viene && i < 0) dentro.push(id);
+    if (!viene && i >= 0) dentro.splice(i, 1);
+    a[f] = { temporada: temporadaActual(), presentes: dentro };
+    podaAsistencia(a);
+    return escribe(LLAVE_ASISTENCIA, a);
+  }
+
+  function ponAsistencia(ids, fecha) {
+    var a = asistenciaEntera();
+    a[hoyISO(fecha)] = { temporada: temporadaActual(), presentes: ids.slice() };
+    podaAsistencia(a);
+    return escribe(LLAVE_ASISTENCIA, a);
+  }
+
+  // El historial no crece para siempre: más de un año atrás no le sirve a nadie.
+  function podaAsistencia(a) {
+    var fs = Object.keys(a).sort();
+    while (fs.length > TOPE_DIAS) delete a[fs.shift()];
+  }
+
+  /* ---- duración de un ejercicio -----------------------------------------
+
+     El campo es texto libre y la gente escribe de todo. Se mira por orden, de
+     lo más seguro a lo más dudoso:
+
+       «4 × 3 min»            cuatro series de tres  →  12
+       «3 series de 5 min»    lo mismo dicho con letras  →  15
+       «20 min de 3 toques»   el número pegado a «min»  →  20
+       «12»                   el primero que haya  →  12
+
+     El tercer paso es el que evita el error tonto: quedarse con el primer
+     número daría 3 en «20 min de 3 toques», y el que va pegado a «min» es
+     siempre el bueno. Y las palabras del segundo paso son una lista cerrada a
+     propósito: en cuanto se abre a cualquier texto entre dos números, empieza a
+     multiplicar cosas que no son series. */
+
+  var CUENTAN = 'series|bloques|rondas|repeticiones|reps|veces|estaciones';
+
+  function minutosDe(texto) {
+    var t = String(texto == null ? '' : texto).replace(',', '.');
+
+    var porSigno = /(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/i.exec(t);
+    if (porSigno) return positivo(Number(porSigno[1]) * Number(porSigno[2]));
+
+    var conLetras = new RegExp('(\\d+(?:\\.\\d+)?)\\s*(?:' + CUENTAN +
+                               ')\\s+de\\s+(\\d+(?:\\.\\d+)?)', 'i').exec(t);
+    if (conLetras) return positivo(Number(conLetras[1]) * Number(conLetras[2]));
+
+    var pegado = /(\d+(?:\.\d+)?)\s*(?:min|minutos|m\b|')/i.exec(t);
+    if (pegado) return positivo(Number(pegado[1]));
+
+    var uno = /(\d+(?:\.\d+)?)/.exec(t);
+    return uno ? positivo(Number(uno[1])) : null;
+  }
+  // «0 min» no es una duración de cero: es que no se apuntó.
+  function positivo(n) { var v = Math.round(n); return v > 0 ? v : null; }
+
+  /* ---- estadísticas ------------------------------------------------------
+
+     Todo sale de 'pt-boards', en local. Ni una llamada a la red.
+
+     Cada pizarra guardada es:
+       { at: 1757…, doc: {…}, meta: { season, participants: [{id,nombre,dorsal}] } }
+
+     «meta» es lo que añade esta función al guardar. Las pizarras guardadas
+     antes de que existiera esto no lo tienen, y no pasa nada: cuentan para los
+     minutos por momento del juego y no cuentan para nadie en concreto. */
+
+  function pizarrasGuardadas() {
+    var todo = lee('pt-boards', {});
+    var out = [];
+    Object.keys(todo).forEach(function (nombre) {
+      var e = todo[nombre];
+      if (!e || typeof e !== 'object' || !e.doc) return;
+      var card = e.doc.card || {};
+      var meta = (e.meta && typeof e.meta === 'object') ? e.meta : {};
+      out.push({
+        nombre: nombre,
+        at: typeof e.at === 'number' ? e.at : 0,
+        fecha: hoyISO(new Date(typeof e.at === 'number' ? e.at : 0)),
+        momento: String(card.momento || '').trim(),
+        minutos: minutosDe(card.duracion),
+        temporada: temporadaValida(meta.season) ? meta.season : null,
+        participantes: Array.isArray(meta.participants) ? meta.participants : []
+      });
+    });
+    return out;
+  }
+
+  /* El periodo: 'micro' son 7 días, 'mes' 30, y 'temporada' es la temporada
+     actual entera. Los dos primeros mandan por fecha; el tercero, por la
+     temporada con la que se guardó. */
+  function delPeriodo(lista, periodo, ahora) {
+    var t = ahora == null ? Date.now() : ahora;
+    if (periodo === 'temporada') {
+      var actual = temporadaActual();
+      return lista.filter(function (e) { return e.temporada === actual; });
+    }
+    var dias = periodo === 'mes' ? 30 : 7;
+    var desde = t - dias * 86400000;
+    return lista.filter(function (e) { return e.at >= desde; });
+  }
+
+  // Con los mismos minutos, por orden alfabético: así la lista no baila.
+  function porMinutos(a, b) {
+    if (b.minutos !== a.minutos) return b.minutos - a.minutos;
+    return String(a.nombre).localeCompare(String(b.nombre), 'es');
+  }
+
+  function estadisticas(periodo, ahora) {
+    var todas = pizarrasGuardadas();
+    var dentro = delPeriodo(todas, periodo, ahora);
+
+    var total = 0, sinDuracion = 0;
+    var porMomento = {}, porJugador = {};
+
+    dentro.forEach(function (e) {
+      var min = e.minutos;
+      if (min == null) sinDuracion++; else total += min;
+
+      // Un ejercicio sin momento del juego no cuenta para el reparto: meterlo
+      // en un cajón «(sin clasificar)» ensucia las barras y no dice nada.
+      if (e.momento) {
+        if (!porMomento[e.momento]) porMomento[e.momento] = 0;
+        porMomento[e.momento] += min || 0;
+      }
+
+      e.participantes.forEach(function (p) {
+        if (!p || !p.id) return;
+        if (!porJugador[p.id]) {
+          porJugador[p.id] = { id: p.id, nombre: p.nombre || '', dorsal: p.dorsal || '',
+                               minutos: 0, ejercicios: 0, momentos: {} };
+        }
+        var j = porJugador[p.id];
+        j.minutos += min || 0;
+        j.ejercicios++;
+        if (e.momento) {
+          if (!j.momentos[e.momento]) j.momentos[e.momento] = 0;
+          j.momentos[e.momento] += min || 0;
+        }
+      });
+    });
+
+    // Sesiones: días con asistencia dentro del periodo.
+    var sesiones = sesionesDelPeriodo(periodo, ahora);
+    var cuantasSesiones = sesiones.length;
+    var vino = {};
+    sesiones.forEach(function (s) {
+      s.presentes.forEach(function (id) { vino[id] = (vino[id] || 0) + 1; });
+    });
+
+    // La lista final es la plantilla de la temporada, más cualquiera que
+    // aparezca en los datos y ya no esté en ella (uno que se fue en enero
+    // sigue habiendo entrenado en septiembre y tiene que salir).
+    var lista = [], puesto = {};
+    jugadores().forEach(function (j) {
+      var d = porJugador[j.id] || { minutos: 0, ejercicios: 0, momentos: {} };
+      puesto[j.id] = true;
+      lista.push({ id: j.id, nombre: j.nombre, dorsal: j.dorsal,
+                   minutos: d.minutos, ejercicios: d.ejercicios, momentos: d.momentos,
+                   sesiones: vino[j.id] || 0, deSesiones: cuantasSesiones });
+    });
+    Object.keys(porJugador).forEach(function (id) {
+      if (puesto[id]) return;
+      var d = porJugador[id];
+      lista.push({ id: id, nombre: d.nombre, dorsal: d.dorsal, minutos: d.minutos,
+                   ejercicios: d.ejercicios, momentos: d.momentos,
+                   sesiones: vino[id] || 0, deSesiones: cuantasSesiones, fuera: true });
+    });
+    lista.sort(porMinutos);
+
+    var momentos = Object.keys(porMomento).map(function (m) {
+      return { nombre: m, minutos: porMomento[m] };
+    }).sort(porMinutos);
+
+    return {
+      periodo: periodo,
+      ejercicios: dentro.length,
+      minutos: total,
+      sinDuracion: sinDuracion,
+      sesiones: cuantasSesiones,
+      momentos: momentos,
+      jugadores: lista,
+      olvidados: olvidados(todas, ahora)
+    };
+  }
+
+  function sesionesDelPeriodo(periodo, ahora) {
+    var a = asistenciaEntera(), out = [];
+    var t = ahora == null ? Date.now() : ahora;
+    var hoy = hoyISO(new Date(t));
+    var actual = temporadaActual();
+    Object.keys(a).forEach(function (f) {
+      var d = a[f];
+      if (periodo === 'temporada') {
+        if (d.temporada !== actual) return;
+      } else {
+        var dias = periodo === 'mes' ? 30 : 7;
+        var pasados = diasEntre(f, hoy);
+        if (pasados < 0 || pasados >= dias) return;
+      }
+      out.push({ fecha: f, temporada: d.temporada, presentes: d.presentes });
+    });
+    return out.sort(function (x, y) { return x.fecha < y.fecha ? 1 : -1; });
+  }
+
+  /* Los momentos del juego que llevan mucho sin tocarse.
+
+     Se calcula sobre TODO el historial, no sobre el periodo que se esté
+     mirando: la pregunta es «¿cuánto hace que no trabajo el balón parado?», y
+     esa respuesta no cambia porque estés mirando la semana o el mes.
+
+     Y solo para lo que se ha trabajado alguna vez. Avisar de que llevas 21 días
+     sin entrenar algo que no has entrenado nunca no es un aviso, es ruido.
+
+     Un ejercicio sin duración también cuenta como trabajado: lo hiciste, aunque
+     no apuntaras cuánto duró. */
+  function olvidados(todas, ahora) {
+    var ultima = {};
+    todas.forEach(function (e) {
+      if (!e.momento || !e.at) return;
+      if (!ultima[e.momento] || e.at > ultima[e.momento]) ultima[e.momento] = e.at;
+    });
+    var hoy = hoyISO(new Date(ahora == null ? Date.now() : ahora));
+    return Object.keys(ultima).map(function (m) {
+      return { nombre: m, dias: diasEntre(hoyISO(new Date(ultima[m])), hoy) };
+    }).filter(function (x) {
+      return x.dias >= DIAS_AVISO;
+    }).sort(function (a, b) {
+      if (b.dias !== a.dias) return b.dias - a.dias;
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+  }
+
+  /* ---- lo que se engancha a cada pizarra al guardarla -------------------- */
+
+  function metaDeHoy(ids) {
+    var dentro = ids || presentesHoy();
+    var porId = {};
+    jugadores().forEach(function (j) { porId[j.id] = j; });
+    return {
+      season: temporadaActual(),
+      participants: dentro.map(function (id) {
+        var j = porId[id];
+        return j ? { id: j.id, nombre: j.nombre, dorsal: j.dorsal } : null;
+      }).filter(Boolean)
+    };
+  }
+
+  window.PTEquipo = {
+    POSICIONES: POSICIONES,
+    TOPE_JUGADORES: TOPE_JUGADORES,
+    DIAS_AVISO: DIAS_AVISO,
+
+    temporadaDe: temporadaDe,
+    temporadaSiguiente: temporadaSiguiente,
+    temporadaValida: temporadaValida,
+    temporadaActual: temporadaActual,
+    temporadas: temporadas,
+    cambiaTemporada: cambiaTemporada,
+
+    jugadores: jugadores,
+    añade: añade,
+    quita: quita,
+
+    hoyISO: hoyISO,
+    presentesHoy: presentesHoy,
+    marcaAsistencia: marcaAsistencia,
+    ponAsistencia: ponAsistencia,
+    asistenciaEntera: asistenciaEntera,
+    sesionesDelPeriodo: sesionesDelPeriodo,
+
+    minutosDe: minutosDe,
+    estadisticas: estadisticas,
+    metaDeHoy: metaDeHoy
   };
 })();
 
@@ -9224,7 +9966,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         var d = mias[n].doc || {};
         items.push({ id: 'mia:' + n, origen: 'mia', fuente: 'local', nombre: n, guardada: n,
                      pitch: d.pitch || 'f11', card: d.card || emptyCard(),
-                     doc: d, at: mias[n].at });
+                     doc: d, at: mias[n].at,
+                     // Quién participó. Va aparte del documento a propósito: al
+                     // compartir se sube «doc», y los nombres no están ahí.
+                     meta: mias[n].meta || null });
       });
     return items.concat(nubeMios);
   }
@@ -9387,6 +10132,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           (c.objetivo ? '<small>' + esc(c.objetivo) + '</small>' : '') +
           (etiquetas ? '<div class="lib-tags">' + etiquetas + '</div>' : '') +
         '</div>';
+
+      /* Quién participó, si es una pizarra tuya y quedó apuntado. Se añade por
+         el DOM y no con innerHTML: son nombres de personas. */
+      var quienes = it.meta && Array.isArray(it.meta.participants) ? it.meta.participants : null;
+      if (quienes && quienes.length) {
+        var linea = document.createElement('p');
+        linea.className = 'lib-part';
+        var cuantos = document.createElement('b');
+        cuantos.textContent = quienes.length + (quienes.length === 1 ? ' jugador' : ' jugadores');
+        linea.appendChild(cuantos);
+        linea.appendChild(document.createTextNode(' · ' +
+          quienes.slice(0, 4).map(function (p) { return p.nombre; }).join(', ') +
+          (quienes.length > 4 ? ' y ' + (quienes.length - 4) + ' más' : '')));
+        $('.lib-txt', art).appendChild(linea);
+      }
 
       var pie = document.createElement('div');
       pie.className = 'lib-pie';
@@ -9568,6 +10328,234 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
     $('#dlg-lib').close();
     toast('«' + (it.nombre || 'Ejercicio') + '» abierto');
+  }
+
+  /* =========================================================================
+     MI EQUIPO · la plantilla y quién ha venido hoy
+
+     La plantilla se escribe una vez por temporada. La asistencia se marca al
+     llegar al campo, una vez, y de ahí sale sola en cada ejercicio que se
+     guarde ese día. Nadie tiene que volver a escribir un nombre.
+     ====================================================================== */
+  function abreEquipo() {
+    if (!window.PTEquipo) { toast('No se ha podido cargar Mi equipo'); return; }
+    pintaPosiciones();
+    pintaTemporadas();
+    pintaPlantilla();
+    $('#dlg-squad').showModal();
+  }
+
+  function pintaPosiciones() {
+    var sel = $('#squad-posicion');
+    if (sel.options.length) return;                    // solo la primera vez
+    var vacia = document.createElement('option');
+    vacia.value = ''; vacia.textContent = 'Posición…';
+    sel.appendChild(vacia);
+    PTEquipo.POSICIONES.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      sel.appendChild(o);
+    });
+  }
+
+  function pintaTemporadas() {
+    var sel = $('#squad-temporada'), actual = PTEquipo.temporadaActual();
+    sel.textContent = '';
+    PTEquipo.temporadas().forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      if (t === actual) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  function pintaPlantilla() {
+    var lista = PTEquipo.jugadores();
+    var deHoy = PTEquipo.presentesHoy();
+    var ul = $('#squad-lista');
+    ul.textContent = '';
+
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, deHoy.indexOf(j.id) >= 0, function (marcado) {
+        PTEquipo.marcaAsistencia(j.id, marcado);
+        cuentaEquipo();
+      }, function (quien) {
+        ask({ title: 'Quitar a ' + quien.nombre,
+              message: 'Sale de la plantilla de esta temporada. Lo que ya haya entrenado se ' +
+                       'queda en las estadísticas: no se borra nada del historial.',
+              ok: 'Quitar', danger: true })
+          .then(function (si) {
+            if (!si) return;
+            PTEquipo.quita($('#squad-temporada').value, quien.id);
+            pintaPlantilla();
+          });
+      }));
+    });
+
+    var nota = $('#squad-nota');
+    nota.textContent = lista.length
+      ? lista.length + ' de ' + PTEquipo.TOPE_JUGADORES + ' jugadores'
+      : 'Añade a tus jugadores una vez y ya no vuelves a escribir un nombre: en cada ' +
+        'entrenamiento solo marcas quién ha venido.';
+    cuentaEquipo();
+  }
+
+  function cuentaEquipo() {
+    var total = PTEquipo.jugadores().length;
+    var dentro = PTEquipo.presentesHoy().filter(function (id) {
+      return PTEquipo.jugadores().some(function (j) { return j.id === id; });
+    }).length;
+    $('#squad-cuenta').textContent = dentro + ' de ' + total;
+  }
+
+  function añadeJugador() {
+    var dorsal = $('#squad-dorsal'), nombre = $('#squad-nombre'), pos = $('#squad-posicion');
+    var r = PTEquipo.añade($('#squad-temporada').value, {
+      dorsal: dorsal.value, nombre: nombre.value, posicion: pos.value
+    });
+    if (!r.ok) {
+      toast(r.porque === 'tope' ? 'La plantilla ya tiene ' + PTEquipo.TOPE_JUGADORES + ' jugadores'
+          : r.porque === 'no-cabe' ? 'No cabe en el almacenamiento del navegador'
+          : 'Hace falta el nombre');
+      if (r.porque === 'sin-nombre') nombre.focus();
+      return;
+    }
+    dorsal.value = ''; nombre.value = ''; pos.value = '';
+    pintaPlantilla();
+    dorsal.focus();                                    // para seguir metiendo
+    if (r.dorsalRepetido) toast('Ojo: ya había alguien con el dorsal ' + r.jugador.dorsal);
+  }
+
+  function nuevaTemporada() {
+    var propuesta = PTEquipo.temporadaSiguiente(PTEquipo.temporadaActual());
+    ask({ title: 'Nueva temporada', input: propuesta, placeholder: '2026/27',
+          message: 'Empieza con la plantilla vacía. Las temporadas anteriores se quedan ' +
+                   'guardadas con sus jugadores y sus estadísticas.',
+          ok: 'Crear' })
+      .then(function (t) {
+        if (t === null) return;
+        if (!PTEquipo.temporadaValida(t)) { toast('El formato es 2026/27'); return; }
+        if (!PTEquipo.cambiaTemporada(t)) { toast('No se ha podido guardar'); return; }
+        pintaTemporadas(); pintaPlantilla();
+        toast('Temporada ' + t);
+      });
+  }
+
+  /* =========================================================================
+     ESTADÍSTICAS
+
+     Se calcula todo aquí, leyendo las pizarras guardadas en este navegador.
+     Ni una llamada a la red.
+     ====================================================================== */
+  var statsPeriodo = 'micro';
+
+  function abreStats() {
+    if (!window.PTEquipo) { toast('No se han podido cargar las estadísticas'); return; }
+    pintaStats();
+    $('#dlg-stats').showModal();
+  }
+
+  function pintaStats() {
+    var d = PTEquipo.estadisticas(statsPeriodo);
+    $$('#stats-periodo [data-periodo]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.periodo === statsPeriodo));
+    });
+
+    var cuando = statsPeriodo === 'micro' ? 'los últimos 7 días'
+               : statsPeriodo === 'mes' ? 'los últimos 30 días'
+               : 'la temporada ' + PTEquipo.temporadaActual();
+    var trozos = [d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios'),
+                  d.minutos + ' min'];
+    if (d.sesiones) trozos.push(d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones'));
+    if (d.sinDuracion) trozos.push(d.sinDuracion + ' sin duración');
+    $('#stats-resumen').textContent = 'En ' + cuando + ': ' + trozos.join(' · ');
+
+    // El aviso de lo que lleva mucho sin tocarse. Va sobre todo el historial,
+    // no sobre el periodo: la pregunta no cambia porque mires la semana.
+    var caja = $('#stats-olvido');
+    caja.textContent = '';
+    if (d.olvidados.length) {
+      var p = document.createElement('p');
+      p.className = 'stats-olvido';
+      p.appendChild(document.createTextNode('Llevas sin trabajar: '));
+      d.olvidados.forEach(function (o, i) {
+        if (i) p.appendChild(document.createTextNode(' · '));
+        var b = document.createElement('b');
+        b.textContent = o.nombre + ' (' + o.dias + ' días)';
+        p.appendChild(b);
+      });
+      caja.appendChild(p);
+    }
+
+    pintaBarras($('#stats-momentos'), d.momentos.map(function (m) {
+      return { nombre: m.nombre, minutos: m.minutos };
+    }), d.minutos);
+
+    pintaBarras($('#stats-jugadores'), d.jugadores.map(function (j) {
+      return { dorsal: j.dorsal, nombre: j.nombre, minutos: j.minutos,
+               sesiones: j.sesiones, deSesiones: j.deSesiones, fuera: j.fuera };
+    }), d.minutos);
+
+    $('#stats-nota').textContent = d.ejercicios
+      ? 'Todo se calcula en este dispositivo, con lo que has guardado. No sale nada a internet.'
+      : 'Guarda algún ejercicio con su duración y su momento del juego, y aquí saldrán las cuentas.';
+  }
+
+  /* Barras con div y CSS. El porcentaje se mide contra el total de minutos del
+     periodo; el ancho, contra el mayor de la lista, que es lo que se compara de
+     un vistazo. Si midiera el ancho contra el total, con diez filas todas serían
+     rayitas y no se distinguiría nada. */
+  function pintaBarras(caja, filas, totalMin) {
+    caja.textContent = '';
+    var mayor = 0;
+    filas.forEach(function (f) { if (f.minutos > mayor) mayor = f.minutos; });
+
+    filas.forEach(function (f, i) {
+      var row = document.createElement('div');
+      row.className = 'barra' + (i === 0 && f.minutos > 0 ? ' top' : '') +
+                                (f.deSesiones ? ' conses' : '');
+
+      var pista = document.createElement('div');
+      pista.className = 'barra-pista';
+      var rell = document.createElement('div');
+      rell.className = 'barra-relleno';
+      rell.style.width = (mayor > 0 ? Math.round(f.minutos / mayor * 100) : 0) + '%';
+      pista.appendChild(rell);
+      row.appendChild(pista);
+
+      if (f.dorsal !== undefined) {
+        var dor = document.createElement('span');
+        dor.className = 'barra-dorsal';
+        dor.textContent = f.dorsal || '';
+        row.appendChild(dor);
+      }
+
+      var nom = document.createElement('span');
+      nom.className = 'barra-nombre';
+      nom.textContent = f.nombre + (f.fuera ? ' (ya no está)' : '');
+      row.appendChild(nom);
+
+      if (f.deSesiones) {
+        var ses = document.createElement('span');
+        ses.className = 'barra-sesiones' +
+          (f.deSesiones && f.sesiones * 2 < f.deSesiones ? ' poco' : '');
+        ses.textContent = f.sesiones + '/' + f.deSesiones;
+        ses.title = 'Ha venido a ' + f.sesiones + ' de ' + f.deSesiones + ' entrenamientos';
+        row.appendChild(ses);
+      }
+
+      var cif = document.createElement('span');
+      cif.className = 'barra-cifra';
+      cif.textContent = f.minutos + ' min';
+      row.appendChild(cif);
+
+      var pct = document.createElement('span');
+      pct.className = 'barra-pct';
+      pct.textContent = totalMin > 0 ? Math.round(f.minutos / totalMin * 100) + '%' : '—';
+      row.appendChild(pct);
+
+      caja.appendChild(row);
+    });
   }
 
   function openLibrary() {
@@ -10314,24 +11302,138 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function writeBoards(o) {
     try { localStorage.setItem('pt-boards', JSON.stringify(o)); return true; } catch (e) { return false; }
   }
+  /* Guardar la pizarra, con quién ha participado.
+
+     Los participantes vienen ya marcados de la asistencia del día: lo normal es
+     escribir el nombre del ejercicio y darle a Guardar, sin tocar nada más. La
+     lista solo se abre si hace falta cambiarla —un ejercicio de porteros, uno
+     que se lesionó a mitad—, y por eso empieza plegada detrás de un «cambiar».
+
+     Lo que se guarda va en dos ramas separadas: «doc» es la pizarra, y es lo
+     único que se sube a la biblioteca común. «meta» son los jugadores, y no
+     sale de aquí. */
+  var saveElegidos = null;          // ids marcados en el diálogo abierto
+
   function saveBoard() {
+    var dlg = $('#dlg-save');
+    if (!dlg || !window.PTEquipo) { saveBoardSimple(); return; }
+
+    var campo = $('#save-nombre');
     // El nombre que propone es el de la ficha, si la hay: es el que el
     // entrenador ya ha escrito y por el que va a buscarla después.
+    campo.value = (doc.card && doc.card.titulo || '').trim();
+
+    saveElegidos = PTEquipo.presentesHoy();
+    $('#save-part-plantilla').checked = false;
+    $('#save-part-caja').hidden = true;
+    pintaParticipantes();
+
+    // Sin plantilla montada, la sección entera sobra: no se enseña un hueco.
+    $('#save-part').hidden = PTEquipo.jugadores().length === 0;
+
+    dlg.showModal();
+    setTimeout(function () { campo.select(); }, 30);
+  }
+
+  // Si por lo que sea no está el módulo del equipo, guardar sigue funcionando.
+  function saveBoardSimple() {
     ask({ title: 'Guardar pizarra', input: (doc.card && doc.card.titulo || '').trim(),
           placeholder: 'Nombre del ejercicio', ok: 'Guardar' })
-      .then(function (name) {
-        if (name === null) return;                       // ha cancelado
-        if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
-        var all = savedBoards();
-        var nueva = !all[name];
-        all[name] = { at: Date.now(), doc: doc };
-        if (!writeBoards(all)) {
-          toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
-          return;
-        }
-        olvidaMini('mia:' + name);
-        toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
-      });
+      .then(function (name) { if (name !== null) guardaConNombre(name, null); });
+  }
+
+  function guardaConNombre(name, meta) {
+    if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return false; }
+    var all = savedBoards();
+    var nueva = !all[name];
+    var entrada = { at: Date.now(), doc: doc };
+    if (meta) entrada.meta = meta;
+    all[name] = entrada;
+    if (!writeBoards(all)) {
+      toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
+      return false;
+    }
+    olvidaMini('mia:' + name);
+    toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
+    return true;
+  }
+
+  function pintaParticipantes() {
+    var todos = $('#save-part-plantilla').checked;
+    var deHoy = PTEquipo.presentesHoy();
+    var lista = PTEquipo.jugadores().filter(function (j) {
+      return todos || deHoy.indexOf(j.id) >= 0;
+    });
+    var ul = $('#save-part-lista');
+    ul.textContent = '';
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, saveElegidos.indexOf(j.id) >= 0, function (marcado) {
+        var i = saveElegidos.indexOf(j.id);
+        if (marcado && i < 0) saveElegidos.push(j.id);
+        if (!marcado && i >= 0) saveElegidos.splice(i, 1);
+        cuentaParticipantes();
+      }));
+    });
+    cuentaParticipantes();
+  }
+
+  function cuentaParticipantes() {
+    var n = saveElegidos.length;
+    $('#save-part-cuenta').textContent =
+      n === 0 ? 'Sin jugadores apuntados'
+              : n + (n === 1 ? ' jugador' : ' jugadores') + ' en este ejercicio';
+  }
+
+  /* Una fila de jugador, la misma en «Mi equipo» y en «Guardar».
+     Se construye con el DOM, nunca con innerHTML: aquí dentro va el nombre de
+     una persona, escrito por el usuario. */
+  function filaJugador(j, marcado, alCambiar, alQuitar) {
+    var li = document.createElement('li');
+    li.className = 'squad-fila' + (marcado ? '' : ' falta');
+    li.dataset.id = j.id;
+
+    var lab = document.createElement('label');
+    lab.className = 'squad-marca';
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!marcado;
+    cb.setAttribute('aria-label', 'Ha venido ' + j.nombre);
+    cb.addEventListener('change', function () {
+      li.classList.toggle('falta', !cb.checked);
+      alCambiar(cb.checked);
+    });
+
+    var dor = document.createElement('span');
+    dor.className = 'squad-dorsal';
+    dor.textContent = j.dorsal;
+
+    var nom = document.createElement('span');
+    nom.className = 'squad-nombre';
+    nom.textContent = j.nombre;
+
+    lab.appendChild(cb); lab.appendChild(dor); lab.appendChild(nom);
+
+    if (j.posicion) {
+      var pos = document.createElement('span');
+      pos.className = 'squad-pos';
+      pos.textContent = j.posicion;
+      lab.appendChild(pos);
+    }
+    li.appendChild(lab);
+
+    if (alQuitar) {
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'tbtn squad-quita';
+      x.title = 'Quitar a ' + j.nombre;
+      x.setAttribute('aria-label', x.title);
+      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                    'stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.addEventListener('click', function () { alQuitar(j); });
+      li.appendChild(x);
+    }
+    return li;
   }
   function syncViewButtons() {
     $$('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === doc.view); });
@@ -10471,6 +11573,68 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#ex-json').addEventListener('click', exportar(exportJSON));
     $('#save').addEventListener('click', saveBoard);
     $('#open').addEventListener('click', openLibrary);
+
+    // ---- Mi equipo, participantes y estadísticas ----
+    // Los mismos dos, arriba en escritorio y en el panel en el móvil, donde la
+    // barra ya no da para más botones.
+    $('#squad').addEventListener('click', abreEquipo);
+    $('#stats').addEventListener('click', abreStats);
+    $('#squad-row').addEventListener('click', function () { sheetClose(); abreEquipo(); });
+    $('#stats-row').addEventListener('click', function () { sheetClose(); abreStats(); });
+    $('#squad-add').addEventListener('click', añadeJugador);
+    $('#squad-nombre').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
+    });
+    $('#squad-dorsal').addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 2);   // solo dos cifras
+    });
+    $('#squad-nueva').addEventListener('click', nuevaTemporada);
+    $('#squad-temporada').addEventListener('change', function () {
+      PTEquipo.cambiaTemporada(this.value);
+      pintaPlantilla();
+    });
+    $('#squad-todos').addEventListener('click', function () {
+      PTEquipo.ponAsistencia(PTEquipo.jugadores().map(function (j) { return j.id; }));
+      pintaPlantilla();
+    });
+    $('#squad-ninguno').addEventListener('click', function () {
+      PTEquipo.ponAsistencia([]);
+      pintaPlantilla();
+    });
+
+    $('#save-part-cambiar').addEventListener('click', function () {
+      var caja = $('#save-part-caja');
+      caja.hidden = !caja.hidden;
+      this.textContent = caja.hidden ? 'cambiar' : 'listo';
+    });
+    $('#save-part-plantilla').addEventListener('change', pintaParticipantes);
+    $('#save-part-todos').addEventListener('click', function () {
+      var deHoy = $('#save-part-plantilla').checked
+        ? PTEquipo.jugadores().map(function (j) { return j.id; })
+        : PTEquipo.presentesHoy();
+      saveElegidos = deHoy.slice();
+      pintaParticipantes();
+    });
+    $('#save-part-ninguno').addEventListener('click', function () {
+      saveElegidos = [];
+      pintaParticipantes();
+    });
+    $('#save-ok').addEventListener('click', function () {
+      var nombre = $('#save-nombre').value.trim();
+      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
+      var meta = PTEquipo.jugadores().length ? PTEquipo.metaDeHoy(saveElegidos) : null;
+      if (guardaConNombre(nombre, meta)) $('#dlg-save').close();
+    });
+    $('#save-nombre').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('#save-ok').click(); }
+    });
+
+    $$('#stats-periodo [data-periodo]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        statsPeriodo = b.dataset.periodo;
+        pintaStats();
+      });
+    });
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

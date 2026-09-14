@@ -946,8 +946,13 @@ async function run(w,d){
       var logo=d.querySelector('.logo');
       return {ancho:an,desborde:Math.round(suma-t.getBoundingClientRect().width),
         logoEntero:logo.offsetParent===null||logo.clientWidth>=logo.scrollWidth-1,
+        /* Solo los que se ven. Un botón escondido mide cero, y colarlo aquí
+           haría que la medida del más pequeño fuera siempre cero. Se filtra por
+           offsetParent y no por ancho: así, si un botón que SÍ se ve se queda
+           en cero por un fallo de maquetación, la prueba lo sigue cazando. */
         botones:Math.round(Math.min.apply(null,[].map.call(
-          t.querySelectorAll('button'),function(x){return x.getBoundingClientRect().width;})))};
+          [].filter.call(t.querySelectorAll('button'),function(x){return x.offsetParent!==null;}),
+          function(x){return x.getBoundingClientRect().width;})))};
     })());
   }
   marcoB.style.width=anchoPrevio||'1200px';await wait(600);
@@ -989,11 +994,17 @@ async function run(w,d){
   d.getElementById('f-guardar').click();await wait(500);
   ok('volver a guardarla no crea una copia',
      Object.keys(JSON.parse(w.localStorage.getItem('pt-boards')||'{}')).length===1);
+  /* Guardar ya no es un cuadro de una línea: es un diálogo con el nombre y,
+     debajo, quién ha participado. Lo que se comprueba es lo mismo de siempre
+     —que propone el título de la ficha— más que la parte nueva no estorba
+     cuando no hay plantilla montada. */
   ok('el nombre que propone Guardar es el de la ficha',
      (function(){d.getElementById('save').click();
-      var v=d.getElementById('ask-input').value;
-      d.querySelector('#dlg-ask [data-close]').click();
+      var v=d.getElementById('save-nombre').value;
       return v==='Prueba de guardado';})());
+  ok('sin plantilla, Guardar no enseña la sección de participantes',
+     d.getElementById('save-part').hidden);
+  d.querySelector('#dlg-save [data-close]').click();
   await wait(300);
   w.localStorage.removeItem('pt-boards');
 
