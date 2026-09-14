@@ -304,6 +304,31 @@
     return escribe(LLAVE_ASISTENCIA, a);
   }
 
+  /* Pasar lista de un día CUALQUIERA, no solo de hoy: el martes por la noche se
+     cae en la cuenta de que faltaba uno el jueves pasado. La temporada es la de
+     ese día, no la de ahora, que si no un día de junio se guardaría dentro de la
+     temporada siguiente al empezar julio. */
+  function ponAsistenciaEn(fechaISO, ids) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fechaISO))) return false;
+    var a = asistenciaEntera();
+    var s = sesionesEnteras()[fechaISO];
+    a[fechaISO] = {
+      temporada: (s && s.temporada) || (a[fechaISO] && a[fechaISO].temporada) ||
+                 temporadaDe(new Date(fechaISO + 'T12:00:00')),
+      presentes: ids.slice()
+    };
+    podaAsistencia(a);
+    return escribe(LLAVE_ASISTENCIA, a);
+  }
+
+  /* Quiénes vinieron ese día. Si todavía no se ha pasado lista, están TODOS:
+     se marca al que falta, no al que viene, que es lo normal en un campo. */
+  function presentesDe(fechaISO) {
+    var a = asistenciaEntera()[fechaISO];
+    if (a) return a.presentes.slice();
+    return jugadores().map(function (j) { return j.id; });
+  }
+
   // El historial no crece para siempre: más de un año atrás no le sirve a nadie.
   function podaAsistencia(a) {
     var fs = Object.keys(a).sort();
@@ -920,6 +945,8 @@
     presentesHoy: presentesHoy,
     marcaAsistencia: marcaAsistencia,
     ponAsistencia: ponAsistencia,
+    ponAsistenciaEn: ponAsistenciaEn,
+    presentesDe: presentesDe,
     asistenciaEntera: asistenciaEntera,
     sesionesDelPeriodo: sesionesDelPeriodo,
 

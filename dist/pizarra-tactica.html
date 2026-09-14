@@ -797,7 +797,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .squad-hoy-t{margin:0;flex:1;min-width:130px;font-size:12.5px;color:var(--muted)}
 .squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums}
 .squad-hoy-btns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.squad-hoy-btns .tbtn{padding:7px 12px;font-size:12.5px}
+/* «.tbtn» no trae alto mínimo. Estos dos se pulsan con el pulgar en mitad de
+   una lista de nombres, y se quedaban en 33 px. */
+.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 14px;font-size:12.5px;
+  border:1px solid var(--line);background:var(--well)}
+.squad-hoy-btns .tbtn:hover{border-color:var(--line-strong);background:var(--glass)}
 
 .squad-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .squad-lista:empty{display:none}
@@ -875,7 +879,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-dia-med small{font-size:11.5px;color:var(--muted)}
 .ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
 
+/* El modo Equipo tiene el eje vertical en «auto», y por regla de CSS eso deja
+   el horizontal también en «auto»: un solo hijo que se pase de ancho y sale
+   barra lateral, con la pantalla entera corrida. */
+.equipo,.eq-cuerpo{max-width:100%}
+
 .ses-volver{display:inline-block;margin:0 0 10px}
+.ses-asis-cuenta{margin-left:auto;font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
 /* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
    Septiembre De 2026». La primera letra se pone al escribir el texto. */
 .ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
@@ -910,14 +921,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:13px}
 .ses-mini:disabled{opacity:.3}
 
-.ses-nuevo{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+/* Rejilla, no flex, y con «min-width:0» en todos los hijos.
+
+   Esto empezó siendo una fila flexible y en el iPhone se salía por los lados:
+   un <select> no baja del ancho de su opción más larga («Partido condicionado»)
+   porque su mínimo automático es su contenido, y con eso empujaba la caja
+   entera y dejaba el modo Equipo con barra horizontal. En Chromium de
+   escritorio no pasaba, así que no se veía probando.
+
+   Con rejilla, cada campo ocupa la columna que le toca, y «min-width:0» le
+   quita el suelo: el texto del select se recorta antes que desbordar la
+   pantalla. Ancho estrecho, tres filas; a partir de 480 px, dos. */
+.ses-nuevo{display:grid;gap:6px;margin:0 0 14px;
+  grid-template-columns:110px auto 1fr}   /* la tercera es hueco, no un campo */
+.ses-nuevo > *{min-width:0}
 .ses-nuevo input,.ses-nuevo select{min-height:var(--touch);padding:8px 10px;
   border-radius:var(--r2);border:1px solid var(--line);background:var(--well);
-  color:var(--text);font:inherit;font-size:13px}
-.ses-nuevo #ses-ej-titulo{flex:1 1 100%;min-width:0}
-.ses-nuevo #ses-ej-momento{flex:1 1 150px;min-width:0}
-.ses-nuevo #ses-ej-duracion{flex:0 1 92px;min-width:0}
-.ses-nuevo #ses-ej-add{flex:0 0 auto}
+  color:var(--text);font:inherit;font-size:13px;max-width:100%}
+.ses-nuevo #ses-ej-titulo{grid-column:1 / -1}
+.ses-nuevo #ses-ej-momento{grid-column:1 / -1}
+/* La duración no crece: es «15 min», y una caja de media pantalla para eso
+   parece que espera algo más largo. Va pegada a su botón, que es lo siguiente
+   que se pulsa. */
+.ses-nuevo #ses-ej-duracion{grid-column:1}
+.ses-nuevo #ses-ej-add{grid-column:2}
+@media (min-width:480px){
+  .ses-nuevo{grid-template-columns:1fr 110px auto}
+  .ses-nuevo #ses-ej-momento{grid-column:1}
+  .ses-nuevo #ses-ej-duracion{grid-column:2}
+  .ses-nuevo #ses-ej-add{grid-column:3}
+}
 /* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
    pantalla que se usa con el pulgar: se les pone. */
 .ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
@@ -1367,6 +1400,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <button type="button" class="tbtn" id="ses-imprimir">Imprimir la sesión</button>
     </div>
     <p class="block-note" id="ses-pie"></p>
+  </div>
+
+  <!-- Pasar lista de ese día. Tercera cara de la misma pestaña: no lleva al
+       apartado Plantilla, que es donde se monta el equipo y no donde se pasa
+       lista de un jueves de hace dos semanas. -->
+  <div id="ses-asistencia" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-asis-volver">‹ Volver a la sesión</button>
+    <h3 class="ses-fecha" id="ses-asis-fecha"></h3>
+    <p class="block-note" id="ses-asis-como"></p>
+    <div class="squad-hoy-btns">
+      <button type="button" class="tbtn" id="ses-asis-todos">Todos</button>
+      <button type="button" class="tbtn" id="ses-asis-ninguno">Ninguno</button>
+      <span class="ses-asis-cuenta" id="ses-asis-cuenta"></span>
+    </div>
+    <ul class="squad-lista" id="ses-asis-lista"></ul>
+    <p class="block-note" id="ses-asis-nota"></p>
   </div>
       </div>
 
@@ -2872,6 +2921,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return escribe(LLAVE_ASISTENCIA, a);
   }
 
+  /* Pasar lista de un día CUALQUIERA, no solo de hoy: el martes por la noche se
+     cae en la cuenta de que faltaba uno el jueves pasado. La temporada es la de
+     ese día, no la de ahora, que si no un día de junio se guardaría dentro de la
+     temporada siguiente al empezar julio. */
+  function ponAsistenciaEn(fechaISO, ids) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fechaISO))) return false;
+    var a = asistenciaEntera();
+    var s = sesionesEnteras()[fechaISO];
+    a[fechaISO] = {
+      temporada: (s && s.temporada) || (a[fechaISO] && a[fechaISO].temporada) ||
+                 temporadaDe(new Date(fechaISO + 'T12:00:00')),
+      presentes: ids.slice()
+    };
+    podaAsistencia(a);
+    return escribe(LLAVE_ASISTENCIA, a);
+  }
+
+  /* Quiénes vinieron ese día. Si todavía no se ha pasado lista, están TODOS:
+     se marca al que falta, no al que viene, que es lo normal en un campo. */
+  function presentesDe(fechaISO) {
+    var a = asistenciaEntera()[fechaISO];
+    if (a) return a.presentes.slice();
+    return jugadores().map(function (j) { return j.id; });
+  }
+
   // El historial no crece para siempre: más de un año atrás no le sirve a nadie.
   function podaAsistencia(a) {
     var fs = Object.keys(a).sort();
@@ -3488,6 +3562,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     presentesHoy: presentesHoy,
     marcaAsistencia: marcaAsistencia,
     ponAsistencia: ponAsistencia,
+    ponAsistenciaEn: ponAsistenciaEn,
+    presentesDe: presentesDe,
     asistenciaEntera: asistenciaEntera,
     sesionesDelPeriodo: sesionesDelPeriodo,
 
@@ -11199,18 +11275,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      siempre abierta en modo «elegir» en vez de en modo «abrir».
      ====================================================================== */
   var sesFecha = null;              // el día abierto, o null si se ve el diario
+  var sesVista = 'diario';          // diario · detalle · asistencia
 
   function abreSesiones() { vaModo('equipo', 'sesiones'); }
 
   function pintaSesiones() {
-    if (sesFecha) pintaDetalleSesion(); else pintaDiario();
+    if (!sesFecha) sesVista = 'diario';
+    if (sesVista === 'asistencia') pintaAsistenciaDeSesion();
+    else if (sesVista === 'detalle') pintaDetalleSesion();
+    else pintaDiario();
   }
 
-  function vaAlDiario() { sesFecha = null; pintaSesiones(); }
+  function vaAlDiario() { sesFecha = null; sesVista = 'diario'; arriba(); pintaSesiones(); }
 
   function abreSesion(fecha) {
     sesFecha = fecha;
+    sesVista = 'detalle';
+    arriba();
     pintaSesiones();
+  }
+
+  function abrePasarLista() {
+    sesElegidos = null;             // se relee del almacén al pintar
+    sesVista = 'asistencia';
+    arriba();
+    pintaSesiones();
+  }
+
+  // Cambiar de pantalla y quedarse a media página es de las cosas que más
+  // desorientan: al entrar y al salir se vuelve arriba.
+  function arriba() {
     var caja = $('#equipo');
     if (caja) caja.scrollTop = 0;
   }
@@ -11218,6 +11312,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function pintaDiario() {
     $('#ses-diario').hidden = false;
     $('#ses-detalle').hidden = true;
+    $('#ses-asistencia').hidden = true;
 
     var lista = PTEquipo.diario();
     var meses = PTEquipo.porMeses(lista);
@@ -11300,6 +11395,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function pintaDetalleSesion() {
     $('#ses-diario').hidden = true;
     $('#ses-detalle').hidden = false;
+    $('#ses-asistencia').hidden = true;
 
     var s = PTEquipo.sesionDe(sesFecha);
     var hoy = sesFecha === PTEquipo.hoyISO();
@@ -11308,23 +11404,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var campo = $('#ses-nombre');
     if (campo.value !== s.nombre) campo.value = s.nombre;
 
-    // La asistencia se marca en Plantilla, que es donde se pasa lista. Aquí se
-    // dice cómo quedó y se lleva allí, en vez de repetir la lista entera.
+    /* La lista de ese día se pasa AQUÍ, en su propia pantalla, no en el
+       apartado Plantilla. Plantilla es donde se monta el equipo de la
+       temporada; mandar allí a quien quiere apuntar quién faltó un jueves de
+       hace dos semanas es mandarlo a otro sitio a hacer otra cosa. */
     var asis = $('#ses-asis');
     asis.textContent = '';
-    if (s.hayAsistencia) {
-      asis.appendChild(document.createTextNode(
-        'Vinieron ' + s.presentes.length +
-        (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '));
-    } else {
-      asis.appendChild(document.createTextNode('De este día no quedó apuntado quién vino. '));
-    }
-    if (hoy) {
+    asis.appendChild(document.createTextNode(s.hayAsistencia
+      ? 'Vinieron ' + s.presentes.length +
+        (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '
+      : 'De este día no quedó apuntado quién vino. '));
+    if (PTEquipo.jugadores().length) {
       var ir = document.createElement('button');
       ir.type = 'button';
       ir.className = 'linkish';
-      ir.textContent = 'Pasar lista';
-      ir.addEventListener('click', function () { vaApartado('plantilla'); });
+      ir.textContent = s.hayAsistencia ? 'Cambiar quién vino' : 'Pasar lista';
+      ir.addEventListener('click', abrePasarLista);
       asis.appendChild(ir);
     }
 
@@ -11384,9 +11479,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var t = [];
     if (e.momento) t.push(e.momento);
     if (e.duracion) t.push(e.duracion);
-    // Cuando lo hizo solo una parte del equipo, hay que decirlo: si no, sus
-    // minutos salen en las cuentas de gente que no estuvo ahí.
-    if (e.quienes) t.push(e.quienes.length + (e.quienes.length === 1 ? ' jugador' : ' jugadores'));
+    /* Cuántos lo hicieron, solo cuando NO lo hizo todo el que vino: eso es lo
+       que hay que ver de un vistazo, porque sus minutos van a otra cuenta.
+       Ponerlo también cuando coincide con la asistencia llenaría todas las
+       filas de un dato que ya está arriba, y se comía el momento y la duración,
+       que sí cambian de una fila a otra. */
+    if (e.quienes && !mismosQue(e.quienes, s.presentes)) {
+      t.push(e.quienes.length + (e.quienes.length === 1 ? ' jugador' : ' jugadores'));
+    }
     sub.textContent = t.join(' · ');
     if (t.length) med.appendChild(sub);
     li.appendChild(med);
@@ -11406,6 +11506,85 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     li.appendChild(mandos);
     return li;
+  }
+
+  /* Pasar lista de un día.
+
+     Se parece a la lista de Plantilla a propósito —la misma fila, el mismo
+     gesto— pero es otra pantalla y hace otra cosa: allí se monta el equipo de
+     la temporada, aquí se apunta quién vino un día concreto.
+
+     Vienen TODOS marcados si ese día no tenía lista. Se marca al que falta, no
+     al que viene: en un campo faltan dos, no vienen dieciocho.
+
+     Se guarda al tocar, sin botón de guardar. Lo que se toca es lo que queda. */
+  var sesElegidos = null;
+
+  function pintaAsistenciaDeSesion() {
+    $('#ses-diario').hidden = true;
+    $('#ses-detalle').hidden = true;
+    $('#ses-asistencia').hidden = false;
+
+    var hoy = sesFecha === PTEquipo.hoyISO();
+    $('#ses-asis-fecha').textContent = hoy ? 'Hoy, ' + diaLargo(sesFecha)
+                                           : mayus(diaLargo(sesFecha, true));
+    /* El texto de arriba dice la verdad de este día, no una frase fija: la
+       primera vez vienen todos marcados y solo hay que quitar a los que
+       faltaron; volviendo a entrar, lo que hay es lo que se dejó apuntado. */
+    var yaTenia = PTEquipo.sesionDe(sesFecha).hayAsistencia;
+    $('#ses-asis-como').textContent = yaTenia
+      ? 'Está como lo dejaste. Marca o desmarca lo que haga falta.'
+      : 'Vienen todos marcados. Desmarca al que faltó.';
+
+    if (sesElegidos === null) sesElegidos = PTEquipo.presentesDe(sesFecha);
+    pintaListaDeAsistencia();
+  }
+
+  function pintaListaDeAsistencia() {
+    var lista = PTEquipo.jugadores();
+    var ul = $('#ses-asis-lista');
+    ul.textContent = '';
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, sesElegidos.indexOf(j.id) >= 0, function (marcado) {
+        var i = sesElegidos.indexOf(j.id);
+        if (marcado && i < 0) sesElegidos.push(j.id);
+        if (!marcado && i >= 0) sesElegidos.splice(i, 1);
+        guardaAsistenciaDeSesion();
+        cuentaAsistenciaDeSesion(lista.length);
+      }, null));
+    });
+    cuentaAsistenciaDeSesion(lista.length);
+
+    $('#ses-asis-nota').textContent = lista.length
+      ? 'Se guarda solo, según vas marcando. Los nombres no salen de este dispositivo.'
+      : 'Todavía no tienes plantilla. Móntala en el apartado Plantilla y vuelve aquí.';
+  }
+
+  function cuentaAsistenciaDeSesion(total) {
+    var dentro = sesElegidos.filter(function (id) {
+      return PTEquipo.jugadores().some(function (j) { return j.id === id; });
+    }).length;
+    $('#ses-asis-cuenta').textContent = dentro + ' de ' + total;
+  }
+
+  function guardaAsistenciaDeSesion() {
+    if (!PTEquipo.ponAsistenciaEn(sesFecha, sesElegidos)) {
+      toast('No se ha podido guardar en este navegador');
+    }
+  }
+
+  function vuelveDeLaLista() {
+    sesElegidos = null;
+    sesVista = 'detalle';
+    arriba();
+    pintaSesiones();
+  }
+
+  function mismosQue(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    var hay = {};
+    b.forEach(function (x) { hay[x] = true; });
+    return a.every(function (x) { return hay[x]; });
   }
 
   function botonMini(titulo, dentro, alPulsar, apagado) {
@@ -13135,6 +13314,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
     $('#ses-traer').addEventListener('click', function () { openLibrary(sesFecha); });
     $('#ses-imprimir').addEventListener('click', imprimeSesion);
+    $('#ses-asis-volver').addEventListener('click', vuelveDeLaLista);
+    $('#ses-asis-todos').addEventListener('click', function () {
+      sesElegidos = PTEquipo.jugadores().map(function (j) { return j.id; });
+      guardaAsistenciaDeSesion();
+      pintaListaDeAsistencia();
+    });
+    $('#ses-asis-ninguno').addEventListener('click', function () {
+      sesElegidos = [];
+      guardaAsistenciaDeSesion();
+      pintaListaDeAsistencia();
+    });
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

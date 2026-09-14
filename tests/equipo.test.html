@@ -1068,6 +1068,161 @@ function siembra(lista){
   d.getElementById('dlg-lib').close();
   await wait(150);
 
+  // =====================================================================
+  console.log('16 · pasar lista del día, sin salir de Sesiones');
+  /* Antes esto llevaba al apartado Plantilla, que es donde se monta el equipo
+     de la temporada. Apuntar quién vino un jueves de hace dos semanas es otra
+     cosa, y ahora tiene su propia pantalla dentro de la misma pestaña. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  var L1 = E.añade('2026/27', { dorsal:'1', nombre:'Lista Uno' }).jugador;
+  var L2 = E.añade('2026/27', { dorsal:'2', nombre:'Lista Dos' }).jugador;
+  var L3 = E.añade('2026/27', { dorsal:'3', nombre:'Lista Tres' }).jugador;
+  var AYER = iso(Date.now() - 2*DIA);
+  E.añadeEjercicio(AYER, { titulo:'Algo de anteayer', duracion:'20 min' });
+
+  d.querySelector('#modos [data-modo="equipo"]').click();
+  await wait(300);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
+  await wait(350);
+
+  /* Volver a Sesiones te deja donde estabas, que es lo que se quiere; para esta
+     prueba hay que subir hasta el diario a propósito. */
+  async function alDiario(){
+    if (!d.getElementById('ses-asistencia').hidden) {
+      d.getElementById('ses-asis-volver').click(); await wait(250);
+    }
+    if (!d.getElementById('ses-detalle').hidden) {
+      d.getElementById('ses-volver').click(); await wait(250);
+    }
+  }
+  await alDiario();
+  ok('el diario trae solo el día que tiene algo',
+     d.querySelectorAll('#ses-meses .ses-dia').length === 1,
+     d.querySelectorAll('#ses-meses .ses-dia').length);
+
+  d.querySelector('#ses-meses .ses-dia-btn').click();
+  await wait(300);
+  ok('un día sin lista lo dice', /no quedó apuntado/i.test(d.getElementById('ses-asis').textContent),
+     d.getElementById('ses-asis').textContent);
+  var irLista = d.querySelector('#ses-asis .linkish');
+  ok('y ofrece pasarla', !!irLista && /pasar lista/i.test(irLista.textContent),
+     irLista && irLista.textContent);
+
+  irLista.click();
+  await wait(350);
+  ok('se abre la lista sin salir de Sesiones ni abrir ningún diálogo',
+     !d.getElementById('ses-asistencia').hidden &&
+     d.getElementById('ses-detalle').hidden && d.getElementById('ses-diario').hidden &&
+     !d.getElementById('eq-sesiones').hidden && !d.querySelector('dialog[open]'));
+  ok('y NO lleva al apartado Plantilla', d.getElementById('eq-plantilla').hidden &&
+     d.querySelector('.tabbar-eq [data-eq="sesiones"]').getAttribute('aria-selected') === 'true');
+  ok('con la fecha de ese día, no la de hoy',
+     /septiembre/.test(d.getElementById('ses-asis-fecha').textContent) &&
+     d.getElementById('ses-asis-fecha').textContent.indexOf('Hoy') < 0,
+     d.getElementById('ses-asis-fecha').textContent);
+  ok('están los tres de la plantilla',
+     d.querySelectorAll('#ses-asis-lista .squad-fila').length === 3,
+     d.querySelectorAll('#ses-asis-lista .squad-fila').length);
+  ok('y vienen TODOS marcados, que es lo que se pidió',
+     d.querySelectorAll('#ses-asis-lista .squad-fila.falta').length === 0 &&
+     d.getElementById('ses-asis-cuenta').textContent === '3 de 3',
+     d.getElementById('ses-asis-cuenta').textContent);
+  ok('el texto de arriba lo explica',
+     /todos marcados/i.test(d.getElementById('ses-asis-como').textContent),
+     d.getElementById('ses-asis-como').textContent);
+
+  // Desmarcar uno se guarda al momento, sin botón de guardar.
+  var cajas = d.querySelectorAll('#ses-asis-lista .squad-fila input[type="checkbox"]');
+  cajas[1].click();
+  await wait(250);
+  ok('desmarcar a uno se guarda solo, sin botón de guardar',
+     E.sesionDe(AYER).presentes.length === 2 &&
+     E.sesionDe(AYER).presentes.indexOf(L2.id) < 0,
+     E.sesionDe(AYER).presentes.length + ' presentes');
+  ok('y el recuento lo acompaña', d.getElementById('ses-asis-cuenta').textContent === '2 de 3',
+     d.getElementById('ses-asis-cuenta').textContent);
+  ok('se guarda en el día que toca, no en hoy',
+     E.sesionDe(E.hoyISO()).hayAsistencia === false);
+
+  d.getElementById('ses-asis-ninguno').click();
+  await wait(250);
+  ok('«Ninguno» los quita a todos', E.sesionDe(AYER).presentes.length === 0 &&
+     d.querySelectorAll('#ses-asis-lista .squad-fila.falta').length === 3);
+  d.getElementById('ses-asis-todos').click();
+  await wait(250);
+  ok('«Todos» los vuelve a poner', E.sesionDe(AYER).presentes.length === 3 &&
+     d.querySelectorAll('#ses-asis-lista .squad-fila.falta').length === 0);
+
+  d.getElementById('ses-asis-volver').click();
+  await wait(300);
+  ok('«volver a la sesión» devuelve al día, no al diario',
+     !d.getElementById('ses-detalle').hidden && d.getElementById('ses-asistencia').hidden);
+  ok('y el día ya dice cuántos vinieron',
+     /Vinieron 3 jugadores/.test(d.getElementById('ses-asis').textContent),
+     d.getElementById('ses-asis').textContent);
+  ok('ahora ofrece cambiarlo, no pasarla otra vez',
+     /cambiar/i.test(d.querySelector('#ses-asis .linkish').textContent),
+     d.querySelector('#ses-asis .linkish').textContent);
+  d.querySelector('#ses-asis .linkish').click();
+  await wait(300);
+  ok('y al volver a entrar el texto ya no promete que estén todos',
+     /como lo dejaste/i.test(d.getElementById('ses-asis-como').textContent),
+     d.getElementById('ses-asis-como').textContent);
+  d.getElementById('ses-asis-volver').click();
+  await wait(250);
+
+  // ---- que nada se salga por los lados ----
+  /* El modo Equipo lleva el eje vertical en «auto», y por regla de CSS eso deja
+     el horizontal también en «auto»: un solo hijo que se pase de ancho y la
+     pantalla entera aparece corrida, con los títulos cortados por la izquierda.
+     Pasó de verdad, en un iPhone, y en el escritorio no se veía. */
+  async function nadaSeSale(ancho){
+    fr.style.width = ancho + 'px';
+    await wait(350);
+    var eq = d.getElementById('equipo');
+    var fuera = [];
+    if (eq.scrollWidth > eq.clientWidth + 0.5) {
+      fuera.push('la caja entera ' + eq.scrollWidth + '>' + eq.clientWidth);
+    }
+    var borde = eq.getBoundingClientRect().right;
+    [].forEach.call(d.querySelectorAll('.eq-cuerpo *'), function(el){
+      var r = el.getBoundingClientRect();
+      if (r.width && r.right > borde + 0.5) {
+        fuera.push((el.id || el.className || el.tagName) + ' →' + Math.round(r.right));
+      }
+    });
+    ok('a ' + ancho + ' px no se sale nada por los lados', fuera.length === 0,
+       fuera.slice(0, 3).join(' · '));
+  }
+  for (var iA = 0; iA < 3; iA++) {
+    var anchos = [390, 360, 320];
+    d.querySelector('#ses-meses .ses-dia-btn') && null;
+    await nadaSeSale(anchos[iA]);
+  }
+  fr.style.width = '900px';
+  await wait(300);
+
+  /* El fallo concreto era el desplegable de momentos: un <select> no baja del
+     ancho de su opción más larga porque su mínimo automático es su contenido.
+     Con «min-width:0» sí baja, y eso es lo que aquí se vigila: si alguien
+     quita esa línea, la barra lateral vuelve y esta prueba lo canta. */
+  d.querySelector('#ses-meses .ses-dia-btn').click();
+  await wait(300);
+  ok('el desplegable de momentos no puede empujar la caja',
+     w.getComputedStyle(d.getElementById('ses-ej-momento')).minWidth === '0px',
+     w.getComputedStyle(d.getElementById('ses-ej-momento')).minWidth);
+
+  // ---- y que todo lo que se toca llegue al dedo ----
+  d.querySelector('#ses-asis .linkish').click();
+  await wait(300);
+  var chicosL = [].filter.call(
+    d.querySelectorAll('#ses-asistencia button, #ses-asistencia label'),
+    function(b){ var r = b.getBoundingClientRect(); return r.height > 0 && r.height < 43.5; })
+    .map(function(b){ return (b.id || b.className) + ' ' + Math.round(b.getBoundingClientRect().height); });
+  ok('nada de lo que se toca al pasar lista baja de 44 px de alto',
+     chicosL.length === 0, chicosL.join(' · '));
+
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);
 

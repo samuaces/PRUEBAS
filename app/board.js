@@ -3348,18 +3348,36 @@
      siempre abierta en modo «elegir» en vez de en modo «abrir».
      ====================================================================== */
   var sesFecha = null;              // el día abierto, o null si se ve el diario
+  var sesVista = 'diario';          // diario · detalle · asistencia
 
   function abreSesiones() { vaModo('equipo', 'sesiones'); }
 
   function pintaSesiones() {
-    if (sesFecha) pintaDetalleSesion(); else pintaDiario();
+    if (!sesFecha) sesVista = 'diario';
+    if (sesVista === 'asistencia') pintaAsistenciaDeSesion();
+    else if (sesVista === 'detalle') pintaDetalleSesion();
+    else pintaDiario();
   }
 
-  function vaAlDiario() { sesFecha = null; pintaSesiones(); }
+  function vaAlDiario() { sesFecha = null; sesVista = 'diario'; arriba(); pintaSesiones(); }
 
   function abreSesion(fecha) {
     sesFecha = fecha;
+    sesVista = 'detalle';
+    arriba();
     pintaSesiones();
+  }
+
+  function abrePasarLista() {
+    sesElegidos = null;             // se relee del almacén al pintar
+    sesVista = 'asistencia';
+    arriba();
+    pintaSesiones();
+  }
+
+  // Cambiar de pantalla y quedarse a media página es de las cosas que más
+  // desorientan: al entrar y al salir se vuelve arriba.
+  function arriba() {
     var caja = $('#equipo');
     if (caja) caja.scrollTop = 0;
   }
@@ -3367,6 +3385,7 @@
   function pintaDiario() {
     $('#ses-diario').hidden = false;
     $('#ses-detalle').hidden = true;
+    $('#ses-asistencia').hidden = true;
 
     var lista = PTEquipo.diario();
     var meses = PTEquipo.porMeses(lista);
@@ -3449,6 +3468,7 @@
   function pintaDetalleSesion() {
     $('#ses-diario').hidden = true;
     $('#ses-detalle').hidden = false;
+    $('#ses-asistencia').hidden = true;
 
     var s = PTEquipo.sesionDe(sesFecha);
     var hoy = sesFecha === PTEquipo.hoyISO();
@@ -3457,23 +3477,22 @@
     var campo = $('#ses-nombre');
     if (campo.value !== s.nombre) campo.value = s.nombre;
 
-    // La asistencia se marca en Plantilla, que es donde se pasa lista. Aquí se
-    // dice cómo quedó y se lleva allí, en vez de repetir la lista entera.
+    /* La lista de ese día se pasa AQUÍ, en su propia pantalla, no en el
+       apartado Plantilla. Plantilla es donde se monta el equipo de la
+       temporada; mandar allí a quien quiere apuntar quién faltó un jueves de
+       hace dos semanas es mandarlo a otro sitio a hacer otra cosa. */
     var asis = $('#ses-asis');
     asis.textContent = '';
-    if (s.hayAsistencia) {
-      asis.appendChild(document.createTextNode(
-        'Vinieron ' + s.presentes.length +
-        (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '));
-    } else {
-      asis.appendChild(document.createTextNode('De este día no quedó apuntado quién vino. '));
-    }
-    if (hoy) {
+    asis.appendChild(document.createTextNode(s.hayAsistencia
+      ? 'Vinieron ' + s.presentes.length +
+        (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '
+      : 'De este día no quedó apuntado quién vino. '));
+    if (PTEquipo.jugadores().length) {
       var ir = document.createElement('button');
       ir.type = 'button';
       ir.className = 'linkish';
-      ir.textContent = 'Pasar lista';
-      ir.addEventListener('click', function () { vaApartado('plantilla'); });
+      ir.textContent = s.hayAsistencia ? 'Cambiar quién vino' : 'Pasar lista';
+      ir.addEventListener('click', abrePasarLista);
       asis.appendChild(ir);
     }
 
@@ -3560,6 +3579,78 @@
 
     li.appendChild(mandos);
     return li;
+  }
+
+  /* Pasar lista de un día.
+
+     Se parece a la lista de Plantilla a propósito —la misma fila, el mismo
+     gesto— pero es otra pantalla y hace otra cosa: allí se monta el equipo de
+     la temporada, aquí se apunta quién vino un día concreto.
+
+     Vienen TODOS marcados si ese día no tenía lista. Se marca al que falta, no
+     al que viene: en un campo faltan dos, no vienen dieciocho.
+
+     Se guarda al tocar, sin botón de guardar. Lo que se toca es lo que queda. */
+  var sesElegidos = null;
+
+  function pintaAsistenciaDeSesion() {
+    $('#ses-diario').hidden = true;
+    $('#ses-detalle').hidden = true;
+    $('#ses-asistencia').hidden = false;
+
+    var hoy = sesFecha === PTEquipo.hoyISO();
+    $('#ses-asis-fecha').textContent = hoy ? 'Hoy, ' + diaLargo(sesFecha)
+                                           : mayus(diaLargo(sesFecha, true));
+    /* El texto de arriba dice la verdad de este día, no una frase fija: la
+       primera vez vienen todos marcados y solo hay que quitar a los que
+       faltaron; volviendo a entrar, lo que hay es lo que se dejó apuntado. */
+    var yaTenia = PTEquipo.sesionDe(sesFecha).hayAsistencia;
+    $('#ses-asis-como').textContent = yaTenia
+      ? 'Está como lo dejaste. Marca o desmarca lo que haga falta.'
+      : 'Vienen todos marcados. Desmarca al que faltó.';
+
+    if (sesElegidos === null) sesElegidos = PTEquipo.presentesDe(sesFecha);
+    pintaListaDeAsistencia();
+  }
+
+  function pintaListaDeAsistencia() {
+    var lista = PTEquipo.jugadores();
+    var ul = $('#ses-asis-lista');
+    ul.textContent = '';
+    lista.forEach(function (j) {
+      ul.appendChild(filaJugador(j, sesElegidos.indexOf(j.id) >= 0, function (marcado) {
+        var i = sesElegidos.indexOf(j.id);
+        if (marcado && i < 0) sesElegidos.push(j.id);
+        if (!marcado && i >= 0) sesElegidos.splice(i, 1);
+        guardaAsistenciaDeSesion();
+        cuentaAsistenciaDeSesion(lista.length);
+      }, null));
+    });
+    cuentaAsistenciaDeSesion(lista.length);
+
+    $('#ses-asis-nota').textContent = lista.length
+      ? 'Se guarda solo, según vas marcando. Los nombres no salen de este dispositivo.'
+      : 'Todavía no tienes plantilla. Móntala en el apartado Plantilla y vuelve aquí.';
+  }
+
+  function cuentaAsistenciaDeSesion(total) {
+    var dentro = sesElegidos.filter(function (id) {
+      return PTEquipo.jugadores().some(function (j) { return j.id === id; });
+    }).length;
+    $('#ses-asis-cuenta').textContent = dentro + ' de ' + total;
+  }
+
+  function guardaAsistenciaDeSesion() {
+    if (!PTEquipo.ponAsistenciaEn(sesFecha, sesElegidos)) {
+      toast('No se ha podido guardar en este navegador');
+    }
+  }
+
+  function vuelveDeLaLista() {
+    sesElegidos = null;
+    sesVista = 'detalle';
+    arriba();
+    pintaSesiones();
   }
 
   function mismosQue(a, b) {
@@ -5296,6 +5387,17 @@
     });
     $('#ses-traer').addEventListener('click', function () { openLibrary(sesFecha); });
     $('#ses-imprimir').addEventListener('click', imprimeSesion);
+    $('#ses-asis-volver').addEventListener('click', vuelveDeLaLista);
+    $('#ses-asis-todos').addEventListener('click', function () {
+      sesElegidos = PTEquipo.jugadores().map(function (j) { return j.id; });
+      guardaAsistenciaDeSesion();
+      pintaListaDeAsistencia();
+    });
+    $('#ses-asis-ninguno').addEventListener('click', function () {
+      sesElegidos = [];
+      guardaAsistenciaDeSesion();
+      pintaListaDeAsistencia();
+    });
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

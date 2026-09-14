@@ -788,7 +788,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .squad-hoy-t{margin:0;flex:1;min-width:130px;font-size:12.5px;color:var(--muted)}
 .squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums}
 .squad-hoy-btns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.squad-hoy-btns .tbtn{padding:7px 12px;font-size:12.5px}
+/* «.tbtn» no trae alto mínimo. Estos dos se pulsan con el pulgar en mitad de
+   una lista de nombres, y se quedaban en 33 px. */
+.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 14px;font-size:12.5px;
+  border:1px solid var(--line);background:var(--well)}
+.squad-hoy-btns .tbtn:hover{border-color:var(--line-strong);background:var(--glass)}
 
 .squad-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .squad-lista:empty{display:none}
@@ -866,7 +870,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-dia-med small{font-size:11.5px;color:var(--muted)}
 .ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
 
+/* El modo Equipo tiene el eje vertical en «auto», y por regla de CSS eso deja
+   el horizontal también en «auto»: un solo hijo que se pase de ancho y sale
+   barra lateral, con la pantalla entera corrida. */
+.equipo,.eq-cuerpo{max-width:100%}
+
 .ses-volver{display:inline-block;margin:0 0 10px}
+.ses-asis-cuenta{margin-left:auto;font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
 /* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
    Septiembre De 2026». La primera letra se pone al escribir el texto. */
 .ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
@@ -901,14 +912,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:13px}
 .ses-mini:disabled{opacity:.3}
 
-.ses-nuevo{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+/* Rejilla, no flex, y con «min-width:0» en todos los hijos.
+
+   Esto empezó siendo una fila flexible y en el iPhone se salía por los lados:
+   un <select> no baja del ancho de su opción más larga («Partido condicionado»)
+   porque su mínimo automático es su contenido, y con eso empujaba la caja
+   entera y dejaba el modo Equipo con barra horizontal. En Chromium de
+   escritorio no pasaba, así que no se veía probando.
+
+   Con rejilla, cada campo ocupa la columna que le toca, y «min-width:0» le
+   quita el suelo: el texto del select se recorta antes que desbordar la
+   pantalla. Ancho estrecho, tres filas; a partir de 480 px, dos. */
+.ses-nuevo{display:grid;gap:6px;margin:0 0 14px;
+  grid-template-columns:110px auto 1fr}   /* la tercera es hueco, no un campo */
+.ses-nuevo > *{min-width:0}
 .ses-nuevo input,.ses-nuevo select{min-height:var(--touch);padding:8px 10px;
   border-radius:var(--r2);border:1px solid var(--line);background:var(--well);
-  color:var(--text);font:inherit;font-size:13px}
-.ses-nuevo #ses-ej-titulo{flex:1 1 100%;min-width:0}
-.ses-nuevo #ses-ej-momento{flex:1 1 150px;min-width:0}
-.ses-nuevo #ses-ej-duracion{flex:0 1 92px;min-width:0}
-.ses-nuevo #ses-ej-add{flex:0 0 auto}
+  color:var(--text);font:inherit;font-size:13px;max-width:100%}
+.ses-nuevo #ses-ej-titulo{grid-column:1 / -1}
+.ses-nuevo #ses-ej-momento{grid-column:1 / -1}
+/* La duración no crece: es «15 min», y una caja de media pantalla para eso
+   parece que espera algo más largo. Va pegada a su botón, que es lo siguiente
+   que se pulsa. */
+.ses-nuevo #ses-ej-duracion{grid-column:1}
+.ses-nuevo #ses-ej-add{grid-column:2}
+@media (min-width:480px){
+  .ses-nuevo{grid-template-columns:1fr 110px auto}
+  .ses-nuevo #ses-ej-momento{grid-column:1}
+  .ses-nuevo #ses-ej-duracion{grid-column:2}
+  .ses-nuevo #ses-ej-add{grid-column:3}
+}
 /* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
    pantalla que se usa con el pulgar: se les pone. */
 .ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
