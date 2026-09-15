@@ -888,7 +888,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .eq-cuerpo{max-width:560px;margin:0 auto}
 /* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
    abajo, que es donde llega el pulgar. */
-.tabbar-eq{grid-template-columns:repeat(3,1fr)}
+/* Cuatro desde que existe «Hoy». Este número tiene que ir a la par que las
+   pestañas del HTML: con una de más, la que sobra se va a una segunda fila y
+   la barra crece hacia abajo tapando el panel. Pasó, y la prueba que medía
+   anchos no lo vio porque los anchos seguían bien; lo que estaba mal era que
+   no compartían fila. Ahora la prueba mide también eso. */
+.tabbar-eq{grid-template-columns:repeat(4,1fr)}
 /* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
    lo que mide un dedo. Es la red que faltaba cuando lo de arriba se rompió. */
 .tabbar .tab{min-height:var(--touch)}
@@ -1175,6 +1180,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* El botón que lleva de «llevas sin trabajar esto» a montar la sesión. Va
    debajo del aviso, no al lado: el aviso puede ocupar dos líneas. */
 #stats-a-sesion{margin-top:10px}
+
+/* ---------------- Hoy · qué toca ----------------
+   Una frase y un botón por bloque. Sin tarjetas: lo que se lee aquí son tres
+   respuestas cortas, y meter cada una en su recuadro las convertiría en tres
+   cosas que comparar en vez de tres cosas que leer. */
+#eq-hoy .hoy-frase{margin:0 0 12px;font-size:15px;line-height:1.55;max-width:56ch}
+#eq-hoy .block-note{margin:-6px 0 12px;max-width:56ch}
+#eq-hoy .tbtn{width:100%;margin-bottom:4px}
+@media (min-width:560px){ #eq-hoy .tbtn{width:auto;min-width:240px} }
 /* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
    rótulo del botón de al lado. */
 #gen-salida{margin-top:18px}

@@ -346,7 +346,12 @@
         </div>
       </div>
 
-      <div class="eq-cuerpo" id="eq-plantilla" role="tabpanel">
+      <!-- «Hoy» no añade ninguna cuenta nueva: junta las que ya se hacían en
+           Datos y en Sesiones y las convierte en una decisión. Lo pinta entero
+           el JavaScript porque lo que dice depende de en qué punto estás. -->
+      <div class="eq-cuerpo" id="eq-hoy" role="tabpanel"></div>
+
+      <div class="eq-cuerpo" id="eq-plantilla" role="tabpanel" hidden>
   <div class="squad-temp">
     <label class="field"><span>Temporada</span>
       <select id="squad-temporada"></select></label>
@@ -554,6 +559,9 @@
   </nav>
 
   <nav class="tabbar tabbar-eq solo-equipo" aria-label="Apartados del equipo">
+    <button class="tab" data-eq="hoy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5"/><path d="M12 7.2V12l3.2 2"/><path d="M17 3.2l1.6 2.6 2.6-1"/></svg>
+      Hoy</button>
     <button class="tab" data-eq="plantilla">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
       Plantilla</button>

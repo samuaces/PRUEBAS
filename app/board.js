@@ -4283,7 +4283,11 @@
      El modo no se guarda entre visitas a propósito: la aplicación es una
      pizarra, y quien la abre viene a dibujar.
      ====================================================================== */
-  var modo = 'pizarra', eqApartado = 'plantilla';
+  /* Se entra por «Hoy»: es la pantalla que contesta a la pregunta con la que
+     se abre la aplicación. Antes se caía en Plantilla, que es una lista de
+     nombres —útil el primer día y poco más—. Desde Hoy se llega a la plantilla
+     de un toque, y el propio Hoy lo ofrece cuando todavía no hay. */
+  var modo = 'pizarra', eqApartado = 'hoy';
   /* La hoja del móvil se abre y se cierra dentro del cableado, con su estado
      propio. Cambiar de modo tiene que poder cerrarla, así que se deja aquí una
      referencia en vez de repetir la lógica o sacarla de su sitio. */
@@ -4308,10 +4312,11 @@
     }
   }
 
-  var APARTADOS = { plantilla: 1, sesiones: 1, datos: 1 };
+  var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
 
   function vaApartado(cual) {
-    eqApartado = APARTADOS[cual] ? cual : 'plantilla';
+    eqApartado = APARTADOS[cual] ? cual : 'hoy';
+    $('#eq-hoy').hidden       = eqApartado !== 'hoy';
     $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
     $('#eq-sesiones').hidden  = eqApartado !== 'sesiones';
     $('#eq-datos').hidden     = eqApartado !== 'datos';
@@ -4320,11 +4325,131 @@
       b.setAttribute('aria-selected', String(suyo));
       b.setAttribute('aria-pressed', String(suyo));
     });
-    if (eqApartado === 'plantilla') pintaApartadoPlantilla();
+    if (eqApartado === 'hoy') pintaHoy();
+    else if (eqApartado === 'plantilla') pintaApartadoPlantilla();
     else if (eqApartado === 'sesiones') pintaSesiones();
     else pintaStats();
     var cuerpo = $('#equipo');
     if (cuerpo) cuerpo.scrollTop = 0;
+  }
+
+  /* ---- Hoy · qué toca ----------------------------------------------------
+
+     Klym sabía muchas cosas y no decía ninguna. Los minutos por fase, quién
+     vino, qué lleva semanas sin tocarse, si hay sesión puesta para hoy: todo
+     eso ya se calculaba, repartido entre tres pantallas, y el entrenador tenía
+     que juntarlo en su cabeza y decidir solo.
+
+     Esta pantalla no calcula NADA nuevo. Coge esas cuentas y las convierte en
+     una frase y un botón. Y cada cosa que dice se puede discutir, porque
+     enseña de dónde sale: «llevas 3 fases sin tocar», no «te recomiendo esto».
+
+     El orden no es casual: va de lo que te bloquea a lo que te mejora. Sin
+     plantilla no hay nada que hacer; con plantilla pero sin la sesión de hoy,
+     lo urgente es esa; y con la sesión puesta, lo útil es mirar qué falta. */
+  function pintaHoy() {
+    var caja = $('#eq-hoy');
+    caja.textContent = '';
+
+    var jug = PTEquipo.jugadores();
+    var hoy = PTEquipo.hoyISO();
+    var ses = PTEquipo.sesionDe(hoy);
+    var d = PTEquipo.estadisticas('micro');
+    var eq = PTEquipo.equilibrio('micro');
+
+    function bloque(rotulo) {
+      var h = document.createElement('p');
+      h.className = 'form-group';
+      h.textContent = rotulo;
+      caja.appendChild(h);
+    }
+    function dice(txt, clase) {
+      var p = document.createElement('p');
+      p.className = clase || 'hoy-frase';
+      p.textContent = txt;
+      caja.appendChild(p);
+      return p;
+    }
+    function boton(txt, alPulsar, principal) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tbtn ' + (principal ? 'primary' : 'marco');
+      b.textContent = txt;
+      b.addEventListener('click', alPulsar);
+      caja.appendChild(b);
+      return b;
+    }
+
+    // ---- 1 · lo primero que falta ----
+    bloque('Lo siguiente');
+    if (!jug.length) {
+      dice('Todavía no tienes plantilla. Sin ella no se puede apuntar quién ' +
+           'viene a entrenar ni saber cuántos minutos lleva cada uno.');
+      boton('Montar la plantilla', function () { vaApartado('plantilla'); }, true);
+    } else if (!ses || !ses.ejercicios.length) {
+      dice('Hoy no tienes sesión apuntada. Ponla y, al acabar, marca quién vino: ' +
+           'de ahí salen todas las cuentas.');
+      boton('La sesión de hoy', function () {
+        vaApartado('sesiones');
+        abreSesion(hoy);
+      }, true);
+    } else {
+      var min = ses.ejercicios.reduce(function (a, e) {
+        return a + (PTEquipo.minutosDe ? (PTEquipo.minutosDe(e.duracion) || 0) : 0);
+      }, 0);
+      dice('La sesión de hoy está puesta: ' + ses.ejercicios.length +
+           (ses.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios') +
+           (min ? ' · ' + min + ' min' : '') + '.');
+      boton('Verla', function () { vaApartado('sesiones'); abreSesion(hoy); });
+    }
+
+    // ---- 2 · qué se ha entrenado ----
+    bloque('Estos siete días');
+    if (!d.ejercicios) {
+      dice('Nada apuntado todavía. En cuanto guardes un ejercicio en una sesión, ' +
+           'aquí empiezan a salir las cuentas.');
+    } else {
+      dice(d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') +
+           ' · ' + d.minutos + ' min' +
+           (d.sesiones ? ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') : ''));
+      var top = d.momentos.slice(0, 2).map(function (m) {
+        return m.nombre.toLowerCase() + ' (' + m.minutos + ' min)';
+      });
+      if (top.length) dice('Sobre todo ' + top.join(' y ') + '.', 'block-note');
+    }
+
+    // ---- 3 · qué falta ----
+    if (d.ejercicios && eq && eq.sinTocar) {
+      bloque('Lo que te falta');
+      var sinTocar = (eq.ejes || []).filter(function (e) { return !e.minutos; })
+        .map(function (e) { return e.nombre.toLowerCase(); });
+      dice(sinTocar.length
+        ? 'En estos siete días no has tocado ' + enLista(sinTocar) + '.'
+        : 'Te faltan ' + eq.sinTocar + ' de las seis fases del juego.');
+      if (d.olvidados.length) {
+        dice('Y lo que más tiempo lleva parado: ' + d.olvidados.slice(0, 2).map(function (o) {
+          return o.nombre.toLowerCase() + ', ' + o.dias + ' días';
+        }).join(' · ') + '.', 'block-note');
+      }
+      boton('Montar una sesión con lo que falta', function () {
+        vaApartado('sesiones');
+        abreGenerador();
+      }, true);
+    }
+
+    // ---- 4 · de dónde sale todo esto ----
+    var pie = document.createElement('p');
+    pie.className = 'block-note';
+    pie.style.marginTop = '18px';
+    pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
+                      'Nada se inventa y nada sale a internet.';
+    caja.appendChild(pie);
+  }
+
+  // «a, b y c», como se escribe en castellano.
+  function enLista(xs) {
+    if (xs.length === 1) return xs[0];
+    return xs.slice(0, -1).join(', ') + ' ni ' + xs[xs.length - 1];
   }
 
   /* La biblioteca, en modo «elegir». Es la misma de siempre, con sus filtros y

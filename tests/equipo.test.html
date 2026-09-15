@@ -487,10 +487,23 @@ function siembra(lista){
   await wait(400);
   ok('el interruptor lleva al modo Equipo',
      d.querySelector('.app').dataset.modo === 'equipo');
-  ok('y abre por la plantilla',
-     !d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
+  /* Se entra por «Hoy», no por la plantilla. Es un cambio a propósito: la
+     plantilla es una lista de nombres —útil el primer día y poco más— y Hoy
+     contesta a la pregunta con la que se abre la aplicación. Desde Hoy se
+     llega a la plantilla de un toque, y el propio Hoy lo ofrece cuando
+     todavía no hay ninguna. */
+  ok('y abre por «Hoy», que es la pantalla que dice qué toca',
+     !d.getElementById('eq-hoy').hidden &&
+     d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
+  ok('y Hoy dice algo, no es una pantalla en blanco',
+     d.getElementById('eq-hoy').textContent.trim().length > 40,
+     d.getElementById('eq-hoy').textContent.replace(/\s+/g,' ').trim().slice(0, 60));
   ok('la pizarra se esconde mientras tanto',
      d.querySelector('.stage').offsetParent === null);
+
+  // El resto de este bloque mira la plantilla, así que hay que ir a ella.
+  d.querySelector('.tabbar-eq [data-eq="plantilla"]').click();
+  await wait(350);
   ok('salen los dos jugadores', d.querySelectorAll('#squad-lista .squad-fila').length === 2,
      d.querySelectorAll('#squad-lista .squad-fila').length);
   ok('y el recuento del día', /2 de 2/.test(d.getElementById('squad-cuenta').textContent),
@@ -970,8 +983,39 @@ function siembra(lista){
   ok('hay una tercera pestaña y lleva a Sesiones',
      !d.getElementById('eq-sesiones').hidden &&
      d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
-  ok('las tres pestañas de abajo caben, una por columna',
-     d.querySelectorAll('.tabbar-eq .tab').length === 3);
+  /* Cuatro pestañas desde que existe «Hoy». Lo que importa no es cuántas hay
+     sino que quepan de verdad: se mide el ancho real de cada una en el móvil
+     más estrecho que se contempla, y que ninguna se salga de la barra. Contar
+     pestañas no dice nada; medirlas sí. */
+  var barraEq = d.querySelector('.tabbar-eq');
+  var pestañas = [].slice.call(barraEq.querySelectorAll('.tab'));
+  ok('las pestañas de abajo son las cuatro esperadas',
+     pestañas.map(function(t){return t.dataset.eq;}).join(',') === 'hoy,plantilla,sesiones,datos',
+     pestañas.map(function(t){return t.dataset.eq;}).join(','));
+  var marcoP = w.frameElement, anchoP = marcoP.style.width;
+  marcoP.style.width = '320px'; await wait(500);
+  var rBarra = barraEq.getBoundingClientRect();
+  var salidas = pestañas.filter(function(t){
+    var r = t.getBoundingClientRect();
+    return r.width < 34 || r.left < rBarra.left - 0.5 || r.right > rBarra.right + 0.5;
+  });
+  ok('y a 320 px caben todas, sin salirse ni quedarse sin sitio para el dedo',
+     salidas.length === 0,
+     pestañas.map(function(t){return Math.round(t.getBoundingClientRect().width);}).join('+') +
+     ' de ' + Math.round(rBarra.width));
+  /* Y que estén TODAS EN LA MISMA FILA. Al añadir «Hoy» se quedaron tres
+     arriba y una abajo, la barra creció hacia abajo y se comió el panel. La
+     medida de anchos no lo vio —los anchos seguían bien— porque el fallo no
+     era de ancho: era que la rejilla seguía puesta para tres. */
+  var arriba = pestañas.map(function(t){ return Math.round(t.getBoundingClientRect().top); });
+  ok('y van todas en la misma fila, sin desbordar a una segunda',
+     arriba.every(function(y){ return y === arriba[0]; }),
+     arriba.join(' · '));
+  var cortado = pestañas.filter(function(t){ return t.scrollWidth > t.clientWidth + 1; });
+  ok('y ningún rótulo sale cortado',
+     cortado.length === 0,
+     cortado.map(function(t){return t.dataset.eq;}).join(',') || 'los cuatro enteros');
+  marcoP.style.width = anchoP || '1200px'; await wait(450);
   ok('se entra por el diario, no por un día suelto',
      !d.getElementById('ses-diario').hidden && d.getElementById('ses-detalle').hidden);
   ok('y sale el día de hoy en la lista',
