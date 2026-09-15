@@ -2525,6 +2525,9 @@
 
   var nube = window.PTNube || null;
   var hayNube = !!(nube && nube.hay());
+  // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
+  // declara para que lo alcancen los que están fuera de esa función.
+  var abreCuenta = function () {};
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
   var yo = null;                      // sin cuentas: nadie firma en el servidor
@@ -2568,6 +2571,20 @@
     });
   }
 
+  /* Las iniciales para el hueco de la barra: dos como mucho, y si no hay
+     nombre, la primera letra del correo. Nunca vacío —un círculo en blanco
+     parece que se ha roto algo—. */
+  function inicialesDe(p) {
+    var n = String((p && p.nombre) || '').trim();
+    if (n) {
+      var trozos = n.split(/\s+/).filter(Boolean);
+      return (trozos[0][0] + (trozos.length > 1 ? trozos[trozos.length - 1][0] : ''))
+               .toUpperCase();
+    }
+    var c = String((p && p.email) || '').trim();
+    return c ? c[0].toUpperCase() : '?';
+  }
+
   function pintaCuenta() {
     if (!$('#cuenta-fuera')) return;
     var dentro = !!yo;
@@ -2578,6 +2595,33 @@
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+
+    /* El botón de la barra dice de un vistazo si estás dentro: con la sesión
+       abierta enseña tus iniciales sobre el color de la casa; sin ella, una
+       silueta y la palabra «Entrar». Antes no había manera de saberlo sin
+       abrir Ajustes y bajar hasta el final. */
+    var btn = $('#cuenta-btn');
+    if (btn) {
+      var txt = $('#cuenta-btn-txt'), ini = $('#cuenta-ini');
+      /* La silueta y las iniciales están las dos puestas y las turna el CSS con
+         esta clase. Se hace así, y no escondiéndolas desde aquí, porque
+         «hidden» es de los elementos HTML y el icono es un SVG: ponérselo desde
+         JavaScript no lo esconde, crea una propiedad que no mira nadie. */
+      btn.classList.toggle('dentro', dentro);
+      if (dentro) {
+        ini.textContent = inicialesDe(yo);
+        txt.textContent = yo.nombre ? yo.nombre.split(/\s+/)[0] : 'Tu cuenta';
+        btn.title = 'Tu cuenta · ' + (yo.email || '');
+        btn.setAttribute('aria-label', 'Tu cuenta, ' + (yo.email || 'has entrado'));
+      } else {
+        txt.textContent = 'Entrar';
+        btn.title = 'Entrar o crear una cuenta';
+        btn.setAttribute('aria-label', 'Entrar o crear una cuenta');
+      }
+    }
+    // Y la fila de Ajustes, que lleva al mismo sitio, dice lo mismo.
+    var fila = $('#cfg-cuenta-txt');
+    if (fila) fila.textContent = dentro ? (yo.email || 'Tu cuenta') : 'Entrar o crear una cuenta';
   }
 
   /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
@@ -2812,8 +2856,8 @@
             ok: 'Crear mi cuenta' })
         .then(function (si) {
           if (!si) return;
-          abreAjustes();
-          setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 300);
+          // Ha dicho que quiere crearla: se abre ya en «Crear una cuenta».
+          abreCuenta(true);
         });
       return;
     }
@@ -2978,7 +3022,7 @@
     if (libFiltros.origen === 'mia') {
       if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
       if (!yo) return 'Lo guardado se queda en este dispositivo · entra con tu correo ' +
-                      'en Ajustes para tener los tuyos en cualquier sitio';
+                      'desde el botón de arriba para tener los tuyos en cualquier sitio';
       return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
     }
     var partes = ['Los que trae la aplicación'];
@@ -5530,11 +5574,13 @@
     $$('[data-eq]').forEach(function (b) {
       b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
     });
-    // En el móvil, Ajustes vive en el panel: en la barra ya no cabía.
-    $('#cfg-row').addEventListener('click', function () { sheetClose(); $('#dlg-cfg').showModal(); });
     // Exportar no cabe en la barra del móvil; desde el panel hace lo mismo.
     $('#export-row').addEventListener('click', function () { sheetClose(); $('#export').click(); });
     $('#ficha-row').addEventListener('click', function () { sheetClose(); openCard(); });
+    /* La biblioteca bajó a la hoja para dejarle sitio arriba a la cuenta. Sale
+       ganando: aquí tiene su nombre escrito, y como icono suelto en una barra
+       apretada no lo entendía nadie. */
+    $('#open-row').addEventListener('click', function () { sheetClose(); openLibrary(null); });
     $('#squad-add').addEventListener('click', añadeJugador);
     $('#squad-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
@@ -5726,7 +5772,31 @@
     $('#enlace').addEventListener('click', function () { sheetClose(); enviaPorEnlace(); });
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
+    /* Sin servidor detrás no hay cuentas que valgan. Antes esto daba igual
+       porque la cuenta vivía enterrada en Ajustes; ahora tiene un botón en la
+       barra, y un botón que no lleva a ninguna parte es peor que no tenerlo.
+       El archivo suelto —el que se manda por correo— es justo este caso. */
+    if (!hayNube) {
+      $('#cuenta-btn').closest('.group').hidden = true;
+      $('#cfg-cuenta-bloque').hidden = true;
+    }
+
     if (hayNube) {
+      /* Abrir la cuenta. Es un solo sitio al que se llega desde tres: el botón
+         de la barra, la fila de Ajustes y el aviso de compartir. Al abrirlo se
+         parte siempre de «Ya tengo cuenta», que es lo que hace casi todo el
+         mundo casi siempre; crear una está a un toque al lado. */
+      abreCuenta = function (comoCrear) {
+        ponModo(comoCrear ? 'crear' : 'entrar');
+        $('#cuenta-aviso').hidden = true;
+        if ($('#dlg-cfg').open) $('#dlg-cfg').close();
+        $('#dlg-cuenta').showModal();
+        // Sin sesión, el cursor va al correo: se ha venido a escribirlo.
+        if (!yo) setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 120);
+      };
+      $('#cuenta-btn').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
+      $('#cfg-cuenta').addEventListener('click', function () { abreCuenta(false); });
+
       // Entrar y registrarse son dos cosas distintas y se piden por separado.
       var modo = 'entrar';
       function ponModo(m) {
@@ -5755,12 +5825,20 @@
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
         if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+        /* Aceptar las condiciones solo se pide al crear la cuenta, que es
+           cuando de verdad se acepta algo. A quien ya entró no se le vuelve a
+           preguntar cada vez: lo que aceptó quedó anotado en el servidor. */
+        if (modo === 'crear' && !$('#cuenta-acepto').checked) {
+          di('Para crear la cuenta hay que leer y aceptar la privacidad y las condiciones.');
+          $('#cuenta-acepto').focus();
+          return;
+        }
 
         var b = this, etiqueta = b.textContent;
         b.disabled = true; b.textContent = modo === 'crear' ? 'Creando…' : 'Entrando…';
         aviso.hidden = true;
 
-        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre)
+        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre, true)
                                      : nube.entra(correo, clave);
         tarea.then(function () {
           return refrescaCuenta().then(function () {
@@ -5817,6 +5895,34 @@
         });
       });
 
+      /* Borrar la cuenta no se puede deshacer y se lleva por delante lo que
+         hubiera compartido, así que no basta con un «¿seguro?»: hay que
+         escribir la palabra. Un botón rojo se pulsa sin querer; una palabra
+         escrita a mano, no. */
+      $('#cuenta-borrar').addEventListener('click', function () {
+        var b = this;
+        ask({
+          title: 'Borrar tu cuenta',
+          message: 'Se borran la cuenta, tu perfil y todos los ejercicios que hayas subido, ' +
+                   'incluidos los compartidos. No se puede deshacer. Escribe BORRAR para ' +
+                   'confirmarlo.',
+          input: '', placeholder: 'BORRAR', ok: 'Borrar mi cuenta', danger: true
+        }).then(function (t) {
+          if (t === null) return;
+          if (String(t).toUpperCase() !== 'BORRAR') { toast('No se ha borrado nada'); return; }
+          b.disabled = true;
+          return nube.borraCuenta().then(function () {
+            // Lo de este dispositivo no lo toca el servidor, y tampoco nosotros:
+            // la plantilla y las sesiones son suyas y siguen donde estaban.
+            yo = null; nubeMios = []; nubeLista = [];
+            pintaCuenta(); pintaBiblioteca();
+            toast('Tu cuenta se ha borrado');
+          }).catch(function (e) {
+            toast('No se ha podido borrar: ' + (e.message || 'error'));
+          }).then(function () { b.disabled = false; });
+        });
+      });
+
       $('#cuenta-guardar').addEventListener('click', function () {
         var b = this; b.disabled = true;
         nube.perfil({ nombre: $('#cuenta-nombre').value.trim() || 'Entrenador',
@@ -5839,7 +5945,7 @@
       var regreso = nube.vuelta();
       if (regreso) {
         if (regreso.error) {
-          $('#cfg').click();
+          abreCuenta(false);
           var av = $('#cuenta-aviso'); av.textContent = regreso.error; av.hidden = false;
         } else if (regreso.recuperando) {
           refrescaCuenta().then(function () {
@@ -5904,6 +6010,7 @@
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
     $('#cfg').addEventListener('click', abreAjustes);
+    $('#cfg-row').addEventListener('click', function () { sheetClose(); abreAjustes(); });
     $$('[data-cfg-pitch]').forEach(function (b) {
       b.addEventListener('click', function () {
         var p = prefs(); p.pitch = b.dataset.cfgPitch; guardaPrefs(p);

@@ -111,11 +111,9 @@
       <button class="tbtn" id="redo" title="Rehacer (Ctrl+Mayús+Z)" aria-label="Rehacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H9a5 5 0 0 0 0 10h3"/><path d="M16 5l4 4-4 4"/></svg>
       </button>
-    </div>
 
-    <div class="group solo-pizarra">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
-      <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
+      <button class="tbtn solo-ancho" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
       <button class="tbtn solo-ancho" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
       <button class="tbtn primary solo-ancho" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -124,7 +122,16 @@
     </div>
 
 
-    <div class="group solo-ancho">
+    <!-- La cuenta, siempre a la vista: en los dos modos y en todos los anchos.
+         Es lo único de aquí arriba que no depende de lo que estés haciendo. -->
+    <div class="group grupo-cuenta">
+      <button class="tbtn cuenta-btn" id="cuenta-btn" title="Tu cuenta" aria-label="Tu cuenta">
+        <span class="cuenta-avatar" id="cuenta-avatar" aria-hidden="true"><svg id="cuenta-silueta" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.1"/><path d="M4 16.5a6 6 0 0 1 12 0"/></svg><span id="cuenta-ini"></span></span>
+        <span class="hide-sm" id="cuenta-btn-txt">Entrar</span>
+      </button>
+    </div>
+
+    <div class="group solo-ancho grupo-ajustes">
       <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
@@ -271,6 +278,10 @@
       <div class="block" id="b-actions" data-grupo="mas">
         <h2>Pizarra</h2>
         <div class="stack">
+          <button class="row-btn solo-estrecho" id="open-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="6" height="13" rx="1.2"/><rect x="11.5" y="3.5" width="6" height="6" rx="1.2"/><path d="M11.5 12.5h6M11.5 15.5h6"/></svg>
+            Biblioteca de ejercicios
+          </button>
           <button class="row-btn solo-estrecho" id="ficha-row">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="13" height="15" rx="1.8"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4"/></svg>
             Ficha del ejercicio
@@ -352,6 +363,10 @@
 
   <ul class="squad-lista" id="squad-lista"></ul>
 
+  <!-- Plantilla era la única pantalla de Equipo sin un solo título: tres campos
+       sueltos detrás de un contador, y no sabías para qué eran hasta leer la
+       nota que hay DEBAJO del botón. Sesiones y Datos ya se separan así. -->
+  <p class="form-group">Añadir un jugador</p>
   <div class="squad-alta">
     <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
            placeholder="Nº" aria-label="Dorsal">
@@ -842,6 +857,77 @@
   </div>
 </dialog>
 
+<!-- La cuenta tiene diálogo propio, y no un rincón al final de Ajustes. Entrar y
+     salir es de lo que más se busca, y estaba a tres pasos y un scroll: en el
+     móvil, dentro de Equipo, no se llegaba de ninguna manera. -->
+<dialog id="dlg-cuenta" aria-labelledby="dlg-cuenta-t">
+  <div class="dhead"><h3 id="dlg-cuenta-t">Tu cuenta</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <div id="cuenta-fuera">
+      <p class="block-note" style="margin:0 0 12px">Con cuenta, lo que compartas se sube solo a
+        la biblioteca común, firmado con tu nombre. Sin cuenta la pizarra funciona igual.</p>
+
+      <div class="seg" id="cuenta-modo" role="tablist">
+        <button type="button" data-modo="entrar" aria-pressed="true">Ya tengo cuenta</button>
+        <button type="button" data-modo="crear" aria-pressed="false">Crear una cuenta</button>
+      </div>
+
+      <div class="form-grid" style="margin-top:12px">
+        <label class="field wide"><span>Tu correo</span>
+          <input type="email" id="cuenta-email" autocomplete="email" inputmode="email"
+                 placeholder="tucorreo@ejemplo.com"></label>
+        <label class="field wide"><span>Contraseña <small>mínimo 6 caracteres</small></span>
+          <input type="password" id="cuenta-clave" autocomplete="current-password"
+                 placeholder="••••••"></label>
+        <label class="field solo-crear" hidden><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-alta-nombre" maxlength="60" placeholder="Nombre y apellido"></label>
+        <label class="field solo-crear" hidden><span>Club <small>opcional</small></span>
+          <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="Nombre del club"></label>
+      </div>
+
+      <label class="check check-fila solo-crear" id="cuenta-acepto-caja" hidden
+             style="margin-top:12px;align-items:flex-start">
+        <input type="checkbox" id="cuenta-acepto" style="margin-top:2px">
+        <span>He leído la <a href="../privacidad.html" target="_blank" rel="noopener">privacidad
+          y las condiciones</a>, y entiendo que soy yo quien responde de lo que suba.</span></label>
+
+      <div class="lib-linea" style="margin-top:12px">
+        <button type="button" class="tbtn primary" id="cuenta-entrar">Entrar</button>
+        <button type="button" class="mini-btn solo-entrar" id="cuenta-olvido">He olvidado la contraseña</button>
+      </div>
+      <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+    </div>
+
+    <div id="cuenta-dentro" hidden>
+      <p class="block-note" style="margin:0 0 10px">Has entrado como
+        <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
+      <div class="form-grid">
+        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
+          <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Nombre y apellido"></label>
+        <label class="field"><span>Club <small>opcional</small></span>
+          <input type="text" id="cuenta-club" maxlength="60" placeholder="Nombre del club"></label>
+      </div>
+      <div class="lib-linea" style="margin-top:10px">
+        <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
+        <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
+      </div>
+      <div class="stack" style="margin-top:10px">
+        <button type="button" class="row-btn" id="cuenta-clave-nueva">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Cambiar la contraseña</button>
+        <button type="button" class="row-btn danger" id="cuenta-borrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+          Borrar mi cuenta</button>
+      </div>
+      <p class="block-note" style="margin:10px 0 0">Borrar la cuenta se lleva también los
+        ejercicios que hayas compartido. Lo que tienes guardado en este dispositivo se
+        queda: eso se borra desde el navegador.</p>
+    </div>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
 <dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
   <div class="dhead"><h3 id="dlg-cfg-t">Ajustes</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
@@ -873,54 +959,14 @@
       </button>
     </div>
 
+    <div id="cfg-cuenta-bloque">
     <p class="form-group">Tu cuenta</p>
-    <div id="cuenta-fuera">
-      <p class="block-note" style="margin:0 0 12px">Con cuenta, lo que compartas se sube solo a
-        la biblioteca común, firmado con tu nombre. Sin cuenta la pizarra funciona igual.</p>
-
-      <div class="seg" id="cuenta-modo" role="tablist">
-        <button type="button" data-modo="entrar" aria-pressed="true">Ya tengo cuenta</button>
-        <button type="button" data-modo="crear" aria-pressed="false">Crear una cuenta</button>
-      </div>
-
-      <div class="form-grid" style="margin-top:12px">
-        <label class="field wide"><span>Tu correo</span>
-          <input type="email" id="cuenta-email" autocomplete="email" inputmode="email"
-                 placeholder="tucorreo@ejemplo.com"></label>
-        <label class="field wide"><span>Contraseña <small>mínimo 6 caracteres</small></span>
-          <input type="password" id="cuenta-clave" autocomplete="current-password"
-                 placeholder="••••••"></label>
-        <label class="field solo-crear" hidden><span>Tu nombre <small>firma lo que compartas</small></span>
-          <input type="text" id="cuenta-alta-nombre" maxlength="60" placeholder="Nombre y apellido"></label>
-        <label class="field solo-crear" hidden><span>Club <small>opcional</small></span>
-          <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="Nombre del club"></label>
-      </div>
-
-      <div class="lib-linea" style="margin-top:12px">
-        <button type="button" class="tbtn primary" id="cuenta-entrar">Entrar</button>
-        <button type="button" class="mini-btn solo-entrar" id="cuenta-olvido">He olvidado la contraseña</button>
-      </div>
-      <p class="block-note" id="cuenta-aviso" hidden style="margin:10px 0 0"></p>
+    <div class="stack">
+      <button class="row-btn" id="cfg-cuenta">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.1"/><path d="M4 16.5a6 6 0 0 1 12 0"/></svg>
+        <span id="cfg-cuenta-txt">Entrar o crear una cuenta</span>
+      </button>
     </div>
-
-    <div id="cuenta-dentro" hidden>
-      <p class="block-note" style="margin:0 0 10px">Has entrado como
-        <b id="cuenta-correo" style="color:var(--text)"></b>.</p>
-      <div class="form-grid">
-        <label class="field"><span>Tu nombre <small>firma lo que compartas</small></span>
-          <input type="text" id="cuenta-nombre" maxlength="60" placeholder="Nombre y apellido"></label>
-        <label class="field"><span>Club <small>opcional</small></span>
-          <input type="text" id="cuenta-club" maxlength="60" placeholder="Nombre del club"></label>
-      </div>
-      <div class="lib-linea" style="margin-top:10px">
-        <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
-        <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
-      </div>
-      <div class="stack" style="margin-top:10px">
-        <button type="button" class="row-btn" id="cuenta-clave-nueva">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-          Cambiar la contraseña</button>
-      </div>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
