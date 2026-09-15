@@ -129,12 +129,22 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .tbtn:hover{background:var(--glass-2);color:var(--text)}
 .tbtn:active{transform:scale(.96)}
 .tbtn[aria-pressed="true"],.tbtn.on{background:var(--glass-3);color:var(--text);box-shadow:inset 0 1px 0 var(--sheen)}
+/* Un «.tbtn» no lleva filo: cuenta con estar dentro de una barra o de un
+   diálogo, que es lo que lo sostiene. Suelto sobre el fondo de la página se lee
+   como una palabra, no como algo que se pueda pulsar. «marco» es para esos. */
+.tbtn.marco{min-height:var(--touch);border:1px solid var(--line);background:var(--well)}
+.tbtn.marco:hover{border-color:var(--line-strong);background:var(--glass)}
+.tbtn.marco:disabled{opacity:.45}
 .tbtn svg{width:16px;height:16px;flex:none}
 /* Los degradados de los botones de color van del tono de marca hacia ABAJO y a
    más oscuro, nunca hacia arriba y a más claro: sobre un rojo aclarado el texto
    blanco se queda en 3,9:1 y deja de cumplir el mínimo legible. El relieve lo
    da el filo de luz de dentro, no un tono más claro. */
-.tbtn.primary{background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
+/* La acción principal de una pantalla se pulsa con el pulgar: nunca por debajo
+   del alto mínimo. «.tbtn» no lo trae, y así se quedaban en 34 px «La sesión de
+   hoy» y «Usar esta sesión», que son los dos botones grandes de sus pantallas. */
+.tbtn.primary{min-height:var(--touch);
+  background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
   font-weight:700;font-family:var(--ff-display);
   box-shadow:0 8px 20px -10px rgba(225,26,65,.95),inset 0 1px 0 rgba(255,255,255,.22)}
 .tbtn.primary:hover{background:linear-gradient(180deg,var(--brand),#CB1739);color:var(--brand-ink);
@@ -215,11 +225,19 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 
 .seg{display:flex;gap:4px;padding:4px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r2);box-shadow:inset 0 1px 0 var(--sheen)}
-.seg button{flex:1;min-height:36px;padding:7px 6px;border-radius:var(--r1);font-size:12px;color:var(--muted);
+/* 36 px era el alto de un mando de escritorio. Estos se pulsan en un teléfono. */
+.seg button{flex:1;min-height:var(--touch);padding:7px 6px;border-radius:var(--r1);font-size:12px;color:var(--muted);
   transition:background .16s,color .16s,box-shadow .16s}
 .seg button:hover{color:var(--text)}
 .seg button[aria-pressed="true"]{background:var(--glass-3);color:var(--text);font-weight:600;
   box-shadow:var(--sh-1),inset 0 1px 0 var(--sheen)}
+/* Mando pequeño, pegado a la lista que ordena. No ocupa el ancho entero a
+   propósito: el de arriba manda sobre toda la pantalla, este solo sobre estas
+   filas, y esa diferencia tiene que verse sin leerla. */
+.seg-mini{margin:0 0 8px;width:max-content;max-width:100%}
+/* «Pequeño» es de ancho y de letra, no de alto: lo que se toca llega al dedo
+   igual que todo lo demás. */
+.seg-mini button{flex:0 0 auto;padding:5px 12px;font-size:11.5px}
 
 .stack{display:grid;gap:6px}
 .row-btn{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:9px 11px;border-radius:var(--r2);
@@ -236,7 +254,34 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
   background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--sheen);
   font-size:12.5px;cursor:pointer;transition:background .16s,border-color .16s}
 .check:hover{background:var(--glass-2);border-color:var(--line-strong)}
-.check input{accent-color:var(--brand);width:17px;height:17px}
+/* La casilla, dibujada aquí y no por el navegador.
+
+   Con «accent-color» y nada más, cada sistema pinta la suya: en un tema oscuro
+   sale un cuadradito gris de bordes duros que no se parece a nada del resto de
+   la aplicación. Esto es la misma casilla —el input sigue siendo un input, con
+   su teclado y su lector de pantalla— con el filo, el radio y el color de aquí.
+
+   La marca es un trazado recortado, no un carácter de texto: un «✓» de fuente
+   cambia de forma y de tamaño según el sistema, y aquí se ve igual en todos. */
+.check input[type=checkbox]{appearance:none;-webkit-appearance:none;
+  flex:none;width:20px;height:20px;margin:0;border-radius:6px;
+  border:1px solid var(--line-strong);background:var(--well);
+  display:inline-grid;place-content:center;cursor:pointer;
+  transition:background .14s,border-color .14s}
+.check input[type=checkbox]::before{content:"";width:11px;height:11px;
+  background:var(--brand-ink);transform:scale(0);
+  transition:transform .14s var(--ease);
+  clip-path:polygon(14% 46%,0 62%,40% 100%,100% 18%,86% 4%,40% 72%)}
+.check input[type=checkbox]:checked{background:var(--brand);border-color:var(--brand)}
+.check input[type=checkbox]:checked::before{transform:scale(1)}
+.check:hover input[type=checkbox]{border-color:var(--text)}
+.check:hover input[type=checkbox]:checked{border-color:var(--brand)}
+/* Una casilla suelta dentro de un formulario, con aire por debajo. */
+.check-fila{margin:0 0 10px}
+/* Dentro de una cabecera que ya tiene su marco, la casilla no necesita el suyo:
+   dos marcos anidados a dos píxeles el uno del otro se ven como un error. */
+.check-llano{flex:1;min-width:130px;padding:0;background:none;border:0;box-shadow:none}
+.check-llano:hover{background:none}
 
 /* Un único estilo de campo para toda la aplicación: el panel, los diálogos y
    los filtros. Antes había cinco, cada uno con su tamaño y su borde.
@@ -521,6 +566,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 #cfg-cuenta-bloque{margin-top:22px;border-top:1px solid var(--line)}
 #cuenta-aviso{color:var(--brand-2)}
 
+.lib-part{margin:9px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lib-part b{color:var(--text);font-weight:600}
 .lib-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
 .lib-tags span{font-size:10.5px;line-height:1;padding:5px 9px;border-radius:100px;
   background:var(--glass-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
@@ -551,6 +599,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .lib-origen{flex:1 0 100%}
 }
 
+/* Un bloque del panel puede tener más de un apartado: «Pizarra», «Compartir»…
+   Así el cajón de sastre deja de serlo sin repartirlo en más pestañas. */
+.block h2.sub{margin-top:18px}
+.solo-estrecho{display:none}
+.solo-ancho{display:flex}
+
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
   padding:12px 19px;border-radius:var(--r3);background:var(--bar);border:1px solid var(--line-strong);
@@ -576,7 +630,25 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .middle{grid-template-columns:1fr}
   .sm-only{display:flex}
   .topbar .hide-sm{display:none}
-  .topbar{gap:6px;padding-left:10px;padding-right:10px}
+  /* En el móvil la barra de arriba va al límite: siete botones ya no caben y el
+     último se sale de la pantalla. Mi equipo y Estadísticas se bajan al panel,
+     donde tienen su fila con su nombre escrito y se ven mejor que como un icono
+     más apretado aquí arriba. */
+  /* En el móvil la barra de arriba va al límite. Ajustes se baja al panel:
+     se usa de higos a brevas, y el interruptor de modo se usa cada día. */
+  .solo-estrecho{display:block}
+  .solo-ancho{display:none}
+  /* Dos iconos sueltos no dicen nada. Se enseña el nombre del modo en el que
+     estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
+  .modo span{display:none}
+  .modo[aria-selected="true"] span{display:inline}
+  .modo{padding:7px 10px}
+  .equipo{padding:14px 14px 24px}
+  /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
+     el selector de arriba sería el mismo mando dos veces. */
+  .eq-nav{display:none}
+  .topbar{gap:5px;padding-left:8px;padding-right:8px}
+  .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
 
@@ -615,39 +687,52 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
     font-family:var(--ff-display);font-size:15.5px;font-weight:700;letter-spacing:-.01em}
   .aside[data-grupo] .block{display:none}
-  .aside[data-grupo="tools"] .block[data-grupo="tools"],
-  .aside[data-grupo="trazo"] .block[data-grupo="trazo"],
-  .aside[data-grupo="equipos"] .block[data-grupo="equipos"],
-  .aside[data-grupo="material"] .block[data-grupo="material"],
-  .aside[data-grupo="campo"] .block[data-grupo="campo"],
-  .aside[data-grupo="pizarra"] .block[data-grupo="pizarra"]{display:block}
-  .aside[data-grupo] .block > h2{display:none}          /* el título ya está arriba */
-  .aside[data-grupo] .block[data-grupo="equipos"] > h2{display:block}  /* salvo si hay dos */
+  .aside[data-grupo="dibujar"] .block[data-grupo="dibujar"],
+  .aside[data-grupo="colocar"] .block[data-grupo="colocar"],
+  .aside[data-grupo="campo"]   .block[data-grupo="campo"],
+  .aside[data-grupo="mas"]     .block[data-grupo="mas"]{display:block}
+  /* Los títulos de dentro se quedan. Ninguno repite el de la hoja —«Dibujar»
+     contiene «Herramientas» y «Color del trazo»— y ahora que cada pestaña
+     agrupa varias cosas, son ellos los que dicen dónde acaba una y empieza
+     la otra. Antes se escondían y por eso la hoja parecía un revoltijo. */
   .block{margin-bottom:16px;scroll-margin-top:30px}
   .tools{grid-template-columns:repeat(4,1fr)}
   .mats{grid-template-columns:repeat(5,1fr)}
 
   .tabbar{
-    display:grid;grid-template-columns:repeat(6,1fr);
+    display:grid;grid-template-columns:repeat(4,1fr);
     background:var(--bar);border-top:1px solid var(--line);
     padding-bottom:var(--safe-b);z-index:41;position:relative;
   }
   /* Sin altura fija: los botones rellenan lo que la barra les deja, así que el
      píxel del borde de arriba no los empuja fuera. */
-  .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    min-height:0;font-size:9.5px;line-height:1.1;text-align:center;padding:0 2px;
+  .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:0;font-size:10px;line-height:1.1;text-align:center;padding:0 2px;
     color:var(--muted);transition:color .18s}
-  /* Pastilla encendida detrás del icono de la sección abierta. El z-index
-     negativo es lo que la deja DEBAJO del icono y del rótulo: un pseudo-
-     elemento posicionado se pinta, si no, por encima del contenido. */
-  .tab::before{content:"";position:absolute;left:50%;top:7px;z-index:-1;width:48px;height:27px;border-radius:var(--r1);
-    transform:translateX(-50%) scale(.7);opacity:0;
-    background:color-mix(in srgb,var(--brand) 24%,transparent);
-    transition:opacity .18s,transform .18s var(--ease)}
-  .tab svg{width:20px;height:20px}
-  .tab[aria-pressed="true"]{color:var(--brand-2)}
-  .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scale(1)}
-  .tab[aria-pressed="true"] svg{filter:drop-shadow(0 0 8px color-mix(in srgb,var(--brand) 55%,transparent))}
+  .tab svg{width:21px;height:21px}
+
+  /* La pestaña abierta.
+
+     Aquí había una pastilla de 48 × 27 px puesta a ojo, a 7 px del borde de
+     arriba. Al ser de tamaño fijo no tenía nada que ver con la pestaña que la
+     contiene —98 px de ancho en Pizarra, 130 en Equipo— y envolvía el icono
+     dejando el rótulo fuera: una caja flotando encima de un texto que no le
+     pertenecía. Eso, más el color del texto, más un resplandor detrás del
+     icono, eran tres avisos para decir una sola cosa.
+
+     Ahora lo dice una: un filo encendido en el canto de arriba, del lado por el
+     que se abre el contenido, y el icono y el rótulo del color de la marca. El
+     filo mide lo que mide el icono y va pegado al borde; no hay ninguna caja a
+     la que quepa estar mal encuadrada. */
+  .tab::before{content:"";position:absolute;top:0;left:50%;width:22px;height:2.5px;
+    border-radius:0 0 3px 3px;background:var(--brand);
+    transform:translateX(-50%) scaleX(0);transform-origin:50% 0;opacity:0;
+    transition:opacity .18s,transform .22s var(--ease)}
+  /* El rótulo en negrita no es adorno: es la segunda señal, la que no depende
+     del color. Quien no distingue el rojo del gris distingue la letra gruesa de
+     la fina, y el filo de arriba. */
+  .tab[aria-pressed="true"]{color:var(--brand-2);font-weight:600}
+  .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scaleX(1)}
 
   .timeline{padding:8px 10px;gap:7px}
   .stage{padding:8px}
@@ -684,8 +769,433 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 @media (max-width:420px){
   .chip#speed{min-width:48px;padding:0 8px}
   .tab{font-size:9.5px}
-  .tab::before{width:44px}
+  /* Aquí había un «.tab::before{width:44px}»: encogía la pastilla vieja de 48
+     px en pantallas estrechas. Al cambiar la pastilla por un filo de 22, este
+     resto se lo duplicaba. El filo mide lo que mide el icono en todos los
+     anchos, así que no hay nada que ajustar. */
   .toast{bottom:calc(90px + var(--tabbar) + var(--safe-b))}
+}
+
+/* ================= LOS DOS MODOS =================
+   Dibujar una jugada y llevar un equipo son dos trabajos distintos. Cada modo
+   enseña lo suyo y esconde lo del otro, y así lo nuevo entra por dentro en vez
+   de pedir otro botón en una barra que ya iba llena. */
+.app[data-modo="pizarra"] .solo-equipo,
+.app[data-modo="equipo"]  .solo-pizarra{display:none}
+/* Sin transporte no hace falta su fila: si se deja, queda una franja vacía
+   abajo. Es el mismo fallo que ya nos comimos una vez con la barra de pestañas.
+
+   La fila mide la barra MÁS el hueco seguro del iPhone. Y va en una sola regla,
+   no repetida dentro del @media: había dos con la misma especificidad, esta
+   quedaba después y le ganaba a la del móvil. Resultado: la barra se quedaba
+   34 px corta, se metía debajo del indicador de inicio, y sus pestañas
+   pasaban de 59 px de alto a 25. En el escritorio las dos medidas son cero,
+   así que la misma cuenta sirve para los dos tamaños. */
+.app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
+
+.modos{display:flex;flex:none;gap:3px;padding:3px;border-radius:var(--r3);
+  background:var(--well);border:1px solid var(--line)}
+.modo{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r1);
+  font-size:13px;color:var(--muted);white-space:nowrap;
+  transition:background .16s,color .16s}
+.modo svg{width:16px;height:16px;flex:none}
+.modo:hover{color:var(--text)}
+.modo[aria-selected="true"]{background:var(--glass-3);color:var(--text);
+  box-shadow:inset 0 1px 0 var(--sheen)}
+
+/* La pantalla de Equipo: una columna centrada y legible, no un diálogo. */
+.equipo{grid-column:1 / -1;min-width:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:18px 18px 28px}
+/* Los apartados NO son una pastilla como los filtros. Si lo fueran, en la
+   pantalla de Datos habría dos mandos idénticos uno encima de otro y no se
+   sabría cuál manda sobre cuál. Aquí son pestañas subrayadas: se leen como
+   navegación, y la pastilla de debajo se lee como lo que es, un filtro. */
+.eq-nav{max-width:560px;margin:0 auto 16px;border-bottom:1px solid var(--line)}
+.eq-nav .seg{display:flex;gap:4px;background:none;border:0;padding:0}
+.eq-nav .seg button{position:relative;padding:10px 4px 12px;margin-right:18px;
+  font-family:var(--ff-display);font-size:17px;font-weight:700;letter-spacing:-.01em;
+  color:var(--muted);background:none;border:0;border-radius:0;transition:color .16s}
+.eq-nav .seg button:hover{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]{color:var(--text)}
+.eq-nav .seg button[aria-selected="true"]::after{content:"";position:absolute;
+  left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
+.eq-cuerpo{max-width:560px;margin:0 auto}
+/* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
+   abajo, que es donde llega el pulgar. */
+.tabbar-eq{grid-template-columns:repeat(3,1fr)}
+/* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
+   lo que mide un dedo. Es la red que faltaba cuando lo de arriba se rompió. */
+.tabbar .tab{min-height:var(--touch)}
+
+/* ---------------- Mi equipo, asistencia y estadísticas ----------------
+   Todo con las variables del tema; ni un color suelto. Pensado para el dedo
+   primero: las filas miden --touch de alto y se pulsan enteras. */
+
+.squad-temp{display:flex;gap:9px;align-items:flex-end}
+.squad-temp .field{flex:1;min-width:0}
+.squad-temp .tbtn{flex:0 0 auto;height:var(--touch)}
+
+/* ---- la tarjeta de la plantilla ----
+
+   La cabecera y la lista son las dos mitades de UNA tarjeta, no dos cosas
+   sueltas encima del fondo. Antes la cabecera iba pegada arriba al hacer
+   scroll, y eso ya no puede ser: el fondo de la aplicación es un degradado, y
+   una barra fija tiene que ser opaca para tapar lo que pasa por debajo, así que
+   dejaba un rectángulo de otro color a media pantalla. Entre una costura
+   permanente y perder el recuento al bajar, se pierde el recuento: son dos
+   botones que se pulsan al principio y una cifra que se lee de una vez.
+
+   Los lados de la cabecera no llevan radio abajo ni borde inferior: se cosen
+   con la lista y las dos parecen una pieza. */
+.squad-hoy{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:16px 0 0;padding:10px 12px;
+  border:1px solid var(--line);border-bottom:0;
+  border-radius:var(--r2) var(--r2) 0 0;
+  background:var(--glass);box-shadow:inset 0 1px 0 var(--sheen)}
+/* Sin lista debajo —una plantilla recién empezada— la cabecera se cierra sola
+   en vez de quedarse como una caja sin fondo. */
+.squad-hoy:has(+ .squad-lista:empty){border-bottom:1px solid var(--line);
+  border-radius:var(--r2)}
+.squad-hoy-t{margin:0;flex:1;min-width:120px;font-size:12.5px;color:var(--muted)}
+.squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums;
+  font-family:var(--ff-display);font-size:14px}
+/* Los dos atajos van juntos y en una sola pieza: son la misma decisión tomada
+   en dos direcciones, no dos botones que no tienen nada que ver. */
+.squad-hoy-btns{display:inline-flex;flex:0 0 auto;align-items:center;
+  border:1px solid var(--line-strong);border-radius:var(--r1);overflow:hidden}
+/* Sin fondo propio: dentro de una cabecera que ya tiene el suyo, un relleno más
+   oscuro se lee como un agujero. Lo que los agrupa es el filo, no el color.
+   Y «.tbtn» no trae alto mínimo: se pulsan con el pulgar en mitad de una lista
+   de nombres y se quedaban en 33 px. */
+.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 15px;font-size:12.5px;
+  border-radius:0;background:none}
+.squad-hoy-btns .tbtn + .tbtn{border-left:1px solid var(--line-strong)}
+.squad-hoy-btns .tbtn:hover{background:var(--glass-2)}
+
+/* ---- la lista de jugadores ----
+
+   Aquí había una casilla de las que pinta el navegador, con «accent-color» y
+   poco más: un cuadradito de diecinueve píxeles pegado al borde izquierdo de
+   una fila de cuarenta y cuatro, sin encuadrar con nada.
+
+   La casilla sigue existiendo —es la que oyen los lectores de pantalla y la que
+   entiende el teclado— pero no se ve. Lo que se ve es la FILA, que es lo que se
+   toca: el que ha venido va entero y en firme, y el que falta va en trazo
+   discontinuo, apagado y con su etiqueta al lado.
+
+   Está montado así a propósito y no al revés —marcar al presente— porque una
+   plantilla se mira para encontrar a los dos que no están, no a los veinte que
+   sí. Lo normal no debe llamar la atención; la excepción, sí.
+
+   Un tablón de un vestuario tiene exactamente esta pinta. */
+.squad-lista{list-style:none;margin:0;padding:0;--marca-no:"Falta";
+  border:1px solid var(--line);border-radius:0 0 var(--r2) var(--r2);
+  background:var(--glass);overflow:hidden}
+.squad-lista:empty{display:none}
+/* Filas separadas por filete, sin marco ni hueco cada una. Doce pastillas
+   flotando son doce cajas que el ojo tiene que recorrer una a una; una lista
+   con filetes se lee de arriba abajo de un tirón, que es como se lee una
+   plantilla. */
+.squad-fila{display:flex;align-items:center;gap:12px;padding:0 12px;min-height:52px;
+  border-bottom:1px solid var(--line);transition:background .16s}
+.squad-fila:last-child{border-bottom:0}
+.squad-fila:hover{background:var(--glass-2)}
+/* El foco se pinta en la fila, que es lo que se ve; la casilla que lo recibe
+   está escondida y su anillo no lo vería nadie. */
+.squad-fila:has(input:focus-visible){outline:2px solid var(--brand-2);
+  outline-offset:-2px;border-radius:var(--r1)}
+
+/* Escondida a la vista, no del teclado ni de quien usa lector de pantalla:
+   «display:none» la sacaría también de ahí. */
+.squad-fila input[type=checkbox]{position:absolute;width:1px;height:1px;margin:-1px;
+  padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
+  white-space:nowrap}
+
+/* La etiqueta ocupa la fila de arriba abajo: se marca tocando el nombre, no
+   apuntando a un cuadradito. */
+.squad-marca{display:flex;align-items:center;align-self:stretch;min-height:52px;
+  flex:1;min-width:0;gap:12px;cursor:pointer}
+
+/* El dorsal, en su chapa. Es el número de la camiseta: redondo. */
+.squad-dorsal{flex:0 0 30px;height:30px;display:inline-flex;align-items:center;
+  justify-content:center;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--glass-2);
+  font-family:var(--ff-display);font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:var(--text);transition:border-color .16s,background .16s,color .16s}
+.squad-dorsal:empty::before{content:"·";color:var(--muted)}
+.squad-nombre{flex:1;min-width:0;font-size:13.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
+.squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap}
+
+/* La etiqueta del que falta. El hueco está reservado siempre, aunque no se vea:
+   si apareciera y desapareciera, cada vez que marcas a uno se moverían de sitio
+   los nombres de toda la lista. */
+.squad-marca::after{content:var(--marca-no);flex:0 0 auto;
+  font-size:10px;letter-spacing:.07em;text-transform:uppercase;line-height:1;
+  padding:4px 8px;border-radius:999px;color:var(--brand-2);
+  background:color-mix(in srgb,var(--brand) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--brand) 32%,transparent);
+  visibility:hidden;transition:opacity .16s;opacity:0}
+
+/* Quien no ha venido: la fila se tiñe un punto, el dorsal se queda en trazo
+   discontinuo y el nombre se apaga. Se distingue por la forma y por la palabra
+   de al lado, no solo por el color, que hay quien no lo distingue. Y sigue
+   legible: es información, no un error. */
+.squad-fila.falta{background:color-mix(in srgb,var(--brand) 5%,transparent)}
+.squad-fila.falta:hover{background:color-mix(in srgb,var(--brand) 10%,transparent)}
+.squad-fila.falta .squad-dorsal{background:transparent;border-style:dashed;
+  border-color:var(--line);color:var(--muted)}
+.squad-fila.falta .squad-nombre{color:var(--muted);font-weight:400}
+.squad-fila.falta .squad-marca::after{visibility:visible;opacity:1}
+/* El aspa se ve pequeña —quitar a alguien no debe ser fácil de rozar— pero lo
+   que se toca es alto como la fila entera. Verse pequeño y ser pequeño son
+   cosas distintas: lo segundo deja el botón fuera del alcance de un dedo. */
+.squad-quita{flex:0 0 auto;width:40px;align-self:stretch;min-height:48px;
+  padding:0;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--r1);opacity:.55}
+.squad-quita:hover{opacity:1}
+.squad-quita svg{width:15px;height:15px}
+
+.squad-alta{display:grid;grid-template-columns:58px 1fr;gap:7px;margin-top:14px}
+.squad-alta #squad-nombre{grid-column:2}
+.squad-alta #squad-posicion{grid-column:1 / -1}
+.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch)}
+.squad-alta input,.squad-alta select{min-height:var(--touch)}
+.squad-aviso{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);opacity:.8}
+
+/* ---- participantes dentro de Guardar ---- */
+#save-part{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.save-part-t{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--muted)}
+/* Un botón que se lee como un enlace: «cambiar» es una salida discreta, no una
+   acción que compita con Guardar. */
+.linkish{background:none;border:0;font:inherit;font-size:12.5px;
+  color:var(--brand-2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+  /* Se lee como un enlace, pero se pulsa como un botón: el alto es el del dedo,
+     no el de la palabra. */
+  display:inline-flex;align-items:center;min-height:var(--touch);padding:0 6px}
+.linkish:hover{color:var(--text)}
+#save-part-caja{margin-top:11px}
+/* Aquí la lista no es «quién vino» sino «quién hizo este ejercicio»: el que no
+   está no falta al entrenamiento, se ha quedado fuera de esta tarea. */
+#save-part-caja .squad-lista{max-height:38dvh;overflow:auto;--marca-no:"Fuera"}
+
+/* ---- las sesiones ----
+   El diario y el detalle viven en la misma pestaña, uno escondiendo al otro.
+   Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
+.ses-cabeza{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
+.ses-cabeza .stats-resumen{flex:1;min-width:180px;margin:0}
+.ses-mes{margin:20px 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted)}
+.ses-dias{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+/* Toda la fila es el botón: en el móvil se busca con el pulgar, no con puntería. */
+.ses-dia-btn{display:flex;align-items:center;gap:12px;width:100%;
+  min-height:var(--touch);padding:10px 12px;border-radius:var(--r2);text-align:left;
+  border:1px solid var(--line);background:var(--well);color:var(--text);
+  transition:border-color .16s,background .16s}
+.ses-dia-btn:hover{border-color:var(--line-strong);background:var(--glass)}
+.ses-dia.es-hoy .ses-dia-btn{border-color:var(--brand)}
+.ses-dia-fecha{flex:0 0 58px;font-family:var(--ff-display);font-size:12.5px;
+  color:var(--muted)}
+.ses-dia.es-hoy .ses-dia-fecha{color:var(--brand-2)}
+.ses-dia-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ses-dia-med b{font-size:13.5px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere}
+.ses-dia-med b.flojo{font-weight:400;color:var(--muted)}
+.ses-dia-med small{font-size:11.5px;color:var(--muted)}
+.ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
+
+.ses-volver{display:inline-block;margin:0 0 10px}
+/* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
+   Septiembre De 2026». La primera letra se pone al escribir el texto. */
+.ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
+  letter-spacing:-.01em}
+
+.ses-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ses-vacia{padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.ses-ej{display:flex;align-items:center;gap:10px;min-height:var(--touch);
+  padding:8px 10px;border-radius:var(--r2);border:1px solid var(--line);background:var(--well)}
+/* El número de orden no es decoración: una sesión es una secuencia. */
+.ses-ej-n{flex:0 0 22px;text-align:center;font-family:var(--ff-display);font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.ses-ej-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;
+  align-items:flex-start;text-align:left;color:var(--text);
+  background:none;border:0;padding:0;min-height:var(--touch);justify-content:center}
+.ses-ej-med.abrible{cursor:pointer}
+.ses-ej-med.abrible:hover b{text-decoration:underline;text-underline-offset:2px}
+/* El título puede dar dos líneas antes de cortarse. Los nombres de ejercicio
+   son largos de verdad («Finalización tras centro lateral y 1 vs 1») y en una
+   línea a 390 px se quedaban en «Finalización tras centro l…»: cortar el dato
+   principal para ahorrar 18 px de alto no sale a cuenta. */
+.ses-ej-med b{max-width:100%;font-size:13.5px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere}
+.ses-ej-med small{max-width:100%;font-size:11.5px;color:var(--muted);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.ses-ej-mandos{flex:0 0 auto;display:flex;gap:3px}
+/* Hasta cuatro mandos en una fila de móvil: estrechos de ancho, porque tienen
+   que caber los cuatro, pero nunca por debajo del alto mínimo de algo que se
+   toca. A 390 px quedan 36 × 44 cada uno y siguen sobrando 150 px para el
+   título, que es lo que de verdad se lee. */
+.ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:13px}
+.ses-mini:disabled{opacity:.3}
+
+/* Rejilla, no flex, y con «min-width:0» en todos los hijos.
+
+   Esto empezó siendo una fila flexible y en el iPhone se salía por los lados:
+   un <select> no baja del ancho de su opción más larga («Partido condicionado»)
+   porque su mínimo automático es su contenido, y con eso empujaba la caja
+   entera y dejaba el modo Equipo con barra horizontal. En Chromium de
+   escritorio no pasaba, así que no se veía probando.
+
+   Con rejilla, cada campo ocupa la columna que le toca, y «min-width:0» le
+   quita el suelo: el texto del select se recorta antes que desbordar la
+   pantalla. Ancho estrecho, tres filas; a partir de 480 px, dos. */
+.ses-nuevo{display:grid;gap:6px;margin:0 0 14px;
+  grid-template-columns:110px auto 1fr}   /* la tercera es hueco, no un campo */
+.ses-nuevo > *{min-width:0}
+.ses-nuevo input,.ses-nuevo select{min-height:var(--touch);padding:8px 10px;
+  border-radius:var(--r2);border:1px solid var(--line);background:var(--well);
+  color:var(--text);font:inherit;font-size:13px;max-width:100%}
+.ses-nuevo #ses-ej-titulo{grid-column:1 / -1}
+.ses-nuevo #ses-ej-momento{grid-column:1 / -1}
+/* La duración no crece: es «15 min», y una caja de media pantalla para eso
+   parece que espera algo más largo. Va pegada a su botón, que es lo siguiente
+   que se pulsa. */
+.ses-nuevo #ses-ej-duracion{grid-column:1}
+.ses-nuevo #ses-ej-add{grid-column:2}
+@media (min-width:480px){
+  .ses-nuevo{grid-template-columns:1fr 110px auto}
+  .ses-nuevo #ses-ej-momento{grid-column:1}
+  .ses-nuevo #ses-ej-duracion{grid-column:2}
+  .ses-nuevo #ses-ej-add{grid-column:3}
+}
+/* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
+   pantalla que se usa con el pulgar: se les pone. */
+.ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
+
+/* ---- proponer una sesión ----
+   Dos columnas en el móvil: son seis casillas cortas y una debajo de otra se
+   hacía una tira larguísima para preguntar seis cosas de una línea cada una. */
+.gen-campos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 4px}
+.gen-campos > *{min-width:0}
+.gen-campos .field.wide{grid-column:1 / -1}
+.gen-campos input,.gen-campos select{min-height:var(--touch)}
+@media (min-width:480px){ .gen-campos{grid-template-columns:repeat(3,1fr)} }
+/* El porqué de cada ejercicio, en la fila y en voz baja: es el argumento, no
+   el dato. Puede dar dos líneas antes que cortarse, porque una razón a medias
+   no sirve de nada. */
+#gen-lista .gen-porque{color:var(--brand-2);opacity:.85;white-space:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gen-lista .ses-ej-med{padding:6px 0}
+#gen-avisos .stats-olvido{margin:0 0 8px}
+/* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
+   rótulo del botón de al lado. */
+#gen-salida{margin-top:18px}
+
+/* ---- barras ----
+   div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
+   la fila se lea de un vistazo sin ocupar dos alturas. */
+.barras{display:flex;flex-direction:column;gap:5px}
+.barras:empty::before{content:"Todavía no hay nada que contar aquí.";
+  display:block;padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.barra{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:var(--r2);overflow:hidden;
+  border:1px solid var(--line);background:var(--well);
+  --cifras:110px}                    /* lo que ocupan los minutos y el tanto por ciento */
+/* Cuando la fila lleva además la asistencia (15/15) y su hueco de aviso, el
+   carril acaba antes: si no, el canto de la barra cae encima de esas cifras. */
+.barra.conses{--cifras:146px}
+/* Cabecera: los mismos anchos y el mismo hueco que las filas, para que cada
+   nombre de columna caiga justo encima de sus números. Sin marco ni fondo, que
+   no es una fila más.
+   El borde transparente no es adorno: la fila lleva uno de 1 px y, sin él aquí,
+   cada nombre de columna quedaría un píxel corrido respecto a sus números. */
+.barra-cab{display:flex;align-items:center;gap:10px;padding:2px 11px 1px;
+  border:1px solid transparent;font-size:10px;color:var(--muted)}
+/* El «min-width:0» es lo que sujeta la alineación. Sin él, un hijo flexible
+   nunca baja de su contenido aunque le pongas un ancho: la palabra «asistencia»
+   ensanchaba su columna 8 px y arrastraba a la de minutos, y los nombres
+   quedaban corridos respecto a los números. Que la etiqueta quepa lo comprueba
+   la prueba; que no empuje, esta línea. */
+.barra-cab .barra-cifra,.barra-cab .barra-pct,.barra-cab .barra-asis{
+  min-width:0;font-size:10px;color:var(--muted)}
+/* El relleno corre por su carril, que acaba antes de las cifras. Si llegara
+   hasta ellas, el canto de la barra partiría un número por la mitad y se
+   quedaría medio sobre un fondo y medio sobre otro: se lee fatal. */
+.barra-pista{position:absolute;inset:0 var(--cifras) 0 0;pointer-events:none}
+.barra-relleno{position:absolute;inset:0 auto 0 0;background:var(--glass-3);
+  border-right:1px solid var(--line-strong)}
+.barra.top .barra-relleno{background:color-mix(in srgb,var(--brand) 26%,transparent);
+  border-right-color:var(--brand)}
+/* El texto va por encima del relleno. El relleno queda fuera de este selector a
+   propósito: si le cae el «position:relative» deja de estar absoluto, entra en
+   la fila como un hijo más y empuja al nombre hasta hacerlo desaparecer. */
+.barra > :not(.barra-pista){position:relative}
+.barra-dorsal{flex:0 0 24px;text-align:right;font-family:var(--ff-display);font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.barra-nombre{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Columnas de cifras: ancho fijo y a la derecha, para que los números queden
+   alineados unos debajo de otros y bajo su nombre en la cabecera. La unidad
+   («min», «%») va arriba una vez, no repetida en cada fila. */
+.barra-cifra{flex:0 0 40px;text-align:right;font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--text)}
+.barra-pct{flex:0 0 46px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
+.barra-asis{flex:0 0 58px;text-align:right;font-size:12.5px;
+  font-variant-numeric:tabular-nums;color:var(--text)}
+/* A quien le falta la mitad de los entrenamientos hay que verlo sin buscarlo.
+   El color avisa; el símbolo de al lado lo dice para quien no lo distinga. */
+.barra-asis.poco{color:var(--brand-2)}
+.barra-alerta{flex:0 0 14px;text-align:right;font-size:11px;color:var(--brand-2);
+  line-height:1}
+
+/* ---- el radar de equilibrio ----
+   Trazos finos y rejilla continua y discreta: la figura tiene que destacar
+   sobre la rejilla, no pelearse con ella. */
+.radar{display:block;width:100%;max-width:380px;margin:4px auto 0}
+.radar-anillo{fill:none;stroke:var(--line);stroke-width:1}
+.radar-radio{stroke:var(--line);stroke-width:1}
+/* El reparto exactamente igualado: la vara de medir, no un dato. */
+.radar-igualado{fill:none;stroke:var(--line-strong);stroke-width:1.5}
+.radar-ref{fill:rgba(124,141,163,.14);stroke:#7C8DA3;stroke-width:2;stroke-linejoin:round}
+.radar-ahora{fill:rgba(225,26,65,.20);stroke:#E11A41;stroke-width:2;stroke-linejoin:round}
+.radar-punto{fill:#E11A41;stroke:var(--panel);stroke-width:2}
+/* Lo que se ve mide 3 px; lo que se toca, 32. */
+.radar-diana{fill:transparent;cursor:pointer}
+.radar-diana:focus-visible{outline:none;fill:rgba(255,92,122,.22)}
+/* El texto lleva tinta de texto, nunca el color de la serie. */
+.radar-eje{fill:var(--muted);font-family:var(--ff-body);font-size:10.5px}
+.radar-eje.vacio{opacity:.6}
+
+.radar-pie{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
+  margin:12px 0 0;font-size:11.5px;color:var(--muted)}
+.radar-clave{display:inline-flex;align-items:center;gap:6px}
+.radar-clave::before{content:"";width:11px;height:11px;border-radius:3px;flex:none}
+.radar-clave.es-ahora::before{background:rgba(225,26,65,.20);border:2px solid #E11A41}
+.radar-clave.es-ref::before{background:rgba(124,141,163,.14);border:2px solid #7C8DA3}
+.radar-clave.es-igual::before{background:none;border:1px solid var(--line-strong)}
+
+.stats-resumen{margin:14px 0 0;font-size:13px;line-height:1.5}
+.stats-resumen b{font-variant-numeric:tabular-nums}
+.stats-olvido{margin:12px 0 0;padding:11px 13px;border-radius:var(--r2);
+  border:1px solid var(--line-strong);background:var(--glass);font-size:12.5px;line-height:1.5}
+.stats-olvido b{color:var(--brand-2)}
+
+@media (max-width:560px){
+  .squad-temp{flex-wrap:wrap}
+  .squad-temp .tbtn{width:100%}
+  .squad-pos{display:none}          /* a 320 px no cabe, y el nombre manda */
+  .barra-cifra{flex-basis:36px}
+  .barra-pct{flex-basis:44px}
+  .barra-asis{flex-basis:52px}
+  .barra-alerta{flex-basis:12px}
+  .barra{--cifras:102px}
+  .barra.conses{--cifras:126px}
+  .barra-cab,.barra-cab .barra-cifra,.barra-cab .barra-pct,
+  .barra-cab .barra-asis{font-size:9.5px}
 }
 
 @media (prefers-reduced-motion:reduce){

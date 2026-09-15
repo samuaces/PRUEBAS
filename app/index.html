@@ -3,6 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+
+<!-- La red de seguridad. Hoy no hay ningún sitio por el que se pueda colar
+     código ajeno —lo que escriben otros entra por «esc()» o por el DOM, nunca
+     como HTML—, pero esto es lo que hace que un descuido futuro no se convierta
+     en un problema: aunque alguien lograra meter una etiqueta <script>, el
+     navegador se negaría a ejecutarla.
+
+       script-src 'self'   la aplicación son cinco archivos suyos y ni un solo
+                           script en línea: se puede cerrar del todo, que es lo
+                           que de verdad vale de una CSP.
+       style-src           con 'unsafe-inline' porque el JavaScript escribe
+                           estilos en los elementos (anchos de barra, posiciones)
+                           y la hoja de imprimir lleva su <style> dentro.
+       img-src data: blob: las miniaturas y la hoja impresa salen del lienzo.
+       media-src blob:     el vídeo que graba la animación se ve desde memoria,
+                           sin pasar por ningún servidor. Esto faltaba en la
+                           primera versión de aquí y rompió la exportación a
+                           MP4: lo cazó la prueba antes de subir nada.
+       connect-src         SOLO este proyecto de Supabase, con su nombre
+                           entero. Poniendo «*.supabase.co» se permitía hablar
+                           con el proyecto de cualquiera, que es a donde
+                           mandaría los datos un script colado. Si alguien hace
+                           una copia de esto, tiene que cambiar esta línea
+                           además de app/config.js.
+     «frame-ancestors» no se puede poner en una etiqueta meta; haría falta una
+     cabecera, y GitHub Pages no deja ponerlas. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  media-src 'self' blob:;
+  font-src 'self';
+  connect-src 'self' https://bbxiuzknxdeuovoytrha.supabase.co;
+  frame-src 'self';
+  manifest-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none'">
+
 <title>Pizarra Táctica de Fútbol | Diseña y anima tus jugadas</title>
 <meta name="description" content="Pizarra táctica de fútbol con conos, porterías, vallas, escaleras y maniquíes. Coloca a tus jugadores, dibuja la jugada y anímala por fotogramas.">
 <link rel="canonical" href="https://klym.xyz/app/">
@@ -31,7 +71,7 @@
 </head>
 <body>
 
-<div class="app">
+<div class="app" data-modo="pizarra">
 
   <!-- ==================== BARRA SUPERIOR ==================== -->
   <header class="topbar">
@@ -51,9 +91,20 @@
       <a href="../" class="hide-sm">← Inicio</a>
     </div>
 
+    <!-- Dos modos, un interruptor. Dibujar una jugada y llevar un equipo son
+         dos trabajos distintos que antes compartían la misma barra. -->
+    <div class="modos" id="modos" role="tablist" aria-label="Qué estás haciendo">
+      <button class="modo" data-modo="pizarra" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
+        <span>Pizarra</span></button>
+      <button class="modo" data-modo="equipo" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+        <span>Equipo</span></button>
+    </div>
+
     <span class="spacer"></span>
 
-    <div class="group">
+    <div class="group solo-pizarra">
       <button class="tbtn" id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10h-3"/><path d="M8 5L4 9l4 4"/></svg>
       </button>
@@ -62,17 +113,18 @@
       </button>
     </div>
 
-    <div class="group">
+    <div class="group solo-pizarra">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
-      <button class="tbtn" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
-      <button class="tbtn primary" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
+      <button class="tbtn solo-ancho" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
+      <button class="tbtn primary solo-ancho" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
       </button>
     </div>
 
-    <div class="group">
+
+    <div class="group solo-ancho">
       <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
@@ -82,11 +134,11 @@
   <div class="middle">
 
     <!-- ======== PANEL: barra lateral en escritorio, hoja inferior en móvil ======== -->
-    <aside class="aside" id="aside" aria-label="Herramientas">
+    <aside class="aside solo-pizarra" id="aside" aria-label="Herramientas">
       <button class="sheet-grab" id="sheet-grab" aria-label="Cerrar el panel"></button>
       <p class="sheet-tit" id="sheet-tit" aria-hidden="true"></p>
 
-      <div class="block" id="b-tools" data-grupo="tools">
+      <div class="block" id="b-tools" data-grupo="dibujar">
         <h2>Herramientas</h2>
         <div class="tools">
           <button class="tool" data-tool="select" aria-pressed="true" title="Seleccionar y mover (V)">
@@ -110,7 +162,7 @@
         </div>
       </div>
 
-      <div class="block" id="b-color" data-grupo="trazo">
+      <div class="block" id="b-color" data-grupo="dibujar">
         <h2>Color del trazo</h2>
         <div class="swatches">
           <button class="sw" data-color="#FFFFFF" style="background:#FFFFFF" aria-pressed="true" aria-label="Blanco"></button>
@@ -129,7 +181,7 @@
         </div>
       </div>
 
-      <div class="block" id="b-teams" data-grupo="equipos">
+      <div class="block" id="b-teams" data-grupo="colocar">
         <h2>Jugadores y balón</h2>
         <div class="teams">
           <button class="team-btn home" data-place="player" data-team="home">+ Local</button>
@@ -144,7 +196,7 @@
         </div>
       </div>
 
-      <div class="block" id="b-forms" data-grupo="equipos">
+      <div class="block" id="b-forms" data-grupo="colocar">
         <h2>Formaciones</h2>
         <div class="stack">
           <select class="sel" id="form-home" aria-label="Formación del equipo local">
@@ -160,7 +212,7 @@
         </div>
       </div>
 
-      <div class="block" id="b-mats" data-grupo="material">
+      <div class="block" id="b-mats" data-grupo="colocar">
         <h2>Materiales</h2>
         <p class="block-note">Toca el campo para ir colocando. Con la pieza seleccionada, gírala arrastrando el tirador rojo o con los botones de giro.</p>
         <div class="mats">
@@ -216,24 +268,12 @@
         <label class="check"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
       </div>
 
-      <div class="block" id="b-actions" data-grupo="pizarra">
+      <div class="block" id="b-actions" data-grupo="mas">
         <h2>Pizarra</h2>
         <div class="stack">
-          <button class="row-btn" id="install" hidden>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
-            Instalar en este dispositivo
-          </button>
-          <button class="row-btn" id="enlace">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 1 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 1 0 4.2 4.2l1-1"/></svg>
-            Enviar la jugada por enlace
-          </button>
-          <button class="row-btn" id="compartir">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
-            Compartir en la biblioteca
-          </button>
-          <button class="row-btn" id="help">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
-            Cómo se usa
+          <button class="row-btn solo-estrecho" id="ficha-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="13" height="15" rx="1.8"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4"/></svg>
+            Ficha del ejercicio
           </button>
           <button class="row-btn" id="clear">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
@@ -244,11 +284,35 @@
             Empezar pizarra nueva
           </button>
         </div>
+
+        <h2 class="sub">Sacar esta jugada de aquí</h2>
+        <div class="stack">
+          <button class="row-btn solo-estrecho" id="export-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 16h12"/></svg>
+            Descargar: vídeo, GIF, imagen o archivo
+          </button>
+          <button class="row-btn" id="enlace">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 1 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 1 0 4.2 4.2l1-1"/></svg>
+            Mandársela a alguien por enlace
+          </button>
+          <button class="row-btn" id="compartir">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4.6" r="2.1"/><circle cx="5" cy="10" r="2.1"/><circle cx="15" cy="15.4" r="2.1"/><path d="M6.9 8.9l6.2-3.2M6.9 11.1l6.2 3.2"/></svg>
+            Subirla a la biblioteca común
+          </button>
+        </div>
+
+        <h2 class="sub solo-estrecho">Aplicación</h2>
+        <div class="stack solo-estrecho">
+          <button class="row-btn" id="cfg-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M16.2 12.5a1.3 1.3 0 0 0 .3 1.5l.1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.3 1.3 0 0 0-2.2.9v.2a1.7 1.7 0 1 1-3.4 0v-.1a1.3 1.3 0 0 0-2.2-.9l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.3 1.3 0 0 0-.9-2.2H2.8a1.7 1.7 0 1 1 0-3.4h.1a1.3 1.3 0 0 0 .9-2.2l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.3 1.3 0 0 0 2.2-.9V2.8a1.7 1.7 0 1 1 3.4 0v.1a1.3 1.3 0 0 0 2.2.9l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.3 1.3 0 0 0 .9 2.2h.2a1.7 1.7 0 1 1 0 3.4h-.1a1.3 1.3 0 0 0-1.2.8z"/></svg>
+            Ajustes
+          </button>
+        </div>
       </div>
     </aside>
 
     <!-- ==================== CAMPO ==================== -->
-    <section class="stage">
+    <section class="stage solo-pizarra">
       <canvas id="board" aria-label="Campo de fútbol. Arrastra las fichas y dibuja la jugada." role="img"></canvas>
       <div class="inspector" id="inspector" role="toolbar" aria-label="Objeto seleccionado"></div>
       <button class="zoom-reset" id="zoom" hidden title="Ver el campo entero" aria-label="Ver el campo entero">
@@ -258,10 +322,180 @@
       </button>
       <div class="hint" id="hint"></div>
     </section>
+
+    <!-- ==================== EQUIPO ====================
+         Antes eran dos diálogos sueltos. Ahora es una pantalla con sus
+         apartados, que es donde caben las sesiones sin pelear por un botón. -->
+    <section class="equipo solo-equipo" id="equipo" aria-label="Mi equipo">
+      <div class="eq-nav">
+        <div class="seg" id="eq-tabs" role="tablist">
+          <button type="button" data-eq="plantilla" role="tab" aria-selected="true">Plantilla</button>
+          <button type="button" data-eq="sesiones" role="tab" aria-selected="false">Sesiones</button>
+          <button type="button" data-eq="datos" role="tab" aria-selected="false">Datos</button>
+        </div>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-plantilla" role="tabpanel">
+  <div class="squad-temp">
+    <label class="field"><span>Temporada</span>
+      <select id="squad-temporada"></select></label>
+    <button type="button" class="tbtn marco" id="squad-nueva">Nueva temporada</button>
+  </div>
+
+  <div class="squad-hoy">
+    <p class="squad-hoy-t">Han venido hoy <b id="squad-cuenta">0 de 0</b></p>
+    <div class="squad-hoy-btns">
+      <button type="button" class="tbtn" id="squad-todos">Todos</button>
+      <button type="button" class="tbtn" id="squad-ninguno">Ninguno</button>
+    </div>
+  </div>
+
+  <ul class="squad-lista" id="squad-lista"></ul>
+
+  <div class="squad-alta">
+    <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
+           placeholder="Nº" aria-label="Dorsal">
+    <input type="text" id="squad-nombre" maxlength="40"
+           placeholder="Nombre y apellido" aria-label="Nombre del jugador">
+    <select id="squad-posicion" aria-label="Posición"></select>
+    <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
+  </div>
+  <p class="block-note" id="squad-nota"></p>
+  <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
+    a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-sesiones" role="tabpanel" hidden>
+  <!-- El diario: los días que tienen algo, por meses. -->
+  <div id="ses-diario">
+    <div class="ses-cabeza">
+      <p class="stats-resumen" id="ses-resumen"></p>
+      <button type="button" class="tbtn primary" id="ses-hoy">La sesión de hoy</button>
+    </div>
+    <div id="ses-meses"></div>
+    <p class="block-note" id="ses-nota"></p>
+  </div>
+
+  <!-- Un día, por dentro. Es la misma pestaña, no un diálogo encima. -->
+  <div id="ses-detalle" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-volver">‹ Todas las sesiones</button>
+    <h3 class="ses-fecha" id="ses-fecha"></h3>
+    <label class="field wide"><span>Nombre de la sesión <small>opcional</small></span>
+      <input type="text" id="ses-nombre" maxlength="80" placeholder="Salida de balón bajo presión"></label>
+    <p class="block-note" id="ses-asis"></p>
+
+    <p class="form-group">Ejercicios</p>
+    <ol class="ses-lista" id="ses-lista"></ol>
+
+    <p class="form-group">Añadir uno</p>
+    <div class="ses-nuevo">
+      <input type="text" id="ses-ej-titulo" maxlength="80" placeholder="Título del ejercicio"
+             aria-label="Título del ejercicio" autocomplete="off">
+      <select id="ses-ej-momento" aria-label="Momento del juego"></select>
+      <input type="text" id="ses-ej-duracion" maxlength="20" placeholder="15 min"
+             aria-label="Duración" autocomplete="off">
+      <button type="button" class="tbtn primary" id="ses-ej-add">Añadir</button>
+    </div>
+    <div class="ses-acciones">
+      <button type="button" class="tbtn marco" id="ses-proponer">Proponer una sesión</button>
+      <button type="button" class="tbtn marco" id="ses-traer">Traer de la biblioteca</button>
+      <button type="button" class="tbtn marco" id="ses-imprimir">Imprimir la sesión</button>
+    </div>
+    <p class="block-note" id="ses-pie"></p>
+  </div>
+
+  <!-- Pasar lista de ese día. Tercera cara de la misma pestaña: no lleva al
+       apartado Plantilla, que es donde se monta el equipo y no donde se pasa
+       lista de un jueves de hace dos semanas. -->
+  <div id="ses-asistencia" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-asis-volver">‹ Volver a la sesión</button>
+    <h3 class="ses-fecha" id="ses-asis-fecha"></h3>
+    <p class="block-note" id="ses-asis-como"></p>
+    <div class="squad-hoy">
+      <p class="squad-hoy-t" id="ses-asis-cuenta"></p>
+      <div class="squad-hoy-btns">
+        <button type="button" class="tbtn" id="ses-asis-todos">Todos</button>
+        <button type="button" class="tbtn" id="ses-asis-ninguno">Ninguno</button>
+      </div>
+    </div>
+    <ul class="squad-lista" id="ses-asis-lista"></ul>
+    <p class="block-note" id="ses-asis-nota"></p>
+  </div>
+
+  <!-- Proponer una sesión. Cuarta cara de la misma pestaña: se dice con cuánta
+       gente estás, en cuánto campo y cuánto rato, y sale una propuesta que se
+       puede cambiar antes de quedársela. -->
+  <div id="ses-generar" hidden>
+    <button type="button" class="linkish ses-volver" id="ses-gen-volver">‹ Volver a la sesión</button>
+    <h3 class="ses-fecha" id="ses-gen-fecha"></h3>
+
+    <div class="gen-campos">
+      <label class="field"><span>Modalidad</span>
+        <select id="gen-pitch">
+          <option value="f11">Fútbol 11</option>
+          <option value="f7">Fútbol 7</option>
+          <option value="futsal">Fútbol sala</option>
+        </select></label>
+      <label class="field"><span>Espacio</span>
+        <select id="gen-espacio"></select></label>
+      <label class="field"><span>Jugadores <small>de campo</small></span>
+        <input type="text" id="gen-jugadores" inputmode="numeric" maxlength="2" placeholder="14"></label>
+      <label class="field"><span>Porteros</span>
+        <input type="text" id="gen-porteros" inputmode="numeric" maxlength="1" placeholder="1"></label>
+      <label class="field"><span>Tiempo <small>minutos</small></span>
+        <input type="text" id="gen-minutos" inputmode="numeric" maxlength="3" placeholder="75"></label>
+      <label class="field wide"><span>Qué toca hoy</span>
+        <select id="gen-contexto"></select></label>
+    </div>
+    <p class="block-note" id="gen-pie"></p>
+
+    <div class="ses-acciones">
+      <button type="button" class="tbtn primary" id="gen-proponer">Proponer</button>
+      <button type="button" class="tbtn marco" id="gen-otra" hidden>Otra propuesta</button>
+    </div>
+
+    <div id="gen-salida" hidden>
+      <p class="form-group">La propuesta</p>
+      <div id="gen-avisos"></div>
+      <ol class="ses-lista" id="gen-lista"></ol>
+      <p class="block-note" id="gen-resumen"></p>
+      <div class="ses-acciones">
+        <button type="button" class="tbtn primary" id="gen-usar">Usar esta sesión</button>
+      </div>
+    </div>
+  </div>
+      </div>
+
+      <div class="eq-cuerpo" id="eq-datos" role="tabpanel" hidden>
+  <div class="seg" id="stats-periodo">
+    <button type="button" data-periodo="micro" aria-pressed="true">Microciclo</button>
+    <button type="button" data-periodo="mes" aria-pressed="false">Mes</button>
+    <button type="button" data-periodo="temporada" aria-pressed="false">Temporada</button>
+  </div>
+
+  <p class="stats-resumen" id="stats-resumen"></p>
+  <div id="stats-olvido"></div>
+
+  <p class="form-group">Equilibrio por fase de juego</p>
+  <div id="stats-radar"></div>
+
+  <p class="form-group">Por momento del juego</p>
+  <div class="barras" id="stats-momentos"></div>
+
+  <p class="form-group">Por jugador</p>
+  <div class="seg seg-mini" id="stats-orden" role="group" aria-label="Ordenar los jugadores">
+    <button type="button" data-orden="minutos" aria-pressed="true">Más minutos</button>
+    <button type="button" data-orden="asistencia" aria-pressed="false">Menos asistencia</button>
+  </div>
+  <div class="barras" id="stats-jugadores"></div>
+  <p class="block-note" id="stats-jugadores-pie"></p>
+  <p class="block-note" id="stats-nota"></p>
+      </div>
+    </section>
   </div>
 
   <!-- ==================== TRANSPORTE ==================== -->
-  <footer class="timeline">
+  <footer class="timeline solo-pizarra">
     <button class="play" id="play" aria-label="Reproducir" title="Reproducir la animación (Espacio)">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
     </button>
@@ -281,25 +515,38 @@
   </footer>
 
   <!-- ============== NAVEGACIÓN INFERIOR (solo pantallas pequeñas) ============== -->
-  <nav class="tabbar" aria-label="Secciones">
+  <!-- ============== NAVEGACIÓN INFERIOR (solo pantallas pequeñas) ==============
+       Cuatro pestañas, no seis. Antes «Herramientas» y «Trazo» estaban
+       separadas, y elegir la flecha de pase y ponerla gruesa y amarilla eran
+       dos viajes a dos sitios distintos con la hoja cerrándose en medio: es lo
+       que más se hace dibujando y era lo más incómodo. Ahora van juntas.
+       Y jugadores, formaciones y material son todos «poner algo en el campo»,
+       así que comparten sitio. Cuatro pestañas caben anchas; seis iban justas. -->
+  <nav class="tabbar solo-pizarra" aria-label="Secciones">
     <button class="tab" data-section="b-tools">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3l14 8-6 1.6L10 19z"/></svg>
-      Herramientas</button>
-    <button class="tab" data-section="b-color">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/><circle cx="19" cy="5" r="2.2"/><path d="M7 12h9"/></svg>
-      Trazo</button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17.5c5 0 8-9 18-11"/><path d="M17 4.5l4 2-1 4"/></svg>
+      Dibujar</button>
     <button class="tab" data-section="b-teams">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8.5" cy="9" r="3"/><circle cx="16" cy="15" r="3"/></svg>
-      Equipos</button>
-    <button class="tab" data-section="b-mats">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l7 15H5z"/></svg>
-      Material</button>
+      Colocar</button>
     <button class="tab" data-section="b-view">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="3"/></svg>
       Campo</button>
     <button class="tab" data-section="b-actions">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7.5 8.5h9M7.5 12h9M7.5 15.5h5"/></svg>
-      Pizarra</button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      Más</button>
+  </nav>
+
+  <nav class="tabbar tabbar-eq solo-equipo" aria-label="Apartados del equipo">
+    <button class="tab" data-eq="plantilla">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+      Plantilla</button>
+    <button class="tab" data-eq="sesiones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M3.5 9.5h17"/><path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h4M7.5 16.5h7"/></svg>
+      Sesiones</button>
+    <button class="tab" data-eq="datos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
+      Datos</button>
   </nav>
 
   <div class="scrim" id="scrim"></div>
@@ -551,6 +798,50 @@
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
 </dialog>
 
+<!-- ================= MI EQUIPO =================
+     La plantilla se escribe una vez por temporada; la asistencia se marca cada
+     día. Nada de esto sale del dispositivo: son nombres de menores. -->
+
+<!-- ================= ESTADÍSTICAS =================
+     Todo se calcula aquí, leyendo las pizarras guardadas. Sin red. -->
+
+<!-- ================= GUARDAR =================
+     Antes era un cuadro de una línea. Ahora lleva debajo quién ha participado,
+     que viene marcado de la asistencia del día: si no se toca, no hay nada que
+     hacer más que darle a Guardar. -->
+<dialog id="dlg-save" aria-labelledby="dlg-save-t">
+  <div class="dhead"><h3 id="dlg-save-t">Guardar pizarra</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <label class="field wide"><span>Nombre del ejercicio</span>
+      <input type="text" id="save-nombre" maxlength="80" placeholder="Rondo de los martes"></label>
+
+    <div id="save-part">
+      <label class="check check-fila"><input type="checkbox" id="save-hoy" checked>
+        <span>Apuntarlo como hecho hoy, <span id="save-hoy-fecha"></span></span></label>
+      <p class="save-part-t" id="save-part-t">
+        <span id="save-part-cuenta"></span>
+        <button type="button" class="linkish" id="save-part-cambiar">cambiar</button>
+      </p>
+      <div id="save-part-caja" hidden>
+        <div class="squad-hoy">
+          <label class="check check-llano"><input type="checkbox" id="save-part-plantilla">
+            <span>Ver toda la plantilla</span></label>
+          <div class="squad-hoy-btns">
+            <button type="button" class="tbtn" id="save-part-todos">Todos</button>
+            <button type="button" class="tbtn" id="save-part-ninguno">Ninguno</button>
+          </div>
+        </div>
+        <ul class="squad-lista" id="save-part-lista"></ul>
+      </div>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="tbtn" data-close>Cancelar</button>
+    <button class="tbtn primary" id="save-ok">Guardar</button>
+  </div>
+</dialog>
+
 <dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
   <div class="dhead"><h3 id="dlg-cfg-t">Ajustes</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
@@ -568,6 +859,18 @@
     <div class="form-grid">
       <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
         <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
+    </div>
+
+    <p class="form-group">La aplicación</p>
+    <div class="stack">
+      <button class="row-btn" id="install" hidden>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
+        Instalar en este dispositivo
+      </button>
+      <button class="row-btn" id="help">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
+        Cómo se usa
+      </button>
     </div>
 
     <p class="form-group">Tu cuenta</p>
@@ -700,6 +1003,7 @@
 <script src="config.js"></script>
 <script src="nube.js"></script>
 <script src="enlace.js"></script>
+<script src="equipo.js"></script>
 <script src="board.js" defer></script>
 </body>
 </html>

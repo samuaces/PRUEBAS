@@ -166,14 +166,70 @@
     });
   }
 
+  /* ---- la vuelta del correo, atada a esta aplicación ---------------------
+
+     La sesión vuelve del enlace del correo dentro del ancla de la dirección.
+     El peligro es evidente en cuanto se dice en voz alta: si se acepta
+     CUALQUIER ancla que traiga un «access_token», cualquiera puede mandarte
+
+         https://klym.xyz/app/#access_token=<el suyo>&type=recovery
+
+     y quedas dentro de SU cuenta sin enterarte —el ancla se borra de la barra
+     al instante—. A partir de ahí, lo que compartas se publica a su nombre y
+     él lo puede editar o borrar. Y con «type=recovery» la aplicación te lleva
+     además a escribir una contraseña nueva… en la cuenta de otro.
+
+     Se arregla atando la ida y la vuelta: antes de mandarte al correo, esta
+     aplicación se guarda un valor al azar y lo mete en la dirección de
+     regreso. Al volver, si el valor no está o no es el que se guardó, el ancla
+     se tira entera. Es de un solo uso y caduca en una hora.
+
+     Va en localStorage y no en sessionStorage a propósito: el enlace del correo
+     se abre casi siempre en una pestaña nueva, y sessionStorage no cruza de
+     pestaña. Así funciona en el mismo navegador, que es lo que ya pedía el
+     mensaje de «ábrelo en este mismo móvil». */
+
+  var LLAVE_VUELTA = 'pt-vuelta';
+  var VUELTA_VIVA  = 3600000;          // una hora, como el enlace del correo
+
+  function preparaVuelta() {
+    var v;
+    try { v = crypto.randomUUID(); }
+    catch (e) { v = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+    try { localStorage.setItem(LLAVE_VUELTA, JSON.stringify({ v: v, at: Date.now() })); }
+    catch (e) {}
+    return v;
+  }
+
+  function esNuestraVuelta() {
+    var pedido = null;
+    try { pedido = JSON.parse(localStorage.getItem(LLAVE_VUELTA) || 'null'); } catch (e) {}
+    try { localStorage.removeItem(LLAVE_VUELTA); } catch (e) {}   // de un solo uso
+    var trae = new URLSearchParams(location.search).get('v');
+    if (!pedido || !pedido.v || !trae) return false;
+    if (Date.now() - pedido.at > VUELTA_VIVA) return false;
+    return pedido.v === trae;
+  }
+
   // Al volver del enlace del correo, la sesión llega en el ancla de la
   // dirección. Se recoge, se guarda y se limpia la barra del navegador.
   function recogeVuelta() {
     var h = location.hash || '';
     if (h.indexOf('access_token=') < 0 && h.indexOf('error=') < 0) return null;
     var p = new URLSearchParams(h.replace(/^#/, ''));
-    var limpio = location.pathname + location.search;
+    var nuestra = esNuestraVuelta();
+    // La barra se limpia siempre, venga de donde venga: ni el testigo ni un
+    // mensaje de error de nadie tienen por qué quedarse a la vista.
+    var limpio = location.pathname +
+      location.search.replace(/([?&])v=[^&]*(&|$)/, '$1').replace(/[?&]$/, '');
     try { history.replaceState(null, '', limpio); } catch (e) { location.hash = ''; }
+
+    /* Una vuelta que esta aplicación no pidió se tira entera, sin decir nada.
+       Ni el testigo —sería entrar en la cuenta de otro— ni el mensaje de error
+       —sería dejar que un desconocido escriba en tu pantalla el texto que
+       quiera, que es como empiezan las estafas—. */
+    if (!nuestra) return null;
+
     if (p.get('access_token')) {
       guardaTokens({
         access_token: p.get('access_token'),
@@ -304,7 +360,10 @@
      vuelve a la pizarra, no a la portada, porque es donde está la cuenta. */
   function recupera(email) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
-    var vuelve = location.origin + location.pathname;
+    // El valor de un solo uso viaja en la dirección de regreso: es lo que hace
+    // que al volver se sepa que este enlace lo pediste tú desde aquí.
+    var vuelve = location.origin + location.pathname + '?v=' +
+                 encodeURIComponent(preparaVuelta());
     return traer(BASE + '/auth/v1/recover?redirect_to=' + encodeURIComponent(vuelve), {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({ email: String(email || '').trim() })
