@@ -89,6 +89,7 @@ const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');
 const nube = leer('app/nube.js');
 const enlace = leer('app/enlace.js');
 const equipo = leer('app/equipo.js');
+const codecs = leer('app/codecs.js');
 
 const salida =
   cabecera + '\n' +
@@ -98,6 +99,7 @@ const salida =
   '<script>\n' + nube + '\n</script>\n' +
   '<script>\n' + enlace + '\n</script>\n' +
   '<script>\n' + equipo + '\n</script>\n' +
+  '<script>\n' + codecs + '\n</script>\n' +
   '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +
   '<script>\n' + motor + '\n</script>';
 
