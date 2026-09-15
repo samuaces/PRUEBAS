@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Revisión de tu Supabase · Pizarra Táctica</title>
 <meta name="robots" content="noindex, nofollow">
+<!-- Esta página de diagnóstico también se publica, y lleva su script dentro y
+     tipografías de fuera, así que no puede cerrarse tanto como la aplicación.
+     Pero sí lo suficiente: nada de código de otros servidores, y solo se habla
+     con el Supabase que se está revisando. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
+  img-src 'self' data:;
+  connect-src 'self' https://bbxiuzknxdeuovoytrha.supabase.co;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none'">
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

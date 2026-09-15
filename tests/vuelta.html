@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Banco de pruebas · la vuelta del correo</title>
+<!--
+  Este archivo no prueba nada por sí solo: es el banco donde tests/nube.test.html
+  monta una vuelta del enlace del correo y mira qué hace nube.js con ella.
+
+  Hace falta un archivo aparte porque recogeVuelta() se ejecuta UNA vez, al
+  cargarse el módulo. Para probar una vuelta buena y otra falsificada hay que
+  cargarlo dos veces, y eso solo se puede hacer en dos páginas.
+
+  Se le dice qué montar por la dirección:
+    ?modo=buena      la aplicación pidió el correo desde aquí  → tiene que entrar
+    ?modo=falsa      nadie pidió nada, el ancla la manda otro → NO puede entrar
+    ?modo=caducada   se pidió hace dos horas                  → NO puede entrar
+    ?modo=otro       se pidió, pero el valor que vuelve es otro → NO puede entrar
+-->
+<script>
+var q = new URLSearchParams(location.search);
+window.PT_NUBE = { url: 'https://mentira.supabase.co', key: 'clave-de-mentira' };
+
+// Ni una petición de verdad: aquí solo se mira si se guarda la sesión o no.
+window.fetch = function () {
+  return Promise.resolve({
+    ok: true, status: 200,
+    headers: { get: function () { return 'application/json'; } },
+    text: function () { return Promise.resolve('{}'); }
+  });
+};
+
+try { localStorage.removeItem('pt-nube'); } catch (e) {}
+var modo = q.get('modo');
+var HORA = 3600000;
+try {
+  if (modo === 'buena')          localStorage.setItem('pt-vuelta', JSON.stringify({ v: q.get('v'), at: Date.now() }));
+  else if (modo === 'caducada')  localStorage.setItem('pt-vuelta', JSON.stringify({ v: q.get('v'), at: Date.now() - 2 * HORA }));
+  else if (modo === 'otro')      localStorage.setItem('pt-vuelta', JSON.stringify({ v: 'otro-distinto', at: Date.now() }));
+  else                           localStorage.removeItem('pt-vuelta');   // nadie pidió nada
+} catch (e) {}
+</script>
+<script src="../app/nube.js"></script>
+<script>
+window.RESULTADO = {
+  dentro:   window.PTNube.dentro(),
+  guardada: !!localStorage.getItem('pt-nube'),
+  vuelta:   window.PTNube.vuelta(),
+  ancla:    location.hash,
+  busca:    location.search
+};
+document.title = 'listo';
+</script>
+</html>

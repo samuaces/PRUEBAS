@@ -25,9 +25,35 @@ const caras = [
   `font-weight:${w};font-style:normal;font-display:swap}`
 ).join('\n');
 
-// --- Cabecera: lo mismo que la aplicación, sin manifiesto ni enlaces externos ---
+/* --- Cabecera: lo mismo que la aplicación, sin manifiesto ni enlaces externos ---
+
+   Con su propia política de seguridad, y no la de app/index.html: allí se puede
+   cerrar «script-src 'self'» porque son cinco archivos separados, y aquí no,
+   porque el archivo único lleva todo el código dentro y las tipografías como
+   datos. Así que aquí hay que admitir lo de dentro.
+
+   Aun rebajada sirve, y hace falta: este archivo se manda por correo y se
+   abre desde cualquier sitio. Lo importante es que no puede cargar código de
+   fuera ni hablar con ningún servidor que no sea Supabase. Antes no llevaba
+   ninguna, y eso convertía en ejecución de código lo que en la aplicación de
+   verdad se quedaba en un destrozo de la hoja impresa. */
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",     // el motor va dentro del archivo
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
+  "font-src 'self' data:",                 // las tipografías van dentro
+  "connect-src 'self' https://bbxiuzknxdeuovoytrha.supabase.co",
+  "frame-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'"
+].join('; ');
+
 const cabecera = [
   '<meta charset="utf-8">',
+  `<meta http-equiv="Content-Security-Policy" content="${csp}">`,
   '<title>Pizarra Táctica</title>',
   '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">',
   '<meta name="color-scheme" content="dark">',

@@ -157,10 +157,15 @@ window.fetch = function (url, opts) {
 };
 </script>
 
-<!-- La sesión llega en el ancla, igual que al volver del enlace del correo -->
+<!-- La sesión llega en el ancla, igual que al volver del enlace del correo.
+     Y con el valor de un solo uso que la aplicación se guardó antes de mandar
+     el correo: sin él, la vuelta se tira, que es justo lo que se prueba más
+     abajo con una falsificada. -->
 <script>
 try { localStorage.removeItem('pt-nube'); } catch (e) {}
-history.replaceState(null, '', location.pathname + '#access_token=t-1&refresh_token=r-1&expires_in=3600&token_type=bearer');
+try { localStorage.setItem('pt-vuelta', JSON.stringify({ v: 'testigo-bueno', at: Date.now() })); } catch (e) {}
+history.replaceState(null, '', location.pathname + '?v=testigo-bueno' +
+  '#access_token=t-1&refresh_token=r-1&expires_in=3600&token_type=bearer');
 </script>
 <script src="../app/nube.js"></script>
 
@@ -381,6 +386,60 @@ function ultima(fragmento) {
   var caido = await N.lista({}).then(function () { return null; }, function (e) { return e; });
   ok('si el servidor no contesta, la promesa falla y no cuelga', !!caido);
   window.fetch = previo;
+
+  /* ---- la vuelta del correo no se acepta de cualquiera ------------------
+
+     Antes, nube.js recogía CUALQUIER ancla que trajera un «access_token». Con
+     eso, mandándote
+
+         https://klym.xyz/app/#access_token=<el mío>&type=recovery
+
+     quedabas dentro de MI cuenta sin enterarte: el ancla se borra de la barra
+     al instante. Lo que compartieras se publicaba a mi nombre y yo lo podía
+     editar o borrar; y con «type=recovery» te llevaba además a escribir una
+     contraseña nueva en mi cuenta.
+
+     Ahora la ida y la vuelta van atadas por un valor de un solo uso. Esto lo
+     comprueba cargando nube.js otra vez en un banco aparte, porque recogeVuelta
+     se ejecuta una sola vez al cargar el módulo. */
+  var guardadaAntes = localStorage.getItem('pt-nube');
+  async function vueltaDe(modo) {
+    var m = document.createElement('iframe');
+    m.style.cssText = 'position:fixed;left:-9999px;width:400px;height:300px';
+    var ancla = '#access_token=ROBADO&refresh_token=r-x&expires_in=3600&type=recovery';
+    m.src = 'vuelta.html?modo=' + modo + '&v=testigo-x' + ancla;
+    document.body.appendChild(m);
+    await new Promise(function (res) { m.onload = res; setTimeout(res, 4000); });
+    await new Promise(function (res) { setTimeout(res, 120); });
+    var r = null;
+    try { r = m.contentWindow.RESULTADO; } catch (e) {}
+    m.remove();
+    return r || { dentro: null };
+  }
+
+  var buena = await vueltaDe('buena');
+  ok('la vuelta que pidió la propia aplicación sí entra',
+     buena.dentro === true && buena.guardada === true, JSON.stringify(buena && buena.dentro));
+  ok('y es de recuperación, para que te pida una contraseña nueva',
+     !!buena.vuelta && buena.vuelta.recuperando === true);
+
+  var falsa = await vueltaDe('falsa');
+  ok('una vuelta que nadie pidió NO entra: es la cuenta de otro',
+     falsa.dentro === false && falsa.guardada === false, JSON.stringify(falsa));
+  ok('y tampoco deja el testigo de nadie en la barra del navegador',
+     falsa.ancla === '', JSON.stringify(falsa.ancla));
+
+  var caducada = await vueltaDe('caducada');
+  ok('una vuelta de hace dos horas ya no vale', caducada.dentro === false);
+
+  var otro = await vueltaDe('otro');
+  ok('ni una con un valor que no es el que se pidió', otro.dentro === false);
+
+  // El valor es de un solo uso: repetir el mismo enlace ya no entra.
+  var repe = await vueltaDe('falsa');
+  ok('y el valor se gasta: el mismo enlace no sirve dos veces', repe.dentro === false);
+
+  try { if (guardadaAntes) localStorage.setItem('pt-nube', guardadaAntes); } catch (e) {}
 
   document.getElementById('out').textContent =
     log.join('\n') + '\n\nRESULTADO: ' + (fails ? fails + ' FALLOS' : 'TODO CORRECTO (' + log.length + ' comprobaciones)');

@@ -4552,7 +4552,14 @@
       }).join('');
   }
 
-  // ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
+  /* ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
+     El título se escapa como todo lo demás. Era el ÚNICO sitio de la aplicación
+     donde se armaba HTML sin pasar por esc(), y no era inocente: el cuadro de
+     texto viene relleno con el título de la ficha, y una ficha puede llegar de
+     un enlace que te manden o de la biblioteca común. Con eso, quien te manda
+     el enlace escribe HTML dentro de tu hoja. La CSP lo dejaba en un destrozo
+     de la hoja impresa; en el archivo único, que no lleva CSP, era ejecución de
+     código. Lo encontró una revisión de seguridad, no yo. */
   function printSheet() {
     ask({ title: 'Hoja de sesión', input: card().titulo || 'Sesión del martes',
           placeholder: 'Título de la sesión', ok: 'Preparar' })
@@ -4566,7 +4573,7 @@
 
         imprime(
           '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-          '<title>' + (title || 'Hoja de sesión') + '</title><style>' +
+          '<title>' + esc(title || 'Hoja de sesión') + '</title><style>' +
           '@page{margin:14mm}' +
           'body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#111}' +
           'header{display:flex;justify-content:space-between;align-items:baseline;' +
@@ -4581,7 +4588,7 @@
           'footer{margin-top:18px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#666}' +
           '.notes{margin-top:16px;border:1px solid #ccc;border-radius:4px;height:70px}' +
           '</style></head><body>' +
-          '<header><h1>' + (title || 'Hoja de sesión') + '</h1>' +
+          '<header><h1>' + esc(title || 'Hoja de sesión') + '</h1>' +
           '<span>' + PITCHES[doc.pitch].label + ' · ' + P.L + ' × ' + P.W + ' m · ' +
           new Date().toLocaleDateString('es-ES') + '</span></header>' +
           '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +

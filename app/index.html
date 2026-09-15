@@ -21,7 +21,12 @@
                            sin pasar por ningún servidor. Esto faltaba en la
                            primera versión de aquí y rompió la exportación a
                            MP4: lo cazó la prueba antes de subir nada.
-       connect-src         solo Supabase. A ningún otro sitio se habla.
+       connect-src         SOLO este proyecto de Supabase, con su nombre
+                           entero. Poniendo «*.supabase.co» se permitía hablar
+                           con el proyecto de cualquiera, que es a donde
+                           mandaría los datos un script colado. Si alguien hace
+                           una copia de esto, tiene que cambiar esta línea
+                           además de app/config.js.
      «frame-ancestors» no se puede poner en una etiqueta meta; haría falta una
      cabecera, y GitHub Pages no deja ponerlas. -->
 <meta http-equiv="Content-Security-Policy" content="
@@ -31,7 +36,7 @@
   img-src 'self' data: blob:;
   media-src 'self' blob:;
   font-src 'self';
-  connect-src 'self' https://*.supabase.co;
+  connect-src 'self' https://bbxiuzknxdeuovoytrha.supabase.co;
   frame-src 'self';
   manifest-src 'self';
   object-src 'none';

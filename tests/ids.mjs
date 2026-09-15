@@ -89,5 +89,58 @@ const equipoJs = readFileSync(join(raiz, 'app/equipo.js'), 'utf8');
 if (/innerHTML/.test(equipoJs)) falla('equipo.js no usa innerHTML en ningún sitio');
 else bien('equipo.js no usa innerHTML en ningún sitio');
 
+/* ---------- 5 · nada de la ficha entra en HTML sin escapar ----------
+
+   La ficha de un ejercicio puede llegar de un enlace que te manden o de la
+   biblioteca común: es texto de otro. Todo sitio que arme HTML con ella tiene
+   que pasarlo por esc().
+
+   Esto no es una regla de estilo. Había un caso real —el título de la hoja de
+   sesión, que se arma con «card().titulo» y se metía crudo en un <h1> y en un
+   <title>— y no lo encontré yo leyendo el código, lo encontró una revisión de
+   seguridad. Una regla que se comprueba sola no se olvida. */
+const boardJs = readFileSync(join(raiz, 'app/board.js'), 'utf8');
+
+/* Los campos de la ficha, leídos del propio código para que la regla no se
+   quede atrás si mañana se añade uno. */
+const campos = (boardJs.match(/var CARD_FIELDS = \[([\s\S]*?)\];/) || [, ''])[1]
+  .match(/'([a-z]+)'/g)?.map((s) => s.slice(1, -1)) || [];
+
+/* La primera versión de esta regla marcaba cualquier «+ algo» en una línea con
+   una etiqueta, y daba tres falsos positivos de tres: el nombre de una sección
+   («Consignas»), un color de una tabla fija, y un «it.map» cuyo interior sí
+   escapaba. Una regla que grita por nada se acaba apagando, y entonces no
+   protege de nada. Así que mira solo lo que de verdad viene de fuera: los
+   campos de la ficha, leídos por «c.campo» o «card().campo». */
+const sospechosas = [];
+if (!campos.length) falla('la regla encuentra la lista de campos de la ficha');
+const patron = new RegExp('\\+\\s*\\(?\\s*((?:c|card\\(\\))\\.(?:' + campos.join('|') + '))\\b', 'g');
+boardJs.split('\n').forEach((linea, i) => {
+  if (!/'<[a-z!/]/i.test(linea)) return;                 // no está armando HTML
+  let m;
+  while ((m = patron.exec(linea)) !== null) {
+    const antes = linea.slice(0, m.index + m[0].length - m[1].length);
+    if (!/esc\(\s*$/.test(antes)) {
+      sospechosas.push('board.js:' + (i + 1) + '  ' + m[1] + '  →  ' + linea.trim().slice(0, 64));
+    }
+  }
+});
+
+/* Y el título de la hoja de sesión, que es el caso que se escapó de verdad: se
+   rellena con «card().titulo» a través de un cuadro de texto, así que el rastro
+   se pierde y la regla de arriba no lo ve. Aquí se mira su función entera. */
+const hoja = boardJs.slice(boardJs.indexOf('function printSheet'),
+                           boardJs.indexOf('function printSheet') + 4000);
+const titulos = hoja.match(/\+\s*\(?\s*(?:esc\()?\s*title\b/g) || [];
+titulos.forEach((t) => { if (!/esc\(/.test(t)) sospechosas.push('printSheet: «' + t.trim() + '» sin esc()'); });
+if (!titulos.length) falla('la regla encuentra el título de la hoja de sesión');
+
+if (sospechosas.length) {
+  falla('nada de la ficha entra en HTML sin escapar');
+  sospechosas.forEach((s) => console.log('       ' + s));
+} else {
+  bien('nada de la ficha entra en HTML sin escapar  (' + campos.length + ' campos vigilados)');
+}
+
 console.log(malos ? '\n' + malos + ' FALLOS' : '\nIdentificadores correctos');
 process.exit(malos ? 1 : 0);
