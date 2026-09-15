@@ -1028,8 +1028,17 @@ async function run(w,d){
   pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerdown');
   pointerAt(w,cv,cv.clientWidth*0.88,cv.clientHeight*0.15,'pointerup');await wait(250);
   var aPica=alto(X,Y,26),aChino=alto(X2,Y,26);
-  ok('la pica se dibuja de pie, no como un punto',aPica>60,aPica+' px pintados encima');
-  ok('el chino se dibuja bajo, no como un cono de tráfico',aChino<60,aChino+' px pintados encima');
+  /* Lo que importa es la DIFERENCIA, no un número suelto. Antes esto comparaba
+     contra un 60 fijo, calibrado a ojo con los tamaños de entonces; al subir las
+     piezas para que se puedan coger con el dedo, el chino pasó de 54 a 108 y la
+     prueba cantó sin que el dibujo hubiera cambiado de forma. Un umbral absoluto
+     convierte cualquier ajuste de tamaño en un fallo falso. Comparando las dos
+     piezas entre sí, la prueba sigue diciendo lo mismo —la pica está de pie y el
+     chino tumbado— y aguanta que las piezas crezcan o encojan. */
+  ok('la pica se dibuja de pie, no como un punto',
+     aPica>120&&aPica>aChino*2, aPica+' px encima, frente a '+aChino+' del chino');
+  ok('el chino se dibuja bajo, no como un cono de tráfico',
+     aChino<aPica/2, aChino+' px encima, menos de la mitad que la pica');
   ok('la pica se ve bastante más alta que el chino',aPica>aChino*2,aPica+' contra '+aChino);
   pointerAt(w,cv,X,Y-16,'pointerdown');pointerAt(w,cv,X,Y-16,'pointerup');await raf();
   ok('la pica se puede seleccionar tocando el palo',
@@ -1136,6 +1145,63 @@ async function run(w,d){
      deSerie.length===0,
      deSerie.length?deSerie.slice(0,4).join(' · '):
        d.querySelectorAll('input,select,textarea').length+' campos mirados');
+
+  /* --- la hoja de abajo se arrastra para cerrarse ---
+
+     El asa tiene forma de asa, así que la gente la arrastra hacia abajo. Antes
+     solo respondía al toque: el gesto no cerraba nada y, peor, el navegador
+     hacía rebotar la hoja sobre sí misma y dejaba a la vista una franja vacía
+     encima del asa. Parecía rota sin estarlo. */
+  var marcoH=w.frameElement, anchoH=marcoH.style.width;
+  marcoH.style.width='390px'; await wait(650);
+  function toca(el,tipo,x,y){
+    var t=new w.Touch({identifier:1,target:el,clientX:x,clientY:y});
+    el.dispatchEvent(new w.TouchEvent(tipo,{bubbles:true,cancelable:true,
+      touches:tipo==='touchend'?[]:[t],
+      targetTouches:tipo==='touchend'?[]:[t],changedTouches:[t]}));
+  }
+  async function arrastraLaHoja(px){
+    var asa=d.getElementById('sheet-grab'), r=asa.getBoundingClientRect();
+    var x=r.left+r.width/2, y=r.top+r.height/2;
+    toca(asa,'touchstart',x,y);
+    for(var i=1;i<=8;i++){toca(asa,'touchmove',x,y+px*i/8);await wait(18);}
+    toca(asa,'touchend',x,y+px);
+    await wait(520);
+  }
+  var hoja=d.getElementById('aside');
+  d.querySelector('.tab[data-section="b-teams"]').click(); await wait(500);
+  ok('en el móvil la pestaña abre la hoja de abajo',hoja.classList.contains('open'));
+  // El asa va pegada al borde: si queda hueco, es que el panel ha rebotado.
+  var pegada=Math.round(d.getElementById('sheet-grab').getBoundingClientRect().top
+                        - hoja.getBoundingClientRect().top);
+  ok('el asa va pegada al borde de la hoja, sin franja vacía',pegada<=2,pegada+'px');
+  await arrastraLaHoja(150);
+  ok('arrastrar la hoja hacia abajo la cierra',!hoja.classList.contains('open'));
+  d.querySelector('.tab[data-section="b-teams"]').click(); await wait(500);
+  await arrastraLaHoja(22);
+  ok('pero un roce corto no la cierra sin querer',hoja.classList.contains('open'),
+     'sigue abierta tras 22px');
+  d.getElementById('sheet-grab').click(); await wait(400);
+  marcoH.style.width=anchoH||'1200px'; await wait(650);
+
+  /* --- coger una pieza sin apuntar ---
+     La holgura para acertar estaba escrita en metros de campo, así que con el
+     campo entero en un móvil valía dos o tres píxeles: había que dar en el
+     centro exacto de una pica. Ahora hay un suelo en píxeles de pantalla. */
+  d.querySelector('[data-view="full"]').click(); await wait(300);
+  d.getElementById('clear').click(); await wait(250);
+  if(d.getElementById('dlg-ask').open){d.getElementById('ask-ok').click();await wait(350);}
+  var PX=cv.clientWidth*0.42, PY=cv.clientHeight*0.5;
+  d.querySelector('[data-place="pole"]').click();
+  pointerAt(w,cv,PX,PY,'pointerdown');pointerAt(w,cv,PX,PY,'pointerup');await wait(300);
+  d.querySelector('[data-tool="select"]').click(); await wait(200);
+  pointerAt(w,cv,PX+12,PY+12,'pointerdown');pointerAt(w,cv,PX+12,PY+12,'pointerup');
+  await wait(300);
+  var cogida=(d.getElementById('inspector').textContent||'').trim();
+  ok('una pica se coge dando 12 px fuera de su centro',/pica/i.test(cogida),
+     cogida?cogida.slice(0,30):'no se cogió nada');
+  d.getElementById('clear').click(); await wait(250);
+  if(d.getElementById('dlg-ask').open){d.getElementById('ask-ok').click();await wait(350);}
 
   // --- la barra de arriba cabe entera en un teléfono ---
   // El logo era lo único que podía encogerse, así que absorbía todo lo que

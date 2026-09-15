@@ -177,7 +177,11 @@ a:hover{color:var(--text)}
 .aside{
   background:linear-gradient(180deg,rgba(14,19,29,.88),rgba(9,13,20,.88));
   border-right:1px solid var(--line);
-  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  /* «none» y no «contain»: «contain» solo impide que el desplazamiento se
+     contagie a la página, pero el panel sigue rebotando sobre sí mismo. Ese
+     rebote, en un móvil, empujaba el contenido hacia abajo y dejaba a la vista
+     una franja vacía encima del asa: la hoja parecía rota. */
+  overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch;
   scroll-behavior:smooth;padding:14px 13px 26px;
   scrollbar-width:thin;scrollbar-color:var(--glass-3) transparent;
 }
@@ -724,9 +728,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* Las cabeceras de la hoja se quedan pegadas arriba. Difuminan lo que pasa
      por debajo en vez de taparlo con un color liso: si no, sobre un panel de
      cristal se verían como un parche opaco. */
-  .sheet-grab{display:block;position:sticky;top:0;z-index:2;
+  /* El asa se puede arrastrar, así que el navegador no debe quedarse con el
+     gesto para desplazar: lo lleva la aplicación. */
+  .sheet-grab{display:block;position:sticky;top:0;z-index:2;touch-action:none;
     width:100%;height:26px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
+     dedo. La clase la pone y la quita el gesto. */
+  .aside.arrastrando{transition:none}
   .sheet-grab::before{content:"";display:block;width:42px;height:4px;border-radius:4px;
     background:var(--line-strong);margin:11px auto 0}
 
@@ -8701,19 +8710,29 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   // Geometría de cada tipo de objeto, en metros.
   // Como en cualquier pizarra táctica, las piezas se dibujan algo más grandes que
   // en la realidad: si no, un cono junto a una ficha de jugador sería invisible.
+  /* Los tamaños van en metros de campo, pero no son medidas literales: un
+     jugador de radio 1,45 m mediría casi tres metros de ancho. Son fichas, y
+     su tamaño está elegido para que se vean y se puedan coger.
+
+     Se subieron un escalón —entre un 15 % y un 25 %, más en lo pequeño de pie:
+     picas, conos y banderines— porque en un móvil, con el campo entero en
+     pantalla, las piezas chicas quedaban en cuatro píxeles y arrastrarlas era
+     un ejercicio de puntería. Las porterías y la escalera NO se tocan: esas sí
+     son medidas de verdad (7,32 m es una portería reglamentaria) y agrandarlas
+     sería mentir sobre el espacio que ocupan en el campo. */
   var KIND = {
-    player:   { r: 1.45,               rot: false, label: 'Jugador' },
-    ball:     { r: 0.85,               rot: false, label: 'Balón' },
-    cone:     { r: 0.95,               rot: true,  label: 'Cono' },
-    disc:     { r: 1.00,               rot: true,  label: 'Chino' },
+    player:   { r: 1.70,               rot: false, label: 'Jugador' },
+    ball:     { r: 0.98,               rot: false, label: 'Balón' },
+    cone:     { r: 1.18,               rot: true,  label: 'Cono' },
+    disc:     { r: 1.20,               rot: true,  label: 'Chino' },
     goal:     { w: 7.32, h: 2.0,       rot: true,  label: 'Portería' },
     minigoal: { w: 4.5,  h: 1.8,       rot: true,  label: 'Portería pequeña' },
-    hurdle:   { w: 2.2,  h: 1.1,       rot: true,  label: 'Valla' },
+    hurdle:   { w: 2.6,  h: 1.3,       rot: true,  label: 'Valla' },
     ladder:   { w: 7.0,  h: 1.6,       rot: true,  label: 'Escalera' },
-    pole:     { r: 0.75,               rot: true,  label: 'Pica' },
-    dummy:    { w: 1.4,  h: 2.1,       rot: true,  label: 'Maniquí' },
-    ring:     { r: 1.2,                rot: true,  label: 'Aro' },
-    flag:     { r: 1.00,               rot: true,  label: 'Banderín' },
+    pole:     { r: 0.94,               rot: true,  label: 'Pica' },
+    dummy:    { w: 1.7,  h: 2.5,       rot: true,  label: 'Maniquí' },
+    ring:     { r: 1.42,               rot: true,  label: 'Aro' },
+    flag:     { r: 1.22,               rot: true,  label: 'Banderín' },
     text:     { r: 1.2,                rot: true,  label: 'Texto' }
   };
 
@@ -9821,18 +9840,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   // bastante más que su base, así que se dejan tocar con un poco más de margen.
   var DE_PIE = { cone: 1, pole: 1, flag: 1 };
 
+  /* La holgura para acertar con una pieza estaba escrita en METROS de campo, y
+     eso la volvía inútil justo cuando más falta hace. Con el campo entero en la
+     pantalla de un móvil, 0,35 m son dos o tres píxeles: hay que dar en el
+     centro exacto de una pica para poder arrastrarla. Un dedo no apunta así.
+
+     Ahora la holgura tiene además un suelo en PÍXELES DE PANTALLA, que es la
+     unidad en la que vive el dedo, y se convierte a metros con la escala del
+     momento. Alejado, el margen crece; ampliado, manda la medida en metros y
+     las piezas siguen sin robarse el toque unas a otras. */
+  var DEDO_PX = 13;                    // radio extra mínimo, en píxeles
+
+  function holguraEnMetros(minimoEnMetros) {
+    var enMetros = T.s > 0 ? DEDO_PX / T.s : 0;
+    return Math.max(minimoEnMetros, enMetros);
+  }
+
   function hitObject(m) {
     var a = frame().objects;
     for (var i = a.length - 1; i >= 0; i--) {
       var o = a[i], k = dims(o);
       if (k.r != null) {
-        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + (DE_PIE[o.kind] ? 0.75 : 0.35)) return o;
+        var h = holguraEnMetros(DE_PIE[o.kind] ? 0.75 : 0.35);
+        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + h) return o;
       } else {
+        var hc = holguraEnMetros(0.3);
         var ang = -(o.rot || 0) * Math.PI / 180;
         var dx = m.x - o.x, dy = m.y - o.y;
         var lx = dx * Math.cos(ang) - dy * Math.sin(ang);
         var ly = dx * Math.sin(ang) + dy * Math.cos(ang);
-        if (Math.abs(lx) <= k.w / 2 + 0.3 && Math.abs(ly) <= k.h / 2 + 0.3) return o;
+        if (Math.abs(lx) <= k.w / 2 + hc && Math.abs(ly) <= k.h / 2 + hc) return o;
       }
     }
     return null;
@@ -14705,6 +14742,58 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
     scrim.addEventListener('click', sheetClose);
     $('#sheet-grab').addEventListener('click', sheetClose);
+
+    /* Arrastrar la hoja hacia abajo para cerrarla.
+
+       El asa tiene forma de asa, así que la gente la arrastra. Y no pasaba
+       nada: solo respondía al toque. Peor todavía, al tirar hacia abajo con la
+       hoja ya arriba del todo, el navegador la hacía rebotar sobre sí misma y
+       dejaba a la vista una franja vacía encima del asa. La hoja parecía rota
+       sin estarlo.
+
+       Se arrastra desde el asa siempre, y desde el cuerpo solo cuando ya está
+       arriba del todo: si no, tirar hacia abajo para leer lo de arriba
+       cerraría la hoja en vez de desplazarla. */
+    (function hojaArrastrable() {
+      var y0 = 0, dy = 0, activo = false, desdeAsa = false, t0 = 0;
+      var CIERRA = 88;                 // lo que hay que bajarla para que se cierre
+
+      function empieza(e) {
+        if (!aside.classList.contains('open') || e.touches.length !== 1) return;
+        desdeAsa = !!(e.target.closest && e.target.closest('.sheet-grab, .sheet-tit'));
+        activo = desdeAsa || aside.scrollTop <= 0;
+        y0 = e.touches[0].clientY; dy = 0; t0 = Date.now();
+      }
+      function mueve(e) {
+        if (!activo) return;
+        var d = e.touches[0].clientY - y0;
+        // Hacia arriba no: se devuelve el gesto al desplazamiento normal.
+        if (d <= 0) {
+          if (!desdeAsa) { activo = false; suelta(); }
+          return;
+        }
+        e.preventDefault();            // esto es lo que mata el rebote
+        dy = d;
+        aside.classList.add('arrastrando');
+        aside.style.transform = 'translateY(' + d.toFixed(1) + 'px)';
+        // El velo se va aclarando: el gesto se ve, no solo se nota al soltar.
+        scrim.style.opacity = String(Math.max(0, 1 - d / 280));
+      }
+      function suelta() {
+        aside.classList.remove('arrastrando');
+        aside.style.transform = '';
+        scrim.style.opacity = '';
+        // Un golpe corto y rápido cierra aunque no haya bajado los 88 px: es
+        // el gesto que hace todo el mundo, un manotazo hacia abajo.
+        var rapido = (Date.now() - t0) < 320 && dy > 34;
+        if (dy > CIERRA || rapido) sheetClose();
+        activo = false; desdeAsa = false; dy = 0;
+      }
+      aside.addEventListener('touchstart', empieza, { passive: true });
+      aside.addEventListener('touchmove', mueve, { passive: false });
+      aside.addEventListener('touchend', function () { if (activo) suelta(); });
+      aside.addEventListener('touchcancel', function () { if (activo) suelta(); });
+    })();
 
     // Elegir una herramienta o un material cierra la hoja y deja el campo libre.
     aside.addEventListener('click', function (e) {
