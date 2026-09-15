@@ -1797,6 +1797,42 @@ function siembra(lista){
   var st2 = E.estadisticas('micro');
   ok('el aviso solo sale cuando hay algo sin etiquetar',
      st2.sinMomento.ejercicios === 1, st2.sinMomento.ejercicios + ' sin momento');
+  /* ---- 20 · de «te falta esto» a montar la sesión ----
+
+     Datos decía lo que te falta y ahí se acababa: una frase muerta. El
+     generador ya existía, ya tenía un contexto llamado «Lo que te hace falta»
+     y ya leía estas mismas cuentas. Las dos piezas estaban hechas y no se
+     hablaban. Esto vigila el puente, que es justo lo que se rompe al mover
+     pantallas de sitio. */
+  d.querySelector('[data-eq="datos"]').click(); await wait(600);
+  var razon = d.getElementById('stats-olvido').textContent;
+  ok('Datos dice qué falta, con la cuenta delante',
+     /fases del juego/.test(razon), razon.trim().slice(0, 70));
+  var puente = d.getElementById('stats-a-sesion');
+  ok('y ofrece una salida, no se queda en la frase', !!puente);
+  if (puente) {
+    puente.click(); await wait(700);
+    var apartado = d.querySelector('[data-eq][aria-selected="true"]');
+    ok('el botón lleva a Sesiones con el generador abierto',
+       apartado && apartado.dataset.eq === 'sesiones' &&
+       !d.getElementById('ses-generar').hidden,
+       apartado ? apartado.dataset.eq : 'ninguno');
+    ok('y arranca en «Lo que te hace falta», que es de donde vienes',
+       d.getElementById('gen-contexto').value === 'datos',
+       d.getElementById('gen-contexto').value);
+    // Y propone de verdad: el puente no vale si al otro lado no hay nada.
+    d.getElementById('gen-proponer').click(); await wait(900);
+    ok('y al proponer sale una sesión de verdad',
+       d.querySelectorAll('#gen-salida li').length > 0,
+       d.querySelectorAll('#gen-salida li').length + ' ejercicios');
+  }
+
+  /* Sin nada que recomendar no hay botón: no es un cartel permanente. */
+  limpia();
+  d.querySelector('[data-eq="datos"]').click(); await wait(500);
+  ok('sin datos que comentar, no se ofrece montar nada',
+     !d.getElementById('stats-a-sesion'));
+
   d.querySelector('#modos [data-modo="pizarra"]').click(); await wait(300);
 
   limpia();

@@ -4158,6 +4158,54 @@
       caja.appendChild(p);
     }
 
+    /* Y de aquí se sale hacia algún sitio.
+
+       Datos te decía lo que te falta y ahí se acababa: una frase muerta. El
+       generador ya existe, ya tiene un contexto llamado «Lo que te hace falta»
+       y ya lee estas mismas cuentas. Las dos piezas estaban hechas y no se
+       hablaban; lo único que faltaba era el puente. No se añade ninguna función
+       nueva, se enlaza lo que ya hay.
+
+       Sale con CUALQUIERA de las dos señales, no solo con «llevas sin
+       trabajar»: esa lista solo recoge fases que trabajaste y dejaste 21 días,
+       así que un entrenador que empieza no la ve nunca. Lo que sí ve desde el
+       primer día son las fases sin tocar del radar. Si no hay ni una cosa ni
+       la otra, no hay nada que recomendar y no sale botón. */
+    /* Solo se recomienda contra lo que YA has hecho. Sin un solo ejercicio
+       apuntado, «te faltan las seis fases» es verdad y no dice nada: no has
+       empezado. Un recién llegado vería un cartel de recomendación en una
+       pantalla vacía, y el generador no tendría de dónde tirar. La lista de
+       «llevas sin trabajar» sí vale aunque el periodo esté vacío, porque mira
+       todo el historial: se entra por cualquiera de las dos puertas. */
+    var hayHistorial = d.ejercicios > 0;
+    var hueco = PTEquipo.equilibrio(statsPeriodo);
+    if (hayHistorial && hueco && hueco.sinTocar) {
+      /* El porqué, antes del botón. Un «monta una sesión con lo que falta» sin
+         decir qué falta es una recomendación que hay que creerse; con la cuenta
+         delante, se entiende y se puede discutir. El número sale del mismo
+         radar que hay debajo, no de ningún cálculo nuevo. */
+      var q = document.createElement('p');
+      q.className = 'stats-olvido';
+      q.textContent = hueco.sinTocar === 1
+        ? 'En este periodo te falta una de las seis fases del juego.'
+        : 'En este periodo te faltan ' + hueco.sinTocar + ' de las seis fases del juego.';
+      caja.appendChild(q);
+    }
+    if (d.olvidados.length || (hayHistorial && hueco && hueco.sinTocar)) {
+      var ir = document.createElement('button');
+      ir.type = 'button';
+      ir.className = 'tbtn marco';
+      ir.id = 'stats-a-sesion';
+      ir.textContent = 'Montar una sesión con lo que falta';
+      ir.addEventListener('click', function () {
+        vaApartado('sesiones');
+        abreGenerador();
+        // El generador arranca ya en «Lo que te hace falta»: es de donde viene
+        // quien pulsa. Lo deja así pintaGenerador().
+      });
+      caja.appendChild(ir);
+    }
+
     pintaRadar($('#stats-radar'), PTEquipo.equilibrio(statsPeriodo));
 
     /* El reparto se saca contra los minutos QUE ESTÁN REPARTIDOS, no contra el

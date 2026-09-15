@@ -1172,6 +1172,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #gen-lista .ses-ej-med{padding:6px 0}
 #gen-avisos .stats-olvido{margin:0 0 8px}
+/* El botón que lleva de «llevas sin trabajar esto» a montar la sesión. Va
+   debajo del aviso, no al lado: el aviso puede ocupar dos líneas. */
+#stats-a-sesion{margin-top:10px}
 /* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
    rótulo del botón de al lado. */
 #gen-salida{margin-top:18px}
