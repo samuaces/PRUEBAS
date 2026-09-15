@@ -8,7 +8,7 @@
 
    Lo que no cambia nunca (tipografías e iconos) sí sale de la copia primero,
    que para eso es lo que hace que la aplicación abra al instante. */
-var CACHE = 'pizarra-tactica-v12';   // v12: entra codecs.js
+var CACHE = 'pizarra-tactica-v13';   // v13: entra graficos.js
 
 var SHELL = [
   './',
@@ -20,6 +20,7 @@ var SHELL = [
   './enlace.js',
   './equipo.js',
   './codecs.js',
+  './graficos.js',
   '../assets/biblioteca.json',
   // La casilla del consentimiento enlaza aquí. Crear una cuenta necesita red de
   // todas formas, pero un enlace que da error de red mientras lees condiciones

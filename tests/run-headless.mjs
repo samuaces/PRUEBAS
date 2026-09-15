@@ -39,7 +39,13 @@ async function bateria(nombre) {
   await page.setViewport({ width: 1280, height: 820 });
   page.on('pageerror', (e) => errores.push(nombre + ' · pageerror: ' + e.message));
   page.on('console', (m) => {
-    if (m.type() === 'error') errores.push(nombre + ' · console: ' + m.text());
+    if (m.type() !== 'error') return;
+    /* Con la dirección, no solo con el texto: un «404 (File not found)» a secas
+       no dice de qué archivo, y sin saberlo no se puede distinguir el favicon
+       que pide el propio navegador de un archivo de la aplicación que falta.
+       Uno es ruido y el otro es un fallo. */
+    const donde = (m.location() && m.location().url) || '';
+    errores.push(nombre + ' · console: ' + m.text() + (donde ? '  [' + donde + ']' : ''));
   });
   await page.goto('http://localhost:8899/tests/' + nombre + '.test.html',
                   { waitUntil: 'networkidle0' });
@@ -58,6 +64,23 @@ for (const nombre of listas) {
   todoBien = (await bateria(nombre)) && todoBien;
 }
 
+/* Un error de página es un fallo, no una nota al pie.
+
+   Al partir board.js se me quedó fuera una constante que board.js seguía
+   usando. El navegador lo dijo bien claro —«POCO is not defined»— y la tanda
+   acabó igualmente en verde para el ojo que miraba solo la última línea,
+   porque los errores se imprimían debajo del resultado sin cambiarlo. Ahora lo
+   cambian.
+
+   Se dejan fuera los del contenedor donde corre esto, que no son de la
+   aplicación: el proxy bloquea supabase.co y no hay favicon. */
+const delContenedor = /TUNNEL|ERR_PROXY|favicon|supabase\.co|ERR_REQUEST_RANGE|ERR_ABORTED/i;
+const deVerdad = errores.filter((e) => !delContenedor.test(e));
+
 if (errores.length) console.log('\nERRORES DE LA PÁGINA:\n' + errores.join('\n'));
+if (deVerdad.length) {
+  console.log('\n' + deVerdad.length + ' ERROR(ES) DE LA APLICACIÓN — la tanda no está limpia');
+  todoBien = false;
+}
 await browser.close();
 process.exit(todoBien ? 0 : 1);

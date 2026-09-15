@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(raiz, 'app/index.html'), 'utf8');
-const fuentes = ['app/board.js', 'app/equipo.js', 'app/nube.js', 'app/enlace.js', 'app/codecs.js']
+const fuentes = ['app/board.js', 'app/equipo.js', 'app/nube.js', 'app/enlace.js', 'app/codecs.js', 'app/graficos.js']
   .map(f => ({ f, txt: readFileSync(join(raiz, f), 'utf8') }));
 
 let malos = 0;
@@ -73,12 +73,12 @@ else bien('todos los ids que busca el JS existen',
           mirados + ' comprobados, ' + saltados + ' armados con variables');
 
 // ---------- 3 · los archivos nuevos están enganchados ----------
-for (const f of ['config.js', 'nube.js', 'enlace.js', 'equipo.js', 'codecs.js', 'board.js']) {
+for (const f of ['config.js', 'nube.js', 'enlace.js', 'equipo.js', 'codecs.js', 'graficos.js', 'board.js']) {
   if (html.includes('src="' + f + '"')) bien('index.html carga ' + f);
   else falla('index.html carga ' + f);
 }
 const sw = readFileSync(join(raiz, 'app/sw.js'), 'utf8');
-for (const f of ['equipo.js', 'codecs.js']) {
+for (const f of ['equipo.js', 'codecs.js', 'graficos.js']) {
   if (sw.includes("'./" + f + "'")) bien('el service worker guarda ' + f);
   else falla('el service worker guarda ' + f);
 }

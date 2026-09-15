@@ -90,6 +90,7 @@ const nube = leer('app/nube.js');
 const enlace = leer('app/enlace.js');
 const equipo = leer('app/equipo.js');
 const codecs = leer('app/codecs.js');
+const graficos = leer('app/graficos.js');
 
 const salida =
   cabecera + '\n' +
@@ -100,6 +101,7 @@ const salida =
   '<script>\n' + enlace + '\n</script>\n' +
   '<script>\n' + equipo + '\n</script>\n' +
   '<script>\n' + codecs + '\n</script>\n' +
+  '<script>\n' + graficos + '\n</script>\n' +
   '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +
   '<script>\n' + motor + '\n</script>';
 
