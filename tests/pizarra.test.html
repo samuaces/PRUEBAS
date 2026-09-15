@@ -1146,6 +1146,32 @@ async function run(w,d){
      deSerie.length?deSerie.slice(0,4).join(' · '):
        d.querySelectorAll('input,select,textarea').length+' campos mirados');
 
+  /* --- la barra de animación no ocupa sitio mientras no haya animación ---
+
+     Con un solo fotograma, reproducir, borrar fotograma, bucle y velocidad no
+     hacen nada: cuatro mandos de seis apagados ocupando 63 px de alto fijos. En
+     un móvil instalado como aplicación, donde las franjas del sistema ya se
+     comen 93 px, eso es campo que no se ve. Se esconden hasta que sirven. */
+  var barraAnim=d.querySelector('.timeline');
+  var vive=function(id){var e=d.getElementById(id);
+    return !!(e&&w.getComputedStyle(e).display!=='none');};
+  ok('con un fotograma la barra de animación va encogida',
+     barraAnim.classList.contains('solo-uno')&&!vive('play')&&!vive('loop')&&!vive('speed'),
+     Math.round(barraAnim.getBoundingClientRect().height)+'px de alto');
+  ok('pero el «+» se queda, que es por donde se descubre la animación',
+     !!d.querySelector('#frames .frame.add'));
+  var altoUno=barraAnim.getBoundingClientRect().height;
+  d.querySelector('#frames .frame.add').click(); await wait(400);
+  ok('al añadir un segundo fotograma vuelven todos los mandos',
+     !barraAnim.classList.contains('solo-uno')&&vive('play')&&vive('loop')&&vive('speed'));
+  var altoDos=barraAnim.getBoundingClientRect().height;
+  ok('y la barra encogida deja sitio de verdad al campo',altoDos>altoUno+8,
+     Math.round(altoUno)+'px con uno, '+Math.round(altoDos)+'px con dos');
+  d.getElementById('delframe').click(); await wait(400);
+  if(d.getElementById('dlg-ask').open){d.getElementById('ask-ok').click();await wait(350);}
+  ok('y al quedarse en uno se vuelve a encoger',barraAnim.classList.contains('solo-uno'),
+     d.querySelectorAll('#frames .frame:not(.add)').length+' fotograma(s)');
+
   /* --- la hoja de abajo se arrastra para cerrarse ---
 
      El asa tiene forma de asa, así que la gente la arrastra hacia abajo. Antes

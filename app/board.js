@@ -36,7 +36,13 @@
   var ZONA = { L: 32, W: 22 };
 
   function viewRect() {
-    var P = PITCH(), m = Math.max(2.5, P.L * 0.05);
+    /* El margen de fuera de banda: sitio para dejar un cono, un maniquí o una
+       ficha fuera del campo. Era el 5 % del largo por cada lado, o sea que el
+       campo solo ocupaba el 91 % de lo dibujado a lo ancho y el 87 % a lo alto.
+       En un escritorio no se nota; en un teléfono instalado como aplicación,
+       con las franjas del sistema comiéndose 93 px, sí. Al 3,5 % sigue
+       cabiendo lo de fuera y el campo se ve un 4 % más grande. */
+    var P = PITCH(), m = Math.max(2.2, P.L * 0.035);
     if (doc.view === 'area') {
       var zl = Math.min(ZONA.L, P.L), zw = Math.min(ZONA.W, P.W), z = 2;
       return {
@@ -417,7 +423,7 @@
   function resize() {
     var stage = canvas.parentNode;
     // clientWidth/Height del contenedor: no lo influye el propio canvas, que va absoluto.
-    var pad = 8;
+    var pad = 4;                 // el mismo que el relleno de .stage en el móvil
     CW = Math.max(240, stage.clientWidth - pad * 2);
     CH = Math.max(200, stage.clientHeight - pad * 2);
     var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -1760,8 +1766,12 @@
     add.setAttribute('aria-label', 'Añadir fotograma');
     add.addEventListener('click', addFrame);
     box.appendChild(add);
-    $('#play').disabled = doc.frames.length < 2;
-    $('#delframe').disabled = doc.frames.length < 2;
+    // Mientras haya un solo fotograma no hay nada que reproducir, así que la
+    // barra se encoge y deja el sitio al campo. Lo decide el CSS con esta clase.
+    var solo = doc.frames.length < 2;
+    $('#play').closest('.timeline').classList.toggle('solo-uno', solo);
+    $('#play').disabled = solo;
+    $('#delframe').disabled = solo;
   }
 
   function gotoFrame(i) {

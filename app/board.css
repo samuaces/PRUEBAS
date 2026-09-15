@@ -415,6 +415,19 @@ a:hover{color:var(--text)}
 /* ---------------- Transporte ---------------- */
 .timeline{display:flex;align-items:center;gap:8px;padding:9px 12px;
   background:var(--bar);border-top:1px solid var(--line);position:relative}
+/* Con un solo fotograma no hay animación, así que reproducir, borrar
+   fotograma, bucle y velocidad no hacen nada: cuatro mandos de seis apagados
+   ocupando 63 px de alto permanentes. En un móvil instalado como aplicación
+   —donde las franjas del sistema ya se comen 93 px— eso es campo que no se ve.
+   Se esconden hasta que hay un segundo fotograma, que es justo cuando empiezan
+   a servir para algo, y la barra baja a la mitad. El «+» se queda: es por donde
+   se descubre que la jugada se puede animar, y el aviso del campo lo explica. */
+.timeline.solo-uno{padding:5px 12px}
+.timeline.solo-uno .play,
+.timeline.solo-uno #delframe,
+.timeline.solo-uno #loop,
+.timeline.solo-uno #speed{display:none}
+.timeline.solo-uno .frame{height:32px;min-width:38px}
 .play{width:44px;height:44px;flex:none;border-radius:var(--r3);
   background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
   display:grid;place-items:center;
@@ -784,7 +797,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scaleX(1)}
 
   .timeline{padding:8px 10px;gap:7px}
-  .stage{padding:8px}
+  .timeline.solo-uno{padding:4px 10px}
+  /* En un teléfono cada píxel del borde es campo que no se ve. Estaba en 8;
+     el mismo número está en «resize()» de board.js, que descuenta el relleno
+     para saber cuánto lienzo hay. Si se cambia uno hay que cambiar el otro. */
+  .stage{padding:4px}
   .inspector{top:8px;gap:6px;padding:6px}
   .inspector .name{display:none}
 }
