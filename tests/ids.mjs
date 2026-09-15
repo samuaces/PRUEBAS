@@ -182,5 +182,22 @@ if (/acepto:\s*acepto\s*\?\s*CONDICIONES/.test(nubeJs)) {
   bien('el navegador manda el sí, no la versión: la pone el servidor');
 }
 
+/* ---------- 7 · la privacidad promete una puerta y tiene que existir ----------
+
+   La página dice que puedes pedir una copia de tus datos o poner una queja. Sin
+   una dirección a la que escribir, eso es una frase sin puerta, y además no
+   sirve como aviso legal. Estuvo un tiempo con un «pendiente de publicar» y un
+   comentario en el código pidiendo que se rellenara: un comentario no impide
+   publicar nada. Esto sí. */
+const correo = privaci.match(/mailto:([^"']+)/);
+if (!correo) {
+  falla('la privacidad da una dirección a la que escribir', 'no hay ningún mailto:');
+} else if (/pendiente|PENDIENTE|por definir|TODO/.test(privaci)) {
+  falla('la privacidad no se publica con huecos por rellenar',
+        (privaci.match(/[^.]*\b(?:pendiente|PENDIENTE|por definir|TODO)\b[^.]*/) || [''])[0].trim().slice(0, 80));
+} else {
+  bien('la privacidad da una dirección a la que escribir, y sin huecos', correo[1]);
+}
+
 console.log(malos ? '\n' + malos + ' FALLOS' : '\nIdentificadores correctos');
 process.exit(malos ? 1 : 0);

@@ -312,8 +312,16 @@ a:hover{color:var(--text)}
 /* Un único estilo de campo para toda la aplicación: el panel, los diálogos y
    los filtros. Antes había cinco, cada uno con su tamaño y su borde.
    Van hundidos (fondo más oscuro que el cristal) para que se lean como huecos
-   donde escribir y no como otro botón más. */
+   donde escribir y no como otro botón más.
+
+   Y «.squad-alta» faltaba aquí. Sus tres campos —el dorsal, el nombre y la
+   posición— salían con lo que pone el navegador por su cuenta: en el iPhone,
+   una pastilla gris de sistema con las esquinas cuadradas y en Arial, justo
+   debajo del selector de temporada, que sí venía con lo de la casa. Se veía
+   pegado con cinta. Que el estilo esté en una sola regla es lo que hace que
+   añadir un campo nuevo no vuelva a abrir este agujero. */
 .ask-input,.field input,.field select,.field textarea,
+.squad-alta input,.squad-alta select,
 #lib-q,.lib-selects select,select.sel,#cfg-categoria{
   width:100%;min-height:var(--touch);padding:11px 13px;border-radius:var(--r2);
   background:var(--well);border:1px solid var(--line);color:var(--text);
@@ -321,9 +329,11 @@ a:hover{color:var(--text)}
   font-family:var(--ff-body);font-size:15px;line-height:1.45;
   transition:border-color .16s,background .16s}
 .ask-input:hover,.field input:hover,.field textarea:hover,
+.squad-alta input:hover,.squad-alta select:hover,
 #lib-q:hover,.lib-selects select:hover,select.sel:hover,#cfg-categoria:hover,.field select:hover{
   border-color:var(--line-strong)}
 .ask-input:focus,.field input:focus,.field select:focus,.field textarea:focus,
+.squad-alta input:focus,.squad-alta select:focus,
 #lib-q:focus,.lib-selects select:focus,select.sel:focus,#cfg-categoria:focus{
   outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
 /* El texto de arriba y el campo se tocaban. Con los mensajes de una línea de
@@ -331,7 +341,7 @@ a:hover{color:var(--text)}
    línea quedaba debajo del borde del campo, y el aro azul del foco encima de
    las letras. Un aviso que no se lee entero no es un aviso. */
 #ask-msg:not([hidden]) + #ask-field{margin-top:12px}
-.field select,.lib-selects select,select.sel{cursor:pointer}
+.field select,.lib-selects select,select.sel,.squad-alta select{cursor:pointer}
 .field textarea{min-height:70px;resize:vertical}
 ::placeholder{color:var(--muted);opacity:.72}
 
@@ -892,10 +902,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   border:1px solid var(--line);border-bottom:0;
   border-radius:var(--r2) var(--r2) 0 0;
   background:var(--glass);box-shadow:inset 0 1px 0 var(--sheen)}
-/* Sin lista debajo —una plantilla recién empezada— la cabecera se cierra sola
-   en vez de quedarse como una caja sin fondo. */
-.squad-hoy:has(+ .squad-lista:empty){border-bottom:1px solid var(--line);
-  border-radius:var(--r2)}
 .squad-hoy-t{margin:0;flex:1;min-width:120px;font-size:12.5px;color:var(--muted)}
 .squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums;
   font-family:var(--ff-display);font-size:14px}
@@ -997,12 +1003,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .squad-quita:hover{opacity:1}
 .squad-quita svg{width:15px;height:15px}
 
-.squad-alta{display:grid;grid-template-columns:58px 1fr;gap:7px;margin-top:14px}
+/* El hueco del dorsal creció de 58 a 68 px: al entrar los campos en el estilo
+   de la casa se llevaron sus 13 px de margen a cada lado, y «Nº» se quedaba
+   sin sitio. El nombre es lo único que crece. */
+.squad-alta{display:grid;grid-template-columns:68px 1fr;gap:9px}
+.squad-alta > *{min-width:0}
 .squad-alta #squad-nombre{grid-column:2}
 .squad-alta #squad-posicion{grid-column:1 / -1}
-.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch)}
+.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch);margin-top:3px}
 .squad-alta input,.squad-alta select{min-height:var(--touch)}
-.squad-aviso{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);opacity:.8}
+/* El botón y la explicación se tocaban: el resplandor del rojo caía encima de
+   la primera línea. Un texto que explica para qué sirve el botón tiene que
+   estar separado del botón.
+
+   Son 18 px y no 12 porque lo que hay que dejar pasar no es el botón, es su
+   resplandor: «0 8px 20px -10px» baja unos 18 px por debajo del borde. Con 12
+   el texto seguía dentro del rojo. La sombra no se toca: es la de todos los
+   botones principales de la aplicación y ahí funciona. */
+#squad-nota{margin-top:18px}
+.squad-aviso{margin-top:16px;padding-top:13px;border-top:1px solid var(--line);opacity:.8}
+
+/* Sin nadie en la plantilla, «Han venido hoy 0 de 0» con sus botones de Todos
+   y Ninguno es un mando para gobernar a nadie, y encima es lo primero que se
+   ve: empuja hacia abajo lo único que hay que hacer aquí, que es dar de alta
+   al primer jugador. Con gente dentro vuelve a su sitio. */
+.squad-hoy:has(+ .squad-lista:empty){display:none}
 
 /* ---- participantes dentro de Guardar ---- */
 #save-part{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
@@ -1139,8 +1164,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
    la fila se lea de un vistazo sin ocupar dos alturas. */
 .barras{display:flex;flex-direction:column;gap:5px}
+/* Cuando no hay nada, el aviso se lee como lo que es: una frase suelta debajo
+   de su título. Llevaba «14px 2px», y eso hacía dos cosas raras a la vez:
+   sumaba 14 px a los 10 que ya deja el título, así que el hueco era el doble
+   que en las demás secciones; y los 2 px de la izquierda dejaban la frase
+   descolocada respecto a todo lo que tiene encima y debajo, como si sobrara un
+   espacio al empezar. */
 .barras:empty::before{content:"Todavía no hay nada que contar aquí.";
-  display:block;padding:14px 2px;font-size:12.5px;color:var(--muted)}
+  display:block;padding:2px 0 6px;font-size:12.5px;color:var(--muted)}
 .barra{position:relative;display:flex;align-items:center;gap:10px;
   padding:9px 11px;border-radius:var(--r2);overflow:hidden;
   border:1px solid var(--line);background:var(--well);
@@ -1219,6 +1250,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .radar-clave.es-igual::before{background:none;border:1px solid var(--line-strong)}
 
 .stats-resumen{margin:14px 0 0;font-size:13px;line-height:1.5}
+/* Las explicaciones de debajo de una tabla iban pegadas a la última fila, sin
+   un respiro que dijera que ya no son parte de ella. */
+#stats-jugadores-pie{margin-top:12px}
 .stats-resumen b{font-variant-numeric:tabular-nums}
 .stats-olvido{margin:12px 0 0;padding:11px 13px;border-radius:var(--r2);
   border:1px solid var(--line-strong);background:var(--glass);font-size:12.5px;line-height:1.5}
@@ -1562,6 +1596,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   <ul class="squad-lista" id="squad-lista"></ul>
 
+  <!-- Plantilla era la única pantalla de Equipo sin un solo título: tres campos
+       sueltos detrás de un contador, y no sabías para qué eran hasta leer la
+       nota que hay DEBAJO del botón. Sesiones y Datos ya se separan así. -->
+  <p class="form-group">Añadir un jugador</p>
   <div class="squad-alta">
     <input type="text" id="squad-dorsal" inputmode="numeric" maxlength="2"
            placeholder="Nº" aria-label="Dorsal">

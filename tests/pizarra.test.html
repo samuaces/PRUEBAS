@@ -1101,6 +1101,42 @@ async function run(w,d){
   ok('ningún botón de la barra o del panel se queda sin oyente',
      huerfanos.length===0,huerfanos.join(', '));
 
+  /* --- ningún campo con la pinta que le pone el navegador ---
+
+     El dorsal, el nombre y la posición de la plantilla salían con el estilo de
+     serie: en el iPhone, una pastilla gris de sistema con las esquinas
+     cuadradas y en Arial, justo debajo del selector de temporada, que sí
+     llevaba el de la casa. Se veía pegado con cinta, y llevaba así desde que
+     se hizo la pantalla, porque en el escritorio el gris de Chrome no canta
+     tanto.
+
+     La causa era que el estilo de los campos se escribe enumerando selectores,
+     y a esa pantalla se le olvidó apuntarla. O sea: vuelve a pasar con el
+     siguiente campo que se añada. Por eso esto no mira tres campos, los mira
+     TODOS, y no hace falta acordarse de venir aquí. */
+  var deSerie=[];
+  [].forEach.call(d.querySelectorAll('input,select,textarea'),function(el){
+    if(/^(checkbox|radio|file|range|color)$/.test(el.type))return;
+    var s=w.getComputedStyle(el);
+    /* Dos huellas del estilo de serie: esquinas a escuadra y la tipografía que
+       pone el sistema en vez de la de la aplicación. La de paso fijo se acepta
+       porque es una decisión y no un olvido: el cuadro donde se enseña el
+       ejercicio en crudo la lleva puesta a mano para que las llaves y las
+       comas caigan en columna. */
+    var cuadrado=parseFloat(s.borderTopLeftRadius)<4;
+    var otraLetra=s.fontFamily.indexOf('Inter')<0&&s.fontFamily.indexOf('Outfit')<0&&
+                  s.fontFamily.indexOf('monospace')<0;
+    if(cuadrado||otraLetra){
+      deSerie.push((el.id||el.placeholder||el.tagName)+
+        (cuadrado?' esquinas='+s.borderTopLeftRadius:'')+
+        (otraLetra?' letra='+s.fontFamily.split(',')[0]:''));
+    }
+  });
+  ok('ningún campo se queda con la pinta que le pone el navegador',
+     deSerie.length===0,
+     deSerie.length?deSerie.slice(0,4).join(' · '):
+       d.querySelectorAll('input,select,textarea').length+' campos mirados');
+
   // --- la barra de arriba cabe entera en un teléfono ---
   // El logo era lo único que podía encogerse, así que absorbía todo lo que
   // sobraba y salía cortado por la mitad.
