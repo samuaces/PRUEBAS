@@ -231,6 +231,24 @@ function siembra(lista){
   ok('microciclo · por momento, de mayor a menor',
      mm === 'Finalización=20 Ataque organizado=18 Calentamiento=12', mm);
 
+  /* Lo que se reparte y lo que se queda fuera.
+
+     Aquí estaba el fallo gordo de la auditoría: un ejercicio sin momento del
+     juego sumaba sus minutos al total pero no salía en ninguna barra, y el
+     porcentaje de cada barra se sacaba contra ese total. Resultado medido: 25
+     min de «Ataque organizado» más 20 sin etiquetar enseñaban una sola barra
+     que decía 56 %, y del 44 % restante no se hablaba en ninguna parte.
+
+     Ahora hay dos cuentas separadas, y la suma de las barras tiene que cuadrar
+     con «minutosConMomento», no con el total. */
+  var sumaBarras = m.momentos.reduce(function(a, x){ return a + x.minutos; }, 0);
+  ok('lo repartido por momentos cuadra con la suma de las barras',
+     m.minutosConMomento === sumaBarras,
+     m.minutosConMomento + ' vs ' + sumaBarras);
+  ok('y aquí, con todo etiquetado, coincide además con el total',
+     m.minutosConMomento === m.minutos && m.sinMomento.ejercicios === 0,
+     m.minutosConMomento + '/' + m.minutos + ', ' + m.sinMomento.ejercicios + ' sin momento');
+
   //      Ana: 12+20+18 = 50 · Bruno: 12+20 = 32 · Cleo: 12+18 = 30
   var mj = {}; m.jugadores.forEach(function(j){ mj[j.nombre] = j.minutos; });
   ok('microciclo · Ana 50 min', mj.Ana === 50, mj.Ana);
@@ -666,9 +684,13 @@ function siembra(lista){
      /asistencia/i.test(cab.querySelector('.barra-asis').textContent));
 
   var cabM = d.querySelector('#stats-momentos .barra-cab');
+  /* «del reparto» y no «del total»: el porcentaje se saca contra los minutos
+     etiquetados con un momento, no contra todo lo entrenado. Llamarlo «del
+     total» sería mentir en la propia cabecera. */
   ok('la de momentos lleva la suya, con el tanto por ciento nombrado',
      !!cabM && /minutos/i.test(cabM.querySelector('.barra-cifra').textContent) &&
-     /del total/i.test(cabM.querySelector('.barra-pct').textContent));
+     /del reparto/i.test(cabM.querySelector('.barra-pct').textContent),
+     cabM ? cabM.querySelector('.barra-pct').textContent : 'sin cabecera');
 
   function fila(caja, nombre){
     return [].filter.call(caja.querySelectorAll('.barra'), function(r){
@@ -1731,6 +1753,51 @@ function siembra(lista){
 
   d.querySelector('#modos [data-modo="pizarra"]').click();
   await wait(300);
+
+  /* ---- 19 · el reparto por momentos no pierde minutos por el camino ----
+
+     El caso exacto que destapó la auditoría, reproducido en la pantalla de
+     verdad: una sesión con 25 min etiquetados como «Ataque organizado» y 20 sin
+     etiquetar. Antes salía UNA barra que decía 56 % —porque el porcentaje se
+     sacaba contra los 45 minutos totales— y del 44 % restante no se hablaba en
+     ninguna parte. El coche marcaba 45 pero el cuentakilómetros solo contaba 25
+     y nadie decía nada.
+
+     Ahora la barra dice 100 % de lo repartido, y lo que no entra se nombra. */
+  limpia();
+  E.añade(E.temporadaActual(), { dorsal:'7', nombre:'Ana Ruiz' });
+  var HOY2 = E.hoyISO();
+  E.añadeEjercicio(HOY2, { titulo:'Salida de balón', momento:'Ataque organizado',
+                           duracion:'25 min' });
+  E.añadeEjercicio(HOY2, { titulo:'Rondo sin etiquetar', duracion:'20 min' });
+
+  var st = E.estadisticas('micro');
+  ok('el total cuenta los 45 minutos entrenados', st.minutos === 45, st.minutos);
+  ok('pero solo 25 entran en el reparto por momentos', st.minutosConMomento === 25,
+     st.minutosConMomento);
+  ok('y los otros 20 se cuentan aparte, no se pierden',
+     st.sinMomento.ejercicios === 1 && st.sinMomento.minutos === 20,
+     st.sinMomento.ejercicios + ' ejercicio, ' + st.sinMomento.minutos + ' min');
+
+  d.querySelector('#modos [data-modo="equipo"]').click(); await wait(350);
+  d.querySelector('[data-eq="datos"]').click(); await wait(600);
+  var barraAt = [].filter.call(d.querySelectorAll('#stats-momentos .barra'), function(r){
+    return /Ataque organizado/.test(r.textContent); })[0];
+  ok('la barra dice 100 % de lo repartido, no 56 % del total',
+     !!barraAt && /100\s*%/.test(barraAt.textContent),
+     barraAt ? barraAt.textContent.replace(/\s+/g,' ').trim() : 'no hay barra');
+  var aviso = d.getElementById('stats-momentos-fuera');
+  ok('y lo que queda fuera se dice en voz alta, con sus minutos',
+     !aviso.hidden && /20 min/.test(aviso.textContent) && /momento del juego/i.test(aviso.textContent),
+     aviso.hidden ? '(oculto)' : aviso.textContent.slice(0, 60));
+  // Con todo etiquetado, el aviso desaparece: no es un cartel permanente.
+  E.añadeEjercicio(HOY2, { titulo:'Otro', momento:'Finalización', duracion:'10 min' });
+  d.querySelector('[data-eq="plantilla"]').click(); await wait(250);
+  d.querySelector('[data-eq="datos"]').click(); await wait(600);
+  var st2 = E.estadisticas('micro');
+  ok('el aviso solo sale cuando hay algo sin etiquetar',
+     st2.sinMomento.ejercicios === 1, st2.sinMomento.ejercicios + ' sin momento');
+  d.querySelector('#modos [data-modo="pizarra"]').click(); await wait(300);
 
   limpia();
   pinta();

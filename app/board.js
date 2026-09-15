@@ -4160,9 +4160,29 @@
 
     pintaRadar($('#stats-radar'), PTEquipo.equilibrio(statsPeriodo));
 
+    /* El reparto se saca contra los minutos QUE ESTÁN REPARTIDOS, no contra el
+       total. Iba contra el total, y como un ejercicio sin momento del juego
+       suma al total pero no sale en ninguna barra, las barras nunca llegaban a
+       100 y nada explicaba el hueco. */
     pintaBarras($('#stats-momentos'), d.momentos.map(function (m) {
       return { nombre: m.nombre, minutos: m.minutos };
-    }), { total: d.minutos, destaca: true });
+    }), { total: d.minutosConMomento, destaca: true, nombrePct: 'del reparto' });
+
+    /* Y lo que se queda fuera se dice, en vez de desaparecer. No como una barra
+       de «(sin clasificar)» —eso no dice nada de fútbol— sino como una frase
+       que además explica qué hacer: el momento del juego se pone al guardar el
+       ejercicio o al añadirlo a la sesión. */
+    var fuera = $('#stats-momentos-fuera');
+    var sm = d.sinMomento || { ejercicios: 0, minutos: 0 };
+    fuera.hidden = !sm.ejercicios;
+    if (sm.ejercicios) {
+      fuera.textContent = sm.ejercicios === 1
+        ? 'Un ejercicio más (' + sm.minutos + ' min) no entra en este reparto porque no ' +
+          'tiene momento del juego. Se lo pones al guardarlo o al añadirlo a la sesión.'
+        : sm.ejercicios + ' ejercicios más (' + sm.minutos + ' min) no entran en este ' +
+          'reparto porque no tienen momento del juego. Se lo pones al guardarlos o al ' +
+          'añadirlos a la sesión.';
+    }
 
     var jug = d.jugadores.map(function (j) {
       return { dorsal: j.dorsal, nombre: j.nombre, minutos: j.minutos,
@@ -4366,7 +4386,8 @@
      que nadie podía leer. Ahora la columna se llama «asistencia» y punto.
 
      opciones: { total, asistencia, destaca }
-       total       minutos del periodo, para la columna «del total»
+       total       minutos contra los que se saca el porcentaje
+       nombrePct   cómo se llama esa columna («del total» si no se dice)
        asistencia  true en la lista de jugadores: cambia el % por «vino/de»
        destaca     pinta la primera fila con el color de la marca             */
   var POCO = 0.5;                 // venir a menos de la mitad es lo que se avisa
@@ -4376,7 +4397,7 @@
     caja.textContent = '';
     var mayor = 0;
     filas.forEach(function (f) { if (f.minutos > mayor) mayor = f.minutos; });
-    if (filas.length) caja.appendChild(cabeceraBarras(op.asistencia));
+    if (filas.length) caja.appendChild(cabeceraBarras(op.asistencia, op.nombrePct));
 
     filas.forEach(function (f, i) {
       var row = document.createElement('div');
@@ -4437,7 +4458,7 @@
     });
   }
 
-  function cabeceraBarras(conAsistencia) {
+  function cabeceraBarras(conAsistencia, nombrePct) {
     var h = document.createElement('div');
     h.className = 'barra-cab' + (conAsistencia ? ' conses' : '');
     var hueco = document.createElement('span');
@@ -4451,7 +4472,9 @@
 
     var otra = document.createElement('span');
     otra.className = conAsistencia ? 'barra-asis' : 'barra-pct';
-    otra.textContent = conAsistencia ? 'asistencia' : 'del total';
+    // «del total» sería mentira en el reparto por momentos: ahí el porcentaje
+    // se saca contra los minutos etiquetados, no contra todo lo entrenado.
+    otra.textContent = conAsistencia ? 'asistencia' : (nombrePct || 'del total');
     h.appendChild(otra);
 
     if (conAsistencia) {
@@ -5632,14 +5655,20 @@
       sueltaElDiaAbierto();
       pintaPlantilla();
     });
+    /* Estos dos guardan como todo lo demás, pero eran los únicos que no
+       miraban si el navegador había aceptado los datos. Con el almacén lleno la
+       marca se deshacía sola al repintar y no se decía por qué: parecía que el
+       botón no funcionaba. Todos los demás caminos de guardado ya avisaban. */
+    function marcaTodos(ids) {
+      if (!PTEquipo.ponAsistencia(ids)) {
+        toast('No cabe en el almacenamiento del navegador');
+      }
+      pintaPlantilla();
+    }
     $('#squad-todos').addEventListener('click', function () {
-      PTEquipo.ponAsistencia(PTEquipo.jugadores().map(function (j) { return j.id; }));
-      pintaPlantilla();
+      marcaTodos(PTEquipo.jugadores().map(function (j) { return j.id; }));
     });
-    $('#squad-ninguno').addEventListener('click', function () {
-      PTEquipo.ponAsistencia([]);
-      pintaPlantilla();
-    });
+    $('#squad-ninguno').addEventListener('click', function () { marcaTodos([]); });
 
     $('#save-part-cambiar').addEventListener('click', function () {
       var caja = $('#save-part-caja');
@@ -5731,13 +5760,23 @@
        al volver la pantalla se repinta con lo que hay guardado, que era nada.
        Con un respiro de medio segundo no se escribe en el almacén en cada
        tecla, y «change» se queda como red por si se sale muy rápido. */
+    /* Y avisa si no cabe, pero UNA sola vez: esto se dispara mientras escribes,
+       así que sin la marca soltaría un aviso cada medio segundo. Se rearma en
+       cuanto vuelve a caber. */
+    var avisadoNombre = false;
+    function guardaElNombre(txt) {
+      if (!sesFecha) return;
+      if (PTEquipo.guardaSesion(sesFecha, { nombre: txt })) { avisadoNombre = false; return; }
+      if (!avisadoNombre) {
+        avisadoNombre = true;
+        toast('El nombre no se ha guardado: no cabe en el almacenamiento del navegador');
+      }
+    }
     var guardaNombre = conRespiro(function () {
-      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: $('#ses-nombre').value });
+      guardaElNombre($('#ses-nombre').value);
     }, 500);
     $('#ses-nombre').addEventListener('input', guardaNombre);
-    $('#ses-nombre').addEventListener('change', function () {
-      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: this.value });
-    });
+    $('#ses-nombre').addEventListener('change', function () { guardaElNombre(this.value); });
     $('#ses-ej-add').addEventListener('click', añadeEjercicioAMano);
     $('#ses-ej-titulo').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeEjercicioAMano(); }

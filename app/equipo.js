@@ -710,16 +710,30 @@
 
     var total = 0, sinDuracion = 0;
     var porMomento = {}, porJugador = {};
+    /* Lo que queda fuera del reparto. Antes no se contaba, y ahí estaba el
+       fallo: los minutos de un ejercicio sin momento SÍ sumaban al total, pero
+       no salían en ninguna barra. Como el porcentaje de cada barra se sacaba
+       contra ese total, las barras nunca sumaban 100 y nadie sabía por qué.
+       Medido: 25 min de «Ataque organizado» más 20 sin etiquetar enseñaban una
+       sola barra que decía 56 %. El 44 % restante no aparecía en ninguna parte.
+
+       Se sigue sin inventar un cajón de «(sin clasificar)» —una barra con ese
+       nombre no dice nada de fútbol—, pero ahora se cuenta aparte y quien pinta
+       decide qué hacer con ello. */
+    var sinMomento = { ejercicios: 0, minutos: 0 };
+    var conMomento = 0;
 
     dentro.forEach(function (e) {
       var min = e.minutos;
       if (min == null) sinDuracion++; else total += min;
 
-      // Un ejercicio sin momento del juego no cuenta para el reparto: meterlo
-      // en un cajón «(sin clasificar)» ensucia las barras y no dice nada.
       if (e.momento) {
         if (!porMomento[e.momento]) porMomento[e.momento] = 0;
         porMomento[e.momento] += min || 0;
+        conMomento += min || 0;
+      } else {
+        sinMomento.ejercicios++;
+        sinMomento.minutos += min || 0;
       }
 
       e.quienes.forEach(function (id) {
@@ -779,6 +793,11 @@
       periodo: periodo,
       ejercicios: dentro.length,
       minutos: total,
+      // Los minutos que SÍ entran en el reparto por momentos. Es contra esto,
+      // y no contra el total, contra lo que hay que sacar los porcentajes: así
+      // las barras suman 100 y dicen la verdad.
+      minutosConMomento: conMomento,
+      sinMomento: sinMomento,
       sinDuracion: sinDuracion,
       sesiones: cuantasSesiones,
       momentos: momentos,
