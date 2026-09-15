@@ -99,6 +99,14 @@ body{
 }
 input,textarea{-webkit-user-select:text;user-select:text}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+/* Los enlaces del cuerpo. Aquí dentro casi no hay —la aplicación no es un
+   documento—, pero los pocos que hay salían con el azul y el morado que pone
+   el navegador por su cuenta, y un morado de enlace visitado en un diálogo
+   oscuro canta muchísimo. El subrayado se queda: sin él un enlace dentro de un
+   párrafo no se distingue de una palabra en color. */
+a{color:var(--brand-2);text-decoration-thickness:1px;text-underline-offset:2px;
+  transition:color .15s}
+a:hover{color:var(--text)}
 :focus-visible{outline:2px solid var(--brand-2);outline-offset:2px;border-radius:6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sm-only{display:none}
@@ -257,8 +265,16 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .row-btn:hover{border-color:var(--line-strong);background:var(--glass-2)}
 .row-btn:active{transform:scale(.985)}
 .row-btn svg{width:15px;height:15px;flex:none;color:var(--muted);transition:color .16s}
-.row-btn.danger:hover{border-color:#8A3227;color:#FF8A7A;background:rgba(138,50,39,.16)}
-.row-btn.danger:hover svg{color:#FF8A7A}
+/* Lo que borra tiene que verse que borra estando quieto. Esto vivía solo en el
+   «hover», y en un móvil no hay hover: «Borrar mi cuenta» salía calcado a
+   «Cambiar la contraseña», justo encima. Dos botones idénticos y uno de ellos
+   sin vuelta atrás. Tinte suave, no un botón rojo: sigue siendo una fila de
+   ajustes, no la acción principal de la pantalla. */
+.row-btn.danger{border-color:rgba(138,50,39,.5);color:#FF8A7A;
+  background:linear-gradient(180deg,rgba(138,50,39,.15),rgba(138,50,39,.07))}
+.row-btn.danger svg{color:#FF8A7A}
+.row-btn.danger:hover{border-color:#8A3227;color:#FF9E90;background:rgba(138,50,39,.24)}
+.row-btn.danger:hover svg{color:#FF9E90}
 
 .check{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:8px 10px;border-radius:var(--r2);
   background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--sheen);
@@ -310,6 +326,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .ask-input:focus,.field input:focus,.field select:focus,.field textarea:focus,
 #lib-q:focus,.lib-selects select:focus,select.sel:focus,#cfg-categoria:focus{
   outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
+/* El texto de arriba y el campo se tocaban. Con los mensajes de una línea de
+   siempre no se notaba; con uno de tres —el de borrar la cuenta— la última
+   línea quedaba debajo del borde del campo, y el aro azul del foco encima de
+   las letras. Un aviso que no se lee entero no es un aviso. */
+#ask-msg:not([hidden]) + #ask-field{margin-top:12px}
 .field select,.lib-selects select,select.sel{cursor:pointer}
 .field textarea{min-height:70px;resize:vertical}
 ::placeholder{color:var(--muted);opacity:.72}
@@ -2039,6 +2060,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="Nombre del club"></label>
       </div>
 
+      <label class="check check-fila solo-crear" id="cuenta-acepto-caja" hidden
+             style="margin-top:12px;align-items:flex-start">
+        <input type="checkbox" id="cuenta-acepto" style="margin-top:2px">
+        <span>He leído la <a href="https://klym.xyz/privacidad.html" target="_blank" rel="noopener">privacidad
+          y las condiciones</a>, y entiendo que soy yo quien responde de lo que suba.</span></label>
+
       <div class="lib-linea" style="margin-top:12px">
         <button type="button" class="tbtn primary" id="cuenta-entrar">Entrar</button>
         <button type="button" class="mini-btn solo-entrar" id="cuenta-olvido">He olvidado la contraseña</button>
@@ -2063,7 +2090,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <button type="button" class="row-btn" id="cuenta-clave-nueva">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           Cambiar la contraseña</button>
+        <button type="button" class="row-btn danger" id="cuenta-borrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+          Borrar mi cuenta</button>
       </div>
+      <p class="block-note" style="margin:10px 0 0">Borrar la cuenta se lleva también los
+        ejercicios que hayas compartido. Lo que tienes guardado en este dispositivo se
+        queda: eso se borra desde el navegador.</p>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
@@ -2464,13 +2497,28 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
   }
 
-  function registra(email, clave, nombre) {
+  /* La versión de las condiciones que hay publicadas ahora mismo. Cuando el
+     texto de privacidad.html cambie, cambia esta etiqueta con él: lo que queda
+     anotado en la cuenta es CUÁL se aceptó, porque «aceptó las condiciones»,
+     sin decir cuáles, no es constancia de nada dentro de dos años. */
+  var CONDICIONES = '2026-09-a';
+
+  function registra(email, clave, nombre, acepto) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    /* El consentimiento va DENTRO del registro, no en una llamada de después:
+       si fuera aparte, entre una cosa y la otra cabe una cuenta creada sin
+       aceptar nada —se corta la red, se cierra la pestaña— y ese es justo el
+       caso que no puede quedar a medias. La hora la pone el servidor. */
     return traer(BASE + '/auth/v1/signup', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
         email: String(email || '').trim(), password: String(clave || ''),
-        data: { nombre: String(nombre || '').trim() }
+        // Solo el sí o el no. Qué versión se acepta lo decide el servidor
+        // —«condiciones_vigentes()»—, porque si lo dijera el navegador
+        // cualquiera podría anotarse una versión inventada y esquivar para
+        // siempre la pregunta.
+        data: { nombre: String(nombre || '').trim(),
+                acepto: acepto ? 'si' : '' }
       })
     }).then(function (r) {
       if (!r.ok) return fallo(r);
@@ -2487,11 +2535,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   }
 
   // Entra si la cuenta existe, y si no, la crea. Para quien la usa es un botón.
-  function entraOCrea(email, clave, nombre) {
+  function entraOCrea(email, clave, nombre, acepto) {
     return entra(email, clave).then(function () { return { dentro: true, nueva: false }; },
       function (e) {
         if (!/credential|invalid login|not found/i.test(e.crudo || e.message)) throw e;
-        return registra(email, clave, nombre).then(function () { return { dentro: true, nueva: true }; });
+        return registra(email, clave, nombre, acepto)
+          .then(function () { return { dentro: true, nueva: true }; });
+      });
+  }
+
+  /* Borrar la cuenta. Lo hace una función del servidor, porque desde aquí no se
+     puede tocar la tabla de usuarios —y menos mal—. No lleva parámetros: la
+     cuenta que borra la decide el testigo, así que nadie puede borrar la de
+     otro ni equivocándose. */
+  function borraCuenta() {
+    if (!ses) return Promise.reject(new Error('Hay que haber entrado'));
+    // El cuerpo va como objeto, no como texto: «pide» ya lo convierte, y
+    // mandándole '{}' hecho una cadena llegaría el texto "{}" entrecomillado.
+    return pide('/rest/v1/rpc/borra_mi_cuenta', { method: 'POST', body: {} })
+      .then(function () {
+        // Aquí no se llama a «sale()»: el testigo ya no vale para nada —el
+        // usuario que representa no existe— y pedir el cierre de sesión al
+        // servidor solo daría un 401 que habría que tragarse. Se borra y ya.
+        guardaSes(null);
+        avisa();
+        return true;
       });
   }
 
@@ -2626,6 +2694,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
     entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
+    borraCuenta: borraCuenta, condiciones: CONDICIONES,
     recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
@@ -14226,12 +14295,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
         if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+        /* Aceptar las condiciones solo se pide al crear la cuenta, que es
+           cuando de verdad se acepta algo. A quien ya entró no se le vuelve a
+           preguntar cada vez: lo que aceptó quedó anotado en el servidor. */
+        if (modo === 'crear' && !$('#cuenta-acepto').checked) {
+          di('Para crear la cuenta hay que leer y aceptar la privacidad y las condiciones.');
+          $('#cuenta-acepto').focus();
+          return;
+        }
 
         var b = this, etiqueta = b.textContent;
         b.disabled = true; b.textContent = modo === 'crear' ? 'Creando…' : 'Entrando…';
         aviso.hidden = true;
 
-        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre)
+        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre, true)
                                      : nube.entra(correo, clave);
         tarea.then(function () {
           return refrescaCuenta().then(function () {
@@ -14285,6 +14362,34 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         nube.sale().then(function () {
           yo = null; nubeMios = []; nubeLista = [];
           pintaCuenta(); toast('Sesión cerrada');
+        });
+      });
+
+      /* Borrar la cuenta no se puede deshacer y se lleva por delante lo que
+         hubiera compartido, así que no basta con un «¿seguro?»: hay que
+         escribir la palabra. Un botón rojo se pulsa sin querer; una palabra
+         escrita a mano, no. */
+      $('#cuenta-borrar').addEventListener('click', function () {
+        var b = this;
+        ask({
+          title: 'Borrar tu cuenta',
+          message: 'Se borran la cuenta, tu perfil y todos los ejercicios que hayas subido, ' +
+                   'incluidos los compartidos. No se puede deshacer. Escribe BORRAR para ' +
+                   'confirmarlo.',
+          input: '', placeholder: 'BORRAR', ok: 'Borrar mi cuenta', danger: true
+        }).then(function (t) {
+          if (t === null) return;
+          if (String(t).toUpperCase() !== 'BORRAR') { toast('No se ha borrado nada'); return; }
+          b.disabled = true;
+          return nube.borraCuenta().then(function () {
+            // Lo de este dispositivo no lo toca el servidor, y tampoco nosotros:
+            // la plantilla y las sesiones son suyas y siguen donde estaban.
+            yo = null; nubeMios = []; nubeLista = [];
+            pintaCuenta(); pintaBiblioteca();
+            toast('Tu cuenta se ha borrado');
+          }).catch(function (e) {
+            toast('No se ha podido borrar: ' + (e.message || 'error'));
+          }).then(function () { b.disabled = false; });
         });
       });
 

@@ -318,13 +318,28 @@
     });
   }
 
-  function registra(email, clave, nombre) {
+  /* La versión de las condiciones que hay publicadas ahora mismo. Cuando el
+     texto de privacidad.html cambie, cambia esta etiqueta con él: lo que queda
+     anotado en la cuenta es CUÁL se aceptó, porque «aceptó las condiciones»,
+     sin decir cuáles, no es constancia de nada dentro de dos años. */
+  var CONDICIONES = '2026-09-a';
+
+  function registra(email, clave, nombre, acepto) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
+    /* El consentimiento va DENTRO del registro, no en una llamada de después:
+       si fuera aparte, entre una cosa y la otra cabe una cuenta creada sin
+       aceptar nada —se corta la red, se cierra la pestaña— y ese es justo el
+       caso que no puede quedar a medias. La hora la pone el servidor. */
     return traer(BASE + '/auth/v1/signup', {
       method: 'POST', headers: cabeceras(false),
       body: JSON.stringify({
         email: String(email || '').trim(), password: String(clave || ''),
-        data: { nombre: String(nombre || '').trim() }
+        // Solo el sí o el no. Qué versión se acepta lo decide el servidor
+        // —«condiciones_vigentes()»—, porque si lo dijera el navegador
+        // cualquiera podría anotarse una versión inventada y esquivar para
+        // siempre la pregunta.
+        data: { nombre: String(nombre || '').trim(),
+                acepto: acepto ? 'si' : '' }
       })
     }).then(function (r) {
       if (!r.ok) return fallo(r);
@@ -341,11 +356,31 @@
   }
 
   // Entra si la cuenta existe, y si no, la crea. Para quien la usa es un botón.
-  function entraOCrea(email, clave, nombre) {
+  function entraOCrea(email, clave, nombre, acepto) {
     return entra(email, clave).then(function () { return { dentro: true, nueva: false }; },
       function (e) {
         if (!/credential|invalid login|not found/i.test(e.crudo || e.message)) throw e;
-        return registra(email, clave, nombre).then(function () { return { dentro: true, nueva: true }; });
+        return registra(email, clave, nombre, acepto)
+          .then(function () { return { dentro: true, nueva: true }; });
+      });
+  }
+
+  /* Borrar la cuenta. Lo hace una función del servidor, porque desde aquí no se
+     puede tocar la tabla de usuarios —y menos mal—. No lleva parámetros: la
+     cuenta que borra la decide el testigo, así que nadie puede borrar la de
+     otro ni equivocándose. */
+  function borraCuenta() {
+    if (!ses) return Promise.reject(new Error('Hay que haber entrado'));
+    // El cuerpo va como objeto, no como texto: «pide» ya lo convierte, y
+    // mandándole '{}' hecho una cadena llegaría el texto "{}" entrecomillado.
+    return pide('/rest/v1/rpc/borra_mi_cuenta', { method: 'POST', body: {} })
+      .then(function () {
+        // Aquí no se llama a «sale()»: el testigo ya no vale para nada —el
+        // usuario que representa no existe— y pedir el cierre de sesión al
+        // servidor solo daría un 401 que habría que tragarse. Se borra y ya.
+        guardaSes(null);
+        avisa();
+        return true;
       });
   }
 
@@ -480,6 +515,7 @@
     quienSoy: quienSoy,
     alCambiar: function (f) { oyentes.push(f); },
     entra: entra, registra: registra, entraOCrea: entraOCrea, sale: sale, perfil: perfil,
+    borraCuenta: borraCuenta, condiciones: CONDICIONES,
     recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,

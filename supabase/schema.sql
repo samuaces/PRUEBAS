@@ -22,8 +22,24 @@ create table if not exists public.entrenadores (
   nombre  text not null default 'Entrenador' check (char_length(nombre) between 1 and 60),
   club    text not null default ''           check (char_length(club) <= 60),
   admin   boolean not null default false,
-  creado  timestamptz not null default now()
+  creado  timestamptz not null default now(),
+
+  /* Qué versión de las condiciones aceptó, y cuándo.
+
+     La versión importa tanto como la fecha: dentro de dos años, «aceptó las
+     condiciones» no dice nada si no se sabe cuáles eran. Se guarda la etiqueta
+     del texto que tenía delante.
+
+     La fecha la pone el servidor. Si la mandara el navegador, la fecha de un
+     consentimiento sería lo que el cliente quisiera escribir, y entonces no es
+     un registro de nada. */
+  acepto     text        not null default ''  check (char_length(acepto) <= 20),
+  acepto_en  timestamptz
 );
+
+-- Para las cuentas que ya existían antes de que esto se pidiera.
+alter table public.entrenadores add column if not exists acepto    text not null default '';
+alter table public.entrenadores add column if not exists acepto_en timestamptz;
 
 comment on table public.entrenadores is
   'Perfil público de cada cuenta. El correo no se expone nunca.';
@@ -86,13 +102,36 @@ create table if not exists public.reportes (
 -- Disparadores
 -- ============================================================================
 
--- Al crear la cuenta se crea el perfil, para que publicar no falle nunca.
+/* Qué condiciones están publicadas ahora mismo. Vive aquí, en el servidor, y
+   no en el navegador: el navegador dice si acepta o no, pero QUÉ acepta no lo
+   elige él. Si lo eligiera, cualquiera podría anotarse una versión inventada
+   —una futura, por ejemplo— y no volver a ver nunca la pregunta.
+
+   Al cambiar el texto de privacidad.html se cambia también esta cadena, y
+   entonces lo anotado deja de coincidir y se vuelve a preguntar. */
+create or replace function public.condiciones_vigentes()
+returns text language sql immutable as $$ select '2026-09-a'::text $$;
+grant execute on function public.condiciones_vigentes() to anon, authenticated;
+
+/* Al crear la cuenta se crea el perfil, para que publicar no falle nunca.
+
+   Y se deja constancia de qué condiciones aceptó. El sí viene en los datos del
+   registro, no en una llamada aparte de después: si fuera aparte, entre una
+   cosa y la otra cabe una cuenta creada sin consentimiento —se corta la red, se
+   cierra la pestaña— y ese es justo el caso que no puede quedar a medias. */
 create or replace function public.crea_entrenador()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare dijo_si boolean;
 begin
-  insert into public.entrenadores (id, nombre)
+  -- Del navegador se lee solo el sí o el no. Cualquier cosa que no sea vacía
+  -- cuenta como sí; la versión la pone el servidor.
+  dijo_si := coalesce(new.raw_user_meta_data->>'acepto', '') <> '';
+  insert into public.entrenadores (id, nombre, acepto, acepto_en)
   values (new.id, coalesce(nullif(new.raw_user_meta_data->>'nombre', ''),
-                           initcap(split_part(new.email, '@', 1))))
+                           initcap(split_part(new.email, '@', 1))),
+          case when dijo_si then public.condiciones_vigentes() else '' end,
+          -- La hora la pone el servidor, nunca el navegador.
+          case when dijo_si then now() else null end)
   on conflict (id) do nothing;
   return new;
 end $$;
@@ -140,6 +179,30 @@ create or replace function public.es_admin()
 returns boolean language sql stable security definer set search_path = public as $$
   select coalesce((select admin from public.entrenadores where id = auth.uid()), false);
 $$;
+
+/* Borrar la cuenta, de verdad.
+
+   Borrar el usuario de auth arrastra en cascada el perfil, y el perfil arrastra
+   los ejercicios: no queda nada. Eso no se puede hacer desde el navegador —la
+   clave pública no tiene permiso sobre auth.users, y menos mal— así que lo hace
+   una función que se ejecuta con los permisos de quien la creó.
+
+   Solo puede borrarse uno a sí mismo: no recibe ningún parámetro, y la fila que
+   toca la decide auth.uid(), que sale del testigo y no de lo que mande nadie.
+   Sin sesión no hace nada.
+
+   Lo que se sube a la biblioteca común se va con la cuenta. Es lo que espera
+   quien le da a «borrar mi cuenta», y decirle que «lo tuyo se queda publicado
+   para siempre» sería no haber entendido lo que ha pedido. */
+create or replace function public.borra_mi_cuenta()
+returns void language plpgsql security definer set search_path = public, auth as $$
+declare quien uuid := auth.uid();
+begin
+  if quien is null then
+    raise exception 'Hay que haber entrado para borrar la cuenta';
+  end if;
+  delete from auth.users where id = quien;
+end $$;
 
 -- Contar aperturas sin dejar que nadie escriba en la fila de otro.
 create or replace function public.suma_apertura(ej uuid)
@@ -231,6 +294,9 @@ grant update (titulo, pitch, vista, momento, categoria, minutos, objetivo,
    sentencia. Lo comprueba supabase/permisos.test.sql. */
 grant insert, select on public.reportes to authenticated;
 grant execute on function public.suma_apertura(uuid) to anon, authenticated;
+-- Borrarse a sí mismo. No lleva parámetros: la fila la decide auth.uid().
+grant execute on function public.borra_mi_cuenta() to authenticated;
+revoke execute on function public.borra_mi_cuenta() from anon, public;
 
 -- ============================================================================
 -- Para nombrarte administrador (una vez, con tu cuenta ya creada):

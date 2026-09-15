@@ -727,7 +727,87 @@ async function run(w,d){
        seVe('cuenta-alta-nombre')&&seVe('cuenta-alta-club')&&
        /^Crear cuenta$/.test(d.getElementById('cuenta-entrar').textContent.trim()),
        d.getElementById('cuenta-entrar').textContent);
+
+    /* --- el consentimiento ---
+       La casilla solo sale al crear la cuenta, que es cuando de verdad se
+       acepta algo, y sin marcarla no se crea nada. Lo importante de esta
+       comprobación es lo segundo: que el botón NO llame al servidor, no que
+       aparezca un aviso. Un aviso bonito con la cuenta ya creada detrás no
+       serviría de nada. */
+    ok('al crear cuenta se pide aceptar la privacidad y las condiciones',
+       seVe('cuenta-acepto-caja'));
+    ok('con un enlace a leerlas, no una casilla a ciegas',
+       !!d.querySelector('#cuenta-acepto-caja a[href*="privacidad"]'));
+    var aceptar=d.getElementById('cuenta-acepto');
+    ok('y viene sin marcar: la acepta quien la marca',!aceptar.checked);
+
+    // Se cuenta lo que sale por la red. Sin marcar no puede salir nada.
+    var salidas=[],fetchReal=w.fetch;
+    w.fetch=function(u){salidas.push(String(u));return fetchReal.apply(this,arguments);};
+    d.getElementById('cuenta-email').value='prueba@ejemplo.com';
+    d.getElementById('cuenta-clave').value='secreta1';
+    d.getElementById('cuenta-entrar').click();await wait(400);
+    ok('sin aceptarlas, crear la cuenta no manda nada al servidor',
+       !salidas.some(function(u){return /signup|\/auth\/v1\/token/.test(u);}),salidas.join(' '));
+    ok('y se dice por qué, no se queda el botón mudo',
+       !d.getElementById('cuenta-aviso').hidden&&
+       /aceptar/i.test(d.getElementById('cuenta-aviso').textContent),
+       d.getElementById('cuenta-aviso').textContent);
+    w.fetch=fetchReal;
+    d.getElementById('cuenta-email').value='';
+    d.getElementById('cuenta-clave').value='';
+
+    /* Entrar con una cuenta que ya existe no vuelve a preguntar: lo que se
+       aceptó quedó anotado el día que se creó. */
     d.querySelector('#cuenta-modo [data-modo="entrar"]').click();await wait(200);
+    ok('a quien ya tiene cuenta no se le vuelve a preguntar cada vez',
+       !seVe('cuenta-acepto-caja'));
+
+    /* --- borrar la cuenta ---
+       No se puede deshacer y se lleva por delante lo compartido, así que un
+       clic no basta: hay que escribir la palabra. Se prueba el camino de
+       verdad —el botón, el diálogo, lo escrito— con la llamada al servidor
+       cambiada por una que solo apunta que la han llamado. */
+    var borrados=0,borraReal=w.PTNube.borraCuenta;
+    w.PTNube.borraCuenta=function(){borrados++;return Promise.resolve(true);};
+    d.getElementById('cuenta-dentro').hidden=false;await wait(50);
+    /* Y se tiene que ver que borra ESTANDO QUIETO. El aviso vivía solo en el
+       «hover», y en un móvil no hay hover: «Borrar mi cuenta» salía calcado a
+       «Cambiar la contraseña», que está justo encima. Dos botones iguales y
+       uno sin vuelta atrás. */
+    var pinta=function(id){var s=w.getComputedStyle(d.getElementById(id));
+      return s.color+' | '+s.borderColor;};
+    ok('el botón de borrar no se parece al de al lado, sin pasar el ratón',
+       pinta('cuenta-borrar')!==pinta('cuenta-clave-nueva'),
+       'borrar: '+pinta('cuenta-borrar'));
+    d.getElementById('cuenta-borrar').click();await wait(300);
+    ok('borrar la cuenta pide confirmarlo escribiendo, no con un clic',
+       d.getElementById('dlg-ask').open&&!d.getElementById('ask-field').hidden,
+       d.getElementById('ask-title').textContent);
+    ok('y avisa de que se lleva lo compartido y no tiene vuelta',
+       /no se puede deshacer/i.test(d.getElementById('ask-msg').textContent)&&
+       /compartid/i.test(d.getElementById('ask-msg').textContent),
+       d.getElementById('ask-msg').textContent);
+    /* El aviso y el campo se tocaban: con un mensaje de tres líneas la última
+       quedaba debajo del borde del campo y el aro del foco encima de las
+       letras. Un aviso que no se lee entero no avisa de nada. */
+    var rMsg=d.getElementById('ask-msg').getBoundingClientRect(),
+        rCam=d.getElementById('ask-input').getBoundingClientRect();
+    ok('y se lee entero: el campo no se le monta encima',
+       rCam.top-rMsg.bottom>=8,Math.round(rCam.top-rMsg.bottom)+'px de hueco');
+    // Escribiendo otra cosa —o dándole a Aceptar sin más— no se borra nada.
+    d.getElementById('ask-input').value='si';
+    d.getElementById('ask-ok').click();await wait(300);
+    ok('escribiendo cualquier otra cosa no se borra nada',borrados===0);
+    // Y con la palabra, sí.
+    d.getElementById('cuenta-borrar').click();await wait(300);
+    d.getElementById('ask-input').value='borrar';
+    d.getElementById('ask-ok').click();await wait(400);
+    ok('con la palabra escrita, se borra (y da igual cómo se escriba)',borrados===1);
+    w.PTNube.borraCuenta=borraReal;
+    d.getElementById('cuenta-dentro').hidden=true;
+    if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
+    await wait(200);
     d.querySelector('#dlg-cfg [data-close]').click();await wait(250);
   } else {
     ok('sin servidor, compartir prepara el ejercicio para mandarlo',

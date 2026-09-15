@@ -33,7 +33,8 @@ var servidor = {
   correoSaturado: false,  // Supabase corta los envíos en el plan gratuito
   cuentas: { 'ana@ejemplo.com': 'secreta1' },
   exigeConfirmacion: false,
-  reportes: []
+  reportes: [],
+  borradas: []
 };
 
 var real = window.fetch;
@@ -45,7 +46,9 @@ window.fetch = function (url, opts) {
   servidor.peticiones.push({ url: url, metodo: opts.method || 'GET', cuerpo: cuerpo, cabeceras: h });
 
   function da(estado, datos) {
-    return Promise.resolve(new Response(datos === undefined ? '' : JSON.stringify(datos),
+    // Un 204 no admite cuerpo, ni siquiera vacío: el navegador lo rechaza.
+    return Promise.resolve(new Response(
+      estado === 204 || datos === undefined ? null : JSON.stringify(datos),
       { status: estado, headers: { 'Content-Type': 'application/json' } }));
   }
   if (url.indexOf(BASE) !== 0) return da(404, { message: 'fuera del servidor' });
@@ -146,6 +149,13 @@ window.fetch = function (url, opts) {
   }
   if (ruta.indexOf('/rest/v1/rpc/suma_apertura') === 0) {
     servidor.reportes.push('apertura:' + cuerpo.ej); return da(204);
+  }
+  /* Borrar la cuenta. Como en el servidor de verdad: no lleva a quién borrar
+     —lo dice el testigo— y sin testigo no hace nada. Devuelve 204 y nada. */
+  if (ruta.indexOf('/rest/v1/rpc/borra_mi_cuenta') === 0) {
+    if (aut.indexOf('Bearer t-') < 0) return da(401, { message: 'sin sesión' });
+    servidor.borradas.push(true);
+    return da(204);
   }
   if (ruta.indexOf('/rest/v1/reportes') === 0) {
     if (servidor.reportes.indexOf('r:' + cuerpo.ejercicio) >= 0)
@@ -373,6 +383,57 @@ function ultima(fragmento) {
   await N.entra('ana@ejemplo.com', 'secreta1');
   await N.sale();
   ok('salir cierra la sesión', !N.dentro());
+
+  /* ---------- 8 · el consentimiento y el borrado de la cuenta ----------
+
+     Lo que se prueba aquí no es que la casilla se marque, sino que el sí viaja
+     DENTRO del registro. Si fuera una llamada aparte de después, entre una cosa
+     y la otra cabe una cuenta creada sin aceptar nada: se corta la red, se
+     cierra la pestaña. Ese es el caso que no puede quedar a medias. */
+  await N.registra('conconsentimiento@club.com', 'secreta4', 'Quique', true);
+  var alta1 = ultima('/auth/v1/signup');
+  ok('el sí a las condiciones viaja dentro del propio registro',
+     !!alta1.cuerpo.data && alta1.cuerpo.data.acepto === 'si', JSON.stringify(alta1.cuerpo.data));
+  /* Y viaja como un sí pelado, no como un número de versión: qué versión se
+     acepta lo decide el servidor. Si lo dijera el navegador, cualquiera podría
+     anotarse una versión futura y no volver a ver nunca la pregunta. */
+  ok('pero no dice QUÉ versión acepta: eso lo pone el servidor',
+     !/\d{4}-\d{2}/.test(String(alta1.cuerpo.data.acepto)), alta1.cuerpo.data.acepto);
+  await N.sale();
+
+  await N.registra('sinconsentimiento@club.com', 'secreta5', 'Rosa');
+  ok('sin decir que sí, no se manda ningún consentimiento',
+     ultima('/auth/v1/signup').cuerpo.data.acepto === '');
+  await N.sale();
+
+  ok('la aplicación sabe qué versión de las condiciones enseña',
+     /^\d{4}-\d{2}-[a-z]$/.test(String(N.condiciones)), N.condiciones);
+
+  // Borrar la cuenta.
+  var sinEntrar = await N.borraCuenta().then(function () { return null; }, function (e) { return e; });
+  ok('sin sesión no se puede pedir el borrado', !!sinEntrar, sinEntrar && sinEntrar.message);
+  ok('y no se ha llamado al servidor siquiera', servidor.borradas.length === 0);
+
+  await N.entra('ana@ejemplo.com', 'secreta1');
+  servidor.peticiones.length = 0;
+  var borrada = await N.borraCuenta();
+  var llamada = ultima('/rest/v1/rpc/borra_mi_cuenta');
+  ok('con sesión, se borra', borrada === true && servidor.borradas.length === 1);
+  ok('se pide por POST a la función del servidor', llamada.metodo === 'POST');
+  /* El cuerpo tiene que ser un objeto vacío, no la cadena "{}" entrecomillada:
+     «pide» ya convierte a JSON lo que se le da, y pasarle texto lo convertía
+     dos veces. PostgREST contesta 404 a eso y el borrado no llegaba a pasar. */
+  ok('con un cuerpo vacío de verdad, no con texto entrecomillado',
+     llamada.cuerpo && typeof llamada.cuerpo === 'object' &&
+     Object.keys(llamada.cuerpo).length === 0, JSON.stringify(llamada.cuerpo));
+  /* No lleva a quién borrar. Es lo que hace imposible borrar la cuenta de otro
+     por mucho que se manipule el navegador: la decide el testigo. */
+  ok('y sin decir a quién: lo decide el testigo, no el navegador',
+     !/id|user|uid|email/i.test(JSON.stringify(llamada.cuerpo || {})));
+  ok('después del borrado, aquí no queda sesión', !N.dentro());
+  var guardado = null;
+  try { guardado = localStorage.getItem('pt-nube'); } catch (e) {}
+  ok('ni guardada en el almacén del navegador', guardado === null, String(guardado));
   ok('y no deja rastro en el navegador', !localStorage.getItem('pt-nube'));
 
   var falla = await N.publica({ pitch: 'f11', card: {}, frames: [] }, {})

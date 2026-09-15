@@ -19,13 +19,16 @@ end $$;
 -- ---- dos entrenadores, creados como los crearía Supabase ----
 delete from auth.users;
 insert into auth.users (id, email, raw_user_meta_data) values
-  ('11111111-1111-1111-1111-111111111111', 'ana@club.com',  '{"nombre":"Ana"}'),
+  ('11111111-1111-1111-1111-111111111111', 'ana@club.com',  '{"nombre":"Ana","acepto":"si"}'),
   ('22222222-2222-2222-2222-222222222222', 'bru@club.com',  '{}'),
   ('33333333-3333-3333-3333-333333333333', 'caz@club.com',  '{}'),
-  ('44444444-4444-4444-4444-444444444444', 'dan@club.com',  '{}');
+  ('44444444-4444-4444-4444-444444444444', 'dan@club.com',  '{}'),
+  -- Este intenta anotarse una versión que no existe, para no volver a ver
+  -- nunca la pregunta. No lo decide él.
+  ('55555555-5555-5555-5555-555555555555', 'eva@club.com',  '{"acepto":"9999-99-z"}');
 
 select pg_temp.comprueba('al crear la cuenta se crea el perfil solo',
-  (select count(*) from public.entrenadores) = 4);
+  (select count(*) from public.entrenadores) = 5);
 select pg_temp.comprueba('el perfil toma el nombre del registro',
   (select nombre from public.entrenadores where id = '11111111-1111-1111-1111-111111111111') = 'Ana');
 select pg_temp.comprueba('y si no lo hay, lo saca del correo',
@@ -204,6 +207,82 @@ do $$ begin
 exception when check_violation then
   raise notice 'PASA  una pizarra desmesurada se rechaza';
 end $$;
+
+-- ---- el consentimiento queda registrado ----
+/* No basta con «aceptó»: dentro de dos años eso no dice nada si no se sabe qué
+   texto tenía delante. Y la hora la pone el servidor, porque una fecha que
+   manda el navegador es la que el navegador quiera escribir. */
+reset role;
+select pg_temp.comprueba('se guarda QUÉ condiciones aceptó, no solo que aceptó',
+  (select acepto from public.entrenadores
+    where id = '11111111-1111-1111-1111-111111111111') = '2026-09-a');
+select pg_temp.comprueba('con la hora puesta por el servidor',
+  (select acepto_en is not null and acepto_en <= now()
+     from public.entrenadores where id = '11111111-1111-1111-1111-111111111111'));
+select pg_temp.comprueba('y quien no aceptó nada no tiene fecha inventada',
+  (select acepto = '' and acepto_en is null from public.entrenadores
+    where id = '22222222-2222-2222-2222-222222222222'));
+/* Y la versión la pone el servidor, no el navegador. Si la pusiera el
+   navegador, bastaría con mandar una versión futura para que el día que
+   cambien las condiciones ya figure como aceptada. */
+select pg_temp.comprueba('la versión aceptada la decide el servidor, no el navegador',
+  (select acepto from public.entrenadores
+    where id = '55555555-5555-5555-5555-555555555555') = public.condiciones_vigentes());
+select pg_temp.comprueba('y coincide con la que enseña la aplicación',
+  public.condiciones_vigentes() = '2026-09-a');
+
+-- ---- borrar la cuenta borra de verdad ----
+/* Quien le da a «borrar mi cuenta» espera que no quede nada: ni el perfil, ni
+   lo que subió a la biblioteca común. Se comprueba que se va todo, y que no se
+   puede borrar a nadie más que a uno mismo. */
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into public.ejercicios (autor, titulo, pitch, doc, publicado)
+values ('44444444-4444-4444-4444-444444444444', 'Lo de Dan', 'f11', '{"frames":[]}'::jsonb, true);
+reset role;
+select pg_temp.comprueba('antes de borrar, Dan tiene perfil y un ejercicio publicado',
+  (select count(*) from public.entrenadores where id = '44444444-4444-4444-4444-444444444444') = 1
+  and (select count(*) from public.ejercicios where titulo = 'Lo de Dan') = 1);
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.borra_mi_cuenta();
+reset role;
+select pg_temp.comprueba('borrar la cuenta se lleva el usuario',
+  (select count(*) from auth.users where id = '44444444-4444-4444-4444-444444444444') = 0);
+select pg_temp.comprueba('y el perfil detrás, en cascada',
+  (select count(*) from public.entrenadores where id = '44444444-4444-4444-4444-444444444444') = 0);
+select pg_temp.comprueba('y lo que había subido a la biblioteca común',
+  (select count(*) from public.ejercicios where titulo = 'Lo de Dan') = 0);
+select pg_temp.comprueba('los demás siguen enteros',
+  (select count(*) from auth.users) = 4);
+
+-- No se puede borrar sin haber entrado.
+do $$ begin
+  begin
+    perform set_config('request.jwt.claim.sub', '', false);
+    perform public.borra_mi_cuenta();
+    raise exception 'FALLA se ha podido borrar una cuenta sin sesión';
+  exception
+    when sqlstate 'P0001' then
+      if sqlstate = 'P0001' then raise notice 'PASA  sin sesión no se borra nada'; end if;
+  end;
+end $$;
+
+-- Y anon no puede ni llamarla.
+do $$ begin
+  begin
+    set local role anon;
+    perform public.borra_mi_cuenta();
+    raise exception 'FALLA anon puede llamar a borra_mi_cuenta';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASA  sin cuenta no se puede ni llamar a borrar';
+  end;
+end $$;
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
 -- ---- modalidad inventada ----
 do $$ begin

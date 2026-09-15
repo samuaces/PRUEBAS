@@ -142,5 +142,45 @@ if (sospechosas.length) {
   bien('nada de la ficha entra en HTML sin escapar  (' + campos.length + ' campos vigilados)');
 }
 
+/* ---------- 6 · la versión de las condiciones, cuadrada en los tres sitios ----------
+
+   Hay tres copias de la misma cadena y tienen que decir lo mismo:
+
+     privacidad.html — el texto que la persona lee
+     nube.js         — la que la aplicación dice que enseña
+     schema.sql      — la que el servidor anota como aceptada
+
+   Quién manda es el servidor: el navegador manda un sí pelado y nada más, para
+   que nadie pueda anotarse una versión inventada. Pero si las tres no
+   coinciden, lo anotado no corresponde al texto que había delante, y entonces
+   el registro del consentimiento no vale para lo único que sirve. Cambiar el
+   texto y olvidar una de las tres es el fallo silencioso que esto impide. */
+const nubeJs  = readFileSync(join(raiz, 'app/nube.js'), 'utf8');
+const esquema = readFileSync(join(raiz, 'supabase/schema.sql'), 'utf8');
+const privaci = readFileSync(join(raiz, 'privacidad.html'), 'utf8');
+
+const vCliente  = (nubeJs.match(/var CONDICIONES = '([^']+)'/) || [])[1];
+const vServidor = (esquema.match(/condiciones_vigentes\(\)[\s\S]{0,160}?select '([^']+)'::text/) || [])[1];
+const vTexto    = (privaci.match(/Versión <code>([^<]+)<\/code>/) || [])[1];
+
+if (!vCliente || !vServidor || !vTexto) {
+  falla('se encuentra la versión de las condiciones en los tres sitios',
+        'nube.js=' + vCliente + '  schema.sql=' + vServidor + '  privacidad.html=' + vTexto);
+} else if (vCliente === vServidor && vServidor === vTexto) {
+  bien('la versión de las condiciones coincide en los tres sitios', vCliente);
+} else {
+  falla('la versión de las condiciones coincide en los tres sitios',
+        'nube.js=' + vCliente + '  schema.sql=' + vServidor + '  privacidad.html=' + vTexto);
+}
+
+/* Y el navegador no manda la versión, solo el sí. Si algún día alguien
+   «simplifica» esto mandando CONDICIONES en el registro, el servidor lo
+   seguiría ignorando, pero el código diría una mentira a quien lo lea. */
+if (/acepto:\s*acepto\s*\?\s*CONDICIONES/.test(nubeJs)) {
+  falla('el navegador manda el sí, no la versión', 'nube.js manda CONDICIONES en el registro');
+} else {
+  bien('el navegador manda el sí, no la versión: la pone el servidor');
+}
+
 console.log(malos ? '\n' + malos + ' FALLOS' : '\nIdentificadores correctos');
 process.exit(malos ? 1 : 0);

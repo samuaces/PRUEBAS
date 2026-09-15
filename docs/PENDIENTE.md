@@ -159,6 +159,37 @@ cualquier dispositivo. Es por donde hay que empezar el día que se retome.
 
 ---
 
+## 5 · Los cabos que deja el consentimiento
+
+La casilla, la página de privacidad y el borrado de cuenta ya están. Lo que
+queda no es relleno: son tres sitios donde hoy la cosa no se cierra del todo.
+
+- **El correo de contacto.** `privacidad.html` promete derechos —una copia de
+  tus datos, una queja— y debajo pone «pendiente de publicar una dirección».
+  Un derecho sin puerta a la que llamar no es un derecho, y mientras esté así
+  la página no sirve como aviso legal. Es lo primero de esta lista y no
+  depende de escribir código.
+
+- **Volver a preguntar cuando cambien las condiciones.** La versión vigente la
+  decide el servidor (`condiciones_vigentes()`) y queda anotada en
+  `entrenadores.acepto`. Lo que no hay es nadie que compare lo anotado con lo
+  vigente y vuelva a preguntar. Hoy se cambia el texto y nadie se entera. Hace
+  falta mirarlo al entrar y enseñar la casilla otra vez si no coincide.
+
+  Un caso concreto de eso: la aplicación se guarda entera en el dispositivo
+  (service worker), así que alguien puede estar viendo el texto de hace dos
+  versiones mientras el servidor anota la de ahora. Con la comparación de
+  arriba hecha, se arregla solo.
+
+- **Poder pedir revisión de un ejercicio escondido.** Al quitarle al autor el
+  permiso de escribir en `oculto` —que era un agujero de verdad: tres
+  denuncias escondían el ejercicio y el autor lo volvía a destapar—, se quedó
+  sin ninguna salida. Tres cuentas de usar y tirar esconden lo que quieran y
+  el autor no tiene a quién decírselo. Falta un `pide_revision()` que apunte
+  la petición para que un administrador la mire.
+
+---
+
 ## Fuera de la aplicación
 
 - **Supabase · URL Configuration.** Poner `https://klym.xyz/app/` como *Site URL*

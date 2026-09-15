@@ -896,6 +896,12 @@
           <input type="text" id="cuenta-alta-club" maxlength="60" placeholder="Nombre del club"></label>
       </div>
 
+      <label class="check check-fila solo-crear" id="cuenta-acepto-caja" hidden
+             style="margin-top:12px;align-items:flex-start">
+        <input type="checkbox" id="cuenta-acepto" style="margin-top:2px">
+        <span>He leído la <a href="../privacidad.html" target="_blank" rel="noopener">privacidad
+          y las condiciones</a>, y entiendo que soy yo quien responde de lo que suba.</span></label>
+
       <div class="lib-linea" style="margin-top:12px">
         <button type="button" class="tbtn primary" id="cuenta-entrar">Entrar</button>
         <button type="button" class="mini-btn solo-entrar" id="cuenta-olvido">He olvidado la contraseña</button>
@@ -920,7 +926,13 @@
         <button type="button" class="row-btn" id="cuenta-clave-nueva">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           Cambiar la contraseña</button>
+        <button type="button" class="row-btn danger" id="cuenta-borrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+          Borrar mi cuenta</button>
       </div>
+      <p class="block-note" style="margin:10px 0 0">Borrar la cuenta se lleva también los
+        ejercicios que hayas compartido. Lo que tienes guardado en este dispositivo se
+        queda: eso se borra desde el navegador.</p>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>

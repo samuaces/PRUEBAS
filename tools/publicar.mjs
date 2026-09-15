@@ -76,7 +76,8 @@ if (conDominio) {
 }
 
 /* ---------- 3. El sitio ---------- */
-const SUELTOS = ['index.html', '404.html', 'llms.txt', 'robots.txt', 'sitemap.xml', 'site.webmanifest'];
+const SUELTOS = ['index.html', '404.html', 'privacidad.html',
+                 'llms.txt', 'robots.txt', 'sitemap.xml', 'site.webmanifest'];
 const CARPETAS = ['app', 'assets'];
 
 for (const f of SUELTOS) copia(join(RAIZ, f), join(BASE, f));

@@ -89,6 +89,14 @@ body{
 }
 input,textarea{-webkit-user-select:text;user-select:text}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+/* Los enlaces del cuerpo. Aquí dentro casi no hay —la aplicación no es un
+   documento—, pero los pocos que hay salían con el azul y el morado que pone
+   el navegador por su cuenta, y un morado de enlace visitado en un diálogo
+   oscuro canta muchísimo. El subrayado se queda: sin él un enlace dentro de un
+   párrafo no se distingue de una palabra en color. */
+a{color:var(--brand-2);text-decoration-thickness:1px;text-underline-offset:2px;
+  transition:color .15s}
+a:hover{color:var(--text)}
 :focus-visible{outline:2px solid var(--brand-2);outline-offset:2px;border-radius:6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sm-only{display:none}
@@ -247,8 +255,16 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .row-btn:hover{border-color:var(--line-strong);background:var(--glass-2)}
 .row-btn:active{transform:scale(.985)}
 .row-btn svg{width:15px;height:15px;flex:none;color:var(--muted);transition:color .16s}
-.row-btn.danger:hover{border-color:#8A3227;color:#FF8A7A;background:rgba(138,50,39,.16)}
-.row-btn.danger:hover svg{color:#FF8A7A}
+/* Lo que borra tiene que verse que borra estando quieto. Esto vivía solo en el
+   «hover», y en un móvil no hay hover: «Borrar mi cuenta» salía calcado a
+   «Cambiar la contraseña», justo encima. Dos botones idénticos y uno de ellos
+   sin vuelta atrás. Tinte suave, no un botón rojo: sigue siendo una fila de
+   ajustes, no la acción principal de la pantalla. */
+.row-btn.danger{border-color:rgba(138,50,39,.5);color:#FF8A7A;
+  background:linear-gradient(180deg,rgba(138,50,39,.15),rgba(138,50,39,.07))}
+.row-btn.danger svg{color:#FF8A7A}
+.row-btn.danger:hover{border-color:#8A3227;color:#FF9E90;background:rgba(138,50,39,.24)}
+.row-btn.danger:hover svg{color:#FF9E90}
 
 .check{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:8px 10px;border-radius:var(--r2);
   background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--sheen);
@@ -300,6 +316,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 .ask-input:focus,.field input:focus,.field select:focus,.field textarea:focus,
 #lib-q:focus,.lib-selects select:focus,select.sel:focus,#cfg-categoria:focus{
   outline:2px solid var(--brand-2);outline-offset:1px;border-color:transparent}
+/* El texto de arriba y el campo se tocaban. Con los mensajes de una línea de
+   siempre no se notaba; con uno de tres —el de borrar la cuenta— la última
+   línea quedaba debajo del borde del campo, y el aro azul del foco encima de
+   las letras. Un aviso que no se lee entero no es un aviso. */
+#ask-msg:not([hidden]) + #ask-field{margin-top:12px}
 .field select,.lib-selects select,select.sel{cursor:pointer}
 .field textarea{min-height:70px;resize:vertical}
 ::placeholder{color:var(--muted);opacity:.72}

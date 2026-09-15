@@ -73,7 +73,12 @@ const desde = html.indexOf('<div class="app"');
 const hasta = html.indexOf('<script src="config.js"');
 if (desde < 0 || hasta < 0) throw new Error('app/index.html no tiene la forma esperada');
 const cuerpo = html.slice(desde, hasta).trimEnd()
-  .replace(/<a href="\.\.\/"[^>]*>[^<]*<\/a>/, '');   // aquí no hay landing a la que volver
+  .replace(/<a href="\.\.\/"[^>]*>[^<]*<\/a>/, '')    // aquí no hay landing a la que volver
+  /* Y la privacidad no está al lado, porque aquí no hay «al lado»: este
+     archivo viaja solo, por correo o en un pincho. El enlace relativo sería
+     un enlace muerto, y un enlace muerto en la casilla del consentimiento es
+     peor que no tenerlo. Se manda al sitio. */
+  .replace(/href="\.\.\/privacidad\.html"/g, 'href="https://klym.xyz/privacidad.html"');
 const motor = js;
 
 // La biblioteca va incrustada: aquí no hay servidor del que traerla.

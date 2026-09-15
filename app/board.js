@@ -5755,12 +5755,20 @@
         function di(t) { aviso.textContent = t; aviso.hidden = false; }
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { di('Escribe un correo válido.'); return; }
         if (clave.length < 6) { di('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+        /* Aceptar las condiciones solo se pide al crear la cuenta, que es
+           cuando de verdad se acepta algo. A quien ya entró no se le vuelve a
+           preguntar cada vez: lo que aceptó quedó anotado en el servidor. */
+        if (modo === 'crear' && !$('#cuenta-acepto').checked) {
+          di('Para crear la cuenta hay que leer y aceptar la privacidad y las condiciones.');
+          $('#cuenta-acepto').focus();
+          return;
+        }
 
         var b = this, etiqueta = b.textContent;
         b.disabled = true; b.textContent = modo === 'crear' ? 'Creando…' : 'Entrando…';
         aviso.hidden = true;
 
-        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre)
+        var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre, true)
                                      : nube.entra(correo, clave);
         tarea.then(function () {
           return refrescaCuenta().then(function () {
@@ -5814,6 +5822,34 @@
         nube.sale().then(function () {
           yo = null; nubeMios = []; nubeLista = [];
           pintaCuenta(); toast('Sesión cerrada');
+        });
+      });
+
+      /* Borrar la cuenta no se puede deshacer y se lleva por delante lo que
+         hubiera compartido, así que no basta con un «¿seguro?»: hay que
+         escribir la palabra. Un botón rojo se pulsa sin querer; una palabra
+         escrita a mano, no. */
+      $('#cuenta-borrar').addEventListener('click', function () {
+        var b = this;
+        ask({
+          title: 'Borrar tu cuenta',
+          message: 'Se borran la cuenta, tu perfil y todos los ejercicios que hayas subido, ' +
+                   'incluidos los compartidos. No se puede deshacer. Escribe BORRAR para ' +
+                   'confirmarlo.',
+          input: '', placeholder: 'BORRAR', ok: 'Borrar mi cuenta', danger: true
+        }).then(function (t) {
+          if (t === null) return;
+          if (String(t).toUpperCase() !== 'BORRAR') { toast('No se ha borrado nada'); return; }
+          b.disabled = true;
+          return nube.borraCuenta().then(function () {
+            // Lo de este dispositivo no lo toca el servidor, y tampoco nosotros:
+            // la plantilla y las sesiones son suyas y siguen donde estaban.
+            yo = null; nubeMios = []; nubeLista = [];
+            pintaCuenta(); pintaBiblioteca();
+            toast('Tu cuenta se ha borrado');
+          }).catch(function (e) {
+            toast('No se ha podido borrar: ' + (e.message || 'error'));
+          }).then(function () { b.disabled = false; });
         });
       });
 

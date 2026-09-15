@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline';
+  img-src 'self' data:; font-src 'self'; connect-src 'none';
+  object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Privacidad y condiciones · Pizarra Táctica</title>
+<meta name="description" content="Qué guarda la Pizarra Táctica, dónde lo guarda y qué no hace con ello. En claro y sin letra pequeña.">
+<link rel="canonical" href="https://klym.xyz/privacidad.html">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#070A0F">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Outfit';src:url('assets/fonts/outfit-latin-var.woff2') format('woff2');
+  font-weight:400 800;font-display:swap}
+@font-face{font-family:'InterVar';src:url('assets/fonts/inter-latin-var.woff2') format('woff2');
+  font-weight:400 700;font-display:swap}
+:root{
+  --bg:#070A0F; --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.18);
+  --text:#E8EEF6; --muted:#93A6BC; --brand:#E11A41; --brand-2:#FF5C7A;
+  --glass:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+    radial-gradient(1100px 600px at 6% -12%,rgba(225,26,65,.20),transparent 60%),
+    radial-gradient(900px 560px at 96% 0%,rgba(46,134,222,.14),transparent 58%),
+    var(--bg);
+  color:var(--text);font:16px/1.65 'InterVar',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:28px 20px 80px}
+a{color:var(--brand-2)}
+a:hover{color:var(--text)}
+.volver{display:inline-block;margin:0 0 28px;font-size:14px;text-decoration:none;
+  color:var(--muted)}
+.volver:hover{color:var(--text)}
+h1{font-family:'Outfit',system-ui,sans-serif;font-size:clamp(28px,6vw,38px);line-height:1.15;
+  letter-spacing:-.02em;margin:0 0 8px}
+h2{font-family:'Outfit',system-ui,sans-serif;font-size:21px;letter-spacing:-.01em;
+  margin:40px 0 10px;padding-top:22px;border-top:1px solid var(--line)}
+h2:first-of-type{border-top:0;padding-top:0}
+p{margin:0 0 14px}
+ul{margin:0 0 14px;padding-left:22px}
+li{margin:0 0 7px}
+strong{color:#fff}
+.version{font-size:13.5px;color:var(--muted);margin:0 0 30px}
+.version code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+  background:var(--glass);border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+/* Lo que de verdad hay que leer, si solo se lee una cosa. */
+.clave{margin:26px 0;padding:18px 20px;border-radius:14px;
+  border:1px solid var(--line-2);background:var(--glass)}
+.clave h2{margin:0 0 8px;border:0;padding:0;font-size:19px}
+.clave p:last-child{margin:0}
+.ojo{border-left:3px solid var(--brand);padding-left:16px;margin:18px 0}
+.pie{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);
+  font-size:13.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<a class="volver" href="./">‹ Pizarra Táctica</a>
+
+<h1>Privacidad y condiciones</h1>
+<p class="version">Versión <code>2026-09-a</code> · 15 de septiembre de 2026. Es la que
+  se te enseña al crear una cuenta, y la que queda anotada como la que aceptaste.</p>
+
+<div class="clave">
+  <h2>Lo corto</h2>
+  <p>Los nombres de tus jugadores <strong>no salen de tu dispositivo</strong>. Nunca se
+    suben, ni siquiera teniendo cuenta. Si creas una cuenta, en el servidor quedan tu
+    correo, tu nombre y los ejercicios que <em>tú</em> decidas compartir, y nada más. No
+    hay cookies, no hay rastreo y no hay publicidad. Y lo que subes es tuyo y respondes
+    de ello.</p>
+</div>
+
+<h2>Lo de tus jugadores se queda en tu dispositivo</h2>
+<p>La plantilla, la asistencia y las sesiones —o sea, los nombres y apellidos de tu
+  equipo— se guardan <strong>solo en el navegador con el que estás</strong>, en su
+  almacén local. No viajan a ningún servidor, no van dentro de los ejercicios que
+  compartes, no salen en los enlaces que mandas y no aparecen dibujados en el campo: en
+  la pizarra una ficha es un dorsal y ya.</p>
+<p>Esto no es una promesa suelta. Hay pruebas automáticas que montan un equipo con
+  nombres inventados, usan la aplicación entera y comprueban que esos nombres no
+  aparecen en ninguna petición de red, en ningún enlace ni en ningún archivo exportado.
+  Si algún día alguien rompiera eso sin darse cuenta, esas pruebas fallan.</p>
+<div class="ojo">
+  <p>La otra cara de lo mismo: <strong>si borras los datos del navegador, cambias de
+    móvil o desinstalas, esa información se pierde</strong> y no hay copia en ninguna
+    parte desde la que recuperarla. Es el precio de que no salga de ahí.</p>
+</div>
+
+<h2>Qué se guarda en el servidor, y solo si creas cuenta</h2>
+<p>La pizarra funciona entera sin cuenta. La cuenta sirve para una cosa: compartir
+  ejercicios con los demás entrenadores y que te sigan allá donde entres. Si la creas,
+  en el servidor quedan:</p>
+<ul>
+  <li><strong>Tu correo</strong>, para poder entrar y para recuperar la contraseña. No
+    se enseña a nadie: no aparece en la biblioteca ni se lo puede pedir otro usuario.</li>
+  <li><strong>Tu nombre y tu club</strong>, porque firman los ejercicios que compartes.
+    Eso sí lo ve todo el mundo. Si no quieres que se te reconozca, pon otra cosa.</li>
+  <li><strong>Los ejercicios que subas</strong>: el dibujo y su ficha. Solo se ven los
+    que marques como compartidos; los demás los ves únicamente tú.</li>
+  <li><strong>Qué versión de esta página aceptaste y cuándo</strong>, para que quede
+    constancia.</li>
+</ul>
+<p>Nada más. No hay analítica, ni píxeles, ni servicios de terceros metidos en la
+  página. El servidor es <a href="https://supabase.com/privacy" rel="noopener">Supabase</a>,
+  que es quien aloja la base de datos y las cuentas.</p>
+
+<h2>Cookies: no hay</h2>
+<p>Este sitio no pone cookies ni usa ninguna herramienta que las ponga. Lo que sí usa es
+  el <em>almacén local</em> del navegador para guardar tus pizarras y tus ajustes, que es
+  otra cosa: no viaja en cada petición, no lo lee nadie más y se borra cuando borras los
+  datos del sitio.</p>
+
+<h2>Tú respondes de lo que subes</h2>
+<p>Al compartir un ejercicio en la biblioteca común, declaras que es tuyo o que tienes
+  derecho a publicarlo, y <strong>eres tú el responsable de lo que hay dentro</strong>.
+  En un ejercicio no debe aparecer ningún dato personal de nadie: ni nombres de
+  jugadores, ni fotos, ni nada que identifique a una persona, y menos a un menor. La
+  aplicación está hecha para que no haga falta —las fichas del campo llevan dorsal, no
+  nombre— pero el campo de texto lo escribes tú.</p>
+<p>Si alguien ve algo que no debería estar, puede denunciarlo desde la propia
+  biblioteca. Con tres denuncias de personas distintas el ejercicio deja de verse.</p>
+
+<h2>Lo que no se hace con tus datos</h2>
+<ul>
+  <li>No se venden ni se ceden a nadie.</li>
+  <li>No se usan para publicidad ni para perfilarte.</li>
+  <li>No se usan para entrenar ningún sistema.</li>
+  <li>No se te manda correo salvo el de entrar o el de recuperar la contraseña.</li>
+</ul>
+
+<h2>Borrar tu cuenta</h2>
+<p>En la aplicación, en <strong>Ajustes → Tu cuenta → Borrar mi cuenta</strong>. Se borra
+  de verdad y de una vez: la cuenta, tu perfil y <em>todos</em> los ejercicios que
+  hubieras subido, incluidos los que estuvieran compartidos. No queda copia y no se puede
+  deshacer.</p>
+<p>Lo que está guardado en tu dispositivo no lo toca ese botón, porque el servidor no
+  puede llegar ahí: para eso, borra los datos del sitio desde tu navegador.</p>
+
+<h2>Tus derechos</h2>
+<p>Puedes ver y cambiar tu nombre y tu club desde la propia aplicación, y borrarlo todo
+  con el botón de arriba. Si quieres una copia de lo que hay guardado a tu nombre, o
+  tienes cualquier queja, escribe al correo de abajo.</p>
+
+<h2>Si esto cambia</h2>
+<p>Si algún día cambia lo que aquí se dice, la versión de arriba cambia con ello y se te
+  vuelve a pedir que lo aceptes. No se cambia por detrás.</p>
+
+<h2>Contacto</h2>
+<p><!-- PENDIENTE: poner aquí el correo de contacto de verdad antes de que esto sirva
+     como aviso legal. Sin una dirección a la que escribir, los derechos de arriba son
+     una frase sin puerta. -->
+  Pendiente de publicar una dirección de contacto.</p>
+
+<p class="pie">Pizarra Táctica · <a href="./">klym.xyz</a></p>
+
+</div>
+</body>
+</html>
