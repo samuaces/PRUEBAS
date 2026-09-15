@@ -164,11 +164,10 @@ cualquier dispositivo. Es por donde hay que empezar el día que se retome.
 La casilla, la página de privacidad y el borrado de cuenta ya están. Lo que
 queda no es relleno: son tres sitios donde hoy la cosa no se cierra del todo.
 
-- **El correo de contacto.** `privacidad.html` promete derechos —una copia de
-  tus datos, una queja— y debajo pone «pendiente de publicar una dirección».
-  Un derecho sin puerta a la que llamar no es un derecho, y mientras esté así
-  la página no sirve como aviso legal. Es lo primero de esta lista y no
-  depende de escribir código.
+- **El correo de contacto · HECHO.** Es `samuaces@gmail.com`, publicado el
+  15/09/2026. Había un comentario en el código pidiendo que se rellenara antes
+  de publicar; un comentario no impide publicar nada, así que ahora lo impide
+  una comprobación de `tests/ids.mjs`.
 
 - **Volver a preguntar cuando cambien las condiciones.** La versión vigente la
   decide el servidor (`condiciones_vigentes()`) y queda anotada en
@@ -187,6 +186,67 @@ queda no es relleno: son tres sitios donde hoy la cosa no se cierra del todo.
   sin ninguna salida. Tres cuentas de usar y tirar esconden lo que quieran y
   el autor no tiene a quién decírselo. Falta un `pide_revision()` que apunte
   la petición para que un administrador la mire.
+
+---
+
+## 6 · Lo que encontró la auditoría del 15/09/2026
+
+Barrido funcional de la aplicación entera siguiendo la lista de regresión del
+encargo. Cero fallos críticos y cero errores de consola. Esto es lo que salió,
+por orden de lo que más duele.
+
+### El análisis pierde trabajo sin decirlo · ALTO
+
+Un ejercicio sin «momento del juego» cuenta en el resumen y en los minutos de
+cada jugador, pero no sale en el reparto por momentos. Y sus minutos siguen en
+el denominador del porcentaje.
+
+Medido: 25 min de «Ataque organizado» + 20 min sin etiquetar enseña una sola
+barra que dice **56 %**. El 44 % restante no aparece en ninguna parte y nada lo
+explica. Sin etiquetar nada, la pantalla dice «Todavía no hay nada que contar
+aquí» habiendo entrenado hora y media.
+
+El reparto es deliberado —`equipo.js:718` lo razona— pero el silencio no. Y pega
+justo en el núcleo del producto: si las cuentas no son fiables, la recomendación
+de «¿qué toca hoy?» tampoco.
+
+  - `app/equipo.js:710-722` — `total` suma todo, `porMomento` no
+  - `app/board.js:4125` — `{ total: d.minutos }` es el denominador
+
+Lo que hace falta no es solo arreglar la cuenta: es que el «momento» deje de ser
+un campo opcional sin explicar. Sugerirlo al guardar, avisar cuando falta, y
+poder etiquetar después lo que ya quedó sin etiquetar.
+
+### Dos guardados no avisan si el almacén está lleno · MEDIO
+
+Casi todos los caminos comprueban lo que devuelve el guardado y avisan. Dos no:
+
+  - `app/board.js:5598` y `:5602` — asistencia con «Todos» / «Ninguno»
+  - `app/board.js:5697` y `:5701` — el nombre de la sesión
+
+Con el almacén lleno el cambio se deshace solo al repintar, sin decir por qué.
+
+### La página de privacidad no abre sin conexión · BAJO
+
+No está en `SHELL` de `app/sw.js`. Es una línea: `'../privacidad.html'`.
+
+### Y lo que ya estaba apuntado arriba
+
+La apelación de moderación y el re-consentimiento al cambiar las condiciones
+siguen pendientes; la auditoría los confirma y no añade nada nuevo.
+
+### Riesgos, que no son fallos
+
+  - **El almacén local es el único que hay.** Pierdes el móvil y se va la
+    plantilla, la asistencia y las sesiones. Está escrito en la página de
+    privacidad, pero es lo que más caro sale si le pasa a alguien a media
+    temporada.
+  - **`board.js` son 6.252 líneas y 322 funciones en un archivo.** Funciona y
+    está comentado, pero es donde aparecerán las regresiones de cualquier fase
+    grande. Conviene partirlo ANTES de las fases grandes, no después.
+  - **La aplicación se puede empotrar en otra página.** `frame-ancestors` no se
+    puede poner desde el HTML y GitHub Pages no manda cabeceras. Se arregla
+    cambiando de alojamiento, no con código.
 
 ---
 
