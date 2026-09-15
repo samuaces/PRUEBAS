@@ -682,6 +682,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
+  /* El de la cuenta va sin nombre aquí: con el nombre no cabía la barra entera
+     en un teléfono estrecho, y la barra recorta por los lados sin avisar, así
+     que el botón habría desaparecido sin más. El alto se respeta, que es lo que
+     se toca; lo que se recorta es el ancho sobrante de un icono solo. */
+  .topbar .cuenta-btn{min-width:38px;padding-left:9px;padding-right:9px}
+  /* En Equipo, con el móvil, no había NINGUNA manera de abrir Ajustes: la hoja
+     de «Más», que es donde vive en la pizarra, solo existe en la pizarra. Aquí
+     la barra va vacía por la derecha, así que el engranaje vuelve a ella. */
+  .app[data-modo="equipo"] .grupo-ajustes{display:flex}
 
   /* La hoja se apoya ENCIMA de la barra de pestañas. Antes llegaba hasta abajo
      del todo y la barra, que va por delante, le comía la última fila: el
@@ -1234,6 +1243,32 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .aside{transition:none}
 }
 
+/* ---------------- La cuenta, en la barra de arriba ---------------- */
+/* Estaba al final de Ajustes, detrás de un scroll, y en el móvil dentro de
+   Equipo no se llegaba de ninguna manera: esa pantalla no tiene Ajustes. Entrar
+   y salir es de lo que más se busca, así que sube aquí, al lado del engranaje,
+   y se queda en los dos modos y en todos los anchos. */
+.cuenta-btn{gap:7px}
+.cuenta-avatar{display:inline-flex;align-items:center;justify-content:center;
+  width:23px;height:23px;flex:none;border-radius:50%;
+  background:var(--glass-2);border:1px solid var(--line-strong);
+  font-size:10px;font-weight:700;letter-spacing:.2px;line-height:1;
+  font-family:var(--ff-body);color:var(--muted);
+  transition:background .16s,border-color .16s,color .16s}
+.cuenta-avatar svg{width:14px;height:14px}
+.cuenta-btn:hover .cuenta-avatar{color:var(--text);border-color:var(--line-strong)}
+/* Silueta o iniciales, nunca las dos. Lo decide el CSS y no el JavaScript:
+   «hidden» es de los elementos HTML, y el icono es un SVG. */
+#cuenta-ini{display:none}
+.cuenta-btn.dentro #cuenta-silueta{display:none}
+.cuenta-btn.dentro #cuenta-ini{display:inline}
+/* Con la sesión abierta el hueco lleva tus iniciales y se enciende con el color
+   de la casa. De un vistazo, desde cualquier pantalla, se sabe si estás dentro
+   —que era justo lo que no se sabía—. */
+.cuenta-btn.dentro .cuenta-avatar{
+  background:linear-gradient(180deg,var(--brand-2),var(--brand));
+  border-color:transparent;color:#fff}
+
 </style>
 <div class="app" data-modo="pizarra">
 
@@ -1275,11 +1310,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <button class="tbtn" id="redo" title="Rehacer (Ctrl+Mayús+Z)" aria-label="Rehacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9H9a5 5 0 0 0 0 10h3"/><path d="M16 5l4 4-4 4"/></svg>
       </button>
-    </div>
 
-    <div class="group solo-pizarra">
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
-      <button class="tbtn" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
+      <button class="tbtn solo-ancho" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
       <button class="tbtn solo-ancho" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
       <button class="tbtn primary solo-ancho" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -1288,7 +1321,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     </div>
 
 
-    <div class="group solo-ancho">
+    <!-- La cuenta, siempre a la vista: en los dos modos y en todos los anchos.
+         Es lo único de aquí arriba que no depende de lo que estés haciendo. -->
+    <div class="group grupo-cuenta">
+      <button class="tbtn cuenta-btn" id="cuenta-btn" title="Tu cuenta" aria-label="Tu cuenta">
+        <span class="cuenta-avatar" id="cuenta-avatar" aria-hidden="true"><svg id="cuenta-silueta" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.1"/><path d="M4 16.5a6 6 0 0 1 12 0"/></svg><span id="cuenta-ini"></span></span>
+        <span class="hide-sm" id="cuenta-btn-txt">Entrar</span>
+      </button>
+    </div>
+
+    <div class="group solo-ancho grupo-ajustes">
       <button class="tbtn" id="cfg" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
@@ -1435,6 +1477,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <div class="block" id="b-actions" data-grupo="mas">
         <h2>Pizarra</h2>
         <div class="stack">
+          <button class="row-btn solo-estrecho" id="open-row">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="6" height="13" rx="1.2"/><rect x="11.5" y="3.5" width="6" height="6" rx="1.2"/><path d="M11.5 12.5h6M11.5 15.5h6"/></svg>
+            Biblioteca de ejercicios
+          </button>
           <button class="row-btn solo-estrecho" id="ficha-row">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="13" height="15" rx="1.8"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4"/></svg>
             Ficha del ejercicio
@@ -2006,38 +2052,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   </div>
 </dialog>
 
-<dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
-  <div class="dhead"><h3 id="dlg-cfg-t">Ajustes</h3>
+<!-- La cuenta tiene diálogo propio, y no un rincón al final de Ajustes. Entrar y
+     salir es de lo que más se busca, y estaba a tres pasos y un scroll: en el
+     móvil, dentro de Equipo, no se llegaba de ninguna manera. -->
+<dialog id="dlg-cuenta" aria-labelledby="dlg-cuenta-t">
+  <div class="dhead"><h3 id="dlg-cuenta-t">Tu cuenta</h3>
     <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
   <div class="dbody">
-    <p class="form-group">Modalidad predeterminada</p>
-    <div class="seg" id="cfg-pitch">
-      <button type="button" data-cfg-pitch="f11">Fútbol 11</button>
-      <button type="button" data-cfg-pitch="f7">Fútbol 7</button>
-      <button type="button" data-cfg-pitch="futsal">Sala</button>
-    </div>
-    <p class="block-note" style="margin:9px 0 0">Con la que abre la biblioteca y con la que empieza
-      cada pizarra nueva. La pizarra que tengas abierta no se toca.</p>
-
-    <p class="form-group">Tu equipo</p>
-    <div class="form-grid">
-      <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
-        <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
-    </div>
-
-    <p class="form-group">La aplicación</p>
-    <div class="stack">
-      <button class="row-btn" id="install" hidden>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
-        Instalar en este dispositivo
-      </button>
-      <button class="row-btn" id="help">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
-        Cómo se usa
-      </button>
-    </div>
-
-    <p class="form-group">Tu cuenta</p>
     <div id="cuenta-fuera">
       <p class="block-note" style="margin:0 0 12px">Con cuenta, lo que compartas se sube solo a
         la biblioteca común, firmado con tu nombre. Sin cuenta la pizarra funciona igual.</p>
@@ -2097,6 +2118,50 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <p class="block-note" style="margin:10px 0 0">Borrar la cuenta se lleva también los
         ejercicios que hayas compartido. Lo que tienes guardado en este dispositivo se
         queda: eso se borra desde el navegador.</p>
+    </div>
+  </div>
+  <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg-cfg" aria-labelledby="dlg-cfg-t">
+  <div class="dhead"><h3 id="dlg-cfg-t">Ajustes</h3>
+    <button class="tbtn" data-close aria-label="Cerrar">✕</button></div>
+  <div class="dbody">
+    <p class="form-group">Modalidad predeterminada</p>
+    <div class="seg" id="cfg-pitch">
+      <button type="button" data-cfg-pitch="f11">Fútbol 11</button>
+      <button type="button" data-cfg-pitch="f7">Fútbol 7</button>
+      <button type="button" data-cfg-pitch="futsal">Sala</button>
+    </div>
+    <p class="block-note" style="margin:9px 0 0">Con la que abre la biblioteca y con la que empieza
+      cada pizarra nueva. La pizarra que tengas abierta no se toca.</p>
+
+    <p class="form-group">Tu equipo</p>
+    <div class="form-grid">
+      <label class="field wide"><span>Categoría o equipo <small>se pone solo en cada ficha</small></span>
+        <input type="text" id="cfg-categoria" maxlength="40" placeholder="Cadete A"></label>
+    </div>
+
+    <p class="form-group">La aplicación</p>
+    <div class="stack">
+      <button class="row-btn" id="install" hidden>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"/><path d="M4 15h12"/></svg>
+        Instalar en este dispositivo
+      </button>
+      <button class="row-btn" id="help">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M7.9 7.7a2.1 2.1 0 1 1 2.6 2.1v1.3"/><path d="M10.5 14.2h.01"/></svg>
+        Cómo se usa
+      </button>
+    </div>
+
+    <div id="cfg-cuenta-bloque">
+    <p class="form-group">Tu cuenta</p>
+    <div class="stack">
+      <button class="row-btn" id="cfg-cuenta">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3.1"/><path d="M4 16.5a6 6 0 0 1 12 0"/></svg>
+        <span id="cfg-cuenta-txt">Entrar o crear una cuenta</span>
+      </button>
+    </div>
     </div>
   </div>
   <div class="dfoot"><button class="tbtn" data-close>Cerrar</button></div>
@@ -11065,6 +11130,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   var nube = window.PTNube || null;
   var hayNube = !!(nube && nube.hay());
+  // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
+  // declara para que lo alcancen los que están fuera de esa función.
+  var abreCuenta = function () {};
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
   var yo = null;                      // sin cuentas: nadie firma en el servidor
@@ -11108,6 +11176,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
   }
 
+  /* Las iniciales para el hueco de la barra: dos como mucho, y si no hay
+     nombre, la primera letra del correo. Nunca vacío —un círculo en blanco
+     parece que se ha roto algo—. */
+  function inicialesDe(p) {
+    var n = String((p && p.nombre) || '').trim();
+    if (n) {
+      var trozos = n.split(/\s+/).filter(Boolean);
+      return (trozos[0][0] + (trozos.length > 1 ? trozos[trozos.length - 1][0] : ''))
+               .toUpperCase();
+    }
+    var c = String((p && p.email) || '').trim();
+    return c ? c[0].toUpperCase() : '?';
+  }
+
   function pintaCuenta() {
     if (!$('#cuenta-fuera')) return;
     var dentro = !!yo;
@@ -11118,6 +11200,33 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+
+    /* El botón de la barra dice de un vistazo si estás dentro: con la sesión
+       abierta enseña tus iniciales sobre el color de la casa; sin ella, una
+       silueta y la palabra «Entrar». Antes no había manera de saberlo sin
+       abrir Ajustes y bajar hasta el final. */
+    var btn = $('#cuenta-btn');
+    if (btn) {
+      var txt = $('#cuenta-btn-txt'), ini = $('#cuenta-ini');
+      /* La silueta y las iniciales están las dos puestas y las turna el CSS con
+         esta clase. Se hace así, y no escondiéndolas desde aquí, porque
+         «hidden» es de los elementos HTML y el icono es un SVG: ponérselo desde
+         JavaScript no lo esconde, crea una propiedad que no mira nadie. */
+      btn.classList.toggle('dentro', dentro);
+      if (dentro) {
+        ini.textContent = inicialesDe(yo);
+        txt.textContent = yo.nombre ? yo.nombre.split(/\s+/)[0] : 'Tu cuenta';
+        btn.title = 'Tu cuenta · ' + (yo.email || '');
+        btn.setAttribute('aria-label', 'Tu cuenta, ' + (yo.email || 'has entrado'));
+      } else {
+        txt.textContent = 'Entrar';
+        btn.title = 'Entrar o crear una cuenta';
+        btn.setAttribute('aria-label', 'Entrar o crear una cuenta');
+      }
+    }
+    // Y la fila de Ajustes, que lleva al mismo sitio, dice lo mismo.
+    var fila = $('#cfg-cuenta-txt');
+    if (fila) fila.textContent = dentro ? (yo.email || 'Tu cuenta') : 'Entrar o crear una cuenta';
   }
 
   /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
@@ -11352,8 +11461,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             ok: 'Crear mi cuenta' })
         .then(function (si) {
           if (!si) return;
-          abreAjustes();
-          setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 300);
+          // Ha dicho que quiere crearla: se abre ya en «Crear una cuenta».
+          abreCuenta(true);
         });
       return;
     }
@@ -11518,7 +11627,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (libFiltros.origen === 'mia') {
       if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
       if (!yo) return 'Lo guardado se queda en este dispositivo · entra con tu correo ' +
-                      'en Ajustes para tener los tuyos en cualquier sitio';
+                      'desde el botón de arriba para tener los tuyos en cualquier sitio';
       return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
     }
     var partes = ['Los que trae la aplicación'];
@@ -14070,11 +14179,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $$('[data-eq]').forEach(function (b) {
       b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
     });
-    // En el móvil, Ajustes vive en el panel: en la barra ya no cabía.
-    $('#cfg-row').addEventListener('click', function () { sheetClose(); $('#dlg-cfg').showModal(); });
     // Exportar no cabe en la barra del móvil; desde el panel hace lo mismo.
     $('#export-row').addEventListener('click', function () { sheetClose(); $('#export').click(); });
     $('#ficha-row').addEventListener('click', function () { sheetClose(); openCard(); });
+    /* La biblioteca bajó a la hoja para dejarle sitio arriba a la cuenta. Sale
+       ganando: aquí tiene su nombre escrito, y como icono suelto en una barra
+       apretada no lo entendía nadie. */
+    $('#open-row').addEventListener('click', function () { sheetClose(); openLibrary(null); });
     $('#squad-add').addEventListener('click', añadeJugador);
     $('#squad-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeJugador(); }
@@ -14266,7 +14377,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#enlace').addEventListener('click', function () { sheetClose(); enviaPorEnlace(); });
     $('#compartir').addEventListener('click', function () { sheetClose(); comparteActual(); });
 
+    /* Sin servidor detrás no hay cuentas que valgan. Antes esto daba igual
+       porque la cuenta vivía enterrada en Ajustes; ahora tiene un botón en la
+       barra, y un botón que no lleva a ninguna parte es peor que no tenerlo.
+       El archivo suelto —el que se manda por correo— es justo este caso. */
+    if (!hayNube) {
+      $('#cuenta-btn').closest('.group').hidden = true;
+      $('#cfg-cuenta-bloque').hidden = true;
+    }
+
     if (hayNube) {
+      /* Abrir la cuenta. Es un solo sitio al que se llega desde tres: el botón
+         de la barra, la fila de Ajustes y el aviso de compartir. Al abrirlo se
+         parte siempre de «Ya tengo cuenta», que es lo que hace casi todo el
+         mundo casi siempre; crear una está a un toque al lado. */
+      abreCuenta = function (comoCrear) {
+        ponModo(comoCrear ? 'crear' : 'entrar');
+        $('#cuenta-aviso').hidden = true;
+        if ($('#dlg-cfg').open) $('#dlg-cfg').close();
+        $('#dlg-cuenta').showModal();
+        // Sin sesión, el cursor va al correo: se ha venido a escribirlo.
+        if (!yo) setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 120);
+      };
+      $('#cuenta-btn').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
+      $('#cfg-cuenta').addEventListener('click', function () { abreCuenta(false); });
+
       // Entrar y registrarse son dos cosas distintas y se piden por separado.
       var modo = 'entrar';
       function ponModo(m) {
@@ -14415,7 +14550,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       var regreso = nube.vuelta();
       if (regreso) {
         if (regreso.error) {
-          $('#cfg').click();
+          abreCuenta(false);
           var av = $('#cuenta-aviso'); av.textContent = regreso.error; av.hidden = false;
         } else if (regreso.recuperando) {
           refrescaCuenta().then(function () {
@@ -14480,6 +14615,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
     $('#cfg').addEventListener('click', abreAjustes);
+    $('#cfg-row').addEventListener('click', function () { sheetClose(); abreAjustes(); });
     $$('[data-cfg-pitch]').forEach(function (b) {
       b.addEventListener('click', function () {
         var p = prefs(); p.pitch = b.dataset.cfgPitch; guardaPrefs(p);

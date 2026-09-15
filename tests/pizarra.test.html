@@ -696,6 +696,60 @@ async function run(w,d){
   ok('la cuenta solo se ofrece si hay servidor detrás',
      conNube ? !!d.getElementById('cuenta-entrar') : !d.getElementById('cuenta-entrar'),
      conNube ? 'con servidor' : 'sin servidor');
+
+  /* --- la cuenta, a la vista y a un toque ---
+
+     Estaba al final de Ajustes, detrás de un scroll, y en el móvil dentro de
+     Equipo no se llegaba DE NINGUNA MANERA: esa pantalla no tiene «Más», que
+     es donde vive Ajustes en el teléfono. Así que lo que se comprueba no es
+     que el botón exista, sino que se llega a la cuenta desde los dos modos y
+     en los dos tamaños, que es lo que fallaba. */
+  var anchoOrig=w.innerWidth;
+  var veAncho=function(id){var e=d.getElementById(id);return !!(e&&e.offsetParent!==null);};
+  if(conNube){
+    ok('el botón de la cuenta está en la barra, sin abrir nada',veAncho('cuenta-btn'));
+    ok('y dice lo que hace cuando no has entrado',
+       /entrar/i.test(d.getElementById('cuenta-btn').getAttribute('aria-label')||''),
+       d.getElementById('cuenta-btn').getAttribute('aria-label'));
+    // La prueba de fondo: los dos modos. Equipo era el que no tenía salida.
+    var modos=['pizarra','equipo'],llega=[];
+    for(var iM=0;iM<modos.length;iM++){
+      d.querySelector('.modo[data-modo="'+modos[iM]+'"]').click();await wait(350);
+      var seVeAqui=veAncho('cuenta-btn');
+      d.getElementById('cuenta-btn').click();await wait(350);
+      var abrio=d.getElementById('dlg-cuenta').open;
+      if(d.getElementById('dlg-cuenta').open)d.querySelector('#dlg-cuenta [data-close]').click();
+      await wait(250);
+      llega.push(modos[iM]+(seVeAqui&&abrio?' sí':' NO'));
+    }
+    ok('se llega a la cuenta desde los dos modos',
+       llega.join(' ').indexOf('NO')<0,llega.join(' · '));
+    d.querySelector('.modo[data-modo="pizarra"]').click();await wait(300);
+    // Y la cuenta ya no vive dentro de Ajustes: son dos diálogos distintos.
+    ok('la cuenta tiene diálogo propio, no un rincón de Ajustes',
+       !!d.getElementById('dlg-cuenta')&&
+       !d.getElementById('dlg-cfg').contains(d.getElementById('cuenta-entrar')));
+
+    /* El apretón está aquí, en Pizarra: es el modo que llena la barra. Cabe
+       porque la Biblioteca bajó a la hoja de «Más». La barra recorta por los
+       lados sin avisar, así que si alguien la sube otra vez el botón de la
+       cuenta desaparece y nada falla: por eso se MIDE, no se mira si existe. */
+    var anchosB=[430,390,360,320],apretados=[];
+    for(var iB=0;iB<anchosB.length;iB++){
+      fr.style.width=anchosB[iB]+'px';await wait(320);
+      var bar=d.querySelector('.topbar').getBoundingClientRect();
+      var rb=d.getElementById('cuenta-btn').getBoundingClientRect();
+      if(!(rb.width>0&&rb.left>=bar.left-0.5&&rb.right<=bar.right+0.5)){
+        apretados.push(anchosB[iB]+'px →'+Math.round(rb.right)+' de '+Math.round(bar.right));
+      }
+    }
+    fr.style.width='';await wait(320);
+    ok('en Pizarra el botón de la cuenta cabe en la barra a cualquier ancho de móvil',
+       apretados.length===0,apretados.join(' · ')||'430·390·360·320 px');
+    // Y lo que bajó a la hoja para dejarle sitio sigue llegando a su sitio.
+    ok('y la Biblioteca, que bajó a la hoja, sigue teniendo su fila',
+       !!d.getElementById('open-row'));
+  }
   d.getElementById('compartir').click();await wait(500);
   if(conNube){
     // Con servidor, compartir sube a la biblioteca de todos, y para eso pide cuenta.
@@ -709,15 +763,15 @@ async function run(w,d){
     // Registrarse y entrar son cosas distintas: cada una con lo suyo.
     ok('entrar y crear cuenta están separados',
        d.querySelectorAll('#cuenta-modo button').length===2);
-    // Hay que abrir Ajustes: si el diálogo está cerrado no se ve nada y la
+    // Hay que abrir el diálogo de la cuenta: cerrado no se ve nada y la
     // comprobación pasaría sola sin comprobar nada.
     if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
     await wait(200);
-    d.getElementById('cfg').click();await wait(400);
+    d.getElementById('cuenta-btn').click();await wait(400);
     // Se mira si SE VE, no el display del campo: un hijo de algo oculto
     // conserva su propio display y engaña a la comprobación.
     var seVe=function(id){var e=d.getElementById(id);return !!(e&&e.offsetParent!==null);};
-    ok('los ajustes se abren para mirar la cuenta',d.getElementById('dlg-cfg').open);
+    ok('el botón de la barra abre la cuenta',d.getElementById('dlg-cuenta').open);
     ok('al entrar solo se pide correo y contraseña',
        !seVe('cuenta-alta-nombre')&&!seVe('cuenta-alta-club')&&
        /^Entrar$/.test(d.getElementById('cuenta-entrar').textContent.trim()),
@@ -808,7 +862,7 @@ async function run(w,d){
     d.getElementById('cuenta-dentro').hidden=true;
     if(d.getElementById('dlg-ask').open)d.querySelector('#dlg-ask [data-close]').click();
     await wait(200);
-    d.querySelector('#dlg-cfg [data-close]').click();await wait(250);
+    d.querySelector('#dlg-cuenta [data-close]').click();await wait(250);
   } else {
     ok('sin servidor, compartir prepara el ejercicio para mandarlo',
        d.getElementById('dlg-file').open||d.getElementById('toast').textContent.length>0);

@@ -672,6 +672,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
+  /* El de la cuenta va sin nombre aquí: con el nombre no cabía la barra entera
+     en un teléfono estrecho, y la barra recorta por los lados sin avisar, así
+     que el botón habría desaparecido sin más. El alto se respeta, que es lo que
+     se toca; lo que se recorta es el ancho sobrante de un icono solo. */
+  .topbar .cuenta-btn{min-width:38px;padding-left:9px;padding-right:9px}
+  /* En Equipo, con el móvil, no había NINGUNA manera de abrir Ajustes: la hoja
+     de «Más», que es donde vive en la pizarra, solo existe en la pizarra. Aquí
+     la barra va vacía por la derecha, así que el engranaje vuelve a ella. */
+  .app[data-modo="equipo"] .grupo-ajustes{display:flex}
 
   /* La hoja se apoya ENCIMA de la barra de pestañas. Antes llegaba hasta abajo
      del todo y la barra, que va por delante, le comía la última fila: el
@@ -1223,3 +1232,29 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
   .aside{transition:none}
 }
+
+/* ---------------- La cuenta, en la barra de arriba ---------------- */
+/* Estaba al final de Ajustes, detrás de un scroll, y en el móvil dentro de
+   Equipo no se llegaba de ninguna manera: esa pantalla no tiene Ajustes. Entrar
+   y salir es de lo que más se busca, así que sube aquí, al lado del engranaje,
+   y se queda en los dos modos y en todos los anchos. */
+.cuenta-btn{gap:7px}
+.cuenta-avatar{display:inline-flex;align-items:center;justify-content:center;
+  width:23px;height:23px;flex:none;border-radius:50%;
+  background:var(--glass-2);border:1px solid var(--line-strong);
+  font-size:10px;font-weight:700;letter-spacing:.2px;line-height:1;
+  font-family:var(--ff-body);color:var(--muted);
+  transition:background .16s,border-color .16s,color .16s}
+.cuenta-avatar svg{width:14px;height:14px}
+.cuenta-btn:hover .cuenta-avatar{color:var(--text);border-color:var(--line-strong)}
+/* Silueta o iniciales, nunca las dos. Lo decide el CSS y no el JavaScript:
+   «hidden» es de los elementos HTML, y el icono es un SVG. */
+#cuenta-ini{display:none}
+.cuenta-btn.dentro #cuenta-silueta{display:none}
+.cuenta-btn.dentro #cuenta-ini{display:inline}
+/* Con la sesión abierta el hueco lleva tus iniciales y se enciende con el color
+   de la casa. De un vistazo, desde cualquier pantalla, se sabe si estás dentro
+   —que era justo lo que no se sabía—. */
+.cuenta-btn.dentro .cuenta-avatar{
+  background:linear-gradient(180deg,var(--brand-2),var(--brand));
+  border-color:transparent;color:#fff}

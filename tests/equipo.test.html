@@ -1414,6 +1414,43 @@ function siembra(lista){
     await nadaSeSale(anchos[iA]);
   }
 
+  /* ---- la cuenta, entera dentro de la barra ----
+
+     El botón de la cuenta subió a la barra de arriba porque abajo no se
+     llegaba: en Equipo, con el móvil, no había NINGUNA manera de abrirla —esta
+     pantalla no tiene la hoja de «Más», que es donde vive Ajustes en el
+     teléfono—. Pero la barra recorta por los lados sin avisar: si algún día
+     vuelve a no caber, el botón desaparece sin que nada falle. Por eso se mide
+     el botón, no se mira si existe. */
+  async function laCuentaCabe(ancho){
+    fr.style.width = ancho + 'px';
+    await wait(320);
+    var btn = d.getElementById('cuenta-btn');
+    if (!btn || btn.closest('.group').hidden) {
+      ok('a ' + ancho + ' px la cuenta se alcanza desde Equipo', true, 'sin nube configurada');
+      return;
+    }
+    var bar = d.querySelector('.topbar').getBoundingClientRect();
+    var r = btn.getBoundingClientRect();
+    ok('a ' + ancho + ' px el botón de la cuenta entra entero en la barra',
+       r.width > 0 && r.left >= bar.left - 0.5 && r.right <= bar.right + 0.5,
+       Math.round(r.left) + '–' + Math.round(r.right) + ' de ' + Math.round(bar.right));
+    // Y el dedo tiene dónde darle: el alto de la barra en el móvil son 38 px.
+    ok('a ' + ancho + ' px se puede tocar sin apuntar', r.height >= 34 && r.width >= 34,
+       Math.round(r.width) + '×' + Math.round(r.height));
+  }
+  for (var iC = 0; iC < 3; iC++) {
+    var anchosC = [390, 360, 320];
+    await laCuentaCabe(anchosC[iC]);
+  }
+  // Y el engranaje vuelve a la barra aquí, que es donde no había otra puerta.
+  fr.style.width = '360px';
+  await wait(320);
+  ok('en Equipo y en el móvil, Ajustes se abre desde la barra',
+     !!(d.getElementById('cfg') && d.getElementById('cfg').offsetParent !== null));
+  fr.style.width = '';
+  await wait(300);
+
   /* ---- el filo de la pestaña abierta ----
      La pestaña abierta se marca con un filo en el canto de arriba, del ancho
      del icono. Antes era una pastilla de 48 × 27 px puesta a ojo, que no tenía
