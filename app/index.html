@@ -3,6 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+
+<!-- La red de seguridad. Hoy no hay ningún sitio por el que se pueda colar
+     código ajeno —lo que escriben otros entra por «esc()» o por el DOM, nunca
+     como HTML—, pero esto es lo que hace que un descuido futuro no se convierta
+     en un problema: aunque alguien lograra meter una etiqueta <script>, el
+     navegador se negaría a ejecutarla.
+
+       script-src 'self'   la aplicación son cinco archivos suyos y ni un solo
+                           script en línea: se puede cerrar del todo, que es lo
+                           que de verdad vale de una CSP.
+       style-src           con 'unsafe-inline' porque el JavaScript escribe
+                           estilos en los elementos (anchos de barra, posiciones)
+                           y la hoja de imprimir lleva su <style> dentro.
+       img-src data: blob: las miniaturas y la hoja impresa salen del lienzo.
+       media-src blob:     el vídeo que graba la animación se ve desde memoria,
+                           sin pasar por ningún servidor. Esto faltaba en la
+                           primera versión de aquí y rompió la exportación a
+                           MP4: lo cazó la prueba antes de subir nada.
+       connect-src         solo Supabase. A ningún otro sitio se habla.
+     «frame-ancestors» no se puede poner en una etiqueta meta; haría falta una
+     cabecera, y GitHub Pages no deja ponerlas. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  media-src 'self' blob:;
+  font-src 'self';
+  connect-src 'self' https://*.supabase.co;
+  frame-src 'self';
+  manifest-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'none'">
+
 <title>Pizarra Táctica de Fútbol | Diseña y anima tus jugadas</title>
 <meta name="description" content="Pizarra táctica de fútbol con conos, porterías, vallas, escaleras y maniquíes. Coloca a tus jugadores, dibuja la jugada y anímala por fotogramas.">
 <link rel="canonical" href="https://klym.xyz/app/">

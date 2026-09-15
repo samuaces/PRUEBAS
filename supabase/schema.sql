@@ -207,7 +207,28 @@ grant usage on schema public to anon, authenticated;
 grant select on public.entrenadores, public.ejercicios to anon, authenticated;
 grant insert on public.entrenadores to authenticated;
 grant update (nombre, club) on public.entrenadores to authenticated;   -- admin no
-grant insert, update, delete on public.ejercicios to authenticated;
+grant insert, delete on public.ejercicios to authenticated;
+/* Por columnas, igual que con «admin» arriba, y por el mismo motivo.
+
+   Con un «grant update» a secas, el autor podía escribir en CUALQUIER columna
+   de su fila. Y dos de ellas no son suyas:
+
+     oculto     lo pone a true el disparador cuando tres personas distintas
+                denuncian el ejercicio. Si el autor puede volver a ponerlo a
+                false, la moderación no sirve para nada: publica, lo ocultan,
+                lo destapa, y vuelta a empezar.
+     aperturas  es el contador de cuánto se abre. Escribiéndolo a mano, uno se
+                pone el suyo el primero de la lista.
+
+   Ninguna de las dos se toca desde la aplicación. Ocultar es cosa del
+   disparador y del administrador; contar, de suma_apertura(). */
+grant update (titulo, pitch, vista, momento, categoria, minutos, objetivo,
+              ficha, doc, publicado)
+  on public.ejercicios to authenticated;   -- oculto y aperturas, no
+/* «busca» y «actualizado» tampoco están, y no hacen falta: los escribe el
+   disparador arma_busca(), y un disparador BEFORE puede tocar NEW sin que se
+   le miren los permisos por columna, que se comprueban contra lo que pide la
+   sentencia. Lo comprueba supabase/permisos.test.sql. */
 grant insert, select on public.reportes to authenticated;
 grant execute on function public.suma_apertura(uuid) to anon, authenticated;
 

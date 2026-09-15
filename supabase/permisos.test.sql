@@ -141,6 +141,47 @@ set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select pg_temp.comprueba('pero su autor lo sigue viendo',
   (select count(*) from public.ejercicios) = 1);
 
+/* ---- y no puede destaparlo ----
+   Esto faltaba, y era un agujero de verdad: con un «grant update» a secas el
+   autor podía escribir en cualquier columna de su fila, «oculto» incluida.
+   Publicas algo que no debería estar, tres personas lo denuncian, se esconde,
+   y el autor lo vuelve a poner a false. La moderación no servía de nada. */
+do $$ begin
+  begin
+    update public.ejercicios set oculto = false where titulo = 'Rondo de Ana';
+    raise exception 'FALLA el autor ha podido destapar su propio ejercicio';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASA  el autor no puede destapar lo que la moderación escondió';
+  end;
+end $$;
+
+-- Ni ponerse el contador de aperturas por las nubes.
+do $$ begin
+  begin
+    update public.ejercicios set aperturas = 99999 where titulo = 'Rondo de Ana';
+    raise exception 'FALLA el autor ha podido inflar su contador de aperturas';
+  exception
+    when insufficient_privilege then
+      raise notice 'PASA  ni inflar su contador de aperturas';
+  end;
+end $$;
+
+/* Pero lo suyo sí lo edita, y el disparador que arma el texto de búsqueda
+   sigue escribiendo en «busca» y «actualizado» aunque el autor no tenga
+   permiso sobre esas columnas: un disparador BEFORE toca NEW sin que se le
+   miren los permisos por columna. */
+update public.ejercicios set titulo = 'Rondo de Ana, corregido'
+  where titulo = 'Rondo de Ana';
+reset role;
+select pg_temp.comprueba('el autor sí edita lo suyo, y el buscador se rearma solo',
+  (select busca like '%corregido%' from public.ejercicios
+    where titulo = 'Rondo de Ana, corregido'));
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+update public.ejercicios set titulo = 'Rondo de Ana'
+  where titulo = 'Rondo de Ana, corregido';
+
 -- ---- el mismo no puede reportar dos veces ----
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 do $$ declare ej uuid; begin

@@ -205,6 +205,24 @@
     return s;
   }
 
+  /* La aduana por la que pasa TODO documento que no ha dibujado uno mismo: un
+     enlace que te mandan, un archivo que importas, un ejercicio de la
+     biblioteca común. Comprueba la forma —modalidad y vista de una lista
+     cerrada, los campos de la ficha a texto, lo que no sea un array fuera— y
+     además el TAMAÑO.
+
+     El tamaño importa tanto como la forma. El servidor no deja subir una
+     pizarra de más de medio mega, pero un enlace y un archivo no pasan por el
+     servidor, y medio mega de JSON son veinte mil fichas: el navegador de quien
+     lo abra se queda clavado intentando dibujarlas. Los topes de aquí abajo
+     están muy por encima de cualquier ejercicio real —el más cargado del
+     catálogo no llega a cuarenta piezas— y muy por debajo de lo que cuelga un
+     teléfono. */
+  var TOPE_FOTOGRAMAS = 60;
+  var TOPE_PIEZAS     = 300;    // por fotograma
+  var TOPE_TRAZOS     = 600;    // por fotograma
+  var TOPE_TEXTO      = 4000;   // por campo de la ficha
+
   function saneaDoc(d) {
     if (!d || typeof d !== 'object') d = {};
     var out = {
@@ -215,14 +233,18 @@
     };
     if (d.card && typeof d.card === 'object' && !Array.isArray(d.card)) {
       CARD_FIELDS.forEach(function (k) {
-        if (d.card[k] != null && typeof d.card[k] !== 'object') out.card[k] = String(d.card[k]);
+        if (d.card[k] != null && typeof d.card[k] !== 'object') {
+          out.card[k] = String(d.card[k]).slice(0, TOPE_TEXTO);
+        }
       });
     }
-    (Array.isArray(d.frames) ? d.frames : []).forEach(function (f) {
+    (Array.isArray(d.frames) ? d.frames : []).slice(0, TOPE_FOTOGRAMAS).forEach(function (f) {
       if (!f || typeof f !== 'object') return;
       out.frames.push({
-        objects: (Array.isArray(f.objects) ? f.objects : []).map(saneaObjeto).filter(Boolean),
-        strokes: (Array.isArray(f.strokes) ? f.strokes : []).map(saneaTrazo).filter(Boolean)
+        objects: (Array.isArray(f.objects) ? f.objects : [])
+          .slice(0, TOPE_PIEZAS).map(saneaObjeto).filter(Boolean),
+        strokes: (Array.isArray(f.strokes) ? f.strokes : [])
+          .slice(0, TOPE_TRAZOS).map(saneaTrazo).filter(Boolean)
       });
     });
     if (!out.frames.length) out.frames = [emptyFrame()];
