@@ -1,26 +1,53 @@
-# Pizarra Táctica
+# Klym
 
-> Pizarra táctica de fútbol online, sin registro, con material de
-> entrenamiento y animación de la jugada por fotogramas. Se ejecuta entera en el
-> navegador. Hay además una biblioteca de ejercicios que los entrenadores
-> comparten entre ellos; para usar la pizarra no hace falta cuenta.
+> Klym planifica entrenamientos de fútbol. Dibujas el ejercicio en una pizarra que
+> se anima, lo montas en la sesión de un día concreto, apuntas quién vino y qué se
+> hizo, y la aplicación te dice qué llevas sin trabajar. Fútbol 11, fútbol 7 y
+> fútbol sala. Se ejecuta entera en el navegador, sin registro para lo básico.
 
 Proyecto estático (HTML, CSS y JavaScript sin dependencias) pensado para entrenadores,
-analistas y aficionados que necesitan diseñar una jugada o una sesión de entrenamiento.
+analistas y aficionados. La pizarra es la herramienta de dibujo; alrededor de ella hay un
+círculo cerrado: PLANTEAR (dibujar el ejercicio) → ENTRENAR (montar la sesión del día) →
+REGISTRAR (quién vino, qué se hizo) → ANALIZAR (cuántos minutos ha llevado cada momento del
+juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión montada con ello).
 
 ## Páginas
 
-- [Inicio](https://klym.xyz/): presentación breve —qué hace y cómo funciona— y el enlace a la pizarra.
-- [La pizarra](https://klym.xyz/app/): la aplicación en sí, lista para dibujar.
+- [Inicio](https://klym.xyz/): qué hace, cómo funciona y el enlace a la aplicación.
+- [La aplicación](https://klym.xyz/app/): pizarra, sesiones, plantilla y datos.
+- [Privacidad](https://klym.xyz/privacidad.html): qué se guarda, dónde y qué no sale nunca del dispositivo.
 
-## Qué hace
+## El día a día
+
+- **Hoy**: la pantalla de entrada del apartado de equipo. Dice en una frase en qué punto
+  estás y ofrece el único botón que toca pulsar: montar la plantilla si aún no la hay,
+  preparar la sesión si el día no tiene ninguna, apuntar quién ha venido si la sesión está
+  puesta pero la asistencia no, o abrir la sesión si ya está todo. No hay que buscar nada.
+- **Sesiones**: un diario por fechas dentro de una temporada. Cada día lleva sus ejercicios
+  en orden, con su duración; se añaden desde la biblioteca o desde la pizarra abierta, se
+  reordenan y se marcan como hechos. La sesión se imprime en A4 con el dibujo de cada
+  ejercicio. El generador propone una sesión entera a partir de los minutos disponibles, la
+  gente que hay y lo que lleva más tiempo sin tocarse.
+- **Plantilla**: los jugadores del equipo, con dorsal, posición y pie. Se dan de baja sin
+  perder su historial. Por temporadas.
+- **Asistencia**: en cada sesión se pasa lista. Sin eso, los minutos de ese día no son de
+  nadie: la aplicación lo avisa en vez de callárselo.
+- **Datos**: minutos por momento del juego (calentamiento, técnica individual, ataque y
+  defensa organizados, las dos transiciones, finalización, balón parado, porteros,
+  físico-técnico y partido condicionado), reparto por jugador, asistencia, y un radar del
+  equilibrio de la temporada. Separa lo clasificado de lo que no lleva momento asignado, para
+  que los porcentajes signifiquen algo. Si hay un hueco —un momento del juego sin tocar en
+  tres semanas— lo dice y ofrece montar una sesión con lo que falta.
+
+## La pizarra
 
 - Tres modalidades con medidas de reglamento: fútbol 11 (105 × 68 m), fútbol 7
   (65 × 45 m) y fútbol sala (40 × 20 m, con el área en doble cuarto de círculo y
   pista en lugar de césped). Cada una con sus áreas, porterías y alineaciones; al
-  cambiar de modalidad la jugada se reescala. Vistas: campo completo, medio campo o
-  superficie libre. En pantallas verticales el campo se gira solo y se acerca con
-  dos dedos.
+  cambiar de modalidad la jugada se reescala. En pantallas verticales el campo se gira
+  solo y se acerca con dos dedos.
+- Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,
+  para ejercicios en espacio reducido) y superficie libre.
 - Fichas de jugador local, visitante y comodín, con dorsal y nombre editables.
 - Formaciones predefinidas: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1, para
   cualquiera de los dos equipos.
@@ -36,37 +63,51 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   como GIF animado. Todo se genera en el navegador.
 - Regla para medir distancias reales sobre el campo.
 - Selección múltiple por recuadro: mover, duplicar o borrar varias piezas a la vez.
-- Biblioteca con veinticuatro ejercicios que vienen dentro de la aplicación —trece de fútbol 11,
-  seis de fútbol 7 y cinco de fútbol sala—, repartidos por momento del juego: calentamiento,
-  técnica individual, ataque y defensa organizados, las dos transiciones, finalización, balón
-  parado, porteros, físico-técnico y partido condicionado. Cada uno trae su pizarra montada y su
-  ficha rellena, más las pizarras que haya guardado el usuario. La lista abre siempre en una
-  sola modalidad —la predeterminada del usuario, fútbol 11 si no ha elegido otra— y no mezcla
-  disciplinas; para ver fútbol 7 o sala hay que seleccionarlo. Se filtra además por momento
-  del juego, duración o texto libre.
-- La ficha va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
+- Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
+  de la pizarra en JSON, deshacer y rehacer, y ajuste opcional a una rejilla de 0,5 m.
+
+## La ficha del ejercicio
+
+- Un formulario con título, categoría, momento del juego, duración, series, descanso,
+  jugadores, porteros, espacio, material, objetivo, descripción, consignas, normas y
+  variantes, que se imprime en una página A4 con el dibujo de la pizarra. Un botón
+  rellena solos los jugadores, el material y el espacio contando lo que hay en el campo.
+  La ficha se guarda dentro de la pizarra.
+- Va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
   rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
-- La biblioteca tiene dos pestañas: la general —los que trae la aplicación en
-  assets/biblioteca.json más todo lo que van compartiendo los demás entrenadores, firmado con
-  su nombre y su club— y las del propio usuario: lo guardado en ese navegador y, si ha entrado
-  con su correo, lo que haya subido. Compartir es voluntario: lo que sube un entrenador es
-  suyo y privado hasta que le da a compartir, y puede retirarlo cuando quiera.
+
+## La biblioteca
+
+- Veinticuatro ejercicios vienen dentro de la aplicación —trece de fútbol 11, seis de
+  fútbol 7 y cinco de fútbol sala—, repartidos por momento del juego. Cada uno trae su
+  pizarra montada y su ficha rellena, más las pizarras que haya guardado el usuario.
+- Abre siempre en una sola modalidad —la predeterminada del usuario, fútbol 11 si no ha
+  elegido otra— y no mezcla disciplinas. Se filtra por momento del juego, duración,
+  cuánta gente hace falta, cuánto sitio se necesita (un área, medio campo o el campo
+  entero) y texto libre.
+- Dos pestañas: la general —los que trae la aplicación en assets/biblioteca.json más todo
+  lo que van compartiendo los demás entrenadores, firmado con su nombre y su club— y las
+  del propio usuario: lo guardado en ese navegador y, si ha entrado con su correo, lo que
+  haya subido. Compartir es voluntario: lo que sube un entrenador es suyo y privado hasta
+  que le da a compartir, y puede retirarlo cuando quiera.
+- Desde la biblioteca un ejercicio se abre en la pizarra o se añade directo a la sesión
+  de un día.
+
+## Cuentas y servidor
+
 - Cuentas con correo y contraseña, sin confirmación ni enlaces: se crean al instante. Hacen
   falta solo para compartir y para recuperar lo tuyo desde otro dispositivo; para dibujar,
-  imprimir fichas y ver la biblioteca común, no. Si se olvida la contraseña se pide un correo
-  para ponerse otra, y con la sesión abierta se puede cambiar desde Ajustes.
-  El correo no se enseña a nadie: lo público es el
-  nombre y el club. Con tres reportes de tres personas distintas un ejercicio deja de verse.
-  El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
+  planificar sesiones, llevar la plantilla, imprimir fichas y ver la biblioteca común, no.
+  Si se olvida la contraseña se pide un correo para ponerse otra, y con la sesión abierta se
+  puede cambiar desde Ajustes.
+- El correo no se enseña a nadie: lo público es el nombre y el club. Con tres reportes de
+  tres personas distintas un ejercicio deja de verse.
+- El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
   categoría o equipo, que se rellena sola en cada ficha.
-- Cuatro encuadres: campo completo, medio campo, zona de trabajo (los 32 × 22 m centrales,
-  para ejercicios en espacio reducido) y superficie libre.
-- Ficha del ejercicio: un formulario con título, categoría, momento del juego, duración,
-  series, descanso, jugadores, porteros, espacio, material, objetivo, descripción,
-  consignas, normas y variantes, que se imprime en una página A4 con el dibujo de la
-  pizarra. Un botón rellena solos los jugadores, el material y el espacio contando lo
-  que hay en el campo. La ficha se guarda dentro de la pizarra.
+
+## Compartir e instalar
+
 - Una jugada se manda por enlace: la jugada entera —piezas, trazos, fotogramas y ficha— viaja
   DENTRO del enlace, detrás del #. Sin cuenta, sin servidor, sin caducidad y sin que salga de
   los dos dispositivos: lo que va detrás del # ni siquiera se manda al abrir la dirección.
@@ -74,19 +115,24 @@ analistas y aficionados que necesitan diseñar una jugada o una sesión de entre
   1.400 caracteres; una animación de 24 fotogramas con su ficha, unos 2.000. Se manda desde el
   menú de la pizarra y desde la biblioteca: cada ejercicio lleva su botón de compartir y se
   pasa sin abrirlo, por la hoja del teléfono —WhatsApp, correo, lo que haya—.
-- Hoja de sesión imprimible con todos los fotogramas, título, modalidad y fecha.
+- Hoja de sesión imprimible con todos los ejercicios o con todos los fotogramas, título,
+  modalidad y fecha.
 - Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
-- Guardado en el navegador, exportación del fotograma a PNG, exportación e importación
-  de la pizarra en JSON, deshacer y rehacer, y ajuste opcional a una rejilla de 0,5 m.
 
 ## Qué NO hace todavía
 
 - No permite que dos personas trabajen a la vez sobre la misma pizarra.
+- La plantilla, la asistencia y las sesiones no se sincronizan entre dispositivos: viven en
+  el navegador donde se escribieron, a propósito.
 
 ## Privacidad
 
-Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras que se guardan viven en
-el almacenamiento local del navegador. Al servidor solo va lo que el usuario comparte a
-propósito y, si entra, su correo, que no ve nadie más. Sin cuenta no se manda nada.
-Una jugada mandada por enlace tampoco pasa por ningún servidor: va dentro del propio
-enlace, detrás del #, y esa parte de la dirección el navegador no la manda nunca.
+Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras, la plantilla, la
+asistencia y las sesiones viven en el almacenamiento local del navegador. Los nombres de los
+jugadores —a menudo menores— no salen nunca del dispositivo: no se suben ni se comparten.
+Al servidor solo va lo que el usuario comparte a propósito y, si entra, su correo, que no ve
+nadie más. Sin cuenta no se manda nada. Una jugada mandada por enlace tampoco pasa por ningún
+servidor: va dentro del propio enlace, detrás del #, y esa parte de la dirección el navegador
+no la manda nunca.
+
+Contacto: samuaces@gmail.com

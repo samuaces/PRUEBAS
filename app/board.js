@@ -3030,6 +3030,18 @@
     return m ? Number(m[1]) : null;
   }
 
+  /* Dónde guarda cada origen su vista. Los tres la tienen, pero en un sitio
+     distinto: el del catálogo dentro de «ej», el de la nube suelta, y el
+     guardado dentro de su documento. La primera versión del filtro miraba solo
+     «it.view» y por eso no descartaba nada: el catálogo entero pasaba. Salió en
+     la prueba —24 ejercicios con cualquier espacio— y no leyendo el código.
+
+     Si no se sabe, se devuelve vacío y el filtro lo deja pasar: esconder un
+     ejercicio por no saber dónde cabe es peor que enseñarlo de más. */
+  function vistaDe(it) {
+    return (it.ej && it.ej.view) || it.view || (it.doc && it.doc.view) || '';
+  }
+
   function filtraBiblioteca(items, f) {
     var q = sinAcentos(f.q).trim();
     return items.filter(function (it) {
@@ -3043,6 +3055,26 @@
         if (f.duracion === 'media' && (min <= 15 || min > 25)) return false;
         if (f.duracion === 'larga' && min <= 25) return false;
       }
+      /* Cuántos hacen falta. Lo dice la ficha en cristiano —«4 vs 2», «6 vs 6
+         + 3 comodines», «Grupo entero»— y lo traduce a un número el mismo
+         lector que usa el generador, así que los dos entienden lo mismo.
+
+         Un ejercicio que no dice cuánta gente necesita NO se descarta: «Grupo
+         entero» vale para los que seas. Descartarlo sería esconder la mitad de
+         la biblioteca por no llevar etiqueta. */
+      if (f.cuantos) {
+        var pide = PTEquipo.jugadoresDe(it.card.jugadores);
+        if (pide != null && pide > Number(f.cuantos)) return false;
+      }
+      /* Y cuánto sitio. La vista del ejercicio ya lo dice: un área cabe en
+         medio campo y medio campo cabe en el entero, así que se filtra por
+         «me cabe», no por «es exactamente esto». Los que no pintan campo
+         —una pizarra en blanco— caben en cualquier sitio. */
+      if (f.espacio) {
+        var cabe = { area: 1, half: 2, full: 3 };
+        var suya = cabe[vistaDe(it)] || 0;
+        if (suya && suya > (cabe[f.espacio] || 3)) return false;
+      }
       if (q && sinAcentos(textoItem(it)).indexOf(q) < 0) return false;
       return true;
     });
@@ -3051,7 +3083,8 @@
   // Los filtros arrancan en la modalidad predeterminada: mezclar fútbol 11,
   // fútbol 7 y sala en la misma lista no le sirve a nadie.
   function filtrosPorDefecto() {
-    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '' };
+    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '',
+             cuantos: '', espacio: '' };
   }
   var libFiltros = filtrosPorDefecto();
 
@@ -3091,8 +3124,29 @@
       : vistos.length + ' de ' + base.length + palabra(base.length) + modo;
 
     var porDefecto = filtrosPorDefecto();
-    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.momento ||
-                                 libFiltros.duracion || libFiltros.pitch !== porDefecto.pitch);
+    /* Un solo sitio que decide si hay algo filtrado. Estaba escrito dos veces,
+       con listas distintas, y al añadir un filtro había que acordarse de los
+       dos: uno para enseñar «quitar filtros» y otro para saber si la lista
+       está vacía por culpa de un filtro o porque de verdad no hay nada. */
+    var hayFiltros = !!(libFiltros.q || libFiltros.momento || libFiltros.duracion ||
+                        libFiltros.cuantos || libFiltros.espacio ||
+                        libFiltros.pitch !== porDefecto.pitch);
+    $('#lib-limpiar').hidden = !hayFiltros;
+
+    /* Los desplegables se pliegan en el móvil, y plegados no pueden tragarse
+       lo que hay puesto: la línea que los abre lleva la cuenta. Se cuentan los
+       desplegables, no la búsqueda escrita, que se ve sola ahí encima. */
+    var mas = $('#lib-mas');
+    if (mas) {
+      var puestos = [libFiltros.momento, libFiltros.duracion, libFiltros.cuantos,
+                     libFiltros.espacio].filter(Boolean).length +
+                    (libFiltros.pitch !== porDefecto.pitch ? 1 : 0);
+      mas.classList.toggle('puestos', puestos > 0);
+      $('#lib-mas-t').textContent = puestos
+        ? (puestos === 1 ? '1 filtro puesto' : puestos + ' filtros puestos')
+        : 'Afinar la búsqueda';
+    }
+
     $$('.lib-tab').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
     });
@@ -3101,7 +3155,6 @@
     grid.innerHTML = '';
     preparaMiniObs(grid);      // observador nuevo en cada repintado, sin dejar el viejo suelto
     if (!vistos.length) {
-      var hayFiltros = libFiltros.q || libFiltros.momento || libFiltros.duracion;
       if (nubeEstado.cargando) {
         grid.innerHTML = '<p class="empty">Trayendo la biblioteca…</p>';
         return;
@@ -4370,10 +4423,18 @@
       caja.appendChild(p);
       return p;
     }
+    /* Esta pantalla contesta a «¿qué hago ahora?», y esa pregunta tiene una
+       respuesta, no dos. Dos botones rojos en la misma pantalla obligan a
+       elegir justo a quien ha entrado para que le digan. El primero que pide
+       ser principal se lo queda —son los bloques en orden de urgencia— y los
+       demás bajan a secundarios aunque los pidan. */
+    var yaHayPrincipal = false;
     function boton(txt, alPulsar, principal) {
+      var manda = principal && !yaHayPrincipal;
+      if (manda) yaHayPrincipal = true;
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'tbtn ' + (principal ? 'primary' : 'marco');
+      b.className = 'tbtn ' + (manda ? 'primary' : 'marco');
       b.textContent = txt;
       b.addEventListener('click', alPulsar);
       caja.appendChild(b);
@@ -4400,7 +4461,30 @@
       dice('La sesión de hoy está puesta: ' + ses.ejercicios.length +
            (ses.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios') +
            (min ? ' · ' + min + ' min' : '') + '.');
-      boton('Verla', function () { vaApartado('sesiones'); abreSesion(hoy); });
+
+      /* Y aquí se cierra el círculo: entrenar → REGISTRAR. Apuntar quién vino
+         es el paso que más se olvida y del que dependen todas las cuentas de
+         después; los minutos de un ejercicio son de quien estuvo. Si no está
+         apuntado, se pide desde aquí en vez de esperar a que alguien se
+         acuerde de ir a Plantilla. */
+      /* Con «presentesDe» no basta: cuando el día no tiene lista, devuelve la
+         plantilla entera, que es lo razonable para proponerla marcada. Pero
+         aquí la pregunta es otra —¿se ha pasado lista o no?— y «todos» se leía
+         como «ya está hecho». Eso lo dice «hayAsistencia», que distingue entre
+         no haber apuntado nada y haber apuntado que vinieron todos. */
+      var vinieron = ses.presentes || [];
+      if (!ses.hayAsistencia) {
+        dice('Falta apuntar quién vino. Sin eso, los minutos de hoy no son de nadie ' +
+             'y no cuentan en la asistencia.', 'block-note');
+        boton('Apuntar quién ha venido', function () {
+          vaApartado('sesiones');
+          abreSesion(hoy);
+          abrePasarLista();          // la pantalla de asistencia, que ya existe
+        }, true);
+      } else {
+        dice('Vinieron ' + vinieron.length + ' de ' + jug.length + '.', 'block-note');
+      }
+      boton('Ver la sesión', function () { vaApartado('sesiones'); abreSesion(hoy); });
     }
 
     // ---- 2 · qué se ha entrenado ----
@@ -4463,9 +4547,15 @@
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
     libFiltros = filtrosPorDefecto();
     $('#lib-q').value = '';
-    $('#lib-momento').value = ''; $('#lib-duracion').value = '';
+    ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+      .forEach(function (id) { $(id).value = ''; });
     $('#lib-pitch').value = libFiltros.pitch;
     $('#dlg-lib-t').textContent = libParaSesion ? 'Elegir para la sesión' : 'Biblioteca';
+    /* En una pantalla ancha los cinco desplegables caben y no estorban; en un
+       móvil son media pantalla antes del primer ejercicio. Se decide al abrir,
+       no en el HTML, porque el mismo archivo se ve en las dos. */
+    var mas0 = $('#lib-mas');
+    if (mas0) mas0.open = !matchMedia('(max-width: 560px)').matches;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
     cargaNube();
@@ -5469,8 +5559,8 @@
         cargaNube();
       });
     });
-    [['#lib-pitch', 'pitch'],
-     ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion']].forEach(function (par) {
+    [['#lib-pitch', 'pitch'], ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion'],
+     ['#lib-cuantos', 'cuantos'], ['#lib-espacio', 'espacio']].forEach(function (par) {
       $(par[0]).addEventListener('change', function () {
         libFiltros[par[1]] = this.value;
         pintaBiblioteca();
@@ -5483,7 +5573,8 @@
       libFiltros = filtrosPorDefecto();
       libFiltros.origen = origen;                 // la pestaña donde estás no se toca
       $('#lib-q').value = '';
-      ['#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+        .forEach(function (id) { $(id).value = ''; });
       $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
       cargaNube();

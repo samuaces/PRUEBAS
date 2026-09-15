@@ -598,6 +598,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-filtros{display:grid;gap:9px;margin-bottom:14px}
 .lib-selects{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .lib-selects select{min-height:40px;padding:9px 11px;font-size:13.5px}
+.lib-mas{min-width:0}
+.lib-mas > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r3);
+  background:var(--glass);color:var(--muted);font-size:13px;user-select:none}
+.lib-mas > summary::-webkit-details-marker{display:none}
+.lib-mas > summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;
+  border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.lib-mas[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.lib-mas > summary:hover{border-color:var(--line-strong);color:var(--text)}
+.lib-mas[open] > summary{margin-bottom:9px}
+/* Plegado no puede querer decir escondido: si hay filtros puestos, la línea
+   lo dice y se pinta como algo encendido, no como un rótulo apagado. */
+.lib-mas.puestos > summary{color:var(--text);border-color:var(--brand-2)}
 .lib-linea{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:26px}
 .lib-cuenta{font-size:12px;color:var(--muted)}
 .lib-nota{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted);opacity:.85}
@@ -653,6 +667,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 @media (max-width:560px){
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr}   /* a 16 px, dos por fila se cortan */
+  /* En el escritorio el pie de la tarjeta va apretado porque se pulsa con el
+     ratón y se acierta. Con el dedo, 34 px es poco: se sube a 40 los dos
+     botones del pie, el de texto y el del icono. */
+  .lib-pie .tbtn{min-height:40px}
+  .lib-pie .tbtn.icono{width:40px;height:40px}
+  /* La ✕ de cerrar un diálogo se quedaba en 34 px, y es el mando del que se
+     tira cuando uno se ha metido donde no quería: tiene que acertarse a la
+     primera. Vale para todos los diálogos, no solo para la biblioteca. */
+  dialog .dhead .tbtn{min-width:40px;min-height:40px}
   .lib-pie{flex-wrap:wrap}
   .lib-origen{flex:1 0 100%}
 }
@@ -700,7 +723,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
   .modo span{display:none}
   .modo[aria-selected="true"] span{display:inline}
-  .modo{padding:7px 10px}
+  /* El interruptor de modo es de los mandos que más se usan y se quedaba en
+     34 px de alto: por debajo de lo que un pulgar acierta sin mirar. Seis
+     píxeles más en la barra, que se los puede permitir. */
+  .modo{padding:9px 10px;min-height:40px}
   .equipo{padding:14px 14px 24px}
   /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
      el selector de arriba sería el mismo mando dos veces. */
@@ -743,14 +769,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      cristal se verían como un parche opaco. */
   /* El asa se puede arrastrar, así que el navegador no debe quedarse con el
      gesto para desplazar: lo lleva la aplicación. */
+  /* El asa es lo que se agarra para cerrar la hoja de un gesto, y con 26 px de
+     alto había que apuntar. Con 34 se coge sin mirar, que es como se cierra una
+     hoja: sin dejar de mirar el campo. */
   .sheet-grab{display:block;position:sticky;top:0;z-index:2;touch-action:none;
-    width:100%;height:26px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
+    width:100%;height:34px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
   /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
      dedo. La clase la pone y la quita el gesto. */
   .aside.arrastrando{transition:none}
   .sheet-grab::before{content:"";display:block;width:42px;height:4px;border-radius:4px;
-    background:var(--line-strong);margin:11px auto 0}
+    background:var(--line-strong);margin:15px auto 0}
 
   /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
      ves material, no un panel con todo dentro. */
@@ -1363,7 +1392,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
               stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
-      <span>Pizarra Táctica</span>
+      <span>Klym</span>
       
     </div>
 
@@ -2059,6 +2088,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <div class="lib-filtros">
       <input type="search" id="lib-q" placeholder="Buscar por título, objetivo, material…"
              autocomplete="off" aria-label="Buscar en la biblioteca">
+      <!-- Cinco desplegables a lo ancho son, en un móvil, media pantalla de
+           mandos antes del primer ejercicio: quien abre la biblioteca viene a
+           ver ejercicios. Se pliegan detrás de una línea que dice cuántos hay
+           puestos, para que plegado no signifique escondido. En pantalla
+           grande caben y se abren solos. -->
+      <details class="lib-mas" id="lib-mas" open>
+        <summary id="lib-mas-t">Afinar la búsqueda</summary>
       <div class="lib-selects">
         <select id="lib-pitch" aria-label="Modalidad">
           <option value="">Cualquier modalidad</option>
@@ -2086,7 +2122,26 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           <option value="media">De 16 a 25 min</option>
           <option value="larga">Más de 25 min</option>
         </select>
+        <!-- Los dos que de verdad se preguntan en el campo: cuántos han venido
+             y cuánto sitio hay. Salen de datos que el ejercicio ya trae —su
+             ficha dice «4 vs 2» y su vista dice si cabe en un área— así que no
+             hay que etiquetar nada a mano. -->
+        <select id="lib-cuantos" aria-label="Cuántos sois">
+          <option value="">Los que sean</option>
+          <option value="6">Hasta 6</option>
+          <option value="10">Hasta 10</option>
+          <option value="14">Hasta 14</option>
+          <option value="18">Hasta 18</option>
+          <option value="24">Hasta 24</option>
+        </select>
+        <select id="lib-espacio" aria-label="Espacio disponible">
+          <option value="">Cualquier espacio</option>
+          <option value="area">Un área</option>
+          <option value="half">Medio campo</option>
+          <option value="full">El campo entero</option>
+        </select>
       </div>
+      </details>
       <div class="lib-linea">
         <span class="lib-cuenta" id="lib-cuenta"></span>
         <button type="button" class="mini-btn" id="lib-limpiar" hidden>Quitar filtros</button>
@@ -3274,8 +3329,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return ordena(l);
   }
 
+  /* «jugadores» lee de la temporada en curso cuando no le dicen cuál, pero
+     esto escribía en la que le pasaran, tal cual. Con una temporada vacía
+     —el desplegable aún sin rellenar, o una llamada sin ese dato— la lectura
+     iba a la temporada buena y la escritura a una casilla con nombre vacío:
+     apuntabas un jugador, la aplicación decía que sí, y al repintar no estaba.
+     Quien escribe tiene que apuntar al mismo sitio del que se lee. */
   function guardaPlantilla(temp, lista) {
     var p = plantillaEntera();
+    if (!temp) temp = p.actual;
     var vistos = {};
     p.temporadas[temp] = lista.map(saneaJugador).filter(function (j) {
       if (!j || vistos[j.id]) return false;
@@ -12364,6 +12426,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return m ? Number(m[1]) : null;
   }
 
+  /* Dónde guarda cada origen su vista. Los tres la tienen, pero en un sitio
+     distinto: el del catálogo dentro de «ej», el de la nube suelta, y el
+     guardado dentro de su documento. La primera versión del filtro miraba solo
+     «it.view» y por eso no descartaba nada: el catálogo entero pasaba. Salió en
+     la prueba —24 ejercicios con cualquier espacio— y no leyendo el código.
+
+     Si no se sabe, se devuelve vacío y el filtro lo deja pasar: esconder un
+     ejercicio por no saber dónde cabe es peor que enseñarlo de más. */
+  function vistaDe(it) {
+    return (it.ej && it.ej.view) || it.view || (it.doc && it.doc.view) || '';
+  }
+
   function filtraBiblioteca(items, f) {
     var q = sinAcentos(f.q).trim();
     return items.filter(function (it) {
@@ -12377,6 +12451,26 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         if (f.duracion === 'media' && (min <= 15 || min > 25)) return false;
         if (f.duracion === 'larga' && min <= 25) return false;
       }
+      /* Cuántos hacen falta. Lo dice la ficha en cristiano —«4 vs 2», «6 vs 6
+         + 3 comodines», «Grupo entero»— y lo traduce a un número el mismo
+         lector que usa el generador, así que los dos entienden lo mismo.
+
+         Un ejercicio que no dice cuánta gente necesita NO se descarta: «Grupo
+         entero» vale para los que seas. Descartarlo sería esconder la mitad de
+         la biblioteca por no llevar etiqueta. */
+      if (f.cuantos) {
+        var pide = PTEquipo.jugadoresDe(it.card.jugadores);
+        if (pide != null && pide > Number(f.cuantos)) return false;
+      }
+      /* Y cuánto sitio. La vista del ejercicio ya lo dice: un área cabe en
+         medio campo y medio campo cabe en el entero, así que se filtra por
+         «me cabe», no por «es exactamente esto». Los que no pintan campo
+         —una pizarra en blanco— caben en cualquier sitio. */
+      if (f.espacio) {
+        var cabe = { area: 1, half: 2, full: 3 };
+        var suya = cabe[vistaDe(it)] || 0;
+        if (suya && suya > (cabe[f.espacio] || 3)) return false;
+      }
       if (q && sinAcentos(textoItem(it)).indexOf(q) < 0) return false;
       return true;
     });
@@ -12385,7 +12479,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   // Los filtros arrancan en la modalidad predeterminada: mezclar fútbol 11,
   // fútbol 7 y sala en la misma lista no le sirve a nadie.
   function filtrosPorDefecto() {
-    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '' };
+    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '',
+             cuantos: '', espacio: '' };
   }
   var libFiltros = filtrosPorDefecto();
 
@@ -12425,8 +12520,29 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       : vistos.length + ' de ' + base.length + palabra(base.length) + modo;
 
     var porDefecto = filtrosPorDefecto();
-    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.momento ||
-                                 libFiltros.duracion || libFiltros.pitch !== porDefecto.pitch);
+    /* Un solo sitio que decide si hay algo filtrado. Estaba escrito dos veces,
+       con listas distintas, y al añadir un filtro había que acordarse de los
+       dos: uno para enseñar «quitar filtros» y otro para saber si la lista
+       está vacía por culpa de un filtro o porque de verdad no hay nada. */
+    var hayFiltros = !!(libFiltros.q || libFiltros.momento || libFiltros.duracion ||
+                        libFiltros.cuantos || libFiltros.espacio ||
+                        libFiltros.pitch !== porDefecto.pitch);
+    $('#lib-limpiar').hidden = !hayFiltros;
+
+    /* Los desplegables se pliegan en el móvil, y plegados no pueden tragarse
+       lo que hay puesto: la línea que los abre lleva la cuenta. Se cuentan los
+       desplegables, no la búsqueda escrita, que se ve sola ahí encima. */
+    var mas = $('#lib-mas');
+    if (mas) {
+      var puestos = [libFiltros.momento, libFiltros.duracion, libFiltros.cuantos,
+                     libFiltros.espacio].filter(Boolean).length +
+                    (libFiltros.pitch !== porDefecto.pitch ? 1 : 0);
+      mas.classList.toggle('puestos', puestos > 0);
+      $('#lib-mas-t').textContent = puestos
+        ? (puestos === 1 ? '1 filtro puesto' : puestos + ' filtros puestos')
+        : 'Afinar la búsqueda';
+    }
+
     $$('.lib-tab').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
     });
@@ -12435,7 +12551,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     grid.innerHTML = '';
     preparaMiniObs(grid);      // observador nuevo en cada repintado, sin dejar el viejo suelto
     if (!vistos.length) {
-      var hayFiltros = libFiltros.q || libFiltros.momento || libFiltros.duracion;
       if (nubeEstado.cargando) {
         grid.innerHTML = '<p class="empty">Trayendo la biblioteca…</p>';
         return;
@@ -13704,10 +13819,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       caja.appendChild(p);
       return p;
     }
+    /* Esta pantalla contesta a «¿qué hago ahora?», y esa pregunta tiene una
+       respuesta, no dos. Dos botones rojos en la misma pantalla obligan a
+       elegir justo a quien ha entrado para que le digan. El primero que pide
+       ser principal se lo queda —son los bloques en orden de urgencia— y los
+       demás bajan a secundarios aunque los pidan. */
+    var yaHayPrincipal = false;
     function boton(txt, alPulsar, principal) {
+      var manda = principal && !yaHayPrincipal;
+      if (manda) yaHayPrincipal = true;
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'tbtn ' + (principal ? 'primary' : 'marco');
+      b.className = 'tbtn ' + (manda ? 'primary' : 'marco');
       b.textContent = txt;
       b.addEventListener('click', alPulsar);
       caja.appendChild(b);
@@ -13734,7 +13857,30 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       dice('La sesión de hoy está puesta: ' + ses.ejercicios.length +
            (ses.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios') +
            (min ? ' · ' + min + ' min' : '') + '.');
-      boton('Verla', function () { vaApartado('sesiones'); abreSesion(hoy); });
+
+      /* Y aquí se cierra el círculo: entrenar → REGISTRAR. Apuntar quién vino
+         es el paso que más se olvida y del que dependen todas las cuentas de
+         después; los minutos de un ejercicio son de quien estuvo. Si no está
+         apuntado, se pide desde aquí en vez de esperar a que alguien se
+         acuerde de ir a Plantilla. */
+      /* Con «presentesDe» no basta: cuando el día no tiene lista, devuelve la
+         plantilla entera, que es lo razonable para proponerla marcada. Pero
+         aquí la pregunta es otra —¿se ha pasado lista o no?— y «todos» se leía
+         como «ya está hecho». Eso lo dice «hayAsistencia», que distingue entre
+         no haber apuntado nada y haber apuntado que vinieron todos. */
+      var vinieron = ses.presentes || [];
+      if (!ses.hayAsistencia) {
+        dice('Falta apuntar quién vino. Sin eso, los minutos de hoy no son de nadie ' +
+             'y no cuentan en la asistencia.', 'block-note');
+        boton('Apuntar quién ha venido', function () {
+          vaApartado('sesiones');
+          abreSesion(hoy);
+          abrePasarLista();          // la pantalla de asistencia, que ya existe
+        }, true);
+      } else {
+        dice('Vinieron ' + vinieron.length + ' de ' + jug.length + '.', 'block-note');
+      }
+      boton('Ver la sesión', function () { vaApartado('sesiones'); abreSesion(hoy); });
     }
 
     // ---- 2 · qué se ha entrenado ----
@@ -13797,9 +13943,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
     libFiltros = filtrosPorDefecto();
     $('#lib-q').value = '';
-    $('#lib-momento').value = ''; $('#lib-duracion').value = '';
+    ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+      .forEach(function (id) { $(id).value = ''; });
     $('#lib-pitch').value = libFiltros.pitch;
     $('#dlg-lib-t').textContent = libParaSesion ? 'Elegir para la sesión' : 'Biblioteca';
+    /* En una pantalla ancha los cinco desplegables caben y no estorban; en un
+       móvil son media pantalla antes del primer ejercicio. Se decide al abrir,
+       no en el HTML, porque el mismo archivo se ve en las dos. */
+    var mas0 = $('#lib-mas');
+    if (mas0) mas0.open = !matchMedia('(max-width: 560px)').matches;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
     cargaNube();
@@ -14803,8 +14955,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         cargaNube();
       });
     });
-    [['#lib-pitch', 'pitch'],
-     ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion']].forEach(function (par) {
+    [['#lib-pitch', 'pitch'], ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion'],
+     ['#lib-cuantos', 'cuantos'], ['#lib-espacio', 'espacio']].forEach(function (par) {
       $(par[0]).addEventListener('change', function () {
         libFiltros[par[1]] = this.value;
         pintaBiblioteca();
@@ -14817,7 +14969,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       libFiltros = filtrosPorDefecto();
       libFiltros.origen = origen;                 // la pestaña donde estás no se toca
       $('#lib-q').value = '';
-      ['#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+        .forEach(function (id) { $(id).value = ''; });
       $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
       cargaNube();
@@ -15271,11 +15424,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
        probar en local, así que nadie comprobaba nunca que funcionara. Si el
        registro no se puede hacer (por ejemplo abriendo el archivo suelto desde
        el disco), falla y no pasa nada: la pizarra funciona igual. */
-    if ('serviceWorker' in navigator && window.isSecureContext) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function () {});
-      });
-    }
+    if (false) { /* sin sw.js: este archivo va solo */ }
   }
 
   /* =========================================================================

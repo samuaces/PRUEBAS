@@ -1,4 +1,4 @@
-# robots.txt — Pizarra Táctica
+# robots.txt — Klym
 # Los rastreadores solo leen el robots.txt de la RAÍZ del dominio. Cuando la web
 # pase al dominio propio, este archivo quedará en la raíz y se aplicará tal cual;
 # mientras se sirva desde un subdirectorio de github.io, vale como documentación.

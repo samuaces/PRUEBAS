@@ -79,7 +79,16 @@ const cuerpo = html.slice(desde, hasta).trimEnd()
      un enlace muerto, y un enlace muerto en la casilla del consentimiento es
      peor que no tenerlo. Se manda al sitio. */
   .replace(/href="\.\.\/privacidad\.html"/g, 'href="https://klym.xyz/privacidad.html"');
-const motor = js;
+/* El trabajador de servicio guarda la aplicación para abrirla sin conexión, y
+   para eso hace falta un sw.js al lado. Aquí no lo hay ni lo puede haber: este
+   archivo ES la aplicación entera, va solo. Registrarlo pide al servidor un
+   archivo que no existe y deja un 404 en la consola de quien lo abra. El
+   archivo suelto ya funciona sin conexión por definición, así que se quita.
+   Si el registro cambia de forma, esto revienta el empaquetado en vez de
+   dejar de hacer nada en silencio. */
+const REGISTRO = /if \('serviceWorker' in navigator[\s\S]{0,220}?register\('sw\.js'\)[\s\S]{0,80}?\n    \}/;
+if (!REGISTRO.test(js)) throw new Error('app/board.js ya no registra el sw.js como se esperaba');
+const motor = js.replace(REGISTRO, 'if (false) { /* sin sw.js: este archivo va solo */ }');
 
 // La biblioteca va incrustada: aquí no hay servidor del que traerla.
 const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');

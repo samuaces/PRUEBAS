@@ -182,8 +182,15 @@
     return ordena(l);
   }
 
+  /* «jugadores» lee de la temporada en curso cuando no le dicen cuál, pero
+     esto escribía en la que le pasaran, tal cual. Con una temporada vacía
+     —el desplegable aún sin rellenar, o una llamada sin ese dato— la lectura
+     iba a la temporada buena y la escritura a una casilla con nombre vacío:
+     apuntabas un jugador, la aplicación decía que sí, y al repintar no estaba.
+     Quien escribe tiene que apuntar al mismo sitio del que se lee. */
   function guardaPlantilla(temp, lista) {
     var p = plantillaEntera();
+    if (!temp) temp = p.actual;
     var vistos = {};
     p.temporadas[temp] = lista.map(saneaJugador).filter(function (j) {
       if (!j || vistos[j.id]) return false;

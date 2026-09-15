@@ -588,6 +588,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-filtros{display:grid;gap:9px;margin-bottom:14px}
 .lib-selects{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .lib-selects select{min-height:40px;padding:9px 11px;font-size:13.5px}
+.lib-mas{min-width:0}
+.lib-mas > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r3);
+  background:var(--glass);color:var(--muted);font-size:13px;user-select:none}
+.lib-mas > summary::-webkit-details-marker{display:none}
+.lib-mas > summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;
+  border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.lib-mas[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.lib-mas > summary:hover{border-color:var(--line-strong);color:var(--text)}
+.lib-mas[open] > summary{margin-bottom:9px}
+/* Plegado no puede querer decir escondido: si hay filtros puestos, la línea
+   lo dice y se pinta como algo encendido, no como un rótulo apagado. */
+.lib-mas.puestos > summary{color:var(--text);border-color:var(--brand-2)}
 .lib-linea{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:26px}
 .lib-cuenta{font-size:12px;color:var(--muted)}
 .lib-nota{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted);opacity:.85}
@@ -643,6 +657,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 @media (max-width:560px){
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr}   /* a 16 px, dos por fila se cortan */
+  /* En el escritorio el pie de la tarjeta va apretado porque se pulsa con el
+     ratón y se acierta. Con el dedo, 34 px es poco: se sube a 40 los dos
+     botones del pie, el de texto y el del icono. */
+  .lib-pie .tbtn{min-height:40px}
+  .lib-pie .tbtn.icono{width:40px;height:40px}
+  /* La ✕ de cerrar un diálogo se quedaba en 34 px, y es el mando del que se
+     tira cuando uno se ha metido donde no quería: tiene que acertarse a la
+     primera. Vale para todos los diálogos, no solo para la biblioteca. */
+  dialog .dhead .tbtn{min-width:40px;min-height:40px}
   .lib-pie{flex-wrap:wrap}
   .lib-origen{flex:1 0 100%}
 }
@@ -690,7 +713,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
   .modo span{display:none}
   .modo[aria-selected="true"] span{display:inline}
-  .modo{padding:7px 10px}
+  /* El interruptor de modo es de los mandos que más se usan y se quedaba en
+     34 px de alto: por debajo de lo que un pulgar acierta sin mirar. Seis
+     píxeles más en la barra, que se los puede permitir. */
+  .modo{padding:9px 10px;min-height:40px}
   .equipo{padding:14px 14px 24px}
   /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
      el selector de arriba sería el mismo mando dos veces. */
@@ -733,14 +759,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      cristal se verían como un parche opaco. */
   /* El asa se puede arrastrar, así que el navegador no debe quedarse con el
      gesto para desplazar: lo lleva la aplicación. */
+  /* El asa es lo que se agarra para cerrar la hoja de un gesto, y con 26 px de
+     alto había que apuntar. Con 34 se coge sin mirar, que es como se cierra una
+     hoja: sin dejar de mirar el campo. */
   .sheet-grab{display:block;position:sticky;top:0;z-index:2;touch-action:none;
-    width:100%;height:26px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
+    width:100%;height:34px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
   /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
      dedo. La clase la pone y la quita el gesto. */
   .aside.arrastrando{transition:none}
   .sheet-grab::before{content:"";display:block;width:42px;height:4px;border-radius:4px;
-    background:var(--line-strong);margin:11px auto 0}
+    background:var(--line-strong);margin:15px auto 0}
 
   /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
      ves material, no un panel con todo dentro. */

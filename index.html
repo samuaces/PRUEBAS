@@ -4,21 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-<title>Pizarra Táctica de Fútbol Online | Diseña y anima la jugada</title>
-<meta name="description" content="Pizarra táctica de fútbol 11, fútbol 7 y sala: material de entrenamiento, animación de la jugada por fotogramas y exportación en vídeo. Se abre en el navegador, sin registro.">
+<title>Planifica tus entrenamientos de fútbol · Pizarra táctica online | Klym</title>
+<meta name="description" content="Diseña ejercicios en una pizarra que se anima, móntalos en sesiones, apunta lo que trabajas y descubre qué deberías entrenar después. Fútbol 11, 7 y sala. Gratis, en el navegador y sin registro.">
 <link rel="canonical" href="https://klym.xyz/">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
-<meta name="author" content="Pizarra Táctica">
+<meta name="author" content="Klym">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#070A0F" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Pizarra Táctica">
+<meta property="og:site_name" content="Klym">
 <meta property="og:locale" content="es_ES">
-<meta property="og:title" content="Pizarra Táctica de Fútbol Online">
-<meta property="og:description" content="Monta el circuito con conos, vallas y porterías, dibuja los movimientos y pulsa reproducir: la jugada se anima sola.">
+<meta property="og:title" content="Planifica tus entrenamientos de fútbol · Klym">
+<meta property="og:description" content="Dibuja el ejercicio, móntalo en la sesión del martes, apunta quién vino y mira qué llevas sin trabajar. El círculo entero, en el navegador.">
 <meta property="og:url" content="https://klym.xyz/">
 <meta property="og:image" content="https://klym.xyz/assets/img/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -27,7 +27,7 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pizarra Táctica de Fútbol Online">
+<meta name="twitter:title" content="Klym · Planifica tus entrenamientos de fútbol">
 <meta name="twitter:description" content="Material de entrenamiento, formaciones en un clic y animación de la jugada por fotogramas.">
 <meta name="twitter:image" content="https://klym.xyz/assets/img/og-image.png">
 
@@ -162,6 +162,10 @@ section{position:relative}
   font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-2);margin-bottom:16px}
 .eyebrow::before{content:"";width:22px;height:2px;background:var(--brand-2);border-radius:2px}
 h2.title{font-size:clamp(30px,4.4vw,46px);font-weight:800}
+/* La frase que explica el título de la sección. La llevaba solo el héroe; en
+   una sección que cuenta algo nuevo hace falta igual, y sin ella el título se
+   queda a solas con cuatro tarjetas. */
+.section-sub{margin:14px 0 0;font-size:17px;line-height:1.6;color:var(--muted);max-width:60ch}
 .lead{color:var(--muted);font-size:clamp(17px,1.5vw,19px);margin-top:18px;max-width:62ch}
 
 /* ---------- Hero ---------- */
@@ -202,6 +206,13 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 
 /* ---------- Tarjetas ---------- */
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+/* Son cuatro pasos de un mismo círculo: en tres columnas el cuarto se queda
+   solo en una segunda fila, con dos huecos al lado. En dos columnas cuadran.
+   Va con «min-width» a propósito: por debajo mandan las reglas de siempre, que
+   bajan a una columna, y con un id delante no las dejaría pasar. */
+@media (min-width:761px){
+  #planificar .cards{grid-template-columns:repeat(2,1fr)}
+}
 .card{position:relative;padding:28px;border-radius:var(--radius);border:1px solid var(--line);background:var(--glass);
   box-shadow:inset 0 1px 0 var(--sheen),var(--shadow-sm);
   transition:transform .3s cubic-bezier(.2,.7,.3,1),border-color .3s,background .3s,box-shadow .3s;overflow:hidden}
@@ -308,15 +319,15 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       "@type":"WebSite",
       "@id":"https://klym.xyz/#website",
       "url":"https://klym.xyz/",
-      "name":"Pizarra Táctica",
-      "description":"Pizarra táctica de fútbol para diseñar jugadas, ejercicios y alineaciones desde el navegador.",
+      "name":"Klym",
+      "description":"Klym planifica entrenamientos de fútbol: pizarra táctica para diseñar el ejercicio, sesiones por día, plantilla, asistencia y minutos por fase del juego.",
       "inLanguage":"es-ES"
     },
     {
       "@type":"WebPage",
       "@id":"https://klym.xyz/#webpage",
       "url":"https://klym.xyz/",
-      "name":"Pizarra Táctica de Fútbol Online",
+      "name":"Klym · Planifica tus entrenamientos de fútbol",
       "isPartOf":{"@id":"https://klym.xyz/#website"},
       "primaryImageOfPage":"https://klym.xyz/assets/img/og-image.png",
       "inLanguage":"es-ES"
@@ -324,7 +335,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     {
       "@type":"SoftwareApplication",
       "@id":"https://klym.xyz/#app",
-      "name":"Pizarra Táctica",
+      "name":"Klym",
       "url":"https://klym.xyz/app/",
       "applicationCategory":"SportsApplication",
       "operatingSystem":"Cualquier navegador web moderno",
@@ -353,7 +364,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
 
 <header class="site-header" id="header">
   <div class="wrap nav">
-    <a class="brand" href="./" aria-label="Pizarra Táctica, inicio">
+    <a class="brand" href="./" aria-label="Klym, inicio">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
         <defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
           <stop stop-color="#E7204A"/><stop offset="1" stop-color="#AE0325"/></linearGradient></defs>
@@ -365,11 +376,12 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
               stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
-      <span>Pizarra Táctica</span>
+      <span>Klym</span>
     </a>
 
     <nav class="nav-links" id="navlinks" aria-label="Principal">
       <a href="#que-hace">Qué hace</a>
+      <a href="#planificar">Planificar</a>
       <a href="#como-funciona">Cómo funciona</a>
     </nav>
 
@@ -384,7 +396,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
           <path d="M3 6h18M3 12h18M3 18h18"/>
         </svg>
       </button>
-      <a class="btn btn-primary btn-sm" href="app/">Abrir la pizarra</a>
+      <a class="btn btn-primary btn-sm" href="app/">Abrir Klym</a>
     </div>
   </div>
 </header>
@@ -396,13 +408,13 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     <div class="wrap hero-grid">
       <div>
         <span class="badge"><i class="dot"></i>Fútbol 11 · Fútbol 7 · Fútbol sala</span>
-        <h1>Una <span class="hl">pizarra táctica</span> en la que la jugada se mueve</h1>
-        <p class="lead">Colocas a los jugadores y el material sobre un campo a escala, dibujas los
-          movimientos y, si quieres verlo rodar, guardas fotogramas y le das a reproducir. En el
-          navegador, lo mismo en el móvil que en el ordenador.</p>
+        <h1>Planifica tus <span class="hl">entrenamientos</span> de fútbol</h1>
+        <p class="lead">Dibuja el ejercicio en una pizarra que se anima, móntalo en la sesión del
+          martes, apunta quién vino y mira qué llevas semanas sin trabajar. El círculo entero, en
+          el navegador, lo mismo en el móvil que en el ordenador.</p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="app/">
-            Abrir la pizarra
+            Empezar gratis
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
           <a class="btn btn-ghost btn-lg" href="#como-funciona">Cómo funciona</a>
@@ -530,6 +542,57 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
     </div>
   </section>
 
+  <!-- ================= LO QUE PASA DESPUÉS DEL DIBUJO =================
+       Esta mitad faltaba. La página vendía una pizarra y Klym hace el círculo
+       entero: plantear, entrenar, registrar, analizar y volver a plantear. Sin
+       contarlo, el titular prometía algo que la propia página no explicaba. -->
+  <section class="section" id="planificar">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Y después</span>
+        <h2 class="title">Lo que pasa cuando cierras la pizarra</h2>
+        <p class="section-sub">Un ejercicio suelto se olvida. Lo que no se olvida es lo que
+          entrenaste en enero, quién faltó tres semanas y qué llevas sin tocar desde la
+          pretemporada.</p>
+      </div>
+      <div class="cards">
+        <article class="card reveal">
+          <div class="ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/><path d="M7.5 13h4M7.5 16.5h7"/></svg>
+          </div>
+          <h3>La sesión del martes</h3>
+          <p>Encadena ejercicios en orden, con su duración, y te suma los minutos. Sale en una hoja
+            para llevar al campo, y queda guardada en su día del diario.</p>
+        </article>
+        <article class="card reveal">
+          <div class="ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+          </div>
+          <h3>Tu plantilla y quién vino</h3>
+          <p>Los das de alta una vez y después solo marcas quién ha venido. Los nombres de tus
+            jugadores no salen de tu dispositivo: nunca, ni teniendo cuenta.</p>
+        </article>
+        <article class="card reveal">
+          <div class="ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
+          </div>
+          <h3>Qué has trabajado de verdad</h3>
+          <p>Minutos por fase del juego, por jugador y por semana. Sin poner una cifra a mano:
+            sale de las sesiones que ya has apuntado.</p>
+        </article>
+        <article class="card reveal">
+          <div class="ico" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5"/><path d="M12 7.2V12l3.2 2"/><path d="M17 3.2l1.6 2.6 2.6-1"/></svg>
+          </div>
+          <h3>Y qué toca ahora</h3>
+          <p>«No has tocado transición defensiva en siete días.» Con un botón que monta la sesión
+            con lo que falta, contando los que han venido. Nada se inventa: todo sale de lo que
+            tú has apuntado.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= LO QUE HAY Y LO QUE NO ================= -->
   <section class="section franja" id="estado">
     <div class="wrap">
@@ -600,15 +663,17 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
               stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
-          Pizarra Táctica
+          Klym
         </a>
-        <p>Pizarra táctica de fútbol en el navegador, para diseñar jugadas y ejercicios de entrenamiento.</p>
+        <p>Planifica tus entrenamientos de fútbol: la pizarra para diseñar el ejercicio y todo lo que
+          viene después —la sesión, quién vino y qué llevas trabajado—.</p>
       </div>
       <div class="foot">
-        <h4>La pizarra</h4>
+        <h4>La aplicación</h4>
         <ul>
           <li><a href="app/">Abrirla</a></li>
           <li><a href="#que-hace">Qué hace</a></li>
+          <li><a href="#planificar">Planificar</a></li>
           <li><a href="#como-funciona">Cómo funciona</a></li>
         </ul>
       </div>
@@ -622,7 +687,7 @@ h1 .hl{background:linear-gradient(100deg,var(--brand),var(--brand-2));-webkit-ba
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© <span id="year">2026</span> Pizarra Táctica</span>
+      <span>© <span id="year">2026</span> Klym</span>
       <span>Sin cookies · Sin rastreo · Cuenta opcional</span>
     </div>
   </div>

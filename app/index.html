@@ -43,8 +43,8 @@
   base-uri 'self';
   form-action 'none'">
 
-<title>Pizarra Táctica de Fútbol | Diseña y anima tus jugadas</title>
-<meta name="description" content="Pizarra táctica de fútbol con conos, porterías, vallas, escaleras y maniquíes. Coloca a tus jugadores, dibuja la jugada y anímala por fotogramas.">
+<title>Klym · Pizarra táctica y plan de entrenamientos de fútbol</title>
+<meta name="description" content="Pizarra táctica de fútbol con conos, porterías, vallas, escaleras y maniquíes; y detrás, la sesión del día, tu plantilla, quién vino y qué llevas trabajado.">
 <link rel="canonical" href="https://klym.xyz/app/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="color-scheme" content="dark">
@@ -59,7 +59,7 @@
 <link rel="manifest" href="../site.webmanifest">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Pizarra Táctica de Fútbol — diseña y anima tus jugadas">
+<meta property="og:title" content="Klym — dibuja el ejercicio y planifica el entrenamiento">
 <meta property="og:description" content="Conos, porterías, vallas, escaleras y maniquíes sobre un campo a escala. Dibuja la jugada y reprodúcela animada.">
 <meta property="og:url" content="https://klym.xyz/app/">
 <meta property="og:image" content="https://klym.xyz/assets/img/og-image.png">
@@ -87,7 +87,7 @@
               stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
       </svg>
-      <span>Pizarra Táctica</span>
+      <span>Klym</span>
       <a href="../" class="hide-sm">← Inicio</a>
     </div>
 
@@ -783,6 +783,13 @@
     <div class="lib-filtros">
       <input type="search" id="lib-q" placeholder="Buscar por título, objetivo, material…"
              autocomplete="off" aria-label="Buscar en la biblioteca">
+      <!-- Cinco desplegables a lo ancho son, en un móvil, media pantalla de
+           mandos antes del primer ejercicio: quien abre la biblioteca viene a
+           ver ejercicios. Se pliegan detrás de una línea que dice cuántos hay
+           puestos, para que plegado no signifique escondido. En pantalla
+           grande caben y se abren solos. -->
+      <details class="lib-mas" id="lib-mas" open>
+        <summary id="lib-mas-t">Afinar la búsqueda</summary>
       <div class="lib-selects">
         <select id="lib-pitch" aria-label="Modalidad">
           <option value="">Cualquier modalidad</option>
@@ -810,7 +817,26 @@
           <option value="media">De 16 a 25 min</option>
           <option value="larga">Más de 25 min</option>
         </select>
+        <!-- Los dos que de verdad se preguntan en el campo: cuántos han venido
+             y cuánto sitio hay. Salen de datos que el ejercicio ya trae —su
+             ficha dice «4 vs 2» y su vista dice si cabe en un área— así que no
+             hay que etiquetar nada a mano. -->
+        <select id="lib-cuantos" aria-label="Cuántos sois">
+          <option value="">Los que sean</option>
+          <option value="6">Hasta 6</option>
+          <option value="10">Hasta 10</option>
+          <option value="14">Hasta 14</option>
+          <option value="18">Hasta 18</option>
+          <option value="24">Hasta 24</option>
+        </select>
+        <select id="lib-espacio" aria-label="Espacio disponible">
+          <option value="">Cualquier espacio</option>
+          <option value="area">Un área</option>
+          <option value="half">Medio campo</option>
+          <option value="full">El campo entero</option>
+        </select>
       </div>
+      </details>
       <div class="lib-linea">
         <span class="lib-cuenta" id="lib-cuenta"></span>
         <button type="button" class="mini-btn" id="lib-limpiar" hidden>Quitar filtros</button>

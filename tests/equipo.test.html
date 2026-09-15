@@ -154,6 +154,20 @@ function siembra(lista){
   E.cambiaTemporada(T);
   ok('al volver, la plantilla vieja sigue entera', E.jugadores().length === antes, antes);
 
+  /* Sin decir temporada, leer y escribir tienen que ir al mismo sitio. Antes
+     la lectura iba a la que está en curso y la escritura a una casilla con
+     nombre vacío: el jugador se daba por añadido y no aparecía en ningún lado. */
+  var aCiegas = E.añade('', { dorsal:'33', nombre:'Sin Temporada', posicion:'Central' });
+  ok('añadir sin decir la temporada da de alta de verdad', aCiegas.ok);
+  ok('y el jugador sale en la plantilla que se está viendo',
+     E.jugadores().length === antes + 1, E.jugadores().length + ' / esperados ' + (antes + 1));
+  var guardado = JSON.parse(w.localStorage.getItem('pt-squad'));
+  ok('no se ha creado ninguna temporada fantasma',
+     Object.keys(guardado.temporadas).every(function (k) { return E.temporadaValida(k); }),
+     Object.keys(guardado.temporadas).join(' · '));
+  E.quita('', aCiegas.jugador.id);
+  ok('y quitarlo sin temporada tampoco lo deja colgado', E.jugadores().length === antes, antes);
+
   // =====================================================================
   console.log('4 · asistencia');
   var ids = E.jugadores().map(function(j){ return j.id; });
@@ -498,6 +512,91 @@ function siembra(lista){
   ok('y Hoy dice algo, no es una pantalla en blanco',
      d.getElementById('eq-hoy').textContent.trim().length > 40,
      d.getElementById('eq-hoy').textContent.replace(/\s+/g,' ').trim().slice(0, 60));
+
+  /* ---- Hoy va contando lo que falta, y en orden -------------------------
+     Son cuatro estados y cada uno tiene que ofrecer UNA salida. El tercero
+     es el que cierra el círculo entrenar → registrar, y es el que más fácil
+     se rompe: «quién vino» sin apuntar no es «vinieron todos». */
+  var aHoy = async function () {
+    d.querySelector('.tabbar-eq [data-eq="hoy"]').click();
+    await wait(350);
+    return d.getElementById('eq-hoy');
+  };
+  var textoHoy = function () {
+    return d.getElementById('eq-hoy').textContent.replace(/\s+/g,' ').trim();
+  };
+  var botonesHoy = function () {
+    return [].map.call(d.querySelectorAll('#eq-hoy button'), function (b) {
+      return b.textContent.trim(); });
+  };
+
+  var hoyISO = E.hoyISO();
+  E.guardaSesion(hoyISO, { nombre: '' });          // por si quedaba algo
+  await aHoy();
+  ok('con plantilla y sin sesión, Hoy pide la sesión de hoy',
+     /no tienes sesión apuntada/i.test(textoHoy()) &&
+     botonesHoy().indexOf('La sesión de hoy') >= 0, botonesHoy().join(' · '));
+
+  E.añadeEjercicio(hoyISO, { titulo:'Rondo 5v2', duracion:'15 min', momento:'Técnica individual' });
+  await aHoy();
+  ok('puesta la sesión, Hoy ya no la vuelve a pedir',
+     !/no tienes sesión apuntada/i.test(textoHoy()));
+  ok('y avisa de que falta apuntar quién vino, que es de donde salen las cuentas',
+     /falta apuntar quién vino/i.test(textoHoy()), textoHoy().slice(0, 120));
+  ok('sin dar por hecho que vinieron todos cuando nadie ha pasado lista',
+     !/vinieron \d+ de \d+/i.test(textoHoy()), textoHoy().slice(0, 120));
+  ok('y ofrece pasarla, no solo lo dice',
+     botonesHoy().indexOf('Apuntar quién ha venido') >= 0, botonesHoy().join(' · '));
+  /* «Qué hago ahora» tiene UNA respuesta. Aquí coinciden dos avisos —falta la
+     lista y falta media pizarra de fases por tocar— y si los dos salen en rojo,
+     la pantalla que venía a decidir por ti te hace decidir a ti. */
+  ok('y en Hoy manda un solo botón, aunque haya varios avisos a la vez',
+     d.querySelectorAll('#eq-hoy button.primary').length === 1,
+     d.querySelectorAll('#eq-hoy button.primary').length + ' de ' +
+     botonesHoy().length + ' botones · ' + botonesHoy().join(' · '));
+  ok('y el que manda es el más urgente, no el último que se pinta',
+     d.querySelector('#eq-hoy button.primary').textContent.trim() === 'Apuntar quién ha venido',
+     d.querySelector('#eq-hoy button.primary').textContent.trim());
+
+  d.querySelector('#eq-hoy button.primary').click();
+  await wait(450);
+  ok('el botón lleva a la pantalla de pasar lista, no al diario',
+     !d.getElementById('eq-sesiones').hidden &&
+     !d.getElementById('ses-asistencia').hidden &&
+     d.getElementById('ses-diario').hidden,
+     'sesiones visible: ' + !d.getElementById('eq-sesiones').hidden +
+     ' · asistencia visible: ' + !d.getElementById('ses-asistencia').hidden);
+
+  E.ponAsistenciaEn(hoyISO, E.jugadores().slice(0, 1).map(function (j) { return j.id; }));
+  await aHoy();
+  ok('pasada la lista, Hoy deja de pedirla',
+     !/falta apuntar quién vino/i.test(textoHoy()));
+  ok('y dice cuántos vinieron de cuántos son',
+     /vinieron 1 de 2/i.test(textoHoy()), textoHoy().slice(0, 140));
+
+  /* Apuntar que no vino NADIE también es haber pasado lista: un día de lluvia
+     con cero presentes no puede volver a preguntarlo como si no se hubiera
+     hecho. */
+  E.ponAsistenciaEn(hoyISO, []);
+  await aHoy();
+  ok('y «no vino nadie» cuenta como lista pasada, no como lista sin pasar',
+     !/falta apuntar quién vino/i.test(textoHoy()), textoHoy().slice(0, 140));
+
+  /* Este bloque ha escrito un día entero —sesión y lista— y lo que viene
+     después cuenta con el día limpio. Se deja como estaba: si no, una prueba
+     le rompe la siguiente y el fallo sale donde no es. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+  E.añade('2026/27', { dorsal:'7', nombre:'Ana Ferrer', posicion:'Extremo derecho' });
+  E.añade('2026/27', { dorsal:'9', nombre:'Bruno Gil',  posicion:'Delantero' });
+  // También la pantalla: Sesiones se quedó dentro de un día y de su lista, y
+  // el almacén vacío no la saca de ahí ella sola.
+  d.getElementById('ses-asis-volver').click(); await wait(250);
+  d.getElementById('ses-volver').click();      await wait(250);
+  await aHoy();
+  ok('y el día queda como estaba para lo que viene después',
+     E.sesionDe(hoyISO).vacia && !E.sesionDe(hoyISO).hayAsistencia &&
+     E.jugadores().length === 2, E.jugadores().length + ' jugadores');
   ok('la pizarra se esconde mientras tanto',
      d.querySelector('.stage').offsetParent === null);
 

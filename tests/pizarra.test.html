@@ -559,6 +559,77 @@ async function run(w,d){
   ok('el buscador filtra por texto',conTexto>0&&conTexto<total,conTexto+' de '+total);
 
   q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(250);
+
+  /* --- los dos filtros que de verdad se preguntan en el campo ---
+
+     Cuántos han venido y cuánto sitio hay. No se comprueba que el número
+     cambie —eso lo cumpliría un filtro que borrase la lista— sino que lo que
+     queda ENCAJA: con tope de 6, ninguno pide más de 6; y lo que cabe en un
+     área tiene que caber también en el campo entero.
+
+     El de espacio nació roto: miraba «it.view» y el del catálogo la guarda
+     dentro de «ej», así que pasaban los 24. La prueba lo vio, el código no. */
+  var pon=function(id,val){var s=d.getElementById(id);
+    s.value=val; s.dispatchEvent(new Event('change',{bubbles:true}));};
+  var cuantas=function(){return d.querySelectorAll('.lib-card').length;};
+
+  pon('lib-pitch','');await wait(350);
+  var todas=cuantas();
+  pon('lib-cuantos','6');await wait(350);
+  var conSeis=cuantas();
+  var seDuelan=[].filter.call(d.querySelectorAll('.lib-card'),function(c){
+    var m=c.textContent.match(/(\d+)\s*(?:vs|contra)\s*(\d+)/i);
+    return m && (+m[1] + +m[2]) > 6;});
+  ok('el filtro de «cuántos sois» deja fuera los que no caben',
+     conSeis>0 && conSeis<todas && seDuelan.length===0,
+     conSeis+' de '+todas+', '+seDuelan.length+' pasados de gente');
+  pon('lib-cuantos','');await wait(300);
+
+  pon('lib-espacio','area');await wait(350);
+  var enArea=cuantas();
+  pon('lib-espacio','full');await wait(350);
+  var enFull=cuantas();
+  ok('el de espacio filtra por «me cabe», no por «es exactamente esto»',
+     enArea>0 && enArea<enFull && enFull===todas,
+     enArea+' en un área · '+enFull+' en el campo entero · '+todas+' en total');
+  pon('lib-espacio','');await wait(300);
+
+  /* Los cinco desplegables se pliegan cuando la pantalla es estrecha, y ahí
+     hay un riesgo claro: que plegarlos esconda lo que hay puesto y el usuario
+     no entienda por qué faltan ejercicios. La línea que los abre tiene que
+     llevar la cuenta, y «quitar filtros» tiene que dejarla a cero. */
+  var mas=d.getElementById('lib-mas'), rotulo=d.getElementById('lib-mas-t');
+  ok('los filtros se pueden plegar', !!mas && mas.tagName === 'DETAILS');
+  /* Se vuelve a la modalidad de casa: «cualquier modalidad» también es un
+     filtro puesto —cambia lo que sale— y aquí se quiere el punto de partida. */
+  pon('lib-pitch','f11');await wait(350);
+  ok('sin nada puesto, la línea solo invita', rotulo.textContent === 'Afinar la búsqueda' &&
+     !mas.classList.contains('puestos'), rotulo.textContent);
+  pon('lib-cuantos','10');await wait(300);
+  ok('con uno puesto, lo dice aunque estén plegados',
+     rotulo.textContent === '1 filtro puesto' && mas.classList.contains('puestos'),
+     rotulo.textContent);
+  pon('lib-espacio','half');await wait(300);
+  pon('lib-momento','Ataque organizado');await wait(300);
+  ok('y lleva la cuenta de todos, en plural',
+     rotulo.textContent === '3 filtros puestos', rotulo.textContent);
+  ok('la búsqueda escrita no se cuenta ahí: esa se ve sola',
+     (function(){ var q=d.getElementById('lib-q'); q.value='rondo';
+       q.dispatchEvent(new Event('input',{bubbles:true})); return true; })());
+  await wait(350);
+  ok('sigue diciendo tres, no cuatro', rotulo.textContent === '3 filtros puestos',
+     rotulo.textContent);
+  d.getElementById('lib-q').value='';
+  d.getElementById('lib-q').dispatchEvent(new Event('input',{bubbles:true}));
+  await wait(300);
+  d.getElementById('lib-limpiar').click();await wait(350);
+  ok('y al quitar filtros la línea vuelve a estar limpia',
+     rotulo.textContent === 'Afinar la búsqueda' && !mas.classList.contains('puestos'),
+     rotulo.textContent);
+  ok('y vuelven a salir todos los de la modalidad', cuantas() > 0, cuantas());
+
+  pon('lib-pitch','f11');await wait(350);
+
   d.querySelectorAll('.lib-tab')[1].click();await wait(300);
   var titulos=function(){return [].map.call(d.querySelectorAll('.lib-card b'),
     function(b){return b.textContent;});};
@@ -1207,6 +1278,24 @@ async function run(w,d){
   await arrastraLaHoja(22);
   ok('pero un roce corto no la cierra sin querer',hoja.classList.contains('open'),
      'sigue abierta tras 22px');
+
+  /* Un manotazo corto y rápido —el gesto de «quita esto de en medio»— también
+     tiene que cerrar: nadie arrastra 150 px despacio cuando quiere quitarla. */
+  (function(){
+    var asa=d.getElementById('sheet-grab'), r=asa.getBoundingClientRect();
+    var x=r.left+r.width/2, y=r.top+r.height/2;
+    toca(asa,'touchstart',x,y);
+    toca(asa,'touchmove',x,y+30);
+    toca(asa,'touchmove',x,y+60);
+    toca(asa,'touchend',x,y+60);
+  })();
+  await wait(520);
+  ok('y un manotazo corto pero rápido sí la cierra',!hoja.classList.contains('open'));
+
+  /* El asa es lo que se agarra sin mirar: con 26 px había que apuntar. */
+  d.querySelector('.tab[data-section="b-teams"]').click(); await wait(500);
+  var altoAsa=Math.round(d.getElementById('sheet-grab').getBoundingClientRect().height);
+  ok('y el asa tiene alto de agarrarse, no de apuntarle',altoAsa>=32,altoAsa+'px');
   d.getElementById('sheet-grab').click(); await wait(400);
   marcoH.style.width=anchoH||'1200px'; await wait(650);
 
