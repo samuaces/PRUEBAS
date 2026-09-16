@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://bbxiuzknxdeuovoytrha.supabase.co; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
-<title>Pizarra Táctica</title>
+<title>Klym</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#070A0F">
@@ -11749,7 +11749,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       panel('Descripción y desarrollo', pp(c.descripcion)) +
       fila + seq +
       '<section class="panel grow"><h2>Observaciones</h2><div class="pbody ruled"></div></section>' +
-      '<footer><span>Pizarra Táctica</span><span>' + esc(fecha) + '</span></footer>' +
+      '<footer><span>Klym</span><span>' + esc(fecha) + '</span></footer>' +
       '</div></body></html>',
       encajarCard);
   }
@@ -12243,7 +12243,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       if (n) n.textContent = 'Este es el enlace de la jugada. Cópialo y mándalo.';
     }
     if (navigator.share) {
-      navigator.share({ title: 'Pizarra Táctica', text: nombre, url: url })
+      navigator.share({ title: 'Klym', text: nombre, url: url })
         .catch(function (e) { if (!e || e.name !== 'AbortError') alPortapapeles(); });
       return;
     }
@@ -14209,7 +14209,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           new Date().toLocaleDateString('es-ES') + '</span></header>' +
           '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +
           '<div class="notes"></div>' +
-          '<footer>Pizarra Táctica</footer>' +
+          '<footer>Klym</footer>' +
           '</body></html>');
         toast('Hoja de sesión preparada');
       });

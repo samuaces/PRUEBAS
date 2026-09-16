@@ -201,5 +201,43 @@ if (!correo) {
   bien('la privacidad da una dirección a la que escribir, y sin huecos', correo[1]);
 }
 
+/* ---------- 8 · el producto se llama de una sola manera ----------
+
+   Se llama Klym: el dominio, el título, el manifiesto que sale debajo del icono
+   en el teléfono. «Pizarra táctica» es lo que ES —y en minúsculas se queda, que
+   es lo que la gente busca en Google— pero como NOMBRE ya no vale: dos nombres
+   son dos productos.
+
+   Esto se coló dos veces seguidas. La primera, al renombrar mirando solo los
+   .html y el manifiesto: el empaquetador del archivo suelto tenía su propio
+   <title> y siguió diciendo el viejo. Y dentro de board.js quedaban tres
+   cadenas que salen de la aplicación —el pie de la ficha impresa, el pie de la
+   hoja de sesión y el título con el que el teléfono ofrece compartir—, que son
+   justo las que ve alguien que no ha abierto Klym en su vida.
+
+   Se miran solo las cadenas y el marcado, no los comentarios de cabecera de
+   cada archivo: un comentario no lo lee nadie que use la aplicación. */
+const aLaVista = [
+  'app/index.html', 'index.html', 'privacidad.html', '404.html',
+  'site.webmanifest', 'llms.txt', 'tools/build-single.mjs'
+];
+const viejoNombre = [];
+aLaVista.forEach(f => {
+  let txt = '';
+  try { txt = readFileSync(join(raiz, f), 'utf8'); } catch (e) { return; }
+  if (/Pizarra\s+Táctica/.test(txt)) viejoNombre.push(f);
+});
+/* En board.js, solo dentro de comillas: ahí viven las que se imprimen y las que
+   se comparten. La cabecera del archivo puede seguir como esté. */
+[...boardJs.matchAll(/['"`][^'"`\n]*Pizarra\s+Táctica[^'"`\n]*['"`]/g)]
+  .forEach(m => viejoNombre.push('app/board.js: ' + m[0].slice(0, 46)));
+
+if (viejoNombre.length) {
+  falla('el producto se llama Klym en todo lo que se ve', viejoNombre.join(' · '));
+} else {
+  bien('el producto se llama Klym en todo lo que se ve',
+       aLaVista.length + ' archivos y las cadenas de board.js');
+}
+
 console.log(malos ? '\n' + malos + ' FALLOS' : '\nIdentificadores correctos');
 process.exit(malos ? 1 : 0);

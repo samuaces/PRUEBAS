@@ -2339,7 +2339,7 @@
       panel('Descripción y desarrollo', pp(c.descripcion)) +
       fila + seq +
       '<section class="panel grow"><h2>Observaciones</h2><div class="pbody ruled"></div></section>' +
-      '<footer><span>Pizarra Táctica</span><span>' + esc(fecha) + '</span></footer>' +
+      '<footer><span>Klym</span><span>' + esc(fecha) + '</span></footer>' +
       '</div></body></html>',
       encajarCard);
   }
@@ -2833,7 +2833,7 @@
       if (n) n.textContent = 'Este es el enlace de la jugada. Cópialo y mándalo.';
     }
     if (navigator.share) {
-      navigator.share({ title: 'Pizarra Táctica', text: nombre, url: url })
+      navigator.share({ title: 'Klym', text: nombre, url: url })
         .catch(function (e) { if (!e || e.name !== 'AbortError') alPortapapeles(); });
       return;
     }
@@ -4799,7 +4799,7 @@
           new Date().toLocaleDateString('es-ES') + '</span></header>' +
           '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +
           '<div class="notes"></div>' +
-          '<footer>Pizarra Táctica</footer>' +
+          '<footer>Klym</footer>' +
           '</body></html>');
         toast('Hoja de sesión preparada');
       });

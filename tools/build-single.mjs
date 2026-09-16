@@ -54,7 +54,7 @@ const csp = [
 const cabecera = [
   '<meta charset="utf-8">',
   `<meta http-equiv="Content-Security-Policy" content="${csp}">`,
-  '<title>Pizarra Táctica</title>',
+  '<title>Klym</title>',
   '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">',
   '<meta name="color-scheme" content="dark">',
   '<meta name="theme-color" content="#070A0F">',
