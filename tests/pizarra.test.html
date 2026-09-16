@@ -1907,6 +1907,44 @@ async function run(w,d){
   ok('la aplicación arranca igual con la copia hecha',
      !!marcoR.contentDocument.getElementById('board'),'el canvas sigue ahí');
 
+  /* --- el cartel de la primera vez ----------------------------------------
+
+     La pizarra se abre sola y funciona sin que nadie te pida nada: ese es el
+     principio de la casa y no se toca. Pero entonces quien entra tampoco se
+     entera de que detrás hay su equipo, los ejercicios y los partidos, y un
+     botón de tres rayas por sí solo no lo dice. Esto lo dice una vez.
+
+     Aquí mismo, con la biblioteca puesta del bloque de antes, NO tiene que
+     salir: a quien ya tiene cosas no se le explica su propia aplicación. */
+  ok('a quien ya tiene guardado algo no se le enseña el cartel',
+     marcoR.contentDocument.getElementById('pista-cajon').hidden,
+     'con pt-boards puesto');
+
+  // Y en un navegador estrenado sí.
+  w3.localStorage.clear();
+  await recarga();
+  var w4=marcoR.contentWindow, d4=marcoR.contentDocument;
+  var pista=d4.getElementById('pista-cajon');
+  ok('en una instalación nueva sí sale, señalando al menú',!pista.hidden);
+  /* Y no es un diálogo: si hubiera velo o fuera modal, estaría pidiendo algo
+     antes de dejar dibujar, que es justo lo que no se hace aquí. */
+  ok('y no bloquea: ni es modal ni tiene velo por debajo',
+     pista.tagName!=='DIALOG' && !pista.closest('dialog') &&
+     !d4.getElementById('cajon-scrim').classList.contains('show'));
+  ok('tampoco tapa el centro del campo, solo la esquina de arriba',
+     (function(){var r=pista.getBoundingClientRect();
+       var c=d4.getElementById('board').getBoundingClientRect();
+       return r.bottom < c.top + c.height/2;})());
+  // Se va al primer trazo, sin tocarlo: quien dibuja ya está haciendo lo suyo.
+  var lienzo=d4.getElementById('board'), rl=lienzo.getBoundingClientRect();
+  lienzo.dispatchEvent(new w4.PointerEvent('pointerdown',{bubbles:true,pointerId:1,
+    clientX:rl.left+rl.width/2,clientY:rl.top+rl.height/2}));
+  await wait(300);
+  ok('se va solo al primer trazo, sin tener que cerrarlo',pista.hidden);
+  await recarga();
+  ok('y no vuelve nunca más',
+     marcoR.contentDocument.getElementById('pista-cajon').hidden);
+
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
 function report(){document.getElementById('out').textContent=log.join('\n')+

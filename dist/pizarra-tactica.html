@@ -402,6 +402,31 @@ a:hover{color:var(--text)}
 .cajon-btn{gap:8px;font-weight:700}
 .cajon-btn svg{width:18px;height:18px;flex:none}
 .cajon-btn-txt{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* El cartel de la primera vez. Va anclado debajo del botón de tres rayas, con
+   su pico apuntándolo: si estuviera centrado en la pantalla no diría dónde hay
+   que ir. Cubre la esquina de arriba a la izquierda del campo —en un teléfono
+   el campo llena el hueco entero y no hay dónde ponerlo sin rozarlo—, que es
+   donde nunca pasa nada, y no el centro. No es un diálogo: no hay velo, el
+   resto de la pantalla sigue viva y no hay que contestarle para dibujar. Al
+   primer trazo se va solo. Por debajo del cajón y de su velo, que cuando se
+   abre manda el cajón. */
+.pista-cajon{position:absolute;z-index:30;left:12px;
+  top:calc(var(--topbar) + var(--safe-t) + 10px);
+  width:min(300px,calc(100vw - 24px));
+  padding:13px 14px;border-radius:var(--r2);
+  background:var(--bg-2);border:1px solid var(--line-strong);
+  box-shadow:0 22px 50px -24px rgba(0,0,0,.9);
+  animation:pista-entra .28s cubic-bezier(.2,.9,.3,1) both}
+.pista-cajon[hidden]{display:none}
+.pista-cajon::before{content:"";position:absolute;top:-6px;left:22px;width:11px;height:11px;
+  background:var(--bg-2);border-left:1px solid var(--line-strong);
+  border-top:1px solid var(--line-strong);transform:rotate(45deg)}
+.pista-cajon p{margin:0 0 11px;font-size:12.5px;line-height:1.45;color:var(--text)}
+.pista-btns{display:flex;gap:8px}
+.pista-btns .tbtn{flex:1;min-height:var(--touch)}
+@keyframes pista-entra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .pista-cajon{animation:none} }
+
 .cajon{position:fixed;z-index:60;top:0;left:0;bottom:0;width:min(290px,84vw);
   padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px);
   background:var(--bg-2);border-right:1px solid var(--line);
@@ -1637,6 +1662,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       </button>
     </div>
   </header>
+
+  <!-- La primera vez y solo la primera vez: un cartelito que señala al menú.
+
+       La pizarra es la aplicación y se abre sola: quien entra a dibujar dibuja
+       sin que nadie le pida nada. Pero entonces tampoco se entera de que detrás
+       hay su equipo, los ejercicios y los partidos, y el botón de tres rayas por
+       sí solo no lo dice. Esto lo dice en una línea, no tapa el campo, no pide
+       nada y se va al primer trazo. -->
+  <div class="pista-cajon" id="pista-cajon" hidden>
+    <p>Aquí dentro está todo: tu plantilla, las sesiones, los ejercicios y los partidos.</p>
+    <div class="pista-btns">
+      <button type="button" class="tbtn primary" id="pista-ver">Ver qué hay</button>
+      <button type="button" class="tbtn marco" id="pista-no">Ahora no</button>
+    </div>
+  </div>
 
   <div class="middle">
 
@@ -14891,7 +14931,53 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      «hidden» se quita ANTES de animar y se repone DESPUÉS de cerrarse: mientras
      está escondido de verdad no lo ve ni el teclado ni un lector de pantalla, y
      mientras se mueve tiene que estar ahí para que se le vea moverse. */
+  /* ---- el cartel de la primera vez ----
+
+     Cumple el principio de la casa al pie de la letra: no pide nada, no tapa el
+     campo y no hay que contestarle para poder dibujar. Solo dice, una vez, que
+     el botón de tres rayas lleva a algún sitio.
+
+     Se enseña únicamente en una instalación que no ha hecho nada todavía. Quien
+     ya tiene una pizarra guardada, o plantilla, o un partido, no es nuevo: a ese
+     se le estaría explicando su propia aplicación. */
+  function instalacionNueva() {
+    try {
+      if (prefs().vistoElCajon) return false;
+      var llaves = ['pt-boards', 'pt-squad', 'pt-sesiones', 'pt-partidos', 'pt-asistencia'];
+      for (var i = 0; i < llaves.length; i++) {
+        var t = localStorage.getItem(llaves[i]);
+        if (t && t !== '{}' && t !== '[]') return false;
+      }
+      return true;
+    } catch (e) { return false; }   // sin almacén no se enseña y no se insiste
+  }
+
+  function guardaQueYaLoHaVisto() {
+    var p = prefs();
+    if (p.vistoElCajon) return;
+    p.vistoElCajon = true;
+    guardaPrefs(p);
+  }
+
+  function cierraLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || e.hidden) return;
+    e.hidden = true;
+    guardaQueYaLoHaVisto();
+  }
+
+  function quizaEnseñaLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || !instalacionNueva()) return;
+    e.hidden = false;
+    /* Y se va sola al primer trazo: quien ha empezado a dibujar ya está
+       haciendo lo que venía a hacer, y el cartel sobra sin tocarlo. */
+    var lienzo = $('#board');
+    if (lienzo) lienzo.addEventListener('pointerdown', cierraLaPista, { once: true });
+  }
+
   function abreCajon() {
+    cierraLaPista();                 // abrir el menú es haber entendido el cartel
     var c = $('#cajon');
     c.hidden = false;
     pintaCajon();
@@ -16135,6 +16221,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       if ($('#cajon').classList.contains('open')) cierraCajon(); else abreCajon();
     });
     $('#cajon-scrim').addEventListener('click', cierraCajon);
+    $('#pista-ver').addEventListener('click', abreCajon);
+    $('#pista-no').addEventListener('click', cierraLaPista);
     $$('.cajon-ir').forEach(function (b) {
       b.addEventListener('click', function () {
         cierraCajon();
@@ -17060,6 +17148,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         toast('La pizarra que tenías guardada estaba dañada y se ha empezado de cero');
       }, 900);
     }
+    /* Después de arrancar, no antes: el cartel señala al menú, y el menú tiene
+       que existir. Con un respiro para que lo primero que se vea sea el campo. */
+    setTimeout(quizaEnseñaLaPista, 700);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca);

@@ -4872,7 +4872,53 @@
      «hidden» se quita ANTES de animar y se repone DESPUÉS de cerrarse: mientras
      está escondido de verdad no lo ve ni el teclado ni un lector de pantalla, y
      mientras se mueve tiene que estar ahí para que se le vea moverse. */
+  /* ---- el cartel de la primera vez ----
+
+     Cumple el principio de la casa al pie de la letra: no pide nada, no tapa el
+     campo y no hay que contestarle para poder dibujar. Solo dice, una vez, que
+     el botón de tres rayas lleva a algún sitio.
+
+     Se enseña únicamente en una instalación que no ha hecho nada todavía. Quien
+     ya tiene una pizarra guardada, o plantilla, o un partido, no es nuevo: a ese
+     se le estaría explicando su propia aplicación. */
+  function instalacionNueva() {
+    try {
+      if (prefs().vistoElCajon) return false;
+      var llaves = ['pt-boards', 'pt-squad', 'pt-sesiones', 'pt-partidos', 'pt-asistencia'];
+      for (var i = 0; i < llaves.length; i++) {
+        var t = localStorage.getItem(llaves[i]);
+        if (t && t !== '{}' && t !== '[]') return false;
+      }
+      return true;
+    } catch (e) { return false; }   // sin almacén no se enseña y no se insiste
+  }
+
+  function guardaQueYaLoHaVisto() {
+    var p = prefs();
+    if (p.vistoElCajon) return;
+    p.vistoElCajon = true;
+    guardaPrefs(p);
+  }
+
+  function cierraLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || e.hidden) return;
+    e.hidden = true;
+    guardaQueYaLoHaVisto();
+  }
+
+  function quizaEnseñaLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || !instalacionNueva()) return;
+    e.hidden = false;
+    /* Y se va sola al primer trazo: quien ha empezado a dibujar ya está
+       haciendo lo que venía a hacer, y el cartel sobra sin tocarlo. */
+    var lienzo = $('#board');
+    if (lienzo) lienzo.addEventListener('pointerdown', cierraLaPista, { once: true });
+  }
+
   function abreCajon() {
+    cierraLaPista();                 // abrir el menú es haber entendido el cartel
     var c = $('#cajon');
     c.hidden = false;
     pintaCajon();
@@ -6116,6 +6162,8 @@
       if ($('#cajon').classList.contains('open')) cierraCajon(); else abreCajon();
     });
     $('#cajon-scrim').addEventListener('click', cierraCajon);
+    $('#pista-ver').addEventListener('click', abreCajon);
+    $('#pista-no').addEventListener('click', cierraLaPista);
     $$('.cajon-ir').forEach(function (b) {
       b.addEventListener('click', function () {
         cierraCajon();
@@ -7045,6 +7093,9 @@
         toast('La pizarra que tenías guardada estaba dañada y se ha empezado de cero');
       }, 900);
     }
+    /* Después de arrancar, no antes: el cartel señala al menú, y el menú tiene
+       que existir. Con un respiro para que lo primero que se vea sea el campo. */
+    setTimeout(quizaEnseñaLaPista, 700);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca);
