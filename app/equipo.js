@@ -1,11 +1,15 @@
 /* =============================================================================
    Mi equipo · asistencia · estadísticas
 
-   Tres cosas que van juntas:
+   Cuatro cosas que van juntas:
 
      La PLANTILLA se escribe una vez por temporada. Dorsal, nombre y posición.
      La SESIÓN es un día de entrenamiento: quién vino y qué se hizo, en orden.
+     El PARTIDO es lo que se juega: quién salió, cuánto, y lo que hizo.
      De ahí salen las cuentas.
+
+   Sesión y partido no se mezclan ni en el almacén ni en las cuentas, y el
+   porqué está escrito entero donde empiezan los partidos, más abajo.
 
    Así los nombres se escriben una sola vez en la vida y después solo se marcan
    casillas. De ahí salen las dos preguntas que un entrenador se hace de verdad:
@@ -50,6 +54,7 @@
   var LLAVE_PLANTILLA  = 'pt-squad';
   var LLAVE_ASISTENCIA = 'pt-asistencia';
   var LLAVE_SESIONES   = 'pt-sesiones';
+  var LLAVE_PARTIDOS   = 'pt-partidos';
   var TOPE_JUGADORES   = 40;          // en activo, que es lo que se convoca
   var TOPE_GUARDADOS   = 90;          // con las bajas, que se conservan por su historial
   var TOPE_EJERCICIOS  = 30;          // en una sesión; más que eso no es un entrenamiento
@@ -538,6 +543,220 @@
       ultimo.sesiones.push(ses);
     });
     return out;
+  }
+
+  /* ---- partidos ---------------------------------------------------------
+
+     Un partido NO es una sesión, y por eso vive en su propia llave en vez de
+     colarse en el diario. Las razones son tres y las tres se notan en pantalla:
+
+       Un entrenamiento lo hace el que viene; un partido lo juega el que sale.
+       Meter los minutos de partido en los del entrenamiento haría que «llevas
+       340 minutos» dejara de querer decir nada.
+
+       La asistencia es de entrenamiento. Si una convocatoria contara como
+       asistencia, el que no se pierde un partido pero falta a media semana
+       saldría como el más cumplidor del equipo.
+
+       Un día puede tener dos partidos —un torneo son tres en una mañana—, así
+       que la lista va por identificador y no por fecha, como las sesiones.
+
+     Lo que sí comparten: los jugadores son los MISMOS, y aquí también se
+     guardan identificadores y no nombres. Un partido de hace dos años enseña el
+     nombre de quien lo jugó porque se busca en la plantilla al pintar, no
+     porque esté escrito dentro. Son datos de menores igual que el resto: no
+     salen de este dispositivo. */
+
+  var TOPE_PARTIDOS = 200;            // dos temporadas largas de sobra
+  var DURACIONES = { f11: 90, f7: 60, futsal: 40 };
+
+  function duracionSugerida(pitch) {
+    return DURACIONES[pitch] || DURACIONES.f11;
+  }
+
+  // Un número que puede no estar. Vacío no es cero: «no lo apunté» y «ninguno»
+  // no son lo mismo, y en los goles del partido la diferencia se ve.
+  function entero(v, min, max, porDefecto) {
+    if (v === '' || v == null) return porDefecto === undefined ? null : porDefecto;
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) return porDefecto === undefined ? null : porDefecto;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function saneaConvocado(c) {
+    if (!c || typeof c !== 'object') return null;
+    if (!/^[a-z0-9]{4,16}$/.test(String(c.id || ''))) return null;
+    return {
+      id: c.id,
+      minutos:     entero(c.minutos, 0, 200, 0),
+      goles:       entero(c.goles, 0, 30, 0),
+      asistencias: entero(c.asistencias, 0, 30, 0),
+      amarillas:   entero(c.amarillas, 0, 2, 0),
+      roja: !!c.roja
+    };
+  }
+
+  function saneaPartido(p) {
+    if (!p || typeof p !== 'object') return null;
+    var f = /^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha)) ? p.fecha : null;
+    if (!f) return null;                         // sin fecha no se puede ordenar
+    var vistos = {};
+    return {
+      id: /^[a-z0-9]{4,16}$/.test(String(p.id || '')) ? p.id : nuevoId(),
+      fecha: f,
+      temporada: temporadaValida(p.temporada) ? p.temporada
+               : temporadaDe(new Date(f + 'T12:00:00')),
+      rival: String(p.rival == null ? '' : p.rival).trim().slice(0, 60),
+      casa: p.casa === undefined ? true : !!p.casa,
+      competicion: String(p.competicion == null ? '' : p.competicion).trim().slice(0, 40),
+      duracion: entero(p.duracion, 1, 200, 90),
+      golesFavor: entero(p.golesFavor, 0, 99),
+      golesContra: entero(p.golesContra, 0, 99),
+      notas: String(p.notas == null ? '' : p.notas).trim().slice(0, 500),
+      convocados: (Array.isArray(p.convocados) ? p.convocados : [])
+        .map(saneaConvocado).filter(function (c) {
+          if (!c || vistos[c.id]) return false;  // dos veces el mismo, no
+          vistos[c.id] = true;
+          return true;
+        }).slice(0, TOPE_GUARDADOS)
+    };
+  }
+
+  function partidosEnteros() {
+    var l = lee(LLAVE_PARTIDOS, null);
+    if (!Array.isArray(l)) return [];
+    return l.map(saneaPartido).filter(Boolean);
+  }
+
+  function escribePartidos(l) {
+    // Del más reciente al más antiguo, y si se pasa del tope se van los viejos.
+    var orden = l.slice().sort(porFecha);
+    return escribe(LLAVE_PARTIDOS, orden.slice(0, TOPE_PARTIDOS));
+  }
+
+  function porFecha(a, b) {
+    if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
+    return a.id < b.id ? 1 : -1;                 // dos el mismo día: orden fijo
+  }
+
+  /* Los de una temporada, del más reciente al más antiguo. Sin temporada, los
+     de la actual: es lo que se mira el 99 % de las veces. */
+  function partidos(temp) {
+    var t = temp === 'todas' ? null : (temp || temporadaActual());
+    return partidosEnteros().filter(function (p) {
+      return !t || p.temporada === t;
+    }).sort(porFecha);
+  }
+
+  function partidoDe(id) {
+    var l = partidosEnteros().filter(function (p) { return p.id === id; });
+    return l.length ? l[0] : null;
+  }
+
+  /* Guardar uno. Sin id se crea; con id se cambia el que ya estaba. Devuelve el
+     partido tal y como ha quedado guardado, ya saneado, que es lo que hay que
+     volver a pintar. */
+  function guardaPartido(id, datos) {
+    var l = partidosEnteros();
+    var viejo = null;
+    l.forEach(function (p) { if (p.id === id) viejo = p; });
+    if (id && !viejo) return { ok: false, porque: 'no-existe' };
+    if (!id && l.length >= TOPE_PARTIDOS) return { ok: false, porque: 'tope' };
+
+    var base = viejo || { id: nuevoId(), fecha: hoyISO(), casa: true,
+                          duracion: 90, convocados: [] };
+    var mezcla = {};
+    Object.keys(base).forEach(function (k) { mezcla[k] = base[k]; });
+    Object.keys(datos || {}).forEach(function (k) { mezcla[k] = datos[k]; });
+    mezcla.id = base.id;
+    // La temporada la manda la fecha: un partido de junio no es de la que viene
+    // porque lo apuntes en septiembre.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(mezcla.fecha))) {
+      mezcla.temporada = temporadaDe(new Date(mezcla.fecha + 'T12:00:00'));
+    }
+
+    var p = saneaPartido(mezcla);
+    if (!p) return { ok: false, porque: 'sin-fecha' };
+    var otros = l.filter(function (x) { return x.id !== p.id; });
+    if (!escribePartidos(otros.concat([p]))) return { ok: false, porque: 'no-cabe' };
+    return { ok: true, partido: p };
+  }
+
+  function quitaPartido(id) {
+    var l = partidosEnteros();
+    var quedan = l.filter(function (p) { return p.id !== id; });
+    if (quedan.length === l.length) return false;
+    return escribePartidos(quedan);
+  }
+
+  /* El resultado en una línea, con el sentido puesto: 2-1 es victoria si juegas
+     en casa y 2-1 es derrota si el 2 es del otro. Aquí golesFavor SIEMPRE son
+     los tuyos, juegues donde juegues; lo de casa o fuera solo cambia cómo se
+     escribe. Sin goles apuntados no hay resultado, y eso no es un empate. */
+  function resultadoDe(p) {
+    if (p.golesFavor == null || p.golesContra == null) return null;
+    return p.golesFavor > p.golesContra ? 'victoria'
+         : p.golesFavor < p.golesContra ? 'derrota' : 'empate';
+  }
+
+  /* Las estadísticas de partido, por jugador y del equipo. Solo cuentan los
+     partidos que tienen convocatoria: uno apuntado a medias no debe hundir la
+     media de minutos de nadie.
+
+     Un jugador convocado con cero minutos cuenta como convocado y NO como
+     jugado. Es la diferencia que de verdad le importa a un chaval. */
+  function estadisticasPartidos(temp) {
+    var lista = partidos(temp);
+    var porJugador = {};
+    var equipo = { partidos: 0, jugados: 0, victorias: 0, empates: 0, derrotas: 0,
+                   golesFavor: 0, golesContra: 0, sinResultado: 0 };
+
+    lista.forEach(function (p) {
+      equipo.partidos++;
+      var r = resultadoDe(p);
+      if (!r) equipo.sinResultado++;
+      else {
+        equipo[r === 'victoria' ? 'victorias' : r === 'derrota' ? 'derrotas' : 'empates']++;
+        equipo.golesFavor += p.golesFavor;
+        equipo.golesContra += p.golesContra;
+      }
+      p.convocados.forEach(function (c) {
+        var a = porJugador[c.id] || (porJugador[c.id] = {
+          id: c.id, convocado: 0, jugados: 0, minutos: 0, goles: 0,
+          asistencias: 0, amarillas: 0, rojas: 0 });
+        a.convocado++;
+        if (c.minutos > 0) a.jugados++;
+        a.minutos += c.minutos;
+        a.goles += c.goles;
+        a.asistencias += c.asistencias;
+        a.amarillas += c.amarillas;
+        if (c.roja) a.rojas++;
+      });
+    });
+    equipo.jugados = equipo.victorias + equipo.empates + equipo.derrotas;
+
+    /* Se devuelven con nombre y dorsal puestos, y en el mismo orden que la
+       plantilla: una tabla que se ordena sola por goles invita a mirar quién va
+       primero, y esto es fútbol base. */
+    var fila = [];
+    jugadores(temp === 'todas' ? null : temp, true).forEach(function (j) {
+      var a = porJugador[j.id];
+      if (!a) return;
+      a.nombre = j.nombre; a.dorsal = j.dorsal; a.baja = !!j.baja;
+      fila.push(a);
+      delete porJugador[j.id];
+    });
+    // Los que ya no están en esa temporada pero jugaron: no se pierden.
+    Object.keys(porJugador).forEach(function (id) {
+      var j = buscaJugador(id);
+      var a = porJugador[id];
+      a.nombre = j ? j.nombre : 'Jugador dado de baja';
+      a.dorsal = j ? j.dorsal : '';
+      a.baja = true;
+      fila.push(a);
+    });
+
+    return { equipo: equipo, jugadores: fila, lista: lista };
   }
 
   /* ---- de la manera vieja a la nueva, una sola vez -----------------------
@@ -1278,6 +1497,14 @@
     ESPACIOS: ESPACIOS,
     CONTEXTOS: CONTEXTOS,
     generaSesion: generaSesion,
+
+    partidos: partidos,
+    partidoDe: partidoDe,
+    guardaPartido: guardaPartido,
+    quitaPartido: quitaPartido,
+    resultadoDe: resultadoDe,
+    estadisticasPartidos: estadisticasPartidos,
+    duracionSugerida: duracionSugerida,
 
     estadisticas: estadisticas,
     FASES: FASES,

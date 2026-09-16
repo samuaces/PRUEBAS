@@ -4262,6 +4262,407 @@
   }
 
   /* =========================================================================
+     LOS PARTIDOS
+
+     La misma forma que Sesiones —una lista y uno por dentro, dentro de la misma
+     pestaña— porque es el mismo gesto y no hacía falta inventar otro.
+
+     Lo que se cuida aquí es el camino corto. Apuntar un partido se hace el
+     domingo por la tarde y con prisa, así que al abrir uno nuevo ya viene la
+     fecha de hoy, la duración según la modalidad y NADIE marcado. Marcas a los
+     que jugaron —un toque cada uno, que les pone los minutos enteros del
+     partido— y Guardar. Los goles, las asistencias y las tarjetas son campos
+     que aparecen al marcar a alguien: si no los tocas, quedan a cero, que es lo
+     que pasa en casi todas las fichas de casi todos los partidos.
+     ====================================================================== */
+  var parId = null;                 // el partido abierto, o null si se ve la lista
+  var parBorrador = null;           // lo que se está editando, sin guardar aún
+
+  function pintaPartidos() {
+    if (!window.PTEquipo) return;
+    if (parId === null && !parBorrador) pintaListaPartidos();
+    else pintaDetallePartido();
+  }
+
+  function vaAPartidos() {
+    parId = null; parBorrador = null; arriba(); pintaPartidos();
+  }
+
+  function abrePartido(id) {
+    var p = id ? PTEquipo.partidoDe(id) : null;
+    if (id && !p) { toast('Ese partido ya no está'); vaAPartidos(); return; }
+    parId = id || null;
+    parBorrador = p ? copiaPartido(p) : partidoNuevo();
+    arriba();
+    pintaPartidos();
+  }
+
+  function partidoNuevo() {
+    return {
+      fecha: PTEquipo.hoyISO(),
+      rival: '', casa: true, competicion: '',
+      duracion: PTEquipo.duracionSugerida(prefs().pitch),
+      golesFavor: null, golesContra: null,
+      convocados: []
+    };
+  }
+
+  function copiaPartido(p) {
+    return {
+      fecha: p.fecha, rival: p.rival, casa: p.casa, competicion: p.competicion,
+      duracion: p.duracion, golesFavor: p.golesFavor, golesContra: p.golesContra,
+      convocados: p.convocados.map(function (c) {
+        return { id: c.id, minutos: c.minutos, goles: c.goles,
+                 asistencias: c.asistencias, amarillas: c.amarillas, roja: c.roja };
+      })
+    };
+  }
+
+  /* ---- la lista ---- */
+
+  function pintaListaPartidos() {
+    $('#par-diario').hidden = false;
+    $('#par-detalle').hidden = true;
+
+    var st = PTEquipo.estadisticasPartidos();
+    var e = st.equipo;
+    var temp = PTEquipo.temporadaActual();
+
+    if (!e.partidos) {
+      $('#par-resumen').textContent = 'Temporada ' + temp + ', todavía sin partidos.';
+    } else {
+      var t = [e.partidos + (e.partidos === 1 ? ' partido' : ' partidos')];
+      if (e.jugados) {
+        t.push(e.victorias + 'G · ' + e.empates + 'E · ' + e.derrotas + 'P');
+        t.push(e.golesFavor + '-' + e.golesContra);
+      }
+      $('#par-resumen').textContent = 'Temporada ' + temp + ': ' + t.join(' · ');
+    }
+
+    var caja = $('#par-meses');
+    caja.textContent = '';
+    PTEquipo.porMeses(st.lista).forEach(function (m) {
+      var h = document.createElement('p');
+      h.className = 'ses-mes';
+      h.textContent = m.nombre;
+      caja.appendChild(h);
+      var ul = document.createElement('ul');
+      ul.className = 'ses-dias';
+      m.sesiones.forEach(function (p) { ul.appendChild(filaPartido(p)); });
+      caja.appendChild(ul);
+    });
+
+    pintaTablaPartidos(st.jugadores);
+
+    $('#par-nota').textContent = e.partidos
+      ? 'Los minutos de partido van por su cuenta: no se mezclan con los del ' +
+        'entrenamiento ni cuentan como asistencia.'
+      : 'Apunta un partido y lleva la cuenta de minutos, goles, asistencias y ' +
+        'tarjetas de cada uno. Se puede apuntar a mano, sin haberlo preparado aquí.';
+  }
+
+  function filaPartido(p) {
+    var li = document.createElement('li');
+    var res = PTEquipo.resultadoDe(p);
+    li.className = 'ses-dia par-dia' + (res ? ' es-' + res : '');
+
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ses-dia-btn';
+
+    var fecha = document.createElement('span');
+    fecha.className = 'ses-dia-fecha';
+    fecha.textContent = p.fecha === PTEquipo.hoyISO() ? 'Hoy' : diaCorto(p.fecha);
+    b.appendChild(fecha);
+
+    var med = document.createElement('span');
+    med.className = 'ses-dia-med';
+    // El nombre del rival lo escribe el entrenador: por el DOM, nunca innerHTML.
+    var tit = document.createElement('b');
+    tit.textContent = p.rival
+      ? (p.casa ? 'vs ' : 'en ') + p.rival
+      : (p.casa ? 'Partido en casa' : 'Partido fuera');
+    if (!p.rival) tit.className = 'flojo';
+    med.appendChild(tit);
+
+    var sub = document.createElement('small');
+    var t = [];
+    if (p.competicion) t.push(p.competicion);
+    var cuantos = p.convocados.filter(function (c) { return c.minutos > 0; }).length;
+    if (cuantos) t.push(cuantos + (cuantos === 1 ? ' jugador' : ' jugadores'));
+    else if (p.convocados.length) t.push('Convocatoria sin minutos');
+    else t.push('Falta apuntar quién jugó');
+    sub.textContent = t.join(' · ');
+    med.appendChild(sub);
+    b.appendChild(med);
+
+    var marc = document.createElement('span');
+    marc.className = 'par-marca';
+    marc.textContent = res ? p.golesFavor + '–' + p.golesContra : '–';
+    if (!res) marc.classList.add('flojo');
+    b.appendChild(marc);
+
+    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true));
+    b.addEventListener('click', function () { abrePartido(p.id); });
+    li.appendChild(b);
+    return li;
+  }
+
+  function pintaTablaPartidos(filas) {
+    var hay = filas.length > 0;
+    $('#par-tabla-tit').hidden = !hay;
+    $('#par-tabla-marco').hidden = !hay;
+    var tb = $('#par-tabla');
+    tb.textContent = '';
+    if (!hay) return;
+
+    filas.forEach(function (f) {
+      var tr = document.createElement('tr');
+      if (f.baja) tr.className = 'flojo';
+
+      var th = document.createElement('th');
+      th.scope = 'row';
+      var quien = document.createElement('span');
+      quien.className = 'par-quien';
+      if (f.dorsal) {
+        var d = document.createElement('span');
+        d.className = 'squad-dorsal';
+        d.textContent = f.dorsal;
+        quien.appendChild(d);
+      }
+      // El nombre lo escribe el entrenador: por el DOM, nunca por innerHTML.
+      var n = document.createElement('b');
+      n.textContent = f.nombre;
+      quien.appendChild(n);
+      th.appendChild(quien);
+      tr.appendChild(th);
+
+      [f.jugados, f.minutos, f.goles, f.asistencias, f.amarillas, f.rojas]
+        .forEach(function (v) {
+          var td = document.createElement('td');
+          td.textContent = String(v);
+          if (!v) td.className = 'cero';
+          tr.appendChild(td);
+        });
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---- uno por dentro ---- */
+
+  function convocadoDe(id) {
+    var l = parBorrador.convocados.filter(function (c) { return c.id === id; });
+    return l.length ? l[0] : null;
+  }
+
+  function pintaDetallePartido() {
+    $('#par-diario').hidden = true;
+    $('#par-detalle').hidden = false;
+
+    var p = parBorrador;
+    $('#par-titulo').textContent = parId ? 'El partido' : 'Un partido nuevo';
+    $('#par-borrar').hidden = !parId;
+
+    $('#par-fecha').value = p.fecha;
+    $('#par-rival').value = p.rival;
+    $('#par-competicion').value = p.competicion;
+    $('#par-duracion').value = String(p.duracion);
+    $('#par-gf').value = p.golesFavor == null ? '' : String(p.golesFavor);
+    $('#par-gc').value = p.golesContra == null ? '' : String(p.golesContra);
+    $$('#par-donde [data-casa]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.casa === '1') === !!p.casa));
+    });
+
+    /* Que el marcador sea SIEMPRE el tuyo primero, juegues donde juegues, es la
+       clase de cosa que hay que decir una vez y no volver a dudar. */
+    $('#par-marcador-nota').textContent = p.casa
+      ? 'Los tuyos primero. Déjalo vacío si no quieres apuntar el resultado.'
+      : 'Los tuyos primero, aunque juguéis fuera. Déjalo vacío si no lo apuntas.';
+
+    pintaJugadoresDelPartido();
+  }
+
+  function pintaJugadoresDelPartido() {
+    var lista = PTEquipo.jugadores(null, true);
+    var ul = $('#par-jugadores');
+    ul.textContent = '';
+
+    // Los de baja solo salen si jugaron: si no, ensucian la convocatoria.
+    lista = lista.filter(function (j) { return !j.baja || convocadoDe(j.id); });
+
+    lista.forEach(function (j) { ul.appendChild(filaDelPartido(j)); });
+
+    cuentaDelPartido();
+    $('#par-jug-nota').textContent = lista.length
+      ? 'Marcar a uno le pone los minutos enteros del partido. Cámbialos si salió ' +
+        'del banquillo, y déjalo a 0 si se quedó sin jugar.'
+      : 'Monta tu plantilla en Plantilla y aquí solo tendrás que marcar quién jugó.';
+  }
+
+  function filaDelPartido(j) {
+    var c = convocadoDe(j.id);
+    var li = document.createElement('li');
+    li.className = 'squad-fila par-fila' + (c ? '' : ' falta');
+
+    var lab = document.createElement('label');
+    lab.className = 'squad-marca';
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!c;
+    cb.setAttribute('aria-label', 'Jugó ' + j.nombre);
+
+    var dor = document.createElement('span');
+    dor.className = 'squad-dorsal';
+    dor.textContent = j.dorsal;
+
+    var nom = document.createElement('span');
+    nom.className = 'squad-nombre';
+    nom.textContent = j.nombre;
+
+    lab.appendChild(cb); lab.appendChild(dor); lab.appendChild(nom);
+    li.appendChild(lab);
+
+    // Los números, solo cuando hay a quién ponérselos.
+    var cifras = document.createElement('div');
+    cifras.className = 'par-cifras';
+    cifras.hidden = !c;
+    li.appendChild(cifras);
+
+    [['minutos', 'Min', 3, 'Minutos de ' + j.nombre],
+     ['goles', 'G', 2, 'Goles de ' + j.nombre],
+     ['asistencias', 'A', 2, 'Asistencias de ' + j.nombre],
+     ['amarillas', 'TA', 1, 'Amarillas de ' + j.nombre]].forEach(function (campo) {
+      var w = document.createElement('label');
+      w.className = 'par-cifra';
+      var t = document.createElement('span');
+      t.textContent = campo[1];
+      var i = document.createElement('input');
+      i.type = 'text';
+      i.inputMode = 'numeric';
+      i.maxLength = campo[2];
+      i.value = c ? String(c[campo[0]]) : '';
+      i.setAttribute('aria-label', campo[3]);
+      i.addEventListener('input', function () {
+        var cc = convocadoDe(j.id);
+        if (!cc) return;
+        var n = parseInt(i.value.replace(/\D/g, ''), 10);
+        cc[campo[0]] = isFinite(n) ? n : 0;
+        if (campo[0] === 'minutos') cuentaDelPartido();
+      });
+      w.appendChild(t); w.appendChild(i);
+      cifras.appendChild(w);
+    });
+
+    // La roja es un sí o un no, no una cuenta.
+    var roja = document.createElement('label');
+    roja.className = 'par-roja';
+    var rcb = document.createElement('input');
+    rcb.type = 'checkbox';
+    rcb.checked = !!(c && c.roja);
+    rcb.setAttribute('aria-label', 'Roja a ' + j.nombre);
+    var rt = document.createElement('span');
+    rt.textContent = 'Roja';
+    rcb.addEventListener('change', function () {
+      var cc = convocadoDe(j.id);
+      if (cc) cc.roja = rcb.checked;
+    });
+    roja.appendChild(rcb); roja.appendChild(rt);
+    cifras.appendChild(roja);
+
+    cb.addEventListener('change', function () {
+      marcaDelPartido(j.id, cb.checked);
+      li.classList.toggle('falta', !cb.checked);
+      cifras.hidden = !cb.checked;
+      var cc = convocadoDe(j.id);
+      if (cc) {
+        var ins = cifras.querySelectorAll('input[type="text"]');
+        ins[0].value = String(cc.minutos);
+        ins[1].value = String(cc.goles);
+        ins[2].value = String(cc.asistencias);
+        ins[3].value = String(cc.amarillas);
+        rcb.checked = !!cc.roja;
+      }
+      cuentaDelPartido();
+    });
+
+    return li;
+  }
+
+  /* Marcar a uno le pone los minutos enteros del partido: es lo que pasa la
+     mayoría de las veces y quita un campo que rellenar a mano once veces. */
+  function marcaDelPartido(id, dentro) {
+    if (!dentro) {
+      parBorrador.convocados = parBorrador.convocados.filter(function (c) {
+        return c.id !== id;
+      });
+      return;
+    }
+    if (convocadoDe(id)) return;
+    parBorrador.convocados.push({
+      id: id, minutos: parBorrador.duracion, goles: 0, asistencias: 0,
+      amarillas: 0, roja: false
+    });
+  }
+
+  function cuentaDelPartido() {
+    var total = PTEquipo.jugadores().length;
+    var jug = parBorrador.convocados.filter(function (c) { return c.minutos > 0; }).length;
+    var banco = parBorrador.convocados.length - jug;
+    var txt = jug + ' de ' + total + (jug === 1 ? ' jugó' : ' jugaron');
+    if (banco) txt += ' · ' + banco + ' sin minutos';
+    $('#par-cuenta').textContent = txt;
+  }
+
+  function leeCamposDelPartido() {
+    var p = parBorrador;
+    p.fecha = $('#par-fecha').value || p.fecha;
+    p.rival = $('#par-rival').value;
+    p.competicion = $('#par-competicion').value;
+    var dur = parseInt($('#par-duracion').value.replace(/\D/g, ''), 10);
+    if (isFinite(dur) && dur > 0) p.duracion = dur;
+    var gf = $('#par-gf').value.replace(/\D/g, '');
+    var gc = $('#par-gc').value.replace(/\D/g, '');
+    p.golesFavor = gf === '' ? null : Number(gf);
+    p.golesContra = gc === '' ? null : Number(gc);
+  }
+
+  function guardaElPartido() {
+    leeCamposDelPartido();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parBorrador.fecha)) {
+      toast('Falta la fecha del partido');
+      $('#par-fecha').focus();
+      return;
+    }
+    var r = PTEquipo.guardaPartido(parId, parBorrador);
+    if (!r.ok) {
+      toast(r.porque === 'tope' ? 'Ya hay ' + 200 + ' partidos guardados'
+          : r.porque === 'no-cabe' ? 'No cabe en el almacenamiento del navegador'
+          : 'No se ha podido guardar');
+      return;
+    }
+    var nuevo = !parId;
+    vaAPartidos();
+    pintaCajon();
+    toast(nuevo ? 'Partido apuntado' : 'Partido guardado');
+  }
+
+  function borraElPartido() {
+    if (!parId) return;
+    ask({ title: '¿Borrar el partido?',
+          message: 'Se van también los minutos, los goles y las tarjetas de ese día. ' +
+                   'Lo demás no se toca.',
+          ok: 'Borrar', danger: true })
+      .then(function (si) {
+        if (!si) return;
+        PTEquipo.quitaPartido(parId);
+        vaAPartidos();
+        pintaCajon();
+        toast('Partido borrado');
+      });
+  }
+
+  /* =========================================================================
      ESTADÍSTICAS
 
      Se calcula todo aquí, leyendo las sesiones guardadas en este navegador.
@@ -4504,6 +4905,7 @@
     hoy:        { modo: 'equipo', apartado: 'hoy',       nombre: 'Hoy' },
     sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
     plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
+    partidos:   { modo: 'equipo', apartado: 'partidos',  nombre: 'Partidos' },
     datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
     pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
     ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
@@ -4558,6 +4960,10 @@
     pon('sesiones', hoy.vacia ? 'Hoy no tienes nada apuntado'
                               : 'Hoy: ' + hoy.ejercicios.length +
                                 (hoy.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+    var par = PTEquipo.estadisticasPartidos().equipo;
+    pon('partidos', !par.partidos ? 'Sin partidos apuntados'
+      : par.partidos + (par.partidos === 1 ? ' partido' : ' partidos') +
+        (par.jugados ? ' · ' + par.victorias + 'G ' + par.empates + 'E ' + par.derrotas + 'P' : ''));
     pon('datos', d.ejercicios
       ? d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') + ' estos siete días'
       : 'Cuando apuntes algo, sale aquí');
@@ -4569,13 +4975,14 @@
     }
   }
 
-  var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
+  var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, partidos: 1, datos: 1 };
 
   function vaApartado(cual) {
     eqApartado = APARTADOS[cual] ? cual : 'hoy';
     $('#eq-hoy').hidden       = eqApartado !== 'hoy';
     $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
     $('#eq-sesiones').hidden  = eqApartado !== 'sesiones';
+    $('#eq-partidos').hidden  = eqApartado !== 'partidos';
     $('#eq-datos').hidden     = eqApartado !== 'datos';
     $$('[data-eq]').forEach(function (b) {
       var suyo = b.dataset.eq === eqApartado;
@@ -4586,6 +4993,7 @@
     if (eqApartado === 'hoy') pintaHoy();
     else if (eqApartado === 'plantilla') pintaApartadoPlantilla();
     else if (eqApartado === 'sesiones') pintaSesiones();
+    else if (eqApartado === 'partidos') pintaPartidos();
     else pintaStats();
     var cuerpo = $('#equipo');
     if (cuerpo) cuerpo.scrollTop = 0;
@@ -4707,7 +5115,53 @@
       if (top.length) dice('Sobre todo ' + top.join(' y ') + '.', 'block-note');
     }
 
-    // ---- 3 · qué falta ----
+    /* ---- 3 · lo que se juega ----
+       Entrenar es la mitad; la otra mitad es el domingo. Este bloque existe
+       para que el partido no se quede sin apuntar por no saber dónde va: la
+       primera vez lo explica, y a partir de ahí lleva la cuenta y avisa de lo
+       que esté a medias, que casi siempre es el resultado o quién jugó. */
+    if (jug.length) {
+      var par = PTEquipo.estadisticasPartidos();
+      var hoyPar = par.lista.filter(function (p) { return p.fecha === hoy; });
+      var aMedias = par.lista.filter(function (p) {
+        return !p.convocados.length || PTEquipo.resultadoDe(p) === null;
+      });
+      bloque('Los partidos');
+      if (hoyPar.length && !hoyPar[0].convocados.length) {
+        dice('Hoy tienes un partido apuntado y todavía no dice quién jugó.');
+        boton('Apuntar quién jugó', function () {
+          vaApartado('partidos'); abrePartido(hoyPar[0].id);
+        }, true);
+      } else if (!par.equipo.partidos) {
+        dice('Cuando juguéis, apúntalo aquí: quién salió, cuántos minutos, ' +
+             'goles, asistencias y tarjetas. Se puede apuntar a mano, aunque no ' +
+             'lo hayas preparado en la aplicación.');
+        boton('Apuntar un partido', function () {
+          vaApartado('partidos'); abrePartido(null);
+        });
+      } else {
+        var e2 = par.equipo;
+        dice(e2.partidos + (e2.partidos === 1 ? ' partido' : ' partidos') +
+             ' esta temporada' +
+             (e2.jugados ? ' · ' + e2.victorias + 'G · ' + e2.empates + 'E · ' +
+                           e2.derrotas + 'P · ' + e2.golesFavor + '-' + e2.golesContra : '') + '.');
+        if (aMedias.length) {
+          dice(aMedias.length === 1
+            ? 'Uno se quedó a medias: le falta el resultado o quién jugó.'
+            : aMedias.length + ' se quedaron a medias: les falta el resultado o quién jugó.',
+            'block-note');
+          boton('Terminar de apuntarlo' + (aMedias.length > 1 ? 's' : ''), function () {
+            vaApartado('partidos'); abrePartido(aMedias[0].id);
+          });
+        } else {
+          boton('Apuntar un partido', function () {
+            vaApartado('partidos'); abrePartido(null);
+          });
+        }
+      }
+    }
+
+    // ---- 4 · qué falta ----
     if (d.ejercicios && eq && eq.sinTocar) {
       bloque('Lo que te falta');
       var sinTocar = (eq.ejes || []).filter(function (e) { return !e.minutos; })
@@ -4726,7 +5180,7 @@
       }, true);
     }
 
-    // ---- 4 · de dónde sale todo esto ----
+    // ---- 5 · de dónde sale todo esto ----
     var pie = document.createElement('p');
     pie.className = 'block-note';
     pie.style.marginTop = '18px';
@@ -5882,6 +6336,43 @@
       guardaAsistenciaDeSesion();
       pintaListaDeAsistencia();
     });
+    // ---- Partidos ----
+    $('#par-nuevo').addEventListener('click', function () { abrePartido(null); });
+    $('#par-volver').addEventListener('click', vaAPartidos);
+    $('#par-guardar').addEventListener('click', guardaElPartido);
+    $('#par-borrar').addEventListener('click', borraElPartido);
+    $$('#par-donde [data-casa]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!parBorrador) return;
+        parBorrador.casa = b.dataset.casa === '1';
+        pintaDetallePartido();
+      });
+    });
+    /* Cambiar la duración con gente ya marcada tiene que arrastrar a los que
+       jugaron el partido entero: si no, pones «80» después de marcar a once y
+       los once se quedan con los 90 de antes sin que nadie lo diga. Al que ya
+       le habías tocado los minutos no se le tocan. */
+    $('#par-duracion').addEventListener('change', function () {
+      if (!parBorrador) return;
+      var antes = parBorrador.duracion;
+      leeCamposDelPartido();
+      if (parBorrador.duracion === antes) return;
+      parBorrador.convocados.forEach(function (c) {
+        if (c.minutos === antes) c.minutos = parBorrador.duracion;
+      });
+      pintaJugadoresDelPartido();
+    });
+    $('#par-todos').addEventListener('click', function () {
+      if (!parBorrador) return;
+      PTEquipo.jugadores().forEach(function (j) { marcaDelPartido(j.id, true); });
+      pintaJugadoresDelPartido();
+    });
+    $('#par-ninguno').addEventListener('click', function () {
+      if (!parBorrador) return;
+      parBorrador.convocados = [];
+      pintaJugadoresDelPartido();
+    });
+
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';

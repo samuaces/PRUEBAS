@@ -361,6 +361,7 @@
         <div class="seg" id="eq-tabs" role="tablist">
           <button type="button" data-eq="plantilla" role="tab" aria-selected="true">Plantilla</button>
           <button type="button" data-eq="sesiones" role="tab" aria-selected="false">Sesiones</button>
+          <button type="button" data-eq="partidos" role="tab" aria-selected="false">Partidos</button>
           <button type="button" data-eq="datos" role="tab" aria-selected="false">Datos</button>
         </div>
       </div>
@@ -505,6 +506,90 @@
   </div>
       </div>
 
+      <!-- Partidos. Dos caras, como Sesiones: la lista y uno por dentro. No es
+           un diálogo encima porque apuntar un partido no es un trámite de diez
+           segundos: se hace el domingo por la tarde con el acta al lado. -->
+      <div class="eq-cuerpo" id="eq-partidos" role="tabpanel" hidden>
+  <div id="par-diario">
+    <div class="ses-cabeza">
+      <p class="stats-resumen" id="par-resumen"></p>
+      <button type="button" class="tbtn primary" id="par-nuevo">Apuntar un partido</button>
+    </div>
+    <div id="par-meses"></div>
+
+    <p class="form-group" id="par-tabla-tit" hidden>Lo que lleva cada uno</p>
+    <div class="par-tabla-marco" id="par-tabla-marco" hidden>
+      <table class="par-tabla">
+        <thead><tr>
+          <th scope="col">Jugador</th>
+          <th scope="col" title="Partidos jugados">PJ</th>
+          <th scope="col" title="Minutos">Min</th>
+          <th scope="col" title="Goles">G</th>
+          <th scope="col" title="Asistencias">A</th>
+          <th scope="col" title="Tarjetas amarillas">TA</th>
+          <th scope="col" title="Tarjetas rojas">TR</th>
+        </tr></thead>
+        <tbody id="par-tabla"></tbody>
+      </table>
+    </div>
+    <p class="block-note" id="par-nota"></p>
+  </div>
+
+  <!-- Un partido, por dentro. -->
+  <div id="par-detalle" hidden>
+    <button type="button" class="linkish ses-volver" id="par-volver">‹ Todos los partidos</button>
+    <h3 class="ses-fecha" id="par-titulo"></h3>
+
+    <div class="par-campos">
+      <label class="field"><span>Fecha</span>
+        <input type="date" id="par-fecha"></label>
+      <label class="field"><span>Rival</span>
+        <input type="text" id="par-rival" maxlength="60" placeholder="CD Ejemplo"
+               autocomplete="off"></label>
+      <div class="field"><span>Dónde</span>
+        <div class="seg seg-mini" id="par-donde">
+          <button type="button" data-casa="1" aria-pressed="true">En casa</button>
+          <button type="button" data-casa="0" aria-pressed="false">Fuera</button>
+        </div>
+      </div>
+      <label class="field"><span>Competición <small>opcional</small></span>
+        <input type="text" id="par-competicion" maxlength="40" placeholder="Liga"
+               autocomplete="off"></label>
+      <label class="field"><span>Duración <small>minutos</small></span>
+        <input type="text" id="par-duracion" inputmode="numeric" maxlength="3"
+               autocomplete="off"></label>
+      <div class="field"><span>Resultado</span>
+        <div class="par-marcador">
+          <input type="text" id="par-gf" inputmode="numeric" maxlength="2"
+                 aria-label="Goles a favor" autocomplete="off">
+          <span aria-hidden="true">–</span>
+          <input type="text" id="par-gc" inputmode="numeric" maxlength="2"
+                 aria-label="Goles en contra" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <p class="block-note" id="par-marcador-nota"></p>
+
+    <p class="form-group">Quién jugó</p>
+    <div class="squad-hoy">
+      <p class="squad-hoy-t" id="par-cuenta"></p>
+      <div class="squad-hoy-btns">
+        <button type="button" class="tbtn" id="par-todos">Todos</button>
+        <button type="button" class="tbtn" id="par-ninguno">Ninguno</button>
+      </div>
+    </div>
+    <ul class="squad-lista par-lista" id="par-jugadores"></ul>
+    <p class="block-note" id="par-jug-nota"></p>
+
+    <div class="ses-acciones">
+      <button type="button" class="tbtn primary" id="par-guardar">Guardar el partido</button>
+      <button type="button" class="tbtn marco danger" id="par-borrar" hidden>Borrar</button>
+    </div>
+    <p class="block-note squad-aviso">Los nombres y lo que hizo cada uno se quedan en este
+      dispositivo. No se suben a la biblioteca común ni viajan en los enlaces.</p>
+  </div>
+      </div>
+
       <div class="eq-cuerpo" id="eq-datos" role="tabpanel" hidden>
   <div class="seg" id="stats-periodo">
     <button type="button" data-periodo="micro" aria-pressed="true">Microciclo</button>
@@ -587,6 +672,9 @@
     <button class="tab" data-eq="sesiones">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M3.5 9.5h17"/><path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h4M7.5 16.5h7"/></svg>
       Sesiones</button>
+    <button class="tab" data-eq="partidos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.4l3.6 2.6-1.4 4.3h-4.4L8.4 9z"/><path d="M12 3.4V6.4M19.2 8.9l-3.6.1M17.2 17.6l-3-4.3M6.8 17.6l3-4.3M4.8 8.9l3.6.1"/></svg>
+      Partidos</button>
     <button class="tab" data-eq="datos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
       Datos</button>
@@ -638,6 +726,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
       <span>Plantilla</span>
       <small data-pista="plantilla">Jugadores y asistencia</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="partidos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.4l3.6 2.6-1.4 4.3h-4.4L8.4 9z"/><path d="M12 3.4V6.4M19.2 8.9l-3.6.1M17.2 17.6l-3-4.3M6.8 17.6l3-4.3M4.8 8.9l3.6.1"/></svg>
+      <span>Partidos</span>
+      <small data-pista="partidos">Minutos, goles y tarjetas</small>
     </button>
     <button type="button" class="cajon-ir" data-ir="datos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>

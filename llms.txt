@@ -32,6 +32,13 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
   perder su historial. Por temporadas.
 - **Asistencia**: en cada sesión se pasa lista. Sin eso, los minutos de ese día no son de
   nadie: la aplicación lo avisa en vez de callárselo.
+- **Partidos**: se apuntan a mano, sin haberlos preparado antes. Fecha, rival, en casa o
+  fuera, competición, duración y resultado; después se marca quién jugó —marcar a uno le
+  pone los minutos enteros del partido— y se le ponen sus minutos, goles, asistencias,
+  amarillas y roja. De ahí sale la tabla de lo que lleva cada uno en la temporada. Un
+  partido no es una sesión: sus minutos no se mezclan con los del entrenamiento y una
+  convocatoria no cuenta como asistencia, porque si no ninguna de las dos cuentas querría
+  decir nada. Caben dos el mismo día, que es lo que es un torneo.
 - **Datos**: minutos por momento del juego (calentamiento, técnica individual, ataque y
   defensa organizados, las dos transiciones, finalización, balón parado, porteros,
   físico-técnico y partido condicionado), reparto por jugador, asistencia, y un radar del
@@ -122,13 +129,13 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 ## Qué NO hace todavía
 
 - No permite que dos personas trabajen a la vez sobre la misma pizarra.
-- La plantilla, la asistencia y las sesiones no se sincronizan entre dispositivos: viven en
-  el navegador donde se escribieron, a propósito.
+- La plantilla, la asistencia, las sesiones y los partidos no se sincronizan entre
+  dispositivos: viven en el navegador donde se escribieron, a propósito.
 
 ## Privacidad
 
 Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras, la plantilla, la
-asistencia y las sesiones viven en el almacenamiento local del navegador. Los nombres de los
+asistencia, las sesiones y los partidos viven en el almacenamiento local del navegador. Los nombres de los
 jugadores —a menudo menores— no salen nunca del dispositivo: no se suben ni se comparten.
 Al servidor solo va lo que el usuario comparte a propósito y, si entra, su correo, que no ve
 nadie más. Sin cuenta no se manda nada. Una jugada mandada por enlace tampoco pasa por ningún

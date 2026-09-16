@@ -41,8 +41,8 @@ var w, d, E;
 var AHORA = new Date('2026-09-15T12:00:00').getTime();
 
 function limpia(){
-  ['pt-squad','pt-asistencia','pt-sesiones','pt-boards','pt-autosave','pt-prefs',
-   'pt-catalogo','pt-nube']
+  ['pt-squad','pt-asistencia','pt-sesiones','pt-partidos','pt-boards','pt-autosave',
+   'pt-prefs','pt-catalogo','pt-nube']
     .forEach(function(k){ try{ w.localStorage.removeItem(k); }catch(e){} });
 }
 
@@ -1092,14 +1092,14 @@ function siembra(lista){
   ok('hay una tercera pestaña y lleva a Sesiones',
      !d.getElementById('eq-sesiones').hidden &&
      d.getElementById('eq-plantilla').hidden && d.getElementById('eq-datos').hidden);
-  /* Cuatro pestañas desde que existe «Hoy». Lo que importa no es cuántas hay
+  /* Cinco pestañas desde que existen los partidos. Lo que importa no es cuántas hay
      sino que quepan de verdad: se mide el ancho real de cada una en el móvil
      más estrecho que se contempla, y que ninguna se salga de la barra. Contar
      pestañas no dice nada; medirlas sí. */
   var barraEq = d.querySelector('.tabbar-eq');
   var pestañas = [].slice.call(barraEq.querySelectorAll('.tab'));
-  ok('las pestañas de abajo son las cuatro esperadas',
-     pestañas.map(function(t){return t.dataset.eq;}).join(',') === 'hoy,plantilla,sesiones,datos',
+  ok('las pestañas de abajo son las cinco esperadas',
+     pestañas.map(function(t){return t.dataset.eq;}).join(',') === 'hoy,plantilla,sesiones,partidos,datos',
      pestañas.map(function(t){return t.dataset.eq;}).join(','));
   var marcoP = w.frameElement, anchoP = marcoP.style.width;
   marcoP.style.width = '320px'; await wait(500);
@@ -1112,10 +1112,11 @@ function siembra(lista){
      salidas.length === 0,
      pestañas.map(function(t){return Math.round(t.getBoundingClientRect().width);}).join('+') +
      ' de ' + Math.round(rBarra.width));
-  /* Y que estén TODAS EN LA MISMA FILA. Al añadir «Hoy» se quedaron tres
-     arriba y una abajo, la barra creció hacia abajo y se comió el panel. La
-     medida de anchos no lo vio —los anchos seguían bien— porque el fallo no
-     era de ancho: era que la rejilla seguía puesta para tres. */
+  /* Y que estén TODAS EN LA MISMA FILA. Ha pasado dos veces: al añadir «Hoy» y
+     al añadir «Partidos». Las dos veces la que sobraba se iba a una segunda
+     fila, la barra crecía hacia abajo y se comía el panel. La medida de anchos
+     no lo vio la primera vez —los anchos seguían bien— porque el fallo no era
+     de ancho: era que la rejilla seguía puesta para las de antes. Esta sí. */
   var arriba = pestañas.map(function(t){ return Math.round(t.getBoundingClientRect().top); });
   ok('y van todas en la misma fila, sin desbordar a una segunda',
      arriba.every(function(y){ return y === arriba[0]; }),
@@ -2004,6 +2005,186 @@ function siembra(lista){
   d.querySelector('[data-eq="datos"]').click(); await wait(500);
   ok('sin datos que comentar, no se ofrece montar nada',
      !d.getElementById('stats-a-sesion'));
+
+  /* =======================================================================
+     LOS PARTIDOS
+
+     Lo que se prueba aquí no es que se guarde un objeto: es que sesión y
+     partido NO se mezclan. Si un partido empezara a contar como asistencia o
+     sus minutos entraran en los del entrenamiento, las dos cuentas que un
+     entrenador mira de verdad dejarían de querer decir nada, y se rompería sin
+     un solo error en la consola.
+     ==================================================================== */
+  limpia();
+  var P1 = E.añade(null, { nombre:'Uno Uno',  dorsal:'1' }).jugador;
+  var P2 = E.añade(null, { nombre:'Dos Dos',  dorsal:'2' }).jugador;
+  var P3 = E.añade(null, { nombre:'Tres Tres',dorsal:'3' }).jugador;
+
+  // --- el modelo ---
+  ok('una fecha que no es una fecha se rechaza, no se apaña',
+     E.guardaPartido(null,{fecha:'ayer'}).ok === false,
+     E.guardaPartido(null,{fecha:'ayer'}).porque);
+  /* Sin fecha, en cambio, vale hoy: es lo que hace la pantalla al abrir uno
+     nuevo, y negarse ahí sería negarse al caso normal. */
+  var rHoy = E.guardaPartido(null,{rival:'Sin fecha'});
+  ok('y no ponerla quiere decir hoy, que es cuando se apunta un partido',
+     rHoy.ok && rHoy.partido.fecha === E.hoyISO(),
+     rHoy.ok ? rHoy.partido.fecha : rHoy.porque);
+  E.quitaPartido(rHoy.partido.id);
+  var rp = E.guardaPartido(null, { fecha:E.hoyISO(), rival:'CD Ejemplo', casa:true,
+    duracion:60, golesFavor:2, golesContra:1, competicion:'Liga',
+    convocados:[ {id:P1.id,minutos:60,goles:1,asistencias:1,amarillas:1},
+                 {id:P2.id,minutos:25,goles:1},
+                 {id:P3.id,minutos:0} ] });
+  ok('uno con fecha sí, y vuelve ya saneado', rp.ok && !!rp.partido.id,
+     rp.ok ? rp.partido.id : rp.porque);
+  ok('la temporada la manda la fecha, no el día en que lo apuntas',
+     rp.partido.temporada === E.temporadaActual(), rp.partido.temporada);
+  ok('el resultado se lee con el sentido puesto',
+     E.resultadoDe(rp.partido) === 'victoria', E.resultadoDe(rp.partido));
+  /* Sin goles NO es un empate: es que no lo apuntaste. Confundirlo metería
+     empates falsos en la cuenta de la temporada. */
+  var rSin = E.guardaPartido(null, { fecha:'2026-09-01', rival:'Sin marcador' });
+  ok('y un partido sin marcador no es un empate: es que no está apuntado',
+     E.resultadoDe(rSin.partido) === null);
+
+  var stP = E.estadisticasPartidos();
+  var f1 = stP.jugadores.filter(function(x){return x.id===P1.id;})[0];
+  var f3 = stP.jugadores.filter(function(x){return x.id===P3.id;})[0];
+  ok('las cifras de cada uno salen sumadas',
+     f1 && f1.minutos===60 && f1.goles===1 && f1.asistencias===1 && f1.amarillas===1,
+     f1 ? JSON.stringify(f1) : 'no está');
+  /* Convocado con cero minutos es convocado y NO es jugado. Es la diferencia
+     que de verdad le importa a un chaval, y la que hace que «lleva 3 partidos»
+     no sea mentira. */
+  ok('el que se quedó en el banquillo cuenta como convocado, no como jugado',
+     f3 && f3.convocado===1 && f3.jugados===0, f3 ? JSON.stringify(f3) : 'no está');
+  ok('y el equipo cuenta solo los que tienen resultado',
+     stP.equipo.partidos===2 && stP.equipo.jugados===1 && stP.equipo.victorias===1 &&
+     stP.equipo.sinResultado===1, JSON.stringify(stP.equipo));
+
+  // --- LA LÍNEA QUE NO SE CRUZA ---
+  var sesHoy = E.sesionDe(E.hoyISO());
+  ok('un partido NO se apunta como asistencia al entrenamiento',
+     sesHoy.hayAsistencia === false, 'hayAsistencia=' + sesHoy.hayAsistencia);
+  ok('ni mete ejercicios en la sesión de ese día',
+     sesHoy.ejercicios.length === 0 && sesHoy.vacia === true);
+  ok('ni sus minutos entran en los del entrenamiento',
+     E.estadisticas('temporada').minutos === 0,
+     E.estadisticas('temporada').minutos + ' min de entrenamiento');
+  ok('y el diario de sesiones sigue vacío: un partido no es una sesión',
+     E.diario().length === 0, E.diario().length + ' días');
+
+  // --- dos el mismo día, que es un torneo y pasa ---
+  E.guardaPartido(null, { fecha:E.hoyISO(), rival:'Segundo del torneo' });
+  ok('caben dos partidos el mismo día: un torneo son tres en una mañana',
+     E.partidos().length === 3, E.partidos().length + ' partidos');
+  ok('y salen del más reciente al más antiguo',
+     E.partidos()[2].fecha === '2026-09-01', E.partidos().map(function(p){return p.fecha;}).join(' · '));
+
+  // --- la pantalla ---
+  limpia();
+  var Q1 = E.añade(null, { nombre:'Ana Ruiz',  dorsal:'7' }).jugador;
+  var Q2 = E.añade(null, { nombre:'Beto Sanz', dorsal:'9' }).jugador;
+  E.añade(null, { nombre:'Caro Gil', dorsal:'4' });
+  await irA(d,'partidos');
+  ok('el cajón lleva a Partidos', !d.getElementById('eq-partidos').hidden &&
+     d.getElementById('eq-sesiones').hidden && d.getElementById('eq-datos').hidden);
+  ok('y sin partidos lo dice, no enseña una tabla vacía',
+     /todavía sin partidos/.test(d.getElementById('par-resumen').textContent) &&
+     d.getElementById('par-tabla-marco').hidden,
+     d.getElementById('par-resumen').textContent);
+
+  d.getElementById('par-nuevo').click(); await wait(400);
+  ok('uno nuevo viene con la fecha de hoy puesta',
+     d.getElementById('par-fecha').value === E.hoyISO(),
+     d.getElementById('par-fecha').value);
+  ok('y con la duración de la modalidad, no en blanco',
+     d.getElementById('par-duracion').value === '90',
+     d.getElementById('par-duracion').value);
+  ok('nadie viene marcado: se marca a quien jugó, no se desmarca a quien no',
+     d.querySelectorAll('#par-jugadores .squad-marca input:checked').length === 0);
+  ok('las cifras están escondidas hasta que marcas a alguien',
+     [].every.call(d.querySelectorAll('#par-cifras, #par-jugadores .par-cifras'),
+       function(c){return c.hidden;}));
+
+  /* El camino corto: marcar a uno le pone los minutos enteros. Es lo que pasa
+     casi siempre, y si hubiera que escribirlos once veces nadie apuntaría un
+     partido dos domingos seguidos. */
+  var marcas = d.querySelectorAll('#par-jugadores .squad-marca input');
+  marcas[0].checked = true;
+  marcas[0].dispatchEvent(new w.Event('change',{bubbles:true})); await wait(200);
+  var fila0 = d.querySelectorAll('#par-jugadores .par-fila')[0];
+  ok('marcar a uno le pone los minutos enteros del partido',
+     fila0.querySelector('.par-cifra input').value === '90',
+     fila0.querySelector('.par-cifra input').value);
+  ok('y le saca sus cifras',!fila0.querySelector('.par-cifras').hidden);
+
+  marcas[1].checked = true;
+  marcas[1].dispatchEvent(new w.Event('change',{bubbles:true})); await wait(200);
+  var fila1 = d.querySelectorAll('#par-jugadores .par-fila')[1];
+  var ins1 = fila1.querySelectorAll('.par-cifra input');
+  ins1[0].value='25'; ins1[0].dispatchEvent(new w.Event('input',{bubbles:true}));
+  ins1[1].value='2';  ins1[1].dispatchEvent(new w.Event('input',{bubbles:true}));
+  await wait(200);
+  ok('la cuenta distingue al que jugó del que se quedó sin minutos',
+     /2 de 3 jugaron/.test(d.getElementById('par-cuenta').textContent),
+     d.getElementById('par-cuenta').textContent);
+
+  /* Cambiar la duración con gente ya marcada tiene que arrastrar a los que
+     jugaron el partido entero, y NO al que ya tenía sus minutos a mano. */
+  d.getElementById('par-duracion').value = '70';
+  d.getElementById('par-duracion').dispatchEvent(new w.Event('change',{bubbles:true}));
+  await wait(300);
+  var mins = [].map.call(d.querySelectorAll('#par-jugadores .par-fila'), function(f){
+    var i = f.querySelector('.par-cifra input'); return i ? i.value : '-'; });
+  ok('cambiar la duración arrastra al que jugó entero y respeta al que no',
+     mins[0]==='70' && mins[1]==='25', mins.join(' · '));
+
+  d.getElementById('par-rival').value = 'CD Pruebas';
+  d.getElementById('par-gf').value = '3';
+  d.getElementById('par-gc').value = '1';
+  d.getElementById('par-guardar').click(); await wait(600);
+  ok('al guardar se vuelve a la lista',
+     !d.getElementById('par-diario').hidden && d.getElementById('par-detalle').hidden);
+  ok('y el resumen lleva ya el resultado',
+     /1 partido/.test(d.getElementById('par-resumen').textContent) &&
+     /3-1/.test(d.getElementById('par-resumen').textContent),
+     d.getElementById('par-resumen').textContent);
+  ok('la fila de la lista se tiñe según cómo acabó',
+     !!d.querySelector('#par-meses .par-dia.es-victoria'),
+     (d.querySelector('#par-meses .ses-dia')||{}).className);
+  ok('y la tabla dice lo que lleva cada uno',
+     !d.getElementById('par-tabla-marco').hidden &&
+     d.querySelectorAll('#par-tabla tr').length === 2,
+     d.querySelectorAll('#par-tabla tr').length + ' filas');
+  /* El rival lo escribe el entrenador. Si llegara por innerHTML, un nombre con
+     etiquetas se convertiría en marcado dentro de la aplicación. */
+  E.guardaPartido(null,{fecha:'2026-09-02',rival:'<img src=x onerror=alert(1)>'});
+  d.querySelector('[data-eq="plantilla"]').click(); await wait(250);
+  d.querySelector('[data-eq="partidos"]').click(); await wait(450);
+  ok('el nombre del rival se pinta como texto, nunca como marcado',
+     d.querySelectorAll('#par-meses img').length === 0 &&
+     /<img src=x/.test(d.getElementById('par-meses').textContent));
+
+  // Reabrirlo tiene que traerlo entero: si no, apuntar un partido es de un solo uso.
+  d.querySelectorAll('#par-meses .ses-dia-btn')[0].click(); await wait(450);
+  ok('reabrir un partido lo trae entero',
+     d.getElementById('par-rival').value === 'CD Pruebas' &&
+     d.getElementById('par-gf').value === '3' &&
+     d.querySelectorAll('#par-jugadores .squad-marca input:checked').length === 2,
+     d.getElementById('par-rival').value);
+
+  // Y Hoy lo cuenta, que es lo que hace que no se quede escondido.
+  d.querySelector('[data-eq="hoy"]').click(); await wait(500);
+  ok('Hoy cuenta los partidos, no solo los entrenamientos',
+     /partido/.test(d.getElementById('eq-hoy').textContent),
+     (d.getElementById('eq-hoy').textContent.match(/Los partidos[^]{0,80}/)||['-'])[0]);
+  /* Y sigue mandando UN solo botón rojo: el bloque de partidos no puede
+     robarle la respuesta a «¿qué hago ahora?». */
+  ok('y sigue habiendo una sola acción principal en la pantalla',
+     d.querySelectorAll('#eq-hoy .tbtn.primary').length <= 1,
+     d.querySelectorAll('#eq-hoy .tbtn.primary').length + ' botones rojos');
 
   await irA(d,'pizarra'); await wait(300);
 

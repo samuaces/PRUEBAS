@@ -1025,12 +1025,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .eq-cuerpo{max-width:560px;margin:0 auto}
 /* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
    abajo, que es donde llega el pulgar. */
-/* Cuatro desde que existe «Hoy». Este número tiene que ir a la par que las
-   pestañas del HTML: con una de más, la que sobra se va a una segunda fila y
-   la barra crece hacia abajo tapando el panel. Pasó, y la prueba que medía
-   anchos no lo vio porque los anchos seguían bien; lo que estaba mal era que
-   no compartían fila. Ahora la prueba mide también eso. */
-.tabbar-eq{grid-template-columns:repeat(4,1fr)}
+/* Cinco desde que existen los partidos. Este número tiene que ir a la par que
+   las pestañas del HTML: con una de más, la que sobra se va a una segunda fila
+   y la barra crece hacia abajo tapando el panel. Pasó dos veces —al entrar
+   «Hoy» y al entrar «Partidos»—, y la primera vez la prueba que medía anchos no
+   lo vio porque los anchos seguían bien; lo que estaba mal era que no
+   compartían fila. Ahora la prueba mide también eso.
+
+   A 320 px son 64 px por pestaña. «Plantilla» es el rótulo más largo y cabe,
+   pero sin holgura: la letra baja a 9,5 px y el icono a 19 px solo aquí, que es
+   donde hay cinco. La barra de la pizarra sigue con la letra de siempre. */
+.tabbar-eq{grid-template-columns:repeat(5,1fr)}
+@media (max-width:900px){
+  .tabbar-eq .tab{font-size:9.5px;padding:0 1px;gap:3px}
+  .tabbar-eq .tab svg{width:19px;height:19px}
+}
 /* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
    lo que mide un dedo. Es la red que faltaba cuando lo de arriba se rompió. */
 .tabbar .tab{min-height:var(--touch)}
@@ -1329,6 +1338,84 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
    rótulo del botón de al lado. */
 #gen-salida{margin-top:18px}
+
+/* ---- los partidos ----
+   Reaprovecha entero lo de las sesiones —la lista por meses, las filas de
+   jugador— y solo añade lo que un partido tiene y un entrenamiento no: el
+   marcador y las cifras de cada uno. */
+.par-campos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 4px}
+.par-campos > *{min-width:0}
+.par-campos input,.par-campos select{min-height:var(--touch)}
+@media (min-width:560px){ .par-campos{grid-template-columns:repeat(3,1fr)} }
+/* El marcador se escribe como se lee: dos huecos y una raya en medio. */
+.par-marcador{display:flex;align-items:center;gap:8px}
+.par-marcador input{flex:1;min-width:0;text-align:center;min-height:var(--touch);
+  font-family:var(--ff-display);font-size:16px;font-variant-numeric:tabular-nums}
+.par-marcador span{flex:0 0 auto;color:var(--muted);font-size:15px}
+#par-marcador-nota{margin:2px 0 0}
+
+/* El resultado en la lista: la cifra a la derecha, teñida según cómo acabó. Se
+   distingue además por el propio número, no solo por el color. */
+.par-marca{flex:0 0 auto;font-family:var(--ff-display);font-size:14px;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--text);
+  padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+  background:var(--glass-2)}
+.par-marca.flojo{color:var(--muted)}
+.par-dia.es-victoria .par-marca{color:#7BD88F;border-color:rgba(53,132,74,.5);
+  background:rgba(53,132,74,.16)}
+.par-dia.es-derrota .par-marca{color:#FF8A7A;border-color:rgba(138,50,39,.5);
+  background:rgba(138,50,39,.16)}
+.par-dia.es-empate .par-marca{color:var(--muted)}
+
+/* Las cifras de cada jugador. Aparecen al marcarlo: once filas con cuatro
+   campos vacíos cada una es un formulario, no una convocatoria. */
+.par-fila{flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
+.par-fila .squad-marca{flex:1 1 100%}
+.par-cifras{flex:1 1 100%;display:flex;align-items:flex-end;gap:7px;
+  padding:0 0 4px 42px;flex-wrap:wrap}
+.par-cifra{display:flex;flex-direction:column;gap:3px;min-width:0}
+.par-cifra span{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);padding-left:2px}
+/* Alto de dedo, como todo lo que se toca. Son campos pequeños de ancho y de
+   letra; pequeño es lo que se ve, no lo que se toca. */
+.par-cifra input{width:56px;min-height:var(--touch);text-align:center;
+  font-variant-numeric:tabular-nums}
+.par-cifra:first-child input{width:62px}
+.par-roja{display:inline-flex;align-items:center;gap:6px;min-height:var(--touch);
+  font-size:11.5px;color:var(--muted);cursor:pointer;padding:0 2px}
+/* Esta sí se ve: la regla de la plantilla esconde las casillas porque allí lo
+   que se toca es la fila entera, y aquí la fila ya la usa el «jugó». */
+.par-fila .par-roja input[type=checkbox]{position:static;width:17px;height:17px;
+  margin:0;padding:0;overflow:visible;clip:auto;clip-path:none;
+  accent-color:#C93E2C;flex:0 0 auto}
+
+/* Borrar un partido no es la acción principal de nada: en marco, y en rojo
+   solo lo justo para que no se confunda con «Guardar». */
+.tbtn.marco.danger{border-color:rgba(138,50,39,.5);color:#FF8A7A}
+.tbtn.marco.danger:hover{border-color:#8A3227;color:#FF9E90;
+  background:rgba(138,50,39,.2)}
+
+/* Lo que lleva cada uno. Una tabla de verdad, que es lo que es: encabezados
+   que un lector de pantalla puede anunciar en cada celda. */
+.par-tabla-marco{border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--glass);overflow-x:auto}
+.par-tabla{width:100%;border-collapse:collapse;font-size:12.5px}
+.par-tabla th,.par-tabla td{padding:8px 6px;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.par-tabla thead th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
+.par-tabla tbody th{text-align:left;font-weight:600;width:99%}
+.par-quien{display:flex;align-items:center;gap:8px;min-width:0}
+.par-quien span{flex:0 0 26px;height:26px;font-size:11px}
+.par-quien b{font-weight:inherit;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.par-tabla tbody tr{border-bottom:1px solid var(--line)}
+.par-tabla tbody tr:last-child{border-bottom:0}
+.par-tabla tbody tr.flojo th{color:var(--muted);font-weight:400}
+.par-tabla td.cero{color:var(--muted);opacity:.5}
+.par-tabla th:first-child{padding-left:12px}
+.par-tabla thead th:first-child{text-align:left}
+.par-tabla td:last-child{padding-right:12px}
 
 /* ---- barras ----
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que

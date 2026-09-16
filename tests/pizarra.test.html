@@ -1735,8 +1735,8 @@ async function run(w,d){
      interruptor con otra forma: no decía de qué va la aplicación. Ahora están
      los cuatro apartados de Equipo —que ya existían como pestañas—, la
      biblioteca, la pizarra y el pie. */
-  var DESTINOS=['hoy','sesiones','ejercicios','pizarra','plantilla','datos',
-                'cuenta','ajustes','ayuda'];
+  var DESTINOS=['hoy','sesiones','ejercicios','pizarra','plantilla','partidos',
+                'datos','cuenta','ajustes','ayuda'];
   var hay=[].map.call(d.querySelectorAll('.cajon-ir'),function(b){
     return b.dataset.ir;});
   ok('están todos los destinos, y en el orden en que se trabaja',
@@ -1785,8 +1785,8 @@ async function run(w,d){
   /* Los cuatro apartados de Equipo llevan a SU apartado, no a Equipo a secas.
      Era el riesgo de subirlos: que el cajón te dejara en la pestaña de antes. */
   var llegadas=[];
-  var APS=[['sesiones','sesiones'],['plantilla','plantilla'],['datos','datos'],
-           ['hoy','hoy']];
+  var APS=[['sesiones','sesiones'],['plantilla','plantilla'],['partidos','partidos'],
+           ['datos','datos'],['hoy','hoy']];
   for(var iA=0;iA<APS.length;iA++){
     await irA(d,APS[iA][0]);
     var sel=d.querySelector('.tabbar-eq [aria-selected="true"]');
