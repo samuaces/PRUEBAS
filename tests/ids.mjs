@@ -239,5 +239,43 @@ if (viejoNombre.length) {
        aLaVista.length + ' archivos y las cadenas de board.js');
 }
 
+/* ---------- 9 · la escala, que no se deshaga sola ----------
+
+   Esta regla existe porque la hoja de estilos llegó a tener DIECISIETE tamaños
+   de letra —ocho de ellos con medio píxel— y los veinte números enteros del 1
+   al 20 usados como hueco. Ninguno de esos valores se puso por capricho: se
+   pusieron de uno en uno, cada uno ajustando una pantalla, y así es como se
+   deshace una escala. Ninguno se ve; se ven los diecisiete juntos.
+
+   Se comprueban tres cosas, y las tres son las que se cuelan:
+     que no haya tamaños de letra en píxeles sueltos (van por token),
+     que no haya medios píxeles en ningún tamaño,
+     y que los rótulos en versales compartan el mismo aire entre letras.
+
+   Las dos excepciones de «font-size:16px» son de oficio, no de estilo: es lo
+   que evita que Safari acerque la pantalla al enfocar un campo, y el marcador
+   de un partido, que es el mismo caso. */
+const hojas = ['app/board.css', 'index.html'];
+const sueltos = [], medios = [], versales = [];
+hojas.forEach(f => {
+  let css = readFileSync(join(raiz, f), 'utf8');
+  if (f.endsWith('.html')) css = (css.match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('\n');
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  [...css.matchAll(/font-size\s*:\s*([\d.]+)px/g)].forEach(m => {
+    if (m[1].indexOf('.') >= 0) medios.push(f + ': ' + m[0]);
+    else if (m[1] !== '16') sueltos.push(f + ': ' + m[0]);
+  });
+  // Un rótulo en versales con su propio espaciado entre letras: fuera del token.
+  [...css.matchAll(/letter-spacing\s*:\s*(\.[\d]+em)\s*;\s*text-transform\s*:\s*uppercase/g)]
+    .forEach(m => versales.push(f + ': ' + m[1]));
+});
+if (medios.length) falla('ningún tamaño de letra con medio píxel', medios.join(' · '));
+else bien('ningún tamaño de letra con medio píxel', hojas.join(' y '));
+if (sueltos.length) falla('los tamaños de letra van por la escala, no sueltos', sueltos.join(' · '));
+else bien('los tamaños de letra van por la escala, no sueltos',
+          'salvo los dos «16px» que evitan el zoom de Safari');
+if (versales.length) falla('las versales comparten el mismo aire entre letras', versales.join(' · '));
+else bien('las versales comparten el mismo aire entre letras', 'var(--ls-cap)');
+
 console.log(malos ? '\n' + malos + ' FALLOS' : '\nIdentificadores correctos');
 process.exit(malos ? 1 : 0);

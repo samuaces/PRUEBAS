@@ -5228,8 +5228,9 @@
 
     // ---- 5 · de dónde sale todo esto ----
     var pie = document.createElement('p');
-    pie.className = 'block-note';
-    pie.style.marginTop = '18px';
+    // «tras-boton» deja pasar el resplandor del botón rojo de arriba. El
+    // número vive en la hoja de estilos, con el resto de la escala, y no aquí.
+    pie.className = 'block-note tras-boton';
     pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
                       'Nada se inventa y nada sale a internet.';
     caja.appendChild(pie);

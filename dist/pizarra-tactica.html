@@ -48,8 +48,64 @@
   --ff-display:'Outfit',system-ui,-apple-system,'Segoe UI',sans-serif;
   --ff-body:'InterVar',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 
+  /* ---- la escala de texto ----
+
+     Ocho tamaños y ni uno más. Antes había DIECISIETE, la mitad con medio
+     píxel —12,5 · 13,5 · 11,5—, que es la firma de haber ido ajustando cada
+     cosa a ojo: medio píxel no se ve de uno en uno, pero diecisiete tamaños
+     sin relación entre ellos sí se ven todos juntos, y es lo que hace que una
+     pantalla parezca montada a trozos. Además, a 1x el medio píxel no existe:
+     el navegador lo redondea y el texto sale más borroso que el de al lado.
+
+     Cada escalón tiene un oficio, y por eso no hay más:
+       cap   rótulos en versales (LO SIGUIENTE, PLANTILLA)
+       xs    la línea de apoyo que va debajo de algo
+       sm    mandos pequeños y texto secundario
+       md    el tamaño de los botones y de las filas
+       base  el cuerpo
+       lg    el título de una fila o una frase destacada
+       xl    el título de un diálogo
+       2xl   el título de una pantalla                                        */
+  --t-cap:10px; --t-xs:11px; --t-sm:12px; --t-md:13px;
+  --t-base:14px; --t-lg:15px; --t-xl:17px; --t-2xl:20px;
+
+  /* ---- los interlineados ----
+     Cuanto más grande el texto, más apretado va: un título a 1,5 se deshace en
+     líneas sueltas, y una nota de 11 px a 1,3 no se puede leer. */
+  --lh-tight:1.2;      /* títulos de 17 px para arriba */
+  --lh-snug:1.35;      /* títulos de fila, botones */
+  --lh:1.5;            /* el cuerpo */
+  --lh-loose:1.6;      /* las notas de 11-12 px, que son las que más cuestan */
+
+  /* ---- los huecos ----
+     Una escala, no la lista de los números enteros. Antes estaban usados
+     TODOS del 1 al 20, y con todos disponibles no hay manera de que dos cosas
+     que valen lo mismo se separen lo mismo. */
+  --e0:2px;  --e1:4px;  --e2:6px;  --e3:8px;  --e4:10px; --e5:12px;
+  --e6:16px; --e7:20px; --e8:24px; --e9:32px; --e10:40px;
+
+  /* El aire entre letras de los rótulos en versales. Estaba en .15em, y a
+     10 px eso son un píxel y medio entre letra y letra: la palabra deja de
+     leerse de un golpe y se lee letra a letra. A este tamaño el rótulo ya lo
+     marcan las versales y el peso; el aire solo tiene que evitar que las
+     mayúsculas se toquen. */
+  --ls-cap:.08em;
+
+  /* El ancho de la columna de contenido.
+
+     Intenté ensancharla a 640 y a 760 en pantalla grande, y había una prueba
+     esperándome con la razón escrita: una fila de plantilla a mil cien píxeles
+     deja el dorsal en una punta y la posición en la otra, y no hay ojo que
+     recorra eso. Una lista tiene su ancho de lectura igual que un párrafo.
+
+     Así que la columna se queda donde estaba. Lo que sí necesita más sitio es
+     lo único que de verdad es ancho —la tabla de siete columnas de Partidos—,
+     y eso se resuelve dejándola salirse de la columna en pantalla grande, no
+     ensanchando la columna para todo lo demás. */
+  --col:560px;
+
   /* Un solo juego de esquinas y de sombras para toda la aplicación */
-  --r1:9px; --r2:12px; --r3:15px; --r4:19px; --r5:24px;
+  --r0:6px; --r1:8px; --r2:12px; --r3:16px; --r4:20px; --r5:24px; --rp:999px;
   --sh-1:0 2px 8px -3px rgba(0,0,0,.55);
   --sh-2:0 16px 38px -18px rgba(0,0,0,.8);
   --sh-3:0 40px 90px -30px rgba(0,0,0,.9);
@@ -91,7 +147,7 @@ body{
     radial-gradient(1050px 650px at 97% 0%,rgba(46,134,222,.19),transparent 58%),
     radial-gradient(950px 640px at 52% 118%,rgba(16,168,120,.15),transparent 60%),
     var(--bg);
-  font-family:var(--ff-body);font-size:14px;line-height:1.5;
+  font-family:var(--ff-body);font-size:var(--t-base);line-height:1.5;
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;
@@ -107,7 +163,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-
 a{color:var(--brand-2);text-decoration-thickness:1px;text-underline-offset:2px;
   transition:color .15s}
 a:hover{color:var(--text)}
-:focus-visible{outline:2px solid var(--brand-2);outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2px solid var(--brand-2);outline-offset:2px;border-radius:var(--r0)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sm-only{display:none}
 
@@ -132,17 +188,17 @@ a:hover{color:var(--text)}
 /* Hilo de luz bajo la barra: se apaga hacia los lados, así no corta la pantalla en dos. */
 .topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)}
-.logo{display:flex;align-items:center;gap:9px;min-width:0;overflow:hidden;font-family:var(--ff-display);font-weight:800;letter-spacing:-.02em;font-size:15px;white-space:nowrap}
+.logo{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;font-family:var(--ff-display);font-weight:800;letter-spacing:-.02em;font-size:var(--t-lg);white-space:nowrap}
 .logo svg{width:26px;height:26px;flex:none}
-.logo a{color:var(--muted);font-weight:500;font-size:12px;text-decoration:none;font-family:var(--ff-body);transition:color .15s}
+.logo a{color:var(--muted);font-weight:500;font-size:var(--t-sm);text-decoration:none;font-family:var(--ff-body);transition:color .15s}
 .logo a:hover{color:var(--brand-2)}
 .topbar .spacer{flex:1}
-.group{display:flex;flex:none;align-items:center;gap:5px;padding:4px;
+.group{display:flex;flex:none;align-items:center;gap:6px;padding:4px;
   background:var(--glass);border:1px solid var(--line);border-radius:var(--r3);
   box-shadow:inset 0 1px 0 var(--sheen)}
 
-.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:7px 11px;border-radius:var(--r1);
-  font-size:13px;color:var(--muted);white-space:nowrap;
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;border-radius:var(--r1);
+  font-size:var(--t-md);color:var(--muted);white-space:nowrap;
   transition:background .16s,color .16s,transform .12s var(--ease),box-shadow .16s}
 .tbtn:hover{background:var(--glass-2);color:var(--text)}
 .tbtn:active{transform:scale(.96)}
@@ -182,14 +238,21 @@ a:hover{color:var(--text)}
      rebote, en un móvil, empujaba el contenido hacia abajo y dejaba a la vista
      una franja vacía encima del asa: la hoja parecía rota. */
   overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch;
-  scroll-behavior:smooth;padding:14px 13px 26px;
+  scroll-behavior:smooth;padding:14px 12px 26px;
   scrollbar-width:thin;scrollbar-color:var(--glass-3) transparent;
 }
 .aside::-webkit-scrollbar{width:10px}
-.aside::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+.aside::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:var(--r2);border:3px solid transparent;background-clip:padding-box}
 .aside::-webkit-scrollbar-thumb:hover{background:var(--line-strong);background-clip:padding-box}
 .sheet-grab,.sheet-tit{display:none}
-.block{margin-bottom:20px;scroll-margin-top:12px}
+.block{margin-bottom:var(--e7);scroll-margin-top:var(--e5)}
+
+/* Los rótulos en versales de toda la aplicación: el del panel, el que se
+   pliega, el de los diálogos y el del cajón. Una regla; lo único que cambia de
+   uno a otro es cuánto separa, que es lo que depende de dónde está. */
+.block > h2,.plegable-bloque > summary,.form-group,.cajon-tit,.ses-mes{
+  font-family:var(--ff-display);font-size:var(--t-cap);font-weight:700;
+  letter-spacing:var(--ls-cap);text-transform:uppercase;color:var(--muted)}
 
 /* ---- Bloques plegables del panel ----
    En el escritorio el panel volcaba los siete bloques a la vez. Los cuatro
@@ -198,27 +261,32 @@ a:hover{color:var(--text)}
    que abras se recuerda: que cueste un toque UNA vez, no cada vez. */
 /* Mismos valores que «.block > h2»: la línea que se pliega tiene que leerse
    igual que los rótulos que no se pliegan, o el panel parece dos panales. */
-.plegable-bloque > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
-  margin:0 0 10px 2px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
-  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85;user-select:none}
+.plegable-bloque > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:var(--e3);
+  margin:0 0 var(--e3) 2px;opacity:.85;user-select:none}
 .plegable-bloque > summary::-webkit-details-marker{display:none}
 .plegable-bloque > summary::after{content:"";margin-left:auto;width:6px;height:6px;flex:none;
   border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
   transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
 .plegable-bloque[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
 .plegable-bloque > summary:hover{color:var(--text);opacity:1}
-/* Sin desplegar, el bloque no deja un hueco de bloque entero detrás. */
-.plegable-bloque:not([open]){margin-bottom:10px}
-.block > h2{font-family:var(--ff-display);font-size:10.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
-  color:var(--muted);margin:0 0 10px 2px;opacity:.85}
-.block-note{margin:0 0 10px;font-size:11.5px;line-height:1.45;color:var(--muted)}
+/* Plegado o abierto, un bloque separa lo mismo del siguiente: si no, la misma
+   columna lleva dos ritmos y se nota sin saber por qué. */
+.plegable-bloque:not([open]){margin-bottom:var(--e7)}
+.block > h2{margin:0 0 var(--e3) 2px;opacity:.85}
+
+/* La nota que explica lo de arriba. Va pegada a lo que explica y separada de
+   lo que viene después, nunca al revés: si las dos separaciones son iguales,
+   no se sabe de quién es la nota. Antes salía a CERO detrás de una tabla o de
+   una lista, encajada contra el borde como si formara parte de ella. */
+.block-note{margin:var(--e3) 0 var(--e5);font-size:var(--t-xs);
+  line-height:var(--lh-loose);color:var(--muted)}
 
 .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.tool{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  min-height:var(--touch);padding:9px 3px;
+.tool{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  min-height:var(--touch);padding:8px 4px;
   border-radius:var(--r2);border:1px solid var(--line);background:var(--glass);color:var(--muted);
   box-shadow:inset 0 1px 0 var(--sheen);
-  font-size:10px;line-height:1.15;text-align:center;
+  font-size:var(--t-cap);line-height:1.15;text-align:center;
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease),box-shadow .16s}
 .tool svg{width:19px;height:19px}
 .tool:hover{background:var(--glass-2);border-color:var(--line-strong);color:var(--text)}
@@ -231,8 +299,8 @@ a:hover{color:var(--text)}
 .tool[aria-pressed="true"] svg{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--brand) 60%,transparent))}
 
 .teams{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.team-btn{min-height:var(--touch);padding:9px;border-radius:var(--r2);font-family:var(--ff-display);
-  font-weight:700;font-size:12.5px;color:#fff;border:1px solid rgba(255,255,255,.14);
+.team-btn{min-height:var(--touch);padding:8px;border-radius:var(--r2);font-family:var(--ff-display);
+  font-weight:700;font-size:var(--t-md);color:#fff;border:1px solid rgba(255,255,255,.14);
   box-shadow:var(--sh-1),inset 0 1px 0 rgba(255,255,255,.2);
   transition:box-shadow .16s,transform .12s var(--ease)}
 /* Al pasar por encima se levanta, no se aclara: aclarando el fondo el rótulo
@@ -257,17 +325,24 @@ a:hover{color:var(--text)}
   border-color:color-mix(in srgb,var(--brand) 55%,transparent);
   box-shadow:0 10px 22px -12px color-mix(in srgb,var(--brand) 95%,transparent),inset 0 1px 0 rgba(255,255,255,.18)}
 
-.swatches{display:flex;flex-wrap:wrap;gap:9px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
 .sw{width:30px;height:30px;border-radius:50%;border:2px solid transparent;
   box-shadow:0 2px 8px -3px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.28);
   transition:transform .16s var(--ease),box-shadow .16s}
 .sw:hover{transform:scale(1.12)}
+/* El círculo mide 30 px porque es lo que tiene que parecer una pastilla de
+   color; lo que se TOCA mide 44, que es lo que mide un dedo. Verse pequeño y
+   ser pequeño son cosas distintas, y aquí solo tiene que ser verdad lo
+   primero. El área va por fuera del círculo y no empuja a nadie. */
+.sw{position:relative}
+.sw::after{content:"";position:absolute;top:50%;left:50%;
+  width:var(--touch);height:var(--touch);transform:translate(-50%,-50%)}
 .sw[aria-pressed="true"]{border-color:var(--text);box-shadow:0 0 0 2px rgba(7,10,15,.9) inset,0 4px 14px -4px rgba(0,0,0,.8)}
 
 .seg{display:flex;gap:4px;padding:4px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r2);box-shadow:inset 0 1px 0 var(--sheen)}
 /* 36 px era el alto de un mando de escritorio. Estos se pulsan en un teléfono. */
-.seg button{flex:1;min-height:var(--touch);padding:7px 6px;border-radius:var(--r1);font-size:12px;color:var(--muted);
+.seg button{flex:1;min-height:var(--touch);padding:8px 6px;border-radius:var(--r1);font-size:var(--t-sm);color:var(--muted);
   transition:background .16s,color .16s,box-shadow .16s}
 .seg button:hover{color:var(--text)}
 .seg button[aria-pressed="true"]{background:var(--glass-3);color:var(--text);font-weight:600;
@@ -278,11 +353,11 @@ a:hover{color:var(--text)}
 .seg-mini{margin:0 0 8px;width:max-content;max-width:100%}
 /* «Pequeño» es de ancho y de letra, no de alto: lo que se toca llega al dedo
    igual que todo lo demás. */
-.seg-mini button{flex:0 0 auto;padding:5px 12px;font-size:11.5px}
+.seg-mini button{flex:0 0 auto;padding:6px 12px;font-size:var(--t-xs)}
 
 .stack{display:grid;gap:6px}
-.row-btn{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:9px 11px;border-radius:var(--r2);
-  border:1px solid var(--line);background:var(--glass);color:var(--text);font-size:12.5px;text-align:left;
+.row-btn{display:flex;align-items:center;gap:8px;min-height:var(--touch);padding:8px 12px;border-radius:var(--r2);
+  border:1px solid var(--line);background:var(--glass);color:var(--text);font-size:var(--t-md);text-align:left;
   box-shadow:inset 0 1px 0 var(--sheen);
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease)}
 .row-btn:hover{border-color:var(--line-strong);background:var(--glass-2)}
@@ -299,9 +374,9 @@ a:hover{color:var(--text)}
 .row-btn.danger:hover{border-color:#8A3227;color:#FF9E90;background:rgba(138,50,39,.24)}
 .row-btn.danger:hover svg{color:#FF9E90}
 
-.check{display:flex;align-items:center;gap:9px;min-height:var(--touch);padding:8px 10px;border-radius:var(--r2);
+.check{display:flex;align-items:center;gap:8px;min-height:var(--touch);padding:8px 10px;border-radius:var(--r2);
   background:var(--glass);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--sheen);
-  font-size:12.5px;cursor:pointer;transition:background .16s,border-color .16s}
+  font-size:var(--t-md);cursor:pointer;transition:background .16s,border-color .16s}
 .check:hover{background:var(--glass-2);border-color:var(--line-strong)}
 /* La casilla, dibujada aquí y no por el navegador.
 
@@ -313,7 +388,7 @@ a:hover{color:var(--text)}
    La marca es un trazado recortado, no un carácter de texto: un «✓» de fuente
    cambia de forma y de tamaño según el sistema, y aquí se ve igual en todos. */
 .check input[type=checkbox]{appearance:none;-webkit-appearance:none;
-  flex:none;width:20px;height:20px;margin:0;border-radius:6px;
+  flex:none;width:20px;height:20px;margin:0;border-radius:var(--r0);
   border:1px solid var(--line-strong);background:var(--well);
   display:inline-grid;place-content:center;cursor:pointer;
   transition:background .14s,border-color .14s}
@@ -344,12 +419,12 @@ a:hover{color:var(--text)}
    pegado con cinta. Que el estilo esté en una sola regla es lo que hace que
    añadir un campo nuevo no vuelva a abrir este agujero. */
 .ask-input,.field input,.field select,.field textarea,
-.squad-alta input,.squad-alta select,
+.squad-alta input,.squad-alta select,.par-cifra input,
 #lib-q,.lib-selects select,select.sel,#cfg-categoria{
-  width:100%;min-height:var(--touch);padding:11px 13px;border-radius:var(--r2);
+  width:100%;min-height:var(--touch);padding:12px 12px;border-radius:var(--r2);
   background:var(--well);border:1px solid var(--line);color:var(--text);
   box-shadow:inset 0 1px 3px rgba(0,0,0,.4);
-  font-family:var(--ff-body);font-size:15px;line-height:1.45;
+  font-family:var(--ff-body);font-size:var(--t-lg);line-height:1.45;
   transition:border-color .16s,background .16s}
 .ask-input:hover,.field input:hover,.field textarea:hover,
 .squad-alta input:hover,.squad-alta select:hover,
@@ -378,13 +453,13 @@ a:hover{color:var(--text)}
     rgba(4,7,11,.5)}
 /* El campo se lee como una pieza apoyada encima, no como un hueco recortado. */
 #board{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  display:block;touch-action:none;cursor:crosshair;border-radius:10px;
+  display:block;touch-action:none;cursor:crosshair;border-radius:var(--r2);
   box-shadow:0 40px 90px -46px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.07)}
 #board.is-select{cursor:default}
 
-.zoom-reset{position:absolute;right:12px;bottom:12px;z-index:4;display:inline-flex;align-items:center;gap:7px;
-  height:38px;padding:0 13px;border-radius:var(--r3);border:1px solid var(--line-strong);
-  background:var(--bar);color:var(--text);font-size:12.5px;
+.zoom-reset{position:absolute;right:12px;bottom:12px;z-index:4;display:inline-flex;align-items:center;gap:8px;
+  height:38px;padding:0 12px;border-radius:var(--r3);border:1px solid var(--line-strong);
+  background:var(--bar);color:var(--text);font-size:var(--t-md);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   box-shadow:var(--sh-2),inset 0 1px 0 var(--sheen);
   transition:border-color .16s,transform .12s var(--ease)}
@@ -413,7 +488,7 @@ a:hover{color:var(--text)}
 .pista-cajon{position:absolute;z-index:30;left:12px;
   top:calc(var(--topbar) + var(--safe-t) + 10px);
   width:min(300px,calc(100vw - 24px));
-  padding:13px 14px;border-radius:var(--r2);
+  padding:12px 14px;border-radius:var(--r2);
   background:var(--bg-2);border:1px solid var(--line-strong);
   box-shadow:0 22px 50px -24px rgba(0,0,0,.9);
   animation:pista-entra .28s cubic-bezier(.2,.9,.3,1) both}
@@ -421,7 +496,7 @@ a:hover{color:var(--text)}
 .pista-cajon::before{content:"";position:absolute;top:-6px;left:22px;width:11px;height:11px;
   background:var(--bg-2);border-left:1px solid var(--line-strong);
   border-top:1px solid var(--line-strong);transform:rotate(45deg)}
-.pista-cajon p{margin:0 0 11px;font-size:12.5px;line-height:1.45;color:var(--text)}
+.pista-cajon p{margin:0 0 12px;font-size:var(--t-md);line-height:1.45;color:var(--text)}
 .pista-btns{display:flex;gap:8px}
 .pista-btns .tbtn{flex:1;min-height:var(--touch)}
 @keyframes pista-entra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -440,24 +515,23 @@ a:hover{color:var(--text)}
 /* La cabecera: dice en qué aplicación estás, que es lo primero que se mira al
    abrir un menú. */
 .cajon-cab{display:flex;align-items:center;gap:10px;margin:0 4px 18px;
-  font-family:var(--ff-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+  font-family:var(--ff-display);font-weight:800;font-size:var(--t-xl);letter-spacing:-.02em}
 .cajon-marca{width:28px;height:28px;flex:none}
 /* Lo de abajo —cuenta, ajustes, ayuda— no son sitios a los que ir: abren lo
    suyo y te dejan donde estabas. Van separados y más apagados para que se lean
    como otra cosa. */
 .cajon-pie{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
-.cajon-pie .cajon-ir span{font-size:13.5px;font-weight:600}
+.cajon-pie .cajon-ir span{font-size:var(--t-base);font-weight:600}
 .cajon-pie .cajon-ir svg{width:18px;height:18px}
-.cajon-tit:not(:first-of-type){margin-top:18px}
-.cajon-tit{margin:0 0 12px 4px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
-  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85}
+.cajon-tit:not(:first-of-type){margin-top:var(--e7)}
+.cajon-tit{margin:0 0 var(--e5) 4px;opacity:.85}
 .cajon-ir{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
-  gap:2px 11px;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;
+  gap:2px 12px;width:100%;text-align:left;padding:12px 12px;margin-bottom:6px;
   border:1px solid transparent;border-radius:var(--r3);background:none;color:var(--text);
   font:inherit;cursor:pointer;min-height:var(--touch)}
 .cajon-ir svg{grid-row:1/3;align-self:center;width:21px;height:21px;color:var(--muted)}
-.cajon-ir span{font-family:var(--ff-display);font-weight:700;font-size:14.5px}
-.cajon-ir small{color:var(--muted);font-size:11.5px;line-height:1.35}
+.cajon-ir span{font-family:var(--ff-display);font-weight:700;font-size:var(--t-lg)}
+.cajon-ir small{color:var(--muted);font-size:var(--t-xs);line-height:1.35}
 .cajon-ir:hover{background:var(--glass-2)}
 .cajon-ir[aria-current="true"]{background:var(--glass-3);border-color:var(--line);}
 .cajon-ir[aria-current="true"] svg{color:var(--brand-2)}
@@ -474,8 +548,8 @@ a:hover{color:var(--text)}
   -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
 
 .hint{position:absolute;left:50%;bottom:12px;max-width:min(340px,calc(100% - 130px));transform:translateX(-50%);display:block;
-  padding:9px 16px;border-radius:var(--r4);background:var(--bar);border:1px solid var(--line);
-  color:var(--muted);font-size:12px;line-height:1.4;pointer-events:none;
+  padding:8px 16px;border-radius:var(--r4);background:var(--bar);border:1px solid var(--line);
+  color:var(--muted);font-size:var(--t-sm);line-height:1.4;pointer-events:none;
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   box-shadow:var(--sh-2),inset 0 1px 0 var(--sheen);
   text-align:center;text-wrap:balance;
@@ -485,18 +559,18 @@ a:hover{color:var(--text)}
 
 /* Barra contextual del objeto seleccionado */
 .inspector{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:none;align-items:center;gap:8px;
-  padding:7px;border-radius:var(--r4);background:var(--bar);border:1px solid var(--line-strong);
+  padding:8px;border-radius:var(--r4);background:var(--bar);border:1px solid var(--line-strong);
   box-shadow:var(--sh-3),inset 0 1px 0 var(--sheen);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   max-width:calc(100% - 16px);flex-wrap:wrap;justify-content:center;z-index:5}
 .inspector.show{display:flex}
-.inspector .name{font-family:var(--ff-display);font-weight:700;font-size:12.5px;padding:0 6px;white-space:nowrap}
+.inspector .name{font-family:var(--ff-display);font-weight:700;font-size:var(--t-md);padding:0 6px;white-space:nowrap}
 .inspector .div{width:1px;height:24px;background:var(--line-strong)}
 .inspector input[type="text"]{width:80px;min-height:34px;padding:6px 8px;border-radius:var(--r1);background:var(--well);
-  border:1px solid var(--line);color:var(--text);font-size:13px;box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
+  border:1px solid var(--line);color:var(--text);font-size:var(--t-md);box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
 .inspector input[type="text"].num{width:48px;text-align:center}
 .ibtn{display:grid;place-items:center;width:38px;height:38px;border-radius:var(--r1);color:var(--muted);
-  font-family:var(--ff-display);font-size:12px;font-weight:700;
+  font-family:var(--ff-display);font-size:var(--t-sm);font-weight:700;
   transition:background .16s,color .16s,transform .12s var(--ease)}
 .ibtn:hover{background:var(--glass-2);color:var(--text)}
 .ibtn:active{transform:scale(.92)}
@@ -509,7 +583,7 @@ a:hover{color:var(--text)}
 .mini-sw button[aria-pressed="true"]{border-color:var(--text)}
 
 /* ---------------- Transporte ---------------- */
-.timeline{display:flex;align-items:center;gap:8px;padding:9px 12px;
+.timeline{display:flex;align-items:center;gap:8px;padding:8px 12px;
   background:var(--bar);border-top:1px solid var(--line);position:relative}
 /* Con un solo fotograma no hay animación, así que reproducir, borrar
    fotograma, bucle y velocidad no hacen nada: cuatro mandos de seis apagados
@@ -518,12 +592,19 @@ a:hover{color:var(--text)}
    Se esconden hasta que hay un segundo fotograma, que es justo cuando empiezan
    a servir para algo, y la barra baja a la mitad. El «+» se queda: es por donde
    se descubre que la jugada se puede animar, y el aviso del campo lo explica. */
-.timeline.solo-uno{padding:5px 12px}
+.timeline.solo-uno{padding:6px 12px}
 .timeline.solo-uno .play,
 .timeline.solo-uno #delframe,
 .timeline.solo-uno #loop,
 .timeline.solo-uno #speed{display:none}
-.timeline.solo-uno .frame{height:32px;min-width:38px}
+/* Con un fotograma la fila se encoge para devolverle alto al campo, y eso
+   está bien: son 12 px de campo. Lo que no puede encogerse es lo que toca el
+   dedo. El chip se ve de 36 px y se toca de 44: el área sobresale por arriba y
+   por abajo sin empujar nada, igual que en las pastillas de color. */
+.timeline.solo-uno .frame{height:36px;min-width:38px}
+.timeline .frame{position:relative}
+.timeline .frame::after{content:"";position:absolute;top:50%;left:0;right:0;
+  height:var(--touch);transform:translateY(-50%)}
 .play{width:44px;height:44px;flex:none;border-radius:var(--r3);
   background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
   display:grid;place-items:center;
@@ -536,12 +617,15 @@ a:hover{color:var(--text)}
 .play:disabled{background:var(--glass);color:var(--muted);cursor:not-allowed;box-shadow:inset 0 1px 0 var(--sheen)}
 .play:disabled:active{transform:none}
 
-.frames{display:flex;align-items:center;gap:7px;overflow-x:auto;overflow-y:hidden;
-  padding:3px 1px;flex:1;min-width:0;scrollbar-width:thin;scrollbar-color:var(--glass-3) transparent}
+.frames{display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 1px;flex:1;min-width:0;scrollbar-width:thin;scrollbar-color:var(--glass-3) transparent}
 .frames::-webkit-scrollbar{height:6px}
-.frames::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:6px}
-.frame{flex:none;min-width:42px;height:40px;padding:0 12px;border-radius:var(--r2);border:1px solid var(--line);
-  background:var(--glass);color:var(--muted);font-family:var(--ff-display);font-weight:700;font-size:13px;
+.frames::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:var(--r0)}
+/* Alto de dedo. Estaban en 40 y 32, que en el móvil es fallar el fotograma y
+   mover la jugada sin querer. La barra crece cuatro píxeles y el campo pierde
+   cuatro; el campo tiene 573 px, el dedo no tiene repuesto. */
+.frame{flex:none;min-width:42px;height:var(--touch);padding:0 12px;border-radius:var(--r2);border:1px solid var(--line);
+  background:var(--glass);color:var(--muted);font-family:var(--ff-display);font-weight:700;font-size:var(--t-md);
   box-shadow:inset 0 1px 0 var(--sheen);
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease),box-shadow .16s}
 .frame:hover{background:var(--glass-2);border-color:var(--line-strong);color:var(--text)}
@@ -550,13 +634,13 @@ a:hover{color:var(--text)}
   background:linear-gradient(180deg,color-mix(in srgb,var(--brand) 32%,transparent),color-mix(in srgb,var(--brand) 15%,transparent));
   border-color:color-mix(in srgb,var(--brand) 58%,transparent);color:#fff;
   box-shadow:0 10px 22px -12px color-mix(in srgb,var(--brand) 95%,transparent),inset 0 1px 0 rgba(255,255,255,.18)}
-.frame.add{color:var(--brand-2);font-size:19px;padding:0 14px}
+.frame.add{color:var(--brand-2);font-size:var(--t-2xl);padding:0 14px}
 .frame.add:hover{color:#fff;background:color-mix(in srgb,var(--brand) 22%,transparent);
   border-color:color-mix(in srgb,var(--brand) 45%,transparent)}
 
-.chip{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;min-width:40px;
+.chip{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;min-width:40px;
   padding:0 12px;border-radius:var(--r2);border:1px solid var(--line);background:var(--glass);
-  color:var(--muted);font-size:12.5px;box-shadow:inset 0 1px 0 var(--sheen);
+  color:var(--muted);font-size:var(--t-md);box-shadow:inset 0 1px 0 var(--sheen);
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease),box-shadow .16s}
 .chip:hover{background:var(--glass-2);border-color:var(--line-strong);color:var(--text)}
 .chip:active{transform:scale(.95)}
@@ -586,35 +670,34 @@ dialog{border:1px solid var(--line-strong);border-radius:var(--r5);background:va
 dialog[open]{animation:dlg-in .22s var(--ease)}
 @keyframes dlg-in{from{opacity:0;transform:translateY(10px) scale(.985)}}
 dialog::backdrop{background:rgba(3,6,10,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-dialog .dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;border-bottom:1px solid var(--line)}
-dialog h3{margin:0;font-family:var(--ff-display);font-size:16.5px;letter-spacing:-.01em}
-dialog .dbody{padding:17px;max-height:58vh;overflow:auto;overscroll-behavior:contain;
+dialog .dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px;border-bottom:1px solid var(--line)}
+dialog h3{margin:0;font-family:var(--ff-display);font-size:var(--t-xl);letter-spacing:-.01em}
+dialog .dbody{padding:16px;max-height:58vh;overflow:auto;overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:var(--glass-3) transparent}
 dialog .dbody::-webkit-scrollbar{width:10px}
-dialog .dbody::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
-dialog .dfoot{padding:13px 17px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
-dialog .dfoot .tbtn{min-height:var(--touch);padding:9px 16px}
+dialog .dbody::-webkit-scrollbar-thumb{background:var(--glass-3);border-radius:var(--r2);border:3px solid transparent;background-clip:padding-box}
+dialog .dfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+dialog .dfoot .tbtn{min-height:var(--touch);padding:8px 16px}
 dialog .dfoot .tbtn:not(.primary){border:1px solid var(--line);background:var(--glass)}
 dialog .dfoot .tbtn:not(.primary):hover{background:var(--glass-2);border-color:var(--line-strong)}
 .tbtn.primary.danger{background:linear-gradient(180deg,#C93E2C,#A82F20);color:#fff;
   box-shadow:0 8px 20px -10px rgba(201,62,44,.9),inset 0 1px 0 rgba(255,255,255,.22)}
 .tbtn.primary.danger:hover{background:linear-gradient(180deg,#D4442F,#B23324);
   box-shadow:0 12px 28px -10px rgba(201,62,44,1),inset 0 1px 0 rgba(255,255,255,.3)}
-.ios-steps{list-style:none;margin:0;padding:0;display:grid;gap:11px}
-.ios-steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:1.5}
+.ios-steps{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.ios-steps li{display:flex;gap:12px;align-items:flex-start;font-size:var(--t-base);line-height:1.5}
 .ios-steps li > b{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
   background:linear-gradient(180deg,var(--brand),#B61233);color:var(--brand-ink);
-  font-family:var(--ff-display);font-size:13px;box-shadow:0 6px 14px -7px rgba(225,26,65,.9)}
+  font-family:var(--ff-display);font-size:var(--t-md);box-shadow:0 6px 14px -7px rgba(225,26,65,.9)}
 .ios-steps span b{color:var(--text)}
 
 dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
-.form-group{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  margin:22px 0 10px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
-  letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.form-group{display:flex;align-items:center;justify-content:space-between;gap:var(--e5);
+  margin:var(--e7) 0 var(--e3)}
 .form-group:first-child{margin-top:0}
-.mini-btn,.sug{padding:6px 11px;border-radius:100px;border:1px solid var(--line);
-  background:var(--glass);font-family:var(--ff-body);font-size:11.5px;line-height:1.3;
+.mini-btn,.sug{padding:6px 12px;border-radius:var(--rp);border:1px solid var(--line);
+  background:var(--glass);font-family:var(--ff-body);font-size:var(--t-xs);line-height:1.3;
   letter-spacing:0;text-transform:none;
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease)}
 .mini-btn{color:var(--brand-2);font-weight:600}
@@ -622,14 +705,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .mini-btn:hover,.sug:hover{border-color:var(--brand-2);background:var(--glass-2);color:var(--text)}
 .mini-btn:active,.sug:active{transform:scale(.95);background:var(--glass-3)}
 
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 /* Un elemento con «hidden» tiene que desaparecer aunque su clase diga
    display:flex. Sin esto, el campo del nombre no se ocultaba al cambiar de
    pestaña y entrar y crear cuenta parecían lo mismo. */
 [hidden]{display:none!important}
-.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field.wide{grid-column:1 / -1}
-.field > span{font-size:11.5px;color:var(--muted);font-weight:600}
+.field > span{font-size:var(--t-xs);color:var(--muted);font-weight:600}
 .field > span small{font-weight:400;opacity:.75}
 /* La ficha, por apartados: uno cada vez, no un rollo de treinta campos. */
 .seg.pasos{margin-bottom:16px}
@@ -640,17 +723,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .paso > .form-group{justify-content:flex-end;margin:0 0 14px;min-height:34px}
 .paso > .form-group.vacio{display:none}
 
-.sugs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.sugs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .sugs:empty{display:none}
 
 @media (max-width:560px){
   .form-grid{grid-template-columns:1fr}
-  .sug,.mini-btn{font-size:12.5px;padding:7px 12px}
+  .sug,.mini-btn{font-size:var(--t-md);padding:8px 12px}
   /* 16 px evita que Safari acerque la pantalla al enfocar un campo */
   .ask-input,.field input,.field select,.field textarea,
   #lib-q,.lib-selects select,select.sel,#cfg-categoria{font-size:16px}
   dialog.wide .dbody{max-height:68vh}
-  dialog.wide .dfoot .tbtn{flex:1;padding:9px 10px}
+  dialog.wide .dfoot .tbtn{flex:1;padding:8px 10px}
 }
 
 .ex{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border-radius:var(--r3);
@@ -666,41 +749,41 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 .ex-ico svg{width:20px;height:20px}
 .ex-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
-.ex-txt b{font-family:var(--ff-display);font-size:14px}
-.ex-txt small{font-size:11.5px;line-height:1.4;color:var(--muted)}
+.ex-txt b{font-family:var(--ff-display);font-size:var(--t-base)}
+.ex-txt small{font-size:var(--t-xs);line-height:1.4;color:var(--muted)}
 
-.saved{display:grid;gap:7px}
+.saved{display:grid;gap:8px}
 .saved-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r2);
   border:1px solid var(--line);background:var(--glass);box-shadow:inset 0 1px 0 var(--sheen)}
-.saved-item span{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.saved-item small{color:var(--muted);font-size:11.5px}
-.empty{color:var(--muted);font-size:13px;text-align:center;padding:22px 0}
-.kbd{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px;align-items:center}
+.saved-item span{flex:1;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-item small{color:var(--muted);font-size:var(--t-xs)}
+.empty{color:var(--muted);font-size:var(--t-md);text-align:center;padding:22px 0}
+.kbd{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:var(--t-md);align-items:center}
 .kbd b{font-family:var(--ff-display);background:var(--glass-2);border:1px solid var(--line);border-bottom-width:2px;
-  border-radius:6px;padding:3px 8px;font-size:11.5px;justify-self:start;white-space:nowrap}
+  border-radius:var(--r0);padding:4px 8px;font-size:var(--t-xs);justify-self:start;white-space:nowrap}
 .kbd span{color:var(--muted)}
 
 /* ---------------- Biblioteca ---------------- */
-.lib-filtros{display:grid;gap:9px;margin-bottom:14px}
+.lib-filtros{display:grid;gap:8px;margin-bottom:14px}
 .lib-selects{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.lib-selects select{min-height:40px;padding:9px 11px;font-size:13.5px}
+.lib-selects select{min-height:40px;padding:8px 12px;font-size:var(--t-base)}
 .lib-mas{min-width:0}
 .lib-mas > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
   min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r3);
-  background:var(--glass);color:var(--muted);font-size:13px;user-select:none}
+  background:var(--glass);color:var(--muted);font-size:var(--t-md);user-select:none}
 .lib-mas > summary::-webkit-details-marker{display:none}
 .lib-mas > summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;
   border-right:1.8px solid currentColor;border-bottom:1.8px solid currentColor;
   transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
 .lib-mas[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
 .lib-mas > summary:hover{border-color:var(--line-strong);color:var(--text)}
-.lib-mas[open] > summary{margin-bottom:9px}
+.lib-mas[open] > summary{margin-bottom:8px}
 /* Plegado no puede querer decir escondido: si hay filtros puestos, la línea
    lo dice y se pinta como algo encendido, no como un rótulo apagado. */
 .lib-mas.puestos > summary{color:var(--text);border-color:var(--brand-2)}
 .lib-linea{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:26px}
-.lib-cuenta{font-size:12px;color:var(--muted)}
-.lib-nota{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted);opacity:.85}
+.lib-cuenta{font-size:var(--t-sm);color:var(--muted)}
+.lib-nota{margin:0;font-size:var(--t-xs);line-height:1.45;color:var(--muted);opacity:.85}
 .lib-nota:empty{display:none}
 
 /* ---------------- Plegables de la hoja de guardar ----------------
@@ -709,7 +792,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Plegado no es escondido: la línea dice lo que hay dentro. */
 .plegable{border:1px solid var(--line);border-radius:var(--r3);background:var(--well);margin-top:12px}
 .plegable > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
-  min-height:44px;padding:10px 13px;color:var(--text);font-size:13.5px;font-weight:600;
+  min-height:44px;padding:10px 12px;color:var(--text);font-size:var(--t-base);font-weight:600;
   user-select:none;border-radius:var(--r3)}
 .plegable > summary::-webkit-details-marker{display:none}
 .plegable > summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;
@@ -718,7 +801,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .plegable[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
 .plegable > summary:hover{background:var(--glass-2)}
 .plegable[open] > summary{border-bottom:1px solid var(--line);border-radius:var(--r3) var(--r3) 0 0}
-.plegable-caja{padding:13px}
+.plegable-caja{padding:12px}
 /* Dentro del plegable, la ficha ya no es un diálogo: no necesita su propio
    margen de arriba ni pintarse como una tarjeta dentro de otra. */
 .plegable-caja > .seg.pasos{margin-top:0}
@@ -729,8 +812,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Entrar desde aquí es una acción, no el final de la frase: va en su renglón,
    sin el punto volado colgando del anterior. */
 #lib-entrar{display:block;margin-top:6px;padding:0;text-align:left}
-.lib-vacio{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6}
-.lib-vacio b{display:block;color:var(--text);font-family:var(--ff-display);font-size:15px;margin-bottom:6px}
+.lib-vacio{padding:26px 18px;text-align:center;color:var(--muted);font-size:var(--t-base);line-height:1.6}
+.lib-vacio b{display:block;color:var(--text);font-family:var(--ff-display);font-size:var(--t-lg);margin-bottom:6px}
 
 .lib-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .lib-card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r3);
@@ -739,9 +822,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-card:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:var(--sh-2)}
 .lib-card > img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:center;
   background:rgba(0,0,0,.3);border-bottom:1px solid var(--line)}
-.lib-txt{padding:11px 13px 9px;flex:1;min-width:0}
-.lib-txt b{display:block;font-family:var(--ff-display);font-size:14.5px;line-height:1.25;margin-bottom:5px}
-.lib-txt small{display:block;color:var(--muted);font-size:12px;line-height:1.45;
+.lib-txt{padding:12px 12px 8px;flex:1;min-width:0}
+.lib-txt b{display:block;font-family:var(--ff-display);font-size:var(--t-lg);line-height:1.25;margin-bottom:6px}
+.lib-txt small{display:block;color:var(--muted);font-size:var(--t-sm);line-height:1.45;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* La hoja, cuando hay que enseñarla en vez de mandarla a la impresora. */
 #hoja-marco{width:100%;height:min(62dvh,760px);border:1px solid var(--line);
@@ -751,19 +834,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 #cfg-cuenta-bloque{margin-top:22px;border-top:1px solid var(--line)}
 #cuenta-aviso{color:var(--brand-2)}
 
-.lib-part{margin:9px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted);
+.lib-part{margin:8px 0 0;font-size:var(--t-xs);line-height:1.4;color:var(--muted);
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .lib-part b{color:var(--text);font-weight:600}
-.lib-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
-.lib-tags span{font-size:10.5px;line-height:1;padding:5px 9px;border-radius:100px;
+.lib-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lib-tags span{font-size:var(--t-cap);line-height:1;padding:6px 8px;border-radius:var(--rp);
   background:var(--glass-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.lib-pie{display:flex;align-items:center;gap:7px;padding:9px 11px;border-top:1px solid var(--line);
+.lib-pie{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line);
   background:rgba(0,0,0,.22)}
-.lib-origen{flex:1;min-width:0;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+.lib-origen{flex:1;min-width:0;font-size:var(--t-cap);letter-spacing:var(--ls-cap);text-transform:uppercase;
   color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Lo que has subido pero todavía no has compartido con nadie. */
 .lib-origen.privado{color:var(--brand-2)}
-.lib-pie .tbtn{padding:7px 12px;font-size:12.5px}
+.lib-pie .tbtn{padding:8px 12px;font-size:var(--t-md)}
 .lib-pie .tbtn.sutil{opacity:.6}
 .lib-pie .tbtn.sutil:hover{opacity:1}
 /* Mandar el ejercicio por enlace: solo el icono, que el pie ya va justo de
@@ -801,9 +884,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
-  padding:12px 19px;border-radius:var(--r3);background:var(--bar);border:1px solid var(--line-strong);
+  padding:12px 20px;border-radius:var(--r3);background:var(--bar);border:1px solid var(--line-strong);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-  font-size:13px;box-shadow:var(--sh-2),inset 0 1px 0 var(--sheen);
+  font-size:var(--t-md);box-shadow:var(--sh-2),inset 0 1px 0 var(--sheen);
   opacity:0;pointer-events:none;transition:opacity .25s,transform .25s var(--ease);z-index:50;
   max-width:calc(100vw - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -839,13 +922,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* El interruptor de modo es de los mandos que más se usan y se quedaba en
      34 px de alto: por debajo de lo que un pulgar acierta sin mirar. Seis
      píxeles más en la barra, que se los puede permitir. */
-  .modo{padding:9px 10px;min-height:40px}
+  .modo{padding:8px 10px;min-height:40px}
   .equipo{padding:14px 14px 24px}
   /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
      el selector de arriba sería el mismo mando dos veces. */
   .eq-nav{display:none}
-  .topbar{gap:5px;padding-left:8px;padding-right:8px}
-  .group{gap:3px;padding:3px}
+  .topbar{gap:6px;padding-left:8px;padding-right:8px}
+  .group{gap:4px;padding:4px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
   /* Sin entrar, aquí manda la PALABRA, no el icono: una silueta fina en una
@@ -893,21 +976,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* El asa es lo que se agarra para cerrar la hoja de un gesto, y con 26 px de
      alto había que apuntar. Con 34 se coge sin mirar, que es como se cierra una
      hoja: sin dejar de mirar el campo. */
+  /* El tirador se arrastra y se pulsa para cerrar: 34 px era poco para las dos
+     cosas, y encima es lo primero que toca el pulgar al subir la hoja. */
   .sheet-grab{display:block;position:sticky;top:0;z-index:2;touch-action:none;
-    width:100%;height:34px;margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
+    width:100%;height:var(--touch);margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
   /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
      dedo. La clase la pone y la quita el gesto. */
   .aside.arrastrando{transition:none}
   .sheet-grab::before{content:"";display:block;width:42px;height:4px;border-radius:4px;
-    background:var(--line-strong);margin:15px auto 0}
+    background:var(--line-strong);margin:16px auto 0}
 
   /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
      ves material, no un panel con todo dentro. */
   .sheet-tit{display:block;position:sticky;top:26px;z-index:2;margin:0 -14px 12px;
     padding:6px 14px 12px;border-bottom:1px solid var(--line);
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    font-family:var(--ff-display);font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+    font-family:var(--ff-display);font-size:var(--t-lg);font-weight:700;letter-spacing:-.01em}
   /* Aquí los bloques van SIEMPRE abiertos: la pestaña ya enseña un solo grupo.
      Así que su línea vuelve a ser lo que era, un rótulo: ni se pulsa ni lleva
      flecha. Sin esto se podía plegar «Materiales» de un toque y no había nada
@@ -936,7 +1021,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* Sin altura fija: los botones rellenan lo que la barra les deja, así que el
      píxel del borde de arriba no los empuja fuera. */
   .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-    min-height:0;font-size:10px;line-height:1.1;text-align:center;padding:0 2px;
+    min-height:0;font-size:var(--t-cap);line-height:1.1;text-align:center;padding:0 2px;
     color:var(--muted);transition:color .18s}
   .tab svg{width:21px;height:21px}
 
@@ -962,8 +1047,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      la fina, y el filo de arriba. */
   .tab[aria-pressed="true"]{color:var(--brand-2);font-weight:600}
   .tab[aria-pressed="true"]::before{opacity:1;transform:translateX(-50%) scaleX(1)}
+  /* Aquí probé a poner un baño de color detrás de la pestaña abierta, porque
+     el filo de arriba parecía suelto. Dos cosas:
 
-  .timeline{padding:8px 10px;gap:7px}
+     Primero, el filo NO está mal puesto. Lo medí en los píxeles pintados, no a
+     ojo: cae exactamente en el canto de la pestaña. Lo que engaña es que el
+     borde de arriba de la barra es blanco al 9 % sobre un fondo al 74 % de
+     opacidad, así que casi no hay canto que ver.
+
+     Y segundo, el baño quedaba peor: una caja de color con las esquinas de
+     arriba en pico, más ancha que el icono y que el rótulo, flotando sobre
+     ellos. Que es EXACTAMENTE la pastilla que este comentario cuenta que se
+     quitó de aquí, reinventada. Lo dejo escrito para no volver a intentarlo. */
+
+  .timeline{padding:8px 10px;gap:8px}
   .timeline.solo-uno{padding:4px 10px}
   /* En un teléfono cada píxel del borde es campo que no se ve. Estaba en 8;
      el mismo número está en «resize()» de board.js, que descuenta el relleno
@@ -984,7 +1081,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .topbar{gap:4px;padding-left:8px;padding-right:8px}
   .topbar .logo{flex:none;overflow:visible}
   .topbar .logo svg{width:24px;height:24px}
-  .group{gap:3px;padding:2px}
+  .group{gap:4px;padding:2px}
   .topbar .tbtn{min-width:40px;padding-left:8px;padding-right:8px}
 }
 
@@ -992,12 +1089,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* La marca volvió: al sacar el interruptor Pizarra/Equipo de la barra, esta
      pasó de ir al límite a sobrarle 67 px a 320 px. Se escondía por falta de
      sitio, no porque estorbara. */
-  .topbar .cuenta-btn{padding-left:7px;padding-right:7px}
+  .topbar .cuenta-btn{padding-left:8px;padding-right:8px}
 }
 
 @media (max-width:340px){
-  .topbar{gap:3px;padding-left:6px;padding-right:6px}
-  .topbar .tbtn{min-width:34px;padding-left:5px;padding-right:5px}
+  .topbar{gap:4px;padding-left:6px;padding-right:6px}
+  .topbar .tbtn{min-width:34px;padding-left:6px;padding-right:6px}
   .topbar .tbtn svg{width:15px;height:15px}
   /* Aquí «Entrar» tampoco cabía: la barra pedía 339 px y había 320. Ahora
      sobran 67, así que la palabra se queda también en el teléfono más estrecho
@@ -1006,7 +1103,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 @media (max-width:420px){
   .chip#speed{min-width:48px;padding:0 8px}
-  .tab{font-size:9.5px}
+  .tab{font-size:var(--t-cap)}
   /* Aquí había un «.tab::before{width:44px}»: encogía la pastilla vieja de 48
      px en pantallas estrechas. Al cambiar la pastilla por un filo de 22, este
      resto se lo duplicaba. El filo mide lo que mide el icono en todos los
@@ -1031,10 +1128,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    así que la misma cuenta sirve para los dos tamaños. */
 .app[data-modo="equipo"]{grid-template-rows:auto 1fr calc(var(--tabbar) + var(--safe-b))}
 
-.modos{display:flex;flex:none;gap:3px;padding:3px;border-radius:var(--r3);
+.modos{display:flex;flex:none;gap:4px;padding:4px;border-radius:var(--r3);
   background:var(--well);border:1px solid var(--line)}
-.modo{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r1);
-  font-size:13px;color:var(--muted);white-space:nowrap;
+.modo{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--r1);
+  font-size:var(--t-md);color:var(--muted);white-space:nowrap;
   transition:background .16s,color .16s}
 .modo svg{width:16px;height:16px;flex:none}
 .modo:hover{color:var(--text)}
@@ -1043,21 +1140,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 /* La pantalla de Equipo: una columna centrada y legible, no un diálogo. */
 .equipo{grid-column:1 / -1;min-width:0;overflow-y:auto;overscroll-behavior:contain;
-  padding:18px 18px 28px}
+  padding:var(--e7) var(--e7) var(--e9)}
 /* Los apartados NO son una pastilla como los filtros. Si lo fueran, en la
    pantalla de Datos habría dos mandos idénticos uno encima de otro y no se
    sabría cuál manda sobre cuál. Aquí son pestañas subrayadas: se leen como
    navegación, y la pastilla de debajo se lee como lo que es, un filtro. */
-.eq-nav{max-width:560px;margin:0 auto 16px;border-bottom:1px solid var(--line)}
+.eq-nav{max-width:var(--col);margin:0 auto var(--e6);border-bottom:1px solid var(--line)}
 .eq-nav .seg{display:flex;gap:4px;background:none;border:0;padding:0}
-.eq-nav .seg button{position:relative;padding:10px 4px 12px;margin-right:18px;
-  font-family:var(--ff-display);font-size:17px;font-weight:700;letter-spacing:-.01em;
+.eq-nav .seg button{position:relative;padding:var(--e4) 2px var(--e5);margin-right:var(--e7);
+  font-family:var(--ff-display);font-size:var(--t-lg);font-weight:700;letter-spacing:-.01em;
   color:var(--muted);background:none;border:0;border-radius:0;transition:color .16s}
 .eq-nav .seg button:hover{color:var(--text)}
 .eq-nav .seg button[aria-selected="true"]{color:var(--text)}
 .eq-nav .seg button[aria-selected="true"]::after{content:"";position:absolute;
   left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
-.eq-cuerpo{max-width:560px;margin:0 auto}
+.eq-cuerpo{max-width:var(--col);margin:0 auto}
+
 /* En escritorio los apartados se eligen arriba; en el móvil, en la barra de
    abajo, que es donde llega el pulgar. */
 /* Cinco desde que existen los partidos. Este número tiene que ir a la par que
@@ -1072,7 +1170,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    donde hay cinco. La barra de la pizarra sigue con la letra de siempre. */
 .tabbar-eq{grid-template-columns:repeat(5,1fr)}
 @media (max-width:900px){
-  .tabbar-eq .tab{font-size:9.5px;padding:0 1px;gap:3px}
+  .tabbar-eq .tab{font-size:var(--t-cap);padding:0 1px;gap:4px}
   .tabbar-eq .tab svg{width:19px;height:19px}
 }
 /* Suelo de seguridad: pase lo que pase con la rejilla, una pestaña no baja de
@@ -1083,7 +1181,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Todo con las variables del tema; ni un color suelto. Pensado para el dedo
    primero: las filas miden --touch de alto y se pulsan enteras. */
 
-.squad-temp{display:flex;gap:9px;align-items:flex-end}
+.squad-temp{display:flex;gap:8px;align-items:flex-end}
 .squad-temp .field{flex:1;min-width:0}
 .squad-temp .tbtn{flex:0 0 auto;height:var(--touch)}
 
@@ -1100,13 +1198,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Los lados de la cabecera no llevan radio abajo ni borde inferior: se cosen
    con la lista y las dos parecen una pieza. */
 .squad-hoy{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  margin:16px 0 0;padding:10px 12px;
+  margin:var(--e7) 0 0;padding:10px 12px;
   border:1px solid var(--line);border-bottom:0;
   border-radius:var(--r2) var(--r2) 0 0;
   background:var(--glass);box-shadow:inset 0 1px 0 var(--sheen)}
-.squad-hoy-t{margin:0;flex:1;min-width:120px;font-size:12.5px;color:var(--muted)}
+.squad-hoy-t{margin:0;flex:1;min-width:120px;font-size:var(--t-md);color:var(--muted)}
+/* Detrás de su rótulo, la pieza no vuelve a separarse: ya lo hace el rótulo. */
+.form-group + .squad-hoy{margin-top:var(--e3)}
 .squad-hoy-t b{color:var(--text);font-variant-numeric:tabular-nums;
-  font-family:var(--ff-display);font-size:14px}
+  font-family:var(--ff-display);font-size:var(--t-base)}
 /* Los dos atajos van juntos y en una sola pieza: son la misma decisión tomada
    en dos direcciones, no dos botones que no tienen nada que ver. */
 .squad-hoy-btns{display:inline-flex;flex:0 0 auto;align-items:center;
@@ -1115,7 +1215,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    oscuro se lee como un agujero. Lo que los agrupa es el filo, no el color.
    Y «.tbtn» no trae alto mínimo: se pulsan con el pulgar en mitad de una lista
    de nombres y se quedaban en 33 px. */
-.squad-hoy-btns .tbtn{min-height:var(--touch);padding:7px 15px;font-size:12.5px;
+.squad-hoy-btns .tbtn{min-height:var(--touch);padding:8px 16px;font-size:var(--t-md);
   border-radius:0;background:none}
 .squad-hoy-btns .tbtn + .tbtn{border-left:1px solid var(--line-strong)}
 .squad-hoy-btns .tbtn:hover{background:var(--glass-2)}
@@ -1168,20 +1268,20 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .squad-dorsal{flex:0 0 30px;height:30px;display:inline-flex;align-items:center;
   justify-content:center;border-radius:50%;
   border:1px solid var(--line-strong);background:var(--glass-2);
-  font-family:var(--ff-display);font-size:12.5px;font-variant-numeric:tabular-nums;
+  font-family:var(--ff-display);font-size:var(--t-md);font-variant-numeric:tabular-nums;
   color:var(--text);transition:border-color .16s,background .16s,color .16s}
 .squad-dorsal:empty::before{content:"·";color:var(--muted)}
-.squad-nombre{flex:1;min-width:0;font-size:13.5px;font-weight:600;
+.squad-nombre{flex:1;min-width:0;font-size:var(--t-base);font-weight:600;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .16s}
-.squad-pos{flex:0 0 auto;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+.squad-pos{flex:0 0 auto;font-size:var(--t-cap);letter-spacing:var(--ls-cap);text-transform:uppercase;
   color:var(--muted);white-space:nowrap}
 
 /* La etiqueta del que falta. El hueco está reservado siempre, aunque no se vea:
    si apareciera y desapareciera, cada vez que marcas a uno se moverían de sitio
    los nombres de toda la lista. */
 .squad-marca::after{content:var(--marca-no);flex:0 0 auto;
-  font-size:10px;letter-spacing:.07em;text-transform:uppercase;line-height:1;
-  padding:4px 8px;border-radius:999px;color:var(--brand-2);
+  font-size:var(--t-cap);letter-spacing:var(--ls-cap);text-transform:uppercase;line-height:1;
+  padding:4px 8px;border-radius:var(--rp);color:var(--brand-2);
   background:color-mix(in srgb,var(--brand) 13%,transparent);
   border:1px solid color-mix(in srgb,var(--brand) 32%,transparent);
   visibility:hidden;transition:opacity .16s;opacity:0}
@@ -1208,22 +1308,27 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* El hueco del dorsal creció de 58 a 68 px: al entrar los campos en el estilo
    de la casa se llevaron sus 13 px de margen a cada lado, y «Nº» se quedaba
    sin sitio. El nombre es lo único que crece. */
-.squad-alta{display:grid;grid-template-columns:68px 1fr;gap:9px}
+.squad-alta{display:grid;grid-template-columns:68px 1fr;gap:8px}
 .squad-alta > *{min-width:0}
 .squad-alta #squad-nombre{grid-column:2}
 .squad-alta #squad-posicion{grid-column:1 / -1}
-.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch);margin-top:3px}
+.squad-alta #squad-add{grid-column:1 / -1;height:var(--touch);margin-top:4px}
 .squad-alta input,.squad-alta select{min-height:var(--touch)}
 /* El botón y la explicación se tocaban: el resplandor del rojo caía encima de
    la primera línea. Un texto que explica para qué sirve el botón tiene que
    estar separado del botón.
 
-   Son 18 px y no 12 porque lo que hay que dejar pasar no es el botón, es su
-   resplandor: «0 8px 20px -10px» baja unos 18 px por debajo del borde. Con 12
-   el texto seguía dentro del rojo. La sombra no se toca: es la de todos los
-   botones principales de la aplicación y ahí funciona. */
-#squad-nota{margin-top:18px}
-.squad-aviso{margin-top:16px;padding-top:13px;border-top:1px solid var(--line);opacity:.8}
+   No es el botón lo que hay que dejar pasar, es su resplandor: «0 8px 20px
+   -10px» baja unos 18 px por debajo del borde, y con el hueco normal el texto
+   caía dentro del rojo. Se usa el escalón que lo cubre, que es 20. La sombra
+   no se toca: es la de todos los botones principales y ahí funciona. */
+/* Dos escalones, no uno: el resplandor del botón baja 18 px y con 20 el texto
+   quedaba a dos píxeles de él, rozándolo. Y esta nota es un pie de pantalla,
+   no la nota de la sección de arriba: separarla más también lo dice. */
+.tras-boton{margin-top:var(--e9)}
+#squad-nota{margin-top:var(--e7)}
+.squad-aviso{margin-top:var(--e6);padding-top:var(--e5);
+  border-top:1px solid var(--line);opacity:.8}
 
 /* Sin nadie en la plantilla, «Han venido hoy 0 de 0» con sus botones de Todos
    y Ninguno es un mando para gobernar a nadie, y encima es lo primero que se
@@ -1234,16 +1339,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* ---- participantes dentro de Guardar ---- */
 #save-part{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .save-part-t{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  font-size:12.5px;color:var(--muted)}
+  font-size:var(--t-md);color:var(--muted)}
 /* Un botón que se lee como un enlace: «cambiar» es una salida discreta, no una
    acción que compita con Guardar. */
-.linkish{background:none;border:0;font:inherit;font-size:12.5px;
+.linkish{background:none;border:0;font:inherit;font-size:var(--t-md);
   color:var(--brand-2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;
   /* Se lee como un enlace, pero se pulsa como un botón: el alto es el del dedo,
      no el de la palabra. */
   display:inline-flex;align-items:center;min-height:var(--touch);padding:0 6px}
 .linkish:hover{color:var(--text)}
-#save-part-caja{margin-top:11px}
+#save-part-caja{margin-top:12px}
 /* Aquí la lista no es «quién vino» sino «quién hizo este ejercicio»: el que no
    está no falta al entrenamiento, se ha quedado fuera de esta tarea. */
 #save-part-caja .squad-lista{max-height:38dvh;overflow:auto;--marca-no:"Fuera"}
@@ -1253,7 +1358,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
 .ses-cabeza{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
 .ses-cabeza .stats-resumen{flex:1;min-width:180px;margin:0}
-.ses-mes{margin:20px 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+.ses-mes{margin:var(--e7) 0 var(--e3);
   color:var(--muted)}
 .ses-dias{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 /* Toda la fila es el botón: en el móvil se busca con el pulgar, no con puntería. */
@@ -1263,29 +1368,29 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   transition:border-color .16s,background .16s}
 .ses-dia-btn:hover{border-color:var(--line-strong);background:var(--glass)}
 .ses-dia.es-hoy .ses-dia-btn{border-color:var(--brand)}
-.ses-dia-fecha{flex:0 0 58px;font-family:var(--ff-display);font-size:12.5px;
+.ses-dia-fecha{flex:0 0 58px;font-family:var(--ff-display);font-size:var(--t-md);
   color:var(--muted)}
 .ses-dia.es-hoy .ses-dia-fecha{color:var(--brand-2)}
 .ses-dia-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.ses-dia-med b{font-size:13.5px;font-weight:600;line-height:1.3;
+.ses-dia-med b{font-size:var(--t-base);font-weight:600;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden;overflow-wrap:anywhere}
 .ses-dia-med b.flojo{font-weight:400;color:var(--muted)}
-.ses-dia-med small{font-size:11.5px;color:var(--muted)}
-.ses-dia-fl{flex:0 0 auto;font-size:17px;color:var(--muted)}
+.ses-dia-med small{font-size:var(--t-xs);color:var(--muted)}
+.ses-dia-fl{flex:0 0 auto;font-size:var(--t-xl);color:var(--muted)}
 
-.ses-volver{display:inline-block;margin:0 0 10px}
+.ses-volver{display:inline-block;margin:0 0 var(--e4)}
 /* Sin «capitalize»: pone mayúscula en TODAS las palabras y sale «Viernes 11 De
    Septiembre De 2026». La primera letra se pone al escribir el texto. */
-.ses-fecha{margin:0 0 14px;font-family:var(--ff-display);font-size:19px;
+.ses-fecha{margin:0 0 var(--e6);font-family:var(--ff-display);font-size:var(--t-2xl);
   letter-spacing:-.01em}
 
 .ses-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.ses-vacia{padding:14px 2px;font-size:12.5px;color:var(--muted)}
+.ses-vacia{padding:14px 2px;font-size:var(--t-md);color:var(--muted)}
 .ses-ej{display:flex;align-items:center;gap:10px;min-height:var(--touch);
   padding:8px 10px;border-radius:var(--r2);border:1px solid var(--line);background:var(--well)}
 /* El número de orden no es decoración: una sesión es una secuencia. */
-.ses-ej-n{flex:0 0 22px;text-align:center;font-family:var(--ff-display);font-size:12.5px;
+.ses-ej-n{flex:0 0 22px;text-align:center;font-family:var(--ff-display);font-size:var(--t-md);
   font-variant-numeric:tabular-nums;color:var(--muted)}
 .ses-ej-med{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;
   align-items:flex-start;text-align:left;color:var(--text);
@@ -1296,17 +1401,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    son largos de verdad («Finalización tras centro lateral y 1 vs 1») y en una
    línea a 390 px se quedaban en «Finalización tras centro l…»: cortar el dato
    principal para ahorrar 18 px de alto no sale a cuenta. */
-.ses-ej-med b{max-width:100%;font-size:13.5px;font-weight:600;line-height:1.3;
+.ses-ej-med b{max-width:100%;font-size:var(--t-base);font-weight:600;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden;overflow-wrap:anywhere}
-.ses-ej-med small{max-width:100%;font-size:11.5px;color:var(--muted);overflow:hidden;
+.ses-ej-med small{max-width:100%;font-size:var(--t-xs);color:var(--muted);overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.ses-ej-mandos{flex:0 0 auto;display:flex;gap:3px}
+.ses-ej-mandos{flex:0 0 auto;display:flex;gap:4px}
 /* Hasta cuatro mandos en una fila de móvil: estrechos de ancho, porque tienen
    que caber los cuatro, pero nunca por debajo del alto mínimo de algo que se
    toca. A 390 px quedan 36 × 44 cada uno y siguen sobrando 150 px para el
    título, que es lo que de verdad se lee. */
-.ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:13px}
+.ses-mini{min-width:36px;min-height:var(--touch);padding:0 4px;font-size:var(--t-md)}
 .ses-mini:disabled{opacity:.3}
 
 /* Rejilla, no flex, y con «min-width:0» en todos los hijos.
@@ -1325,7 +1430,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .ses-nuevo > *{min-width:0}
 .ses-nuevo input,.ses-nuevo select{min-height:var(--touch);padding:8px 10px;
   border-radius:var(--r2);border:1px solid var(--line);background:var(--well);
-  color:var(--text);font:inherit;font-size:13px;max-width:100%}
+  color:var(--text);font:inherit;font-size:var(--t-md);max-width:100%}
 .ses-nuevo #ses-ej-titulo{grid-column:1 / -1}
 .ses-nuevo #ses-ej-momento{grid-column:1 / -1}
 /* La duración no crece: es «15 min», y una caja de media pantalla para eso
@@ -1341,12 +1446,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 }
 /* «.tbtn» no trae alto mínimo, y aquí son dos botones sueltos en medio de una
    pantalla que se usa con el pulgar: se les pone. */
-.ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
+.ses-acciones{display:flex;flex-wrap:wrap;gap:8px;margin:var(--e5) 0 0}
 
 /* ---- proponer una sesión ----
    Dos columnas en el móvil: son seis casillas cortas y una debajo de otra se
    hacía una tira larguísima para preguntar seis cosas de una línea cada una. */
-.gen-campos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 4px}
+.gen-campos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 4px}
 .gen-campos > *{min-width:0}
 .gen-campos .field.wide{grid-column:1 / -1}
 .gen-campos input,.gen-campos select{min-height:var(--touch)}
@@ -1366,9 +1471,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Una frase y un botón por bloque. Sin tarjetas: lo que se lee aquí son tres
    respuestas cortas, y meter cada una en su recuadro las convertiría en tres
    cosas que comparar en vez de tres cosas que leer. */
-#eq-hoy .hoy-frase{margin:0 0 12px;font-size:15px;line-height:1.55;max-width:56ch}
-#eq-hoy .block-note{margin:-6px 0 12px;max-width:56ch}
-#eq-hoy .tbtn{width:100%;margin-bottom:4px}
+#eq-hoy .hoy-frase{margin:0 0 var(--e2);font-size:var(--t-lg);line-height:var(--lh);max-width:56ch}
+/* Sin el margen negativo de antes. Estaba ahí para pegar la nota a su frase
+   descontando el hueco de la frase; ahora la frase deja el hueco pequeño y la
+   nota no tiene que descontar nada. Un negativo en una hoja de estilos casi
+   siempre es que dos reglas de más arriba no se han puesto de acuerdo. */
+#eq-hoy .block-note{margin:0 0 var(--e5);max-width:56ch}
+/* El botón no arrastra hueco por debajo: el que separa una sección de la
+   siguiente lo pone el rótulo de la siguiente, y así SIEMPRE mide lo mismo,
+   acabe la sección en botón o en nota. Antes eran 26 y 22 alternándose. */
+#eq-hoy .tbtn{width:100%;margin-bottom:0}
+#eq-hoy .tbtn + .tbtn{margin-top:var(--e2)}
 @media (min-width:560px){ #eq-hoy .tbtn{width:auto;min-width:240px} }
 /* Aire entre el mando y su resultado: pegados, «La propuesta» parecía el
    rótulo del botón de al lado. */
@@ -1378,7 +1491,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Reaprovecha entero lo de las sesiones —la lista por meses, las filas de
    jugador— y solo añade lo que un partido tiene y un entrenamiento no: el
    marcador y las cifras de cada uno. */
-.par-campos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 4px}
+.par-campos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 4px}
 .par-campos > *{min-width:0}
 .par-campos input,.par-campos select{min-height:var(--touch)}
 @media (min-width:560px){ .par-campos{grid-template-columns:repeat(3,1fr)} }
@@ -1386,14 +1499,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .par-marcador{display:flex;align-items:center;gap:8px}
 .par-marcador input{flex:1;min-width:0;text-align:center;min-height:var(--touch);
   font-family:var(--ff-display);font-size:16px;font-variant-numeric:tabular-nums}
-.par-marcador span{flex:0 0 auto;color:var(--muted);font-size:15px}
-#par-marcador-nota{margin:2px 0 0}
+.par-marcador span{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg)}
+#par-marcador-nota{margin:var(--e1) 0 0}
 
 /* El resultado en la lista: la cifra a la derecha, teñida según cómo acabó. Se
    distingue además por el propio número, no solo por el color. */
-.par-marca{flex:0 0 auto;font-family:var(--ff-display);font-size:14px;
+.par-marca{flex:0 0 auto;font-family:var(--ff-display);font-size:var(--t-base);
   font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--text);
-  padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+  padding:4px 8px;border-radius:var(--rp);border:1px solid var(--line);
   background:var(--glass-2)}
 .par-marca.flojo{color:var(--muted)}
 .par-dia.es-victoria .par-marca{color:#7BD88F;border-color:rgba(53,132,74,.5);
@@ -1406,18 +1519,34 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    campos vacíos cada una es un formulario, no una convocatoria. */
 .par-fila{flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
 .par-fila .squad-marca{flex:1 1 100%}
-.par-cifras{flex:1 1 100%;display:flex;align-items:flex-end;gap:7px;
-  padding:0 0 4px 42px;flex-wrap:wrap}
-.par-cifra{display:flex;flex-direction:column;gap:3px;min-width:0}
-.par-cifra span{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
-  color:var(--muted);padding-left:2px}
-/* Alto de dedo, como todo lo que se toca. Son campos pequeños de ancho y de
-   letra; pequeño es lo que se ve, no lo que se toca. */
-.par-cifra input{width:56px;min-height:var(--touch);text-align:center;
-  font-variant-numeric:tabular-nums}
-.par-cifra:first-child input{width:62px}
-.par-roja{display:inline-flex;align-items:center;gap:6px;min-height:var(--touch);
-  font-size:11.5px;color:var(--muted);cursor:pointer;padding:0 2px}
+/* En una línea y sin sangrar. Sangradas 42 px no cabía la roja, se iba a un
+   renglón suyo y la fila de UN jugador se ponía en 180 px de alto: con doce,
+   dos mil píxeles de arrastre para apuntar una convocatoria. */
+.par-cifras{flex:1 1 100%;display:flex;align-items:flex-end;gap:var(--e2);
+  padding:0 0 var(--e1);flex-wrap:wrap}
+.par-cifra{display:flex;flex-direction:column;gap:var(--e1);min-width:0}
+.par-cifra span{font-size:var(--t-cap);letter-spacing:var(--ls-cap);text-transform:uppercase;
+  color:var(--muted);padding-left:2px;line-height:1}
+/* Alto de dedo, como todo lo que se toca: pequeño es lo que se ve, no lo que
+   se toca. El relleno de los lados sí se aprieta, que aquí solo caben tres
+   cifras y el ancho de la pantalla es el que es. */
+.par-cifra input{width:52px;padding-left:var(--e1);padding-right:var(--e1);
+  text-align:center;font-size:var(--t-base);font-variant-numeric:tabular-nums}
+.par-cifra:first-child input{width:58px}
+/* A 320 px el hueco real de la fila es de 254, y las cuatro cifras más la
+   roja piden 273 por muy apretadas que vayan. Ahí la roja se va a un renglón
+   suyo y la fila se queda en 190 px. Se aprietan los campos igualmente —se
+   gana lo que se puede— pero NO se esconde la palabra «Roja»: una casilla
+   suelta al final de MIN·G·A·TA no dice de qué es, y una convocatoria mal
+   apuntada es peor que una fila alta. De 360 px para arriba, que es casi todo
+   lo que hay, va en una línea. */
+@media (max-width:340px){
+  .par-cifra input{width:46px}
+  .par-cifra:first-child input{width:52px}
+}
+.par-roja{display:inline-flex;align-items:center;gap:var(--e2);min-height:var(--touch);
+  font-size:var(--t-xs);color:var(--muted);cursor:pointer;padding:0 var(--e1);
+  margin-left:auto}
 /* Esta sí se ve: la regla de la plantilla esconde las casillas porque allí lo
    que se toca es la fila entera, y aquí la fila ya la usa el «jugó». */
 .par-fila .par-roja input[type=checkbox]{position:static;width:17px;height:17px;
@@ -1432,16 +1561,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
 /* Lo que lleva cada uno. Una tabla de verdad, que es lo que es: encabezados
    que un lector de pantalla puede anunciar en cada celda. */
+/* La tabla se queda dentro de la columna. Probé a sacarla por los lados en
+   pantalla grande, que es lo que se hace con las tablas anchas dentro de una
+   columna de lectura, y quedaba peor: la tabla dejaba de estar alineada con su
+   propio rótulo y con todo lo demás, y eso no se lee como una decisión, se lee
+   como un descuadre. En el móvil se desplaza de lado, que es lo suyo. */
 .par-tabla-marco{border:1px solid var(--line);border-radius:var(--r2);
   background:var(--glass);overflow-x:auto}
-.par-tabla{width:100%;border-collapse:collapse;font-size:12.5px}
+.par-tabla{width:100%;border-collapse:collapse;font-size:var(--t-md)}
 .par-tabla th,.par-tabla td{padding:8px 6px;text-align:right;
   font-variant-numeric:tabular-nums;white-space:nowrap}
-.par-tabla thead th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+.par-tabla thead th{font-size:var(--t-cap);letter-spacing:var(--ls-cap);text-transform:uppercase;
   color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
 .par-tabla tbody th{text-align:left;font-weight:600;width:99%}
 .par-quien{display:flex;align-items:center;gap:8px;min-width:0}
-.par-quien span{flex:0 0 26px;height:26px;font-size:11px}
+.par-quien span{flex:0 0 26px;height:26px;font-size:var(--t-xs)}
 .par-quien b{font-weight:inherit;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .par-tabla tbody tr{border-bottom:1px solid var(--line)}
@@ -1455,7 +1589,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* ---- barras ----
    div y CSS, sin lienzo ni librerías. La barra vive detrás del texto para que
    la fila se lea de un vistazo sin ocupar dos alturas. */
-.barras{display:flex;flex-direction:column;gap:5px}
+.barras{display:flex;flex-direction:column;gap:6px}
 /* Cuando no hay nada, el aviso se lee como lo que es: una frase suelta debajo
    de su título. Llevaba «14px 2px», y eso hacía dos cosas raras a la vez:
    sumaba 14 px a los 10 que ya deja el título, así que el hueco era el doble
@@ -1463,9 +1597,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    descolocada respecto a todo lo que tiene encima y debajo, como si sobrara un
    espacio al empezar. */
 .barras:empty::before{content:"Todavía no hay nada que contar aquí.";
-  display:block;padding:2px 0 6px;font-size:12.5px;color:var(--muted)}
+  display:block;padding:2px 0 6px;font-size:var(--t-md);color:var(--muted)}
 .barra{position:relative;display:flex;align-items:center;gap:10px;
-  padding:9px 11px;border-radius:var(--r2);overflow:hidden;
+  padding:8px 12px;border-radius:var(--r2);overflow:hidden;
   border:1px solid var(--line);background:var(--well);
   --cifras:110px}                    /* lo que ocupan los minutos y el tanto por ciento */
 /* Cuando la fila lleva además la asistencia (15/15) y su hueco de aviso, el
@@ -1476,15 +1610,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    no es una fila más.
    El borde transparente no es adorno: la fila lleva uno de 1 px y, sin él aquí,
    cada nombre de columna quedaría un píxel corrido respecto a sus números. */
-.barra-cab{display:flex;align-items:center;gap:10px;padding:2px 11px 1px;
-  border:1px solid transparent;font-size:10px;color:var(--muted)}
+.barra-cab{display:flex;align-items:center;gap:10px;padding:2px 12px 1px;
+  border:1px solid transparent;font-size:var(--t-cap);color:var(--muted)}
 /* El «min-width:0» es lo que sujeta la alineación. Sin él, un hijo flexible
    nunca baja de su contenido aunque le pongas un ancho: la palabra «asistencia»
    ensanchaba su columna 8 px y arrastraba a la de minutos, y los nombres
    quedaban corridos respecto a los números. Que la etiqueta quepa lo comprueba
    la prueba; que no empuje, esta línea. */
 .barra-cab .barra-cifra,.barra-cab .barra-pct,.barra-cab .barra-asis{
-  min-width:0;font-size:10px;color:var(--muted)}
+  min-width:0;font-size:var(--t-cap);color:var(--muted)}
 /* El relleno corre por su carril, que acaba antes de las cifras. Si llegara
    hasta ellas, el canto de la barra partiría un número por la mitad y se
    quedaría medio sobre un fondo y medio sobre otro: se lee fatal. */
@@ -1497,22 +1631,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    propósito: si le cae el «position:relative» deja de estar absoluto, entra en
    la fila como un hijo más y empuja al nombre hasta hacerlo desaparecer. */
 .barra > :not(.barra-pista){position:relative}
-.barra-dorsal{flex:0 0 24px;text-align:right;font-family:var(--ff-display);font-size:12.5px;
+.barra-dorsal{flex:0 0 24px;text-align:right;font-family:var(--ff-display);font-size:var(--t-md);
   font-variant-numeric:tabular-nums;color:var(--muted)}
-.barra-nombre{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra-nombre{flex:1;min-width:0;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Columnas de cifras: ancho fijo y a la derecha, para que los números queden
    alineados unos debajo de otros y bajo su nombre en la cabecera. La unidad
    («min», «%») va arriba una vez, no repetida en cada fila. */
-.barra-cifra{flex:0 0 40px;text-align:right;font-size:12.5px;
+.barra-cifra{flex:0 0 40px;text-align:right;font-size:var(--t-md);
   font-variant-numeric:tabular-nums;color:var(--text)}
-.barra-pct{flex:0 0 46px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;
+.barra-pct{flex:0 0 46px;text-align:right;font-size:var(--t-xs);font-variant-numeric:tabular-nums;
   color:var(--muted)}
-.barra-asis{flex:0 0 58px;text-align:right;font-size:12.5px;
+.barra-asis{flex:0 0 58px;text-align:right;font-size:var(--t-md);
   font-variant-numeric:tabular-nums;color:var(--text)}
 /* A quien le falta la mitad de los entrenamientos hay que verlo sin buscarlo.
    El color avisa; el símbolo de al lado lo dice para quien no lo distinga. */
 .barra-asis.poco{color:var(--brand-2)}
-.barra-alerta{flex:0 0 14px;text-align:right;font-size:11px;color:var(--brand-2);
+.barra-alerta{flex:0 0 14px;text-align:right;font-size:var(--t-xs);color:var(--brand-2);
   line-height:1}
 
 /* ---- el radar de equilibrio ----
@@ -1530,24 +1664,24 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .radar-diana{fill:transparent;cursor:pointer}
 .radar-diana:focus-visible{outline:none;fill:rgba(255,92,122,.22)}
 /* El texto lleva tinta de texto, nunca el color de la serie. */
-.radar-eje{fill:var(--muted);font-family:var(--ff-body);font-size:10.5px}
+.radar-eje{fill:var(--muted);font-family:var(--ff-body);font-size:var(--t-cap)}
 .radar-eje.vacio{opacity:.6}
 
 .radar-pie{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
-  margin:12px 0 0;font-size:11.5px;color:var(--muted)}
+  margin:12px 0 0;font-size:var(--t-xs);color:var(--muted)}
 .radar-clave{display:inline-flex;align-items:center;gap:6px}
 .radar-clave::before{content:"";width:11px;height:11px;border-radius:3px;flex:none}
 .radar-clave.es-ahora::before{background:rgba(225,26,65,.20);border:2px solid #E11A41}
 .radar-clave.es-ref::before{background:rgba(124,141,163,.14);border:2px solid #7C8DA3}
 .radar-clave.es-igual::before{background:none;border:1px solid var(--line-strong)}
 
-.stats-resumen{margin:14px 0 0;font-size:13px;line-height:1.5}
+.stats-resumen{margin:14px 0 0;font-size:var(--t-md);line-height:1.5}
 /* Las explicaciones de debajo de una tabla iban pegadas a la última fila, sin
    un respiro que dijera que ya no son parte de ella. */
 #stats-jugadores-pie{margin-top:12px}
 .stats-resumen b{font-variant-numeric:tabular-nums}
-.stats-olvido{margin:12px 0 0;padding:11px 13px;border-radius:var(--r2);
-  border:1px solid var(--line-strong);background:var(--glass);font-size:12.5px;line-height:1.5}
+.stats-olvido{margin:12px 0 0;padding:12px 12px;border-radius:var(--r2);
+  border:1px solid var(--line-strong);background:var(--glass);font-size:var(--t-md);line-height:1.5}
 .stats-olvido b{color:var(--brand-2)}
 
 @media (max-width:560px){
@@ -1561,7 +1695,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .barra{--cifras:102px}
   .barra.conses{--cifras:126px}
   .barra-cab,.barra-cab .barra-cifra,.barra-cab .barra-pct,
-  .barra-cab .barra-asis{font-size:9.5px}
+  .barra-cab .barra-asis{font-size:var(--t-cap)}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -1574,11 +1708,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Equipo no se llegaba de ninguna manera: esa pantalla no tiene Ajustes. Entrar
    y salir es de lo que más se busca, así que sube aquí, al lado del engranaje,
    y se queda en los dos modos y en todos los anchos. */
-.cuenta-btn{gap:7px}
+.cuenta-btn{gap:8px}
 .cuenta-avatar{display:inline-flex;align-items:center;justify-content:center;
   width:23px;height:23px;flex:none;border-radius:50%;
   background:var(--glass-2);border:1px solid var(--line-strong);
-  font-size:10px;font-weight:700;letter-spacing:.2px;line-height:1;
+  font-size:var(--t-cap);font-weight:700;letter-spacing:.2px;line-height:1;
   font-family:var(--ff-body);color:var(--muted);
   transition:background .16s,border-color .16s,color .16s}
 .cuenta-avatar svg{width:14px;height:14px}
@@ -1899,7 +2033,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <section class="equipo solo-equipo" id="equipo" aria-label="Mi equipo">
       <div class="eq-nav">
         <div class="seg" id="eq-tabs" role="tablist">
-          <button type="button" data-eq="plantilla" role="tab" aria-selected="true">Plantilla</button>
+          <button type="button" data-eq="hoy" role="tab" aria-selected="true">Hoy</button>
+          <button type="button" data-eq="plantilla" role="tab" aria-selected="false">Plantilla</button>
           <button type="button" data-eq="sesiones" role="tab" aria-selected="false">Sesiones</button>
           <button type="button" data-eq="partidos" role="tab" aria-selected="false">Partidos</button>
           <button type="button" data-eq="datos" role="tab" aria-selected="false">Datos</button>
@@ -15287,8 +15422,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     // ---- 5 · de dónde sale todo esto ----
     var pie = document.createElement('p');
-    pie.className = 'block-note';
-    pie.style.marginTop = '18px';
+    // «tras-boton» deja pasar el resplandor del botón rojo de arriba. El
+    // número vive en la hoja de estilos, con el resto de la escala, y no aquí.
+    pie.className = 'block-note tras-boton';
     pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
                       'Nada se inventa y nada sale a internet.';
     caja.appendChild(pie);
