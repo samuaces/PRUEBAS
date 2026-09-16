@@ -427,7 +427,12 @@ a:hover{color:var(--text)}
 .ask-input,.field input,.field select,.field textarea,
 .squad-alta input,.squad-alta select,.par-cifra input,
 #lib-q,.lib-selects select,select.sel,#cfg-categoria{
-  width:100%;min-height:var(--touch);padding:12px 12px;border-radius:var(--r2);
+  /* El «min-width:0» no es de adorno. Sin él, un campo que trae un ancho
+     propio de fábrica —la fecha, en el Safari del iPhone— no baja de ese ancho
+     por mucho «width:100%» que le pongas, se sale de su columna y se mete
+     encima del campo de al lado. Aquí no se veía porque este navegador le da a
+     «input[type=date]» el ancho que le pidas. */
+  width:100%;min-width:0;min-height:var(--touch);padding:12px 12px;border-radius:var(--r2);
   background:var(--well);border:1px solid var(--line);color:var(--text);
   box-shadow:inset 0 1px 3px rgba(0,0,0,.4);
   font-family:var(--ff-body);font-size:var(--t-lg);line-height:1.45;
@@ -717,6 +722,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    pestaña y entrar y crear cuenta parecían lo mismo. */
 [hidden]{display:none!important}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+/* La fecha, en el iPhone.
+
+   Safari le da a «input[type=date]» un ancho propio que sale del formato de la
+   fecha —«16 sept 2026»— y no baja de ahí ni con «width:100%». En una rejilla
+   de dos columnas de 172 px eso son 196 px metiéndose 24 encima del campo de
+   al lado, que es exactamente lo que se veía: «Fecha» pisando a «Rival».
+
+   Dos cosas, y las dos hacen falta. Quitarle la apariencia nativa devuelve el
+   control del ancho a la hoja de estilos —el selector de fecha del sistema
+   sigue abriéndose igual al tocarlo, que eso lo pone el tipo del campo, no su
+   apariencia—. Y aun así ocupa la fila entera en el teléfono: es el primer
+   campo de la pantalla y el que más se mira, y así no depende de que un
+   navegador respete lo que le pedimos. Lo segundo es el cinturón; lo primero,
+   los tirantes. */
+.field input[type=date]{-webkit-appearance:none;appearance:none;
+  text-align:left;min-width:0}
+@media (max-width:559px){ .par-campos .campo-fecha{grid-column:1 / -1} }
 .field.wide{grid-column:1 / -1}
 .field > span{font-size:var(--t-xs);color:var(--muted);font-weight:600}
 .field > span small{font-weight:400;opacity:.75}
@@ -2258,7 +2280,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <h3 class="ses-fecha" id="par-titulo"></h3>
 
     <div class="par-campos">
-      <label class="field"><span>Fecha</span>
+      <label class="field campo-fecha"><span>Fecha</span>
         <input type="date" id="par-fecha"></label>
       <label class="field"><span>Rival</span>
         <input type="text" id="par-rival" maxlength="60" placeholder="CD Ejemplo"

@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v14';   // v14: la cabecera de la hoja, opaca
+var CACHE = 'pizarra-tactica-v15';   // v15: la fecha no pisa al rival
 
 var SHELL = [
   './',

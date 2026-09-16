@@ -2102,6 +2102,54 @@ function siembra(lista){
   ok('y con la duración de la modalidad, no en blanco',
      d.getElementById('par-duracion').value === '90',
      d.getElementById('par-duracion').value);
+  /* --- que ningún campo se meta encima de otro ---------------------------
+
+     Esto se vio en un iPhone y NO lo cazaba nada de lo que tenía. Safari le da
+     a «input[type=date]» un ancho propio que sale del formato de la fecha y no
+     baja de ahí ni con «width:100%»; en la rejilla de dos columnas del teléfono
+     eso era «Fecha» metiéndose 16 px encima de «Rival». Este navegador le da al
+     campo el ancho que le pidas, así que aquí no pasaba y el barrido de siete
+     anchos no veía nada: medía desbordes de la pantalla, no un campo pisando a
+     otro dentro de su rejilla.
+
+     Así que se le FUERZA ese ancho mínimo, que es la única manera de ver desde
+     aquí lo que ve un iPhone, y se comprueba lo que de verdad importa: que dos
+     campos de la misma rejilla no compartan un solo píxel. */
+  (function(){
+    var marcoF = w.frameElement, anchoF = marcoF.style.width;
+    marcoF.style.width = '393px';
+    var regla = d.createElement('style');
+    regla.id = 'finge-iphone';
+    regla.textContent = 'input[type=date]{min-width:196px !important}';
+    d.head.appendChild(regla);
+    return { marcoF: marcoF, anchoF: anchoF };
+  })();
+  await wait(500);
+  (function(){
+    var campos = [].filter.call(d.querySelectorAll('.par-campos input, .par-campos select, .par-campos .seg'),
+      function(e){ return e.offsetParent !== null; });
+    var pisan = [];
+    for (var i = 0; i < campos.length; i++) for (var j = i + 1; j < campos.length; j++) {
+      var a = campos[i].getBoundingClientRect(), b2 = campos[j].getBoundingClientRect();
+      var x = Math.min(a.right, b2.right) - Math.max(a.left, b2.left);
+      var y = Math.min(a.bottom, b2.bottom) - Math.max(a.top, b2.top);
+      if (x > 1 && y > 1) pisan.push(
+        (campos[i].id || campos[i].type || 'campo') + ' y ' +
+        (campos[j].id || campos[j].type || 'campo') + ': ' + Math.round(x) + 'px');
+    }
+    ok('con el ancho de fecha del iPhone, ningún campo se mete encima de otro',
+       pisan.length === 0, pisan.join(' · ') || campos.length + ' campos, ninguno se pisa');
+    // Y que no se salga de la rejilla, que es la otra cara de lo mismo.
+    var rej = d.querySelector('.par-campos').getBoundingClientRect();
+    var fuera = campos.filter(function(e){ var c = e.getBoundingClientRect();
+      return c.right > rej.right + 1 || c.left < rej.left - 1; });
+    ok('ni se sale de la rejilla por los lados', fuera.length === 0,
+       fuera.map(function(e){return e.id||e.type;}).join(' · ') || 'todos dentro');
+    d.getElementById('finge-iphone').remove();
+    w.frameElement.style.width = '1200px';
+  })();
+  await wait(500);
+
   ok('nadie viene marcado: se marca a quien jugó, no se desmarca a quien no',
      d.querySelectorAll('#par-jugadores .squad-marca input:checked').length === 0);
   ok('las cifras están escondidas hasta que marcas a alguien',
