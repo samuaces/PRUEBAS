@@ -1212,8 +1212,27 @@ function siembra(lista){
      E.sesionDe(E.hoyISO()).ejercicios.length);
   ok('apuntando de dónde salió, para poder abrirlo',
      !!E.sesionDe(E.hoyISO()).ejercicios[antes15].ref);
+
+  /* Y al salir, la biblioteca tiene que OLVIDAR para qué se abrió: al volver a
+     abrirla normal, las tarjetas dicen «Abrir» y no «Añadir». Hoy se cumple por
+     dos caminos a la vez —«openLibrary» reinicia el para qué y además se limpia
+     al cerrar—, y la prueba no distingue cuál de los dos lo hace: da igual, lo
+     que fija es el comportamiento. Sirve para el día que la biblioteca deje de
+     ser un diálogo y uno de los dos caminos desaparezca. */
   d.getElementById('dlg-lib').close();
   await wait(300);
+  d.querySelector('.modo[data-modo="pizarra"]').click(); await wait(350);
+  d.getElementById('open').click(); await wait(900);
+  var tarjeta2 = d.querySelector('#lib-grid .lib-card .lib-pie .primary');
+  ok('al reabrir la biblioteca ya no está eligiendo para una sesión',
+     !!tarjeta2 && tarjeta2.textContent === 'Abrir', tarjeta2 && tarjeta2.textContent);
+  ok('y el título vuelve a ser el de siempre',
+     d.getElementById('dlg-lib-t').textContent === 'Biblioteca',
+     d.getElementById('dlg-lib-t').textContent);
+  d.getElementById('dlg-lib').close(); await wait(250);
+  d.querySelector('.modo[data-modo="equipo"]').click(); await wait(350);
+  d.querySelector('.tabbar-eq [data-eq="sesiones"]').click(); await wait(400);
+  d.querySelector('#ses-meses .ses-dia-btn').click(); await wait(300);
   // Ese sí tiene dibujo: su título abre la pizarra.
   var conDibujo = d.querySelectorAll('#ses-lista .ses-ej')[antes15].querySelector('.ses-ej-med');
   ok('el traído de la biblioteca sí tiene dibujo, y su título lo abre',

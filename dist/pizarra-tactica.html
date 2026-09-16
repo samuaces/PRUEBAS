@@ -12681,7 +12681,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       entrar.className = 'linkish';
       entrar.id = 'lib-entrar';
       entrar.textContent = 'Entrar con tu correo';
-      entrar.addEventListener('click', function () { $('#dlg-lib').close(); abreCuenta(false); });
+      entrar.addEventListener('click', function () { cierraBiblioteca(); abreCuenta(false); });
       $('#lib-nota').appendChild(entrar);
     }
 
@@ -12789,18 +12789,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     img.itemDeLaTarjeta = it;
     if (miniObs) miniObs.observe(img); else pintaMini(img);   // sin observador, al momento
   }
+  /* Por dónde se desplaza la biblioteca. Hoy es el cuerpo del diálogo; el día
+     que sea una pantalla más, será otra cosa. Lo piden dos sitios —el
+     observador y el primer pintado— y hasta ahora cada uno lo buscaba por su
+     cuenta.
+
+     También aquí conviene no vender humo: probado con «root: null», las
+     miniaturas se siguen dibujando por tandas, porque el observador pasa a
+     mirar la ventana y lo que está debajo del diálogo tampoco se ve desde ahí.
+     Así que esto es un sitio en vez de dos, no un fallo arreglado. */
+  function contenedorDeLaBiblioteca(grid) {
+    return (grid && grid.closest('.dbody')) || null;
+  }
+
   function preparaMiniObs(grid) {
     if (miniObs) { miniObs.disconnect(); miniObs = null; }
     if (typeof IntersectionObserver !== 'function') return;   // navegador viejo: como antes
     miniObs = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (e) { if (e.isIntersecting) pintaMini(e.target); });
-    }, { root: grid.closest('.dbody') || null, rootMargin: '500px 0px' });
+    }, { root: contenedorDeLaBiblioteca(grid), rootMargin: '500px 0px' });
   }
   /* El observador avisa cuando el navegador quiere, y en el primer pintado —con
      el diálogo recién abierto— a veces no ha avisado todavía. Lo que ya cae
      dentro de la pantalla no espera a nadie: se dibuja aquí mismo. */
   function pintaLoQueSeVe(grid) {
-    var cont = grid.closest('.dbody') || document.documentElement;
+    var cont = contenedorDeLaBiblioteca(grid) || document.documentElement;
     var caja = cont.getBoundingClientRect();
     $$('img', grid).forEach(function (img) {
       var r = img.getBoundingClientRect();
@@ -12921,7 +12934,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     docSale = saleDe(it);
     ui.frame = 0; ui.sel = null; ui.multi = [];
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
-    $('#dlg-lib').close();
+    cierraBiblioteca();
     toast('«' + (it.nombre || 'Ejercicio') + '» abierto');
   }
 
@@ -14143,6 +14156,24 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      pantalla que ya se sabe usar vale más que otra nueva parecida. */
   var libParaSesion = null;         // fecha de la sesión, o null en modo normal
 
+  /* -------------------------------------------------------------------------
+     Salir de la biblioteca, en un solo sitio.
+
+     Antes se cerraba con «$('#dlg-lib').close()» desde tres sitios, y el «para
+     qué» —la fecha de la sesión para la que estás eligiendo— se limpiaba en el
+     evento «close». Ahora se sale por aquí: el día que la biblioteca deje de
+     ser un diálogo, esto es lo único que hay que cambiar.
+
+     Conviene decir lo que esto NO es, porque yo mismo lo di por más grave de lo
+     que es: NO arregla ningún fallo. Se probó rompiéndolo a propósito y la
+     aplicación siguió bien, porque «openLibrary» reinicia el para qué en cada
+     apertura. Es un sitio en vez de tres, no una red de seguridad. */
+  function cierraBiblioteca() {
+    libParaSesion = null;
+    var d = $('#dlg-lib');
+    if (d && d.open) d.close();
+  }
+
   function openLibrary(paraSesion) {
     libParaSesion = paraSesion || null;
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
@@ -15025,6 +15056,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     // Sin envolver, el «click» llegaría como si fuera una fecha de sesión y la
     // biblioteca se abriría en modo elegir desde el botón de siempre.
     $('#open').addEventListener('click', function () { openLibrary(null); });
+    /* Y con Escape o tocando fuera también se sale, sin pasar por el botón.
+       Aquí NO se llama a «cierraBiblioteca»: el diálogo ya se está cerrando y
+       volver a cerrarlo sería morderse la cola. Solo se olvida el para qué. */
     $('#dlg-lib').addEventListener('close', function () { libParaSesion = null; });
 
     // ---- Mi equipo, participantes y estadísticas ----

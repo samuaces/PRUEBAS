@@ -550,6 +550,11 @@ async function run(w,d){
     return c.bottom>caja.top&&c.top<caja.bottom;});
   ok('los ejercicios que se ven traen su miniatura dibujada',
      aLaVista.length>0&&aLaVista.every(miniPuesta),aLaVista.length+' a la vista');
+  /* Y la otra mitad: los de MÁS ABAJO todavía NO están dibujados. Con la
+     biblioteca llena, pintarlas todas de golpe congelaba la pantalla tres
+     segundos en un teléfono. Eso no se ve mirando, solo contando. */
+  ok('y las de más abajo todavía no, que es de lo que se trata',
+     minisPuestas()<total,minisPuestas()+' dibujadas de '+total);
   for(var vz=0;vz<15;vz++){cuerpoLib.scrollTop+=cuerpoLib.clientHeight*0.8;await wait(90);}
   await wait(400);
   ok('al bajar se dibujan las que faltaban',minisPuestas()===total,minisPuestas()+' de '+total);
