@@ -180,6 +180,25 @@ a:hover{color:var(--text)}
 .aside::-webkit-scrollbar-thumb:hover{background:var(--line-strong);background-clip:padding-box}
 .sheet-grab,.sheet-tit{display:none}
 .block{margin-bottom:20px;scroll-margin-top:12px}
+
+/* ---- Bloques plegables del panel ----
+   En el escritorio el panel volcaba los siete bloques a la vez. Los cuatro
+   secundarios —color, formaciones, material y campo— se pliegan ahí, y se
+   quedan abiertos en el móvil, donde cada pestaña ya enseña solo lo suyo. Lo
+   que abras se recuerda: que cueste un toque UNA vez, no cada vez. */
+/* Mismos valores que «.block > h2»: la línea que se pliega tiene que leerse
+   igual que los rótulos que no se pliegan, o el panel parece dos panales. */
+.plegable-bloque > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  margin:0 0 10px 2px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85;user-select:none}
+.plegable-bloque > summary::-webkit-details-marker{display:none}
+.plegable-bloque > summary::after{content:"";margin-left:auto;width:6px;height:6px;flex:none;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.plegable-bloque[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.plegable-bloque > summary:hover{color:var(--text);opacity:1}
+/* Sin desplegar, el bloque no deja un hueco de bloque entero detrás. */
+.plegable-bloque:not([open]){margin-bottom:10px}
 .block > h2{font-family:var(--ff-display);font-size:10.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--muted);margin:0 0 10px 2px;opacity:.85}
 .block-note{margin:0 0 10px;font-size:11.5px;line-height:1.45;color:var(--muted)}
@@ -812,6 +831,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     padding:6px 14px 12px;border-bottom:1px solid var(--line);
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
     font-family:var(--ff-display);font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  /* Aquí los bloques van SIEMPRE abiertos: la pestaña ya enseña un solo grupo.
+     Así que su línea vuelve a ser lo que era, un rótulo: ni se pulsa ni lleva
+     flecha. Sin esto se podía plegar «Materiales» de un toque y no había nada
+     que lo volviera a abrir. */
+  .plegable-bloque > summary{pointer-events:none;cursor:default}
+  .plegable-bloque > summary::after{display:none}
+
   .aside[data-grupo] .block{display:none}
   .aside[data-grupo="dibujar"] .block[data-grupo="dibujar"],
   .aside[data-grupo="colocar"] .block[data-grupo="colocar"],

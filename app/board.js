@@ -5995,7 +5995,8 @@
       ask({ title: 'Usar la plantilla', message: 'Se sustituye lo que hayas escrito en la ficha, menos la categoría, la fecha y la sesión.', ok: 'Sustituir' })
         .then(function (si) { if (si) aplicaPlantilla(id); });
     });
-    $('#card-edit').addEventListener('click', function () { sheetClose(); openCard(); });
+    // La ficha salió de la barra: ahora su única entrada propia es la fila del
+    // panel, y su sitio de verdad es dentro de Guardar.
     $('#f-auto').addEventListener('click', autofillCard);
     // ---- Ajustes ----
     function pintaAjustes() {
@@ -6150,6 +6151,9 @@
     });
 
     window.addEventListener('resize', resize);
+    // Al pasar de escritorio a móvil (o al girar el teléfono) los bloques del
+    // panel tienen que volver a su sitio: plegados allí, abiertos aquí.
+    window.addEventListener('resize', ajustaBloquesDelPanel);
     window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
     if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas.parentNode);
@@ -6237,8 +6241,53 @@
 
   function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
 
+  /* -------------------------------------------------------------------------
+     Los bloques plegables del panel.
+
+     En el escritorio el panel enseñaba los siete bloques a la vez: treinta y
+     nueve mandos en frío, que es de lo que se quejaba el encargo. Los cuatro
+     secundarios se pliegan ahí. En el móvil NO: la hoja ya enseña un solo
+     grupo por pestaña, y plegarlos costaría un toque de más en cada material.
+
+     Lo que abras se recuerda en los ajustes. Un entrenador que use los conos
+     todos los días los abre una vez, no una vez por sesión. */
+  var BLOQUES_PLEGABLES = ['b-tools-mas', 'b-color', 'b-forms', 'b-mats', 'b-view', 'b-actions'];
+
+  function esEscritorio() { return window.innerWidth > 900; }
+
+  /* Poner «open» desde aquí dispara el evento «toggle», igual que si lo hubiera
+     pulsado alguien. Sin esta bandera, abrir la aplicación en un escritorio
+     dejaba escritos en los ajustes cuatro bloques «cerrados» que nadie había
+     cerrado, y al abrirla luego en el móvil se leerían como una decisión. */
+  var ajustandoBloques = false;
+
+  function ajustaBloquesDelPanel() {
+    var abiertos = prefs().panel || {};
+    ajustandoBloques = true;
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (!d || d.tagName !== 'DETAILS') return;
+      d.open = !esEscritorio() || !!abiertos[id];
+    });
+    setTimeout(function () { ajustandoBloques = false; }, 0);
+  }
+
+  function recuerdaBloque(id, abierto) {
+    if (ajustandoBloques) return;         // no lo ha tocado nadie
+    if (!esEscritorio()) return;          // en el móvil van siempre abiertos
+    var p = prefs();
+    if (!p.panel) p.panel = {};
+    p.panel[id] = !!abierto;
+    guardaPrefs(p);
+  }
+
   function start() {
     wire();
+    ajustaBloquesDelPanel();
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (d) d.addEventListener('toggle', function () { recuerdaBloque(id, d.open); });
+    });
     cargaCatalogo();
     setupInstall();
     var saved = null;

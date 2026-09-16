@@ -282,7 +282,7 @@ async function run(w,d){
   /* La ficha ya no es un diálogo aparte: vive dentro de la hoja de guardar,
      detrás de «Añadir detalles». «Ficha del ejercicio» abre esa hoja con el
      plegable ya fuera, que es lo que se comprueba. */
-  d.getElementById('card-edit').click();await wait(200);
+  d.getElementById('ficha-row').click();await wait(200);
   var dlgF=d.getElementById('dlg-save');
   ok('la ficha del ejercicio se abre desde la pizarra',dlgF.open);
   ok('y se abre con los detalles desplegados, no plegados',
@@ -317,7 +317,7 @@ async function run(w,d){
   // la ficha viaja dentro del documento: sobrevive a deshacer y rehacer
   d.getElementById('undo').click();await wait(60);
   d.getElementById('redo').click();await wait(60);
-  d.getElementById('card-edit').click();await wait(200);
+  d.getElementById('ficha-row').click();await wait(200);
   ok('la ficha se guarda con la pizarra',
      d.getElementById('f-titulo').value==='Salida de balón bajo presión',
      d.getElementById('f-titulo').value);
@@ -330,7 +330,7 @@ async function run(w,d){
   var imprimio=false,oldOpen3=w.open;
   w.open=function(){ imprimio=true; return {document:{write:function(){},close:function(){}},
     focus:function(){},print:function(){}}; };
-  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('ficha-row').click();await wait(400);
   w.open=oldOpen3;
   ok('la ficha rellenada se vuelve a abrir, no se imprime sola',
      d.getElementById('dlg-save').open&&!imprimio,
@@ -1026,7 +1026,7 @@ async function run(w,d){
   ok('abrir un ejercicio cierra la biblioteca',!lib.open);
   ok('el ejercicio trae su modalidad y sus piezas',
      d.querySelector('[data-pitch="futsal"]').getAttribute('aria-pressed')==='true');
-  d.getElementById('card-edit').click();await wait(250);
+  d.getElementById('ficha-row').click();await wait(250);
   ok('el ejercicio trae la ficha rellena',
      /pivote/i.test(d.getElementById('f-titulo').value+' '+d.getElementById('f-objetivo').value),
      d.getElementById('f-titulo').value);
@@ -1050,7 +1050,7 @@ async function run(w,d){
   d.querySelector('#dlg-save [data-close]').click();await raf();
 
   // --- la ficha, por apartados y con sugerencias ---
-  d.getElementById('card-edit').click();await wait(300);
+  d.getElementById('ficha-row').click();await wait(300);
   ok('la ficha abre por el primer apartado',
      [].filter.call(d.querySelectorAll('.paso'),function(p){return !p.hidden;}).length===1&&
      !d.getElementById('paso-ident').hidden);
@@ -1089,7 +1089,7 @@ async function run(w,d){
      /fútbol 7/.test(d.getElementById('lib-cuenta').textContent),
      d.getElementById('lib-cuenta').textContent);
   d.querySelector('#dlg-lib [data-close]').click();await wait(200);
-  d.getElementById('card-edit').click();await wait(250);
+  d.getElementById('ficha-row').click();await wait(250);
   ok('la ficha hereda tu equipo',d.getElementById('f-categoria').value==='Cadete A',
      d.getElementById('f-categoria').value);
   d.querySelector('#dlg-save [data-close]').click();await wait(200);
@@ -1193,7 +1193,7 @@ async function run(w,d){
 
   // --- consistencia entre menús ---
   var comps = w.getComputedStyle;
-  d.getElementById('card-edit').click();await wait(300);
+  d.getElementById('ficha-row').click();await wait(300);
   var campoFicha = comps(d.getElementById('f-titulo'));
   d.querySelector('#dlg-save [data-close]').click();await wait(200);
   d.getElementById('open').click();await wait(500);
@@ -1481,7 +1481,7 @@ async function run(w,d){
   // Antes se rellenaba la ficha, se le daba a Guardar y en la biblioteca no
   // había nada: la ficha se quedaba dentro del documento y ya está.
   w.localStorage.removeItem('pt-boards');
-  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('ficha-row').click();await wait(400);
   d.getElementById('f-titulo').value='Prueba de guardado';
   d.getElementById('f-titulo').dispatchEvent(new w.Event('input',{bubbles:true}));
   await wait(120);
@@ -1494,7 +1494,7 @@ async function run(w,d){
      !!guardadas['Prueba de guardado'],Object.keys(guardadas).join(','));
   ok('y guarda la pizarra entera con ella',
      !!(guardadas['Prueba de guardado']&&guardadas['Prueba de guardado'].doc.frames.length));
-  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('ficha-row').click();await wait(400);
   d.getElementById('save-ok').click();await wait(500);
   ok('volver a guardarla no crea una copia',
      Object.keys(JSON.parse(w.localStorage.getItem('pt-boards')||'{}')).length===1);
@@ -1570,7 +1570,7 @@ async function run(w,d){
   // (5) pero si le has puesto tu propio título, ese manda
   d.querySelector('#dlg-save [data-close]').click();await wait(250);
   w.localStorage.removeItem('pt-boards');
-  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('ficha-row').click();await wait(400);
   d.getElementById('f-titulo').value='Salida a tres, mi versión de siempre';
   d.getElementById('f-titulo').dispatchEvent(new w.Event('input',{bubbles:true}));
   await wait(120);
@@ -1646,12 +1646,60 @@ async function run(w,d){
   ok('la hoja se cierra al guardar',!hoja.open);
 
   // Y «Ficha del ejercicio» lleva a la MISMA hoja, con los detalles fuera.
-  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('ficha-row').click();await wait(400);
   ok('«Ficha» no abre otra cosa: abre la misma hoja',d.getElementById('dlg-save').open);
   ok('y la abre por los detalles, que es a lo que vas',
      d.getElementById('save-detalles').open);
   d.querySelector('#dlg-save [data-close]').click();await wait(250);
   w.localStorage.removeItem('pt-boards');
+
+  /* --- el panel del escritorio no lo vuelca todo ------------------------
+
+     En el escritorio el panel enseñaba los siete bloques a la vez: cuarenta y
+     cuatro mandos en frío. Los secundarios se pliegan ahí y se quedan abiertos
+     en el móvil, donde cada pestaña ya enseña un solo grupo. Y lo que abras se
+     recuerda: que cueste un toque UNA vez, no cada vez. */
+  var PLEGABLES=['b-tools-mas','b-color','b-forms','b-mats','b-view','b-actions'];
+  var estado=function(){return PLEGABLES.map(function(id){
+    var e=d.getElementById(id); return id+'='+(e?(e.open?'abierto':'plegado'):'NO EXISTE');});};
+  var marcoP=w.frameElement,anchoP=marcoP.style.width;
+
+  marcoP.style.width='1200px';await wait(500);
+  w.dispatchEvent(new w.Event('resize'));await wait(300);
+  ok('en el escritorio los bloques secundarios vienen plegados',
+     estado().every(function(x){return /plegado$/.test(x);}),estado().join(' · '));
+  ok('pero las tres herramientas de siempre siguen a la vista',
+     ['select','pass','run'].every(function(t){
+       var e=d.querySelector('.tool[data-tool="'+t+'"]');
+       return e&&!e.closest('details');}));
+
+  // Abrir uno y recargar el estado: tiene que seguir abierto.
+  d.getElementById('b-mats').open=true;
+  d.getElementById('b-mats').dispatchEvent(new w.Event('toggle'));
+  await wait(250);
+  var guardado=null;
+  try{guardado=JSON.parse(w.localStorage.getItem('pt-prefs')||'{}').panel;}catch(e){}
+  ok('abrir un bloque se recuerda en los ajustes',
+     !!(guardado&&guardado['b-mats']===true),JSON.stringify(guardado));
+  ok('y no se apunta lo que nadie ha tocado',
+     !!guardado&&Object.keys(guardado).length===1,
+     guardado?Object.keys(guardado).join(' · '):'-');
+
+  // En el móvil van abiertos: allí la pestaña ya acota.
+  marcoP.style.width='390px';await wait(500);
+  w.dispatchEvent(new w.Event('resize'));await wait(350);
+  ok('en el móvil los bloques van abiertos, que la pestaña ya acota',
+     estado().every(function(x){return /abierto$/.test(x);}),estado().join(' · '));
+  /* Y ahí su línea vuelve a ser un rótulo. Si se pudiera pulsar, un toque
+     plegaría «Materiales» y NADA lo volvería a abrir: en el móvil no hay quien
+     lo ajuste salvo girar el teléfono. Casi se me cuela. */
+  var rotulos=PLEGABLES.map(function(id){
+    var sm=d.getElementById(id).querySelector('summary');
+    return id+'='+w.getComputedStyle(sm).pointerEvents;});
+  ok('y su rótulo no se puede pulsar: en el móvil no es un mando',
+     rotulos.every(function(x){return /=none$/.test(x);}),rotulos.join(' · '));
+  marcoP.style.width=anchoP||'1200px';await wait(500);
+  w.dispatchEvent(new w.Event('resize'));await wait(300);
 
   // --- imprimir sin ventanas emergentes ---
   // En el iPhone y dentro de otras aplicaciones las bloquean, y el botón se

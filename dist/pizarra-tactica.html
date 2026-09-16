@@ -190,6 +190,25 @@ a:hover{color:var(--text)}
 .aside::-webkit-scrollbar-thumb:hover{background:var(--line-strong);background-clip:padding-box}
 .sheet-grab,.sheet-tit{display:none}
 .block{margin-bottom:20px;scroll-margin-top:12px}
+
+/* ---- Bloques plegables del panel ----
+   En el escritorio el panel volcaba los siete bloques a la vez. Los cuatro
+   secundarios —color, formaciones, material y campo— se pliegan ahí, y se
+   quedan abiertos en el móvil, donde cada pestaña ya enseña solo lo suyo. Lo
+   que abras se recuerda: que cueste un toque UNA vez, no cada vez. */
+/* Mismos valores que «.block > h2»: la línea que se pliega tiene que leerse
+   igual que los rótulos que no se pliegan, o el panel parece dos panales. */
+.plegable-bloque > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  margin:0 0 10px 2px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85;user-select:none}
+.plegable-bloque > summary::-webkit-details-marker{display:none}
+.plegable-bloque > summary::after{content:"";margin-left:auto;width:6px;height:6px;flex:none;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.plegable-bloque[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.plegable-bloque > summary:hover{color:var(--text);opacity:1}
+/* Sin desplegar, el bloque no deja un hueco de bloque entero detrás. */
+.plegable-bloque:not([open]){margin-bottom:10px}
 .block > h2{font-family:var(--ff-display);font-size:10.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--muted);margin:0 0 10px 2px;opacity:.85}
 .block-note{margin:0 0 10px;font-size:11.5px;line-height:1.45;color:var(--muted)}
@@ -822,6 +841,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     padding:6px 14px 12px;border-bottom:1px solid var(--line);
     background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
     font-family:var(--ff-display);font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  /* Aquí los bloques van SIEMPRE abiertos: la pestaña ya enseña un solo grupo.
+     Así que su línea vuelve a ser lo que era, un rótulo: ni se pulsa ni lleva
+     flecha. Sin esto se podía plegar «Materiales» de un toque y no había nada
+     que lo volviera a abrir. */
+  .plegable-bloque > summary{pointer-events:none;cursor:default}
+  .plegable-bloque > summary::after{display:none}
+
   .aside[data-grupo] .block{display:none}
   .aside[data-grupo="dibujar"] .block[data-grupo="dibujar"],
   .aside[data-grupo="colocar"] .block[data-grupo="colocar"],
@@ -1477,7 +1503,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
       <button class="tbtn" id="save" title="Guardar en este dispositivo" aria-label="Guardar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="hide-sm">Guardar</span></button>
       <button class="tbtn solo-ancho" id="open" title="Biblioteca de ejercicios" aria-label="Biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg><span class="hide-sm">Biblioteca</span></button>
-      <button class="tbtn solo-ancho" id="card-edit" title="Ficha del ejercicio" aria-label="Ficha del ejercicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="hide-sm">Ficha</span></button>
       <button class="tbtn primary solo-ancho" id="export" title="Exportar la pizarra o la jugada" aria-label="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
         <span class="hide-sm">Exportar</span>
@@ -1517,6 +1542,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c5 0 8-9 18-11"/><path d="M17 4l4 2-1 4"/></svg>Pase</button>
           <button class="tool" data-tool="run" title="Flecha de carrera, discontinua (S)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3.2 3"><path d="M3 17c5 0 8-9 18-11"/></svg>Carrera</button>
+        </div>
+        <!-- Las tres de siempre se quedan a la vista; las otras seis se usan
+             de vez en cuando y no tienen por qué ocupar sitio todo el rato.
+             En el móvil van abiertas: allí cada pestaña ya enseña solo lo suyo. -->
+        <details class="plegable-bloque" id="b-tools-mas" open>
+          <summary>Más herramientas</summary>
+          <div class="tools">
           <button class="tool" data-tool="dribble" title="Conducción del balón (D)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2-4 4 4 6 0s4 4 6 0 4 4 6 0"/></svg>Conducción</button>
           <button class="tool" data-tool="free" title="Línea libre (F)">
@@ -1529,11 +1561,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6"/></svg>Texto</button>
           <button class="tool" data-tool="eraser" title="Borrar trazos u objetos (E)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 20H5l-2-3 10-11 6 6-8 8z"/><path d="M20 20h-9"/></svg>Borrar</button>
-        </div>
+          </div>
+        </details>
       </div>
 
-      <div class="block" id="b-color" data-grupo="dibujar">
-        <h2>Color del trazo</h2>
+      <details class="block plegable-bloque" id="b-color" data-grupo="dibujar" open>
+        <summary>Color del trazo</summary>
         <div class="swatches">
           <button class="sw" data-color="#FFFFFF" style="background:#FFFFFF" aria-pressed="true" aria-label="Blanco"></button>
           <button class="sw" data-color="#F1C40F" style="background:#F1C40F" aria-label="Amarillo"></button>
@@ -1549,7 +1582,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           <button data-width="0.32" aria-pressed="true">Normal</button>
           <button data-width="0.48">Grueso</button>
         </div>
-      </div>
+      </details>
 
       <div class="block" id="b-teams" data-grupo="colocar">
         <h2>Jugadores y balón</h2>
@@ -1566,8 +1599,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
       </div>
 
-      <div class="block" id="b-forms" data-grupo="colocar">
-        <h2>Formaciones</h2>
+      <details class="block plegable-bloque" id="b-forms" data-grupo="colocar" open>
+        <summary>Formaciones</summary>
         <div class="stack">
           <select class="sel" id="form-home" aria-label="Formación del equipo local">
             <option value="">Colocar equipo local…</option>
@@ -1580,10 +1613,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <option>3-5-2</option><option>5-3-2</option><option>4-1-4-1</option>
           </select>
         </div>
-      </div>
+      </details>
 
-      <div class="block" id="b-mats" data-grupo="colocar">
-        <h2>Materiales</h2>
+      <details class="block plegable-bloque" id="b-mats" data-grupo="colocar" open>
+        <summary>Materiales</summary>
         <p class="block-note">Toca el campo para ir colocando. Con la pieza seleccionada, gírala arrastrando el tirador rojo o con los botones de giro.</p>
         <div class="mats">
           <button class="mat" data-place="cone" title="Cono" aria-label="Cono">
@@ -1617,10 +1650,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             <svg viewBox="0 0 32 32"><path d="M12 27V5" stroke="#DCE6F0" stroke-width="2.4" stroke-linecap="round"/><path d="M12 5l13 4.5L12 14z" fill="#E03B2F"/></svg>
           </button>
         </div>
-      </div>
+      </details>
 
-      <div class="block" id="b-view" data-grupo="campo">
-        <h2>Modalidad</h2>
+      <details class="block plegable-bloque" id="b-view" data-grupo="campo" open>
+        <summary>Modalidad</summary>
         <div class="seg" style="margin-bottom:9px">
           <button data-pitch="f11" aria-pressed="true">Fútbol 11</button>
           <button data-pitch="f7">Fútbol 7</button>
@@ -1636,16 +1669,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         </div>
         <p class="block-note" style="margin-top:9px">«Zona» encuadra los 32 × 22 m centrales, que es donde se monta casi cualquier ejercicio.</p>
         <label class="check"><input type="checkbox" id="snap"> Ajustar a rejilla de 0,5 m</label>
-      </div>
+      </details>
 
-      <div class="block" id="b-actions" data-grupo="mas">
-        <h2>Pizarra</h2>
+      <!-- En el escritorio estas son cinco acciones de vez en cuando —la
+           biblioteca y exportar ya están arriba—, así que se pliegan. En el
+           móvil son la pestaña «Más» entera y van abiertas. -->
+      <details class="block plegable-bloque" id="b-actions" data-grupo="mas" open>
+        <summary>Pizarra y jugada</summary>
         <div class="stack">
           <button class="row-btn solo-estrecho" id="open-row">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="6" height="13" rx="1.2"/><rect x="11.5" y="3.5" width="6" height="6" rx="1.2"/><path d="M11.5 12.5h6M11.5 15.5h6"/></svg>
             Biblioteca de ejercicios
           </button>
-          <button class="row-btn solo-estrecho" id="ficha-row">
+          <button class="row-btn" id="ficha-row">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="2.5" width="13" height="15" rx="1.8"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4"/></svg>
             Ficha del ejercicio
           </button>
@@ -1690,7 +1726,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             Ajustes
           </button>
         </div>
-      </div>
+      </details>
     </aside>
 
     <!-- ==================== CAMPO ==================== -->
@@ -15473,7 +15509,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       ask({ title: 'Usar la plantilla', message: 'Se sustituye lo que hayas escrito en la ficha, menos la categoría, la fecha y la sesión.', ok: 'Sustituir' })
         .then(function (si) { if (si) aplicaPlantilla(id); });
     });
-    $('#card-edit').addEventListener('click', function () { sheetClose(); openCard(); });
+    // La ficha salió de la barra: ahora su única entrada propia es la fila del
+    // panel, y su sitio de verdad es dentro de Guardar.
     $('#f-auto').addEventListener('click', autofillCard);
     // ---- Ajustes ----
     function pintaAjustes() {
@@ -15628,6 +15665,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     });
 
     window.addEventListener('resize', resize);
+    // Al pasar de escritorio a móvil (o al girar el teléfono) los bloques del
+    // panel tienen que volver a su sitio: plegados allí, abiertos aquí.
+    window.addEventListener('resize', ajustaBloquesDelPanel);
     window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
     if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas.parentNode);
@@ -15711,8 +15751,53 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
 
+  /* -------------------------------------------------------------------------
+     Los bloques plegables del panel.
+
+     En el escritorio el panel enseñaba los siete bloques a la vez: treinta y
+     nueve mandos en frío, que es de lo que se quejaba el encargo. Los cuatro
+     secundarios se pliegan ahí. En el móvil NO: la hoja ya enseña un solo
+     grupo por pestaña, y plegarlos costaría un toque de más en cada material.
+
+     Lo que abras se recuerda en los ajustes. Un entrenador que use los conos
+     todos los días los abre una vez, no una vez por sesión. */
+  var BLOQUES_PLEGABLES = ['b-tools-mas', 'b-color', 'b-forms', 'b-mats', 'b-view', 'b-actions'];
+
+  function esEscritorio() { return window.innerWidth > 900; }
+
+  /* Poner «open» desde aquí dispara el evento «toggle», igual que si lo hubiera
+     pulsado alguien. Sin esta bandera, abrir la aplicación en un escritorio
+     dejaba escritos en los ajustes cuatro bloques «cerrados» que nadie había
+     cerrado, y al abrirla luego en el móvil se leerían como una decisión. */
+  var ajustandoBloques = false;
+
+  function ajustaBloquesDelPanel() {
+    var abiertos = prefs().panel || {};
+    ajustandoBloques = true;
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (!d || d.tagName !== 'DETAILS') return;
+      d.open = !esEscritorio() || !!abiertos[id];
+    });
+    setTimeout(function () { ajustandoBloques = false; }, 0);
+  }
+
+  function recuerdaBloque(id, abierto) {
+    if (ajustandoBloques) return;         // no lo ha tocado nadie
+    if (!esEscritorio()) return;          // en el móvil van siempre abiertos
+    var p = prefs();
+    if (!p.panel) p.panel = {};
+    p.panel[id] = !!abierto;
+    guardaPrefs(p);
+  }
+
   function start() {
     wire();
+    ajustaBloquesDelPanel();
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (d) d.addEventListener('toggle', function () { recuerdaBloque(id, d.open); });
+    });
     cargaCatalogo();
     setupInstall();
     var saved = null;
