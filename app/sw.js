@@ -8,7 +8,14 @@
 
    Lo que no cambia nunca (tipografías e iconos) sí sale de la copia primero,
    que para eso es lo que hace que la aplicación abra al instante. */
-var CACHE = 'pizarra-tactica-v13';   // v13: entra graficos.js
+/* El nombre de esta llave es lo ÚNICO que hace que a quien ya tiene la
+   aplicación abierta le llegue una versión nueva: si no cambia, el service
+   worker le sigue sirviendo su copia y no ve nada. No es papeleo. Se sube
+   siempre que cambie cualquier archivo de SHELL, aunque sea una línea de CSS.
+   Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
+   arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
+   hubiera abierto. */
+var CACHE = 'pizarra-tactica-v14';   // v14: la cabecera de la hoja, opaca
 
 var SHELL = [
   './',
