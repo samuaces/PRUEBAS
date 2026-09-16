@@ -606,6 +606,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-cuenta{font-size:12px;color:var(--muted)}
 .lib-nota{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted);opacity:.85}
 .lib-nota:empty{display:none}
+/* Entrar desde aquí es una acción, no el final de la frase: va en su renglón,
+   sin el punto volado colgando del anterior. */
+#lib-entrar{display:block;margin-top:6px;padding:0;text-align:left}
 .lib-vacio{padding:26px 18px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6}
 .lib-vacio b{display:block;color:var(--text);font-family:var(--ff-display);font-size:15px;margin-bottom:6px}
 

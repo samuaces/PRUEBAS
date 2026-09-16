@@ -817,6 +817,46 @@ async function run(w,d){
     fr.style.width='';await wait(320);
     ok('en Pizarra el botón de la cuenta cabe en la barra a cualquier ancho de móvil',
        apretados.length===0,apretados.join(' · ')||'430·390·360·320 px');
+
+    /* Cabe el botón, pero NO la palabra: por debajo de 430 px la barra se
+       queda sin sitio y «Entrar» se esconde. Entonces la única puerta es una
+       silueta muda que además se parece al icono del modo Equipo. Así que en
+       el móvil tiene que haber, en alguna parte, una puerta con su nombre
+       escrito. Se comprueba lo que importa —que se pueda leer y que lleve a la
+       cuenta—, no dónde está puesta. */
+    fr.style.width='390px';await wait(400);
+    var palabraArriba=d.getElementById('cuenta-btn-txt');
+    var seLeeArriba=palabraArriba&&palabraArriba.offsetParent!==null;
+    d.querySelector('.tab[data-section="b-actions"]').click();await wait(500);
+    var fila=d.getElementById('cuenta-row');
+    var seLeeAbajo=!!(fila&&fila.offsetParent!==null&&/entrar/i.test(fila.textContent));
+    ok('en el móvil se entra desde un sitio que dice «entrar», no solo desde un icono',
+       seLeeArriba||seLeeAbajo,
+       'arriba: '+seLeeArriba+' · en el panel: '+(fila?fila.textContent.trim():'no hay'));
+    if(seLeeAbajo){
+      fila.click();await wait(450);
+      ok('y esa puerta abre la cuenta de verdad',d.getElementById('dlg-cuenta').open);
+      if(d.getElementById('dlg-cuenta').open)d.querySelector('#dlg-cuenta [data-close]').click();
+      await wait(250);
+    }
+    // Desde la biblioteca, «Mías» sin sesión también ofrece entrar sin salir a buscarlo.
+    d.getElementById('open').click();await wait(1100);
+    d.querySelectorAll('.lib-tab')[1].click();await wait(500);
+    var desdeLib=d.getElementById('lib-entrar');
+    ok('y en «Mías», donde viene a cuento, se entra sin salir a buscar el botón',
+       !!(desdeLib&&desdeLib.offsetParent!==null),
+       d.getElementById('lib-nota').textContent.slice(0,90));
+    if(desdeLib){
+      desdeLib.click();await wait(500);
+      ok('y ahí también abre la cuenta',d.getElementById('dlg-cuenta').open);
+      if(d.getElementById('dlg-cuenta').open)d.querySelector('#dlg-cuenta [data-close]').click();
+      await wait(250);
+    }
+    /* Se deja la biblioteca como estaba: abierta y en la general. Lo que viene
+       después cuenta con ella así, y «entrar» la cierra a propósito. */
+    if(!d.getElementById('dlg-lib').open){d.getElementById('open').click();await wait(1100);}
+    else{d.querySelectorAll('.lib-tab')[0].click();await wait(500);}
+    fr.style.width='';await wait(350);
     // Y lo que bajó a la hoja para dejarle sitio sigue llegando a su sitio.
     ok('y la Biblioteca, que bajó a la hoja, sigue teniendo su fila',
        !!d.getElementById('open-row'));

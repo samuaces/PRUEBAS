@@ -2663,6 +2663,15 @@
     // Y la fila de Ajustes, que lleva al mismo sitio, dice lo mismo.
     var fila = $('#cfg-cuenta-txt');
     if (fila) fila.textContent = dentro ? (yo.email || 'Tu cuenta') : 'Entrar o crear una cuenta';
+
+    /* Y la del panel, que en el móvil es la única que lleva la palabra escrita:
+       arriba no cabe y se queda en una silueta que nadie relaciona con entrar. */
+    var enPanel = $('#cuenta-row-txt');
+    if (enPanel) {
+      enPanel.textContent = dentro
+        ? 'Tu cuenta · ' + (yo.nombre ? yo.nombre.split(/\s+/)[0] : (yo.email || ''))
+        : 'Entrar con tu correo';
+    }
   }
 
   /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
@@ -3101,8 +3110,8 @@
   function notaBiblioteca() {
     if (libFiltros.origen === 'mia') {
       if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
-      if (!yo) return 'Lo guardado se queda en este dispositivo · entra con tu correo ' +
-                      'desde el botón de arriba para tener los tuyos en cualquier sitio';
+      if (!yo) return 'Lo guardado se queda en este dispositivo · para tenerlo en ' +
+                      'cualquier sitio hace falta una cuenta';
       return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
     }
     var partes = ['Los que trae la aplicación'];
@@ -3160,6 +3169,19 @@
       b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
     });
     $('#lib-nota').textContent = notaBiblioteca();
+    /* «Entrar desde el botón de arriba» decía dónde estaba la puerta, pero con
+       el diálogo abierto ese botón ni se ve: había que cerrar la biblioteca,
+       buscar una silueta y volver. Se entra desde aquí, que es donde acaba de
+       venir a cuento. */
+    if (libFiltros.origen === 'mia' && hayNube && !yo) {
+      var entrar = document.createElement('button');
+      entrar.type = 'button';
+      entrar.className = 'linkish';
+      entrar.id = 'lib-entrar';
+      entrar.textContent = 'Entrar con tu correo';
+      entrar.addEventListener('click', function () { $('#dlg-lib').close(); abreCuenta(false); });
+      $('#lib-nota').appendChild(entrar);
+    }
 
     grid.innerHTML = '';
     preparaMiniObs(grid);      // observador nuevo en cada repintado, sin dejar el viejo suelto
@@ -5694,6 +5716,9 @@
     if (!hayNube) {
       $('#cuenta-btn').closest('.group').hidden = true;
       $('#cfg-cuenta-bloque').hidden = true;
+      // La del panel, por lo mismo: es la misma puerta, y sin servidor detrás
+      // no da a ninguna parte. Es justo el caso del archivo suelto.
+      $('#cuenta-row').hidden = true;
     }
 
     if (hayNube) {
@@ -5710,6 +5735,7 @@
         if (!yo) setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 120);
       };
       $('#cuenta-btn').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
+      $('#cuenta-row').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
       $('#cfg-cuenta').addEventListener('click', function () { abreCuenta(false); });
 
       // Entrar y registrarse son dos cosas distintas y se piden por separado.
