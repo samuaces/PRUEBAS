@@ -1156,6 +1156,45 @@ async function run(w,d){
     ok('ningún apartado se queda sin pestaña que lo abra',huerfanos.length===0,
        huerfanos.join(', ')||Object.keys(grupos).length+' apartados, todos alcanzables');
   })();
+  /* --- las cabeceras pegadas de la hoja ---------------------------------
+
+     Lo que se desplaza tiene que pasar POR DETRÁS del asa y del título, no
+     entre los dos. Salió en un iPhone de verdad: al bajar por «Colocar»,
+     «+ Local» y «+ Visitante» asomaban como dos manchas de color detrás del
+     título. Eran dos capas translúcidas solapadas 18 px, porque el título se
+     pegaba a un 26 fijo y el asa había crecido a 44 en otra tanda.
+
+     Por eso esta prueba NO comprueba que el título esté a 26 ni a 44: comprueba
+     que se pegue justo donde acaba el asa, sea cual sea el alto del asa. Un
+     número copiado a mano en dos sitios es el fallo, no la solución. */
+  abrePestana('b-teams');await wait(400);
+  (function(){
+    var hoja=d.querySelector('.aside');
+    var asa=d.getElementById('sheet-grab'), tit=d.getElementById('sheet-tit');
+    hoja.scrollTop=150;
+    return new Promise(function(res){setTimeout(res,350);});
+  })();
+  await wait(400);
+  (function(){
+    var hoja=d.querySelector('.aside');
+    var asa=d.getElementById('sheet-grab'), tit=d.getElementById('sheet-tit');
+    var ra=asa.getBoundingClientRect(), rt=tit.getBoundingClientRect();
+    ok('con la hoja desplazada, el título no se mete dentro del asa',
+       rt.top >= ra.bottom - 0.6,
+       'asa acaba en '+Math.round(ra.bottom)+' y el título empieza en '+Math.round(rt.top));
+    /* Y las dos tapan de verdad. Translúcidas dejaban ver el botón de debajo:
+       no es un matiz de estilo, es que se ve otra cosa a través del título. */
+    var opaca=function(e){
+      var c=w.getComputedStyle(e).backgroundColor;
+      var m=c.match(/[\d.]+/g)||[];
+      return m.length<4 || Number(m[3])===1;};
+    ok('y tapan lo que pasa por debajo en vez de dejarlo asomar',
+       opaca(asa)&&opaca(tit),
+       w.getComputedStyle(asa).backgroundColor+' · '+w.getComputedStyle(tit).backgroundColor);
+    hoja.scrollTop=0;
+  })();
+  await wait(250);
+
   ok('hay una pestaña por apartado, ni más ni menos',
      d.querySelectorAll('.tab[data-section]').length===4,
      d.querySelectorAll('.tab[data-section]').length);

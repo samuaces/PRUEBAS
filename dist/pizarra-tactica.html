@@ -36,6 +36,12 @@
   --glass-3:rgba(255,255,255,.13);
   --bar:rgba(10,14,21,.74);          /* barras fijas */
   --panel:rgba(13,18,27,.82);        /* hoja y diálogos */
+  /* El mismo color de la hoja, pero sin dejar pasar nada. Es para lo que se
+     queda pegado arriba mientras se desplaza lo de debajo: ahí la traslucidez
+     no es un adorno, es contenido colándose por detrás del título. Va al lado
+     de «--panel» para que los dos se muevan juntos; si alguna vez cambia el
+     color de la hoja, se cambian los dos o se ve la costura. */
+  --panel-solido:#0D121B;
   --sheen:rgba(255,255,255,.10);     /* filo de luz del canto superior */
   --well:rgba(4,7,11,.55);           /* hueco hundido: campos de texto */
   --blur:blur(24px) saturate(150%);
@@ -125,7 +131,7 @@
 }
 /* Quien haya pedido menos transparencias en el sistema, no las tiene. */
 @media (prefers-reduced-transparency:reduce){
-  :root{--bar:var(--bg-2);--panel:var(--surface);--glass:var(--surface);
+  :root{--bar:var(--bg-2);--panel:var(--surface);--panel-solido:var(--surface);--glass:var(--surface);
         --glass-2:var(--surface-2);--glass-3:var(--surface-3);--blur:none;--well:var(--surface-2)}
 }
 
@@ -968,9 +974,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     transition:transform .3s var(--ease);
   }
   .aside.open{transform:none}
-  /* Las cabeceras de la hoja se quedan pegadas arriba. Difuminan lo que pasa
-     por debajo en vez de taparlo con un color liso: si no, sobre un panel de
-     cristal se verían como un parche opaco. */
+  /* Las cabeceras de la hoja se quedan pegadas arriba mientras se desplaza lo
+     de dentro. Esto estuvo mal y se veía en un iPhone de verdad: al bajar por
+     «Colocar», los botones «+ Local» y «+ Visitante» aparecían como dos
+     manchas de color rojo y azul detrás del título, y el borde de arriba de la
+     hoja quedaba sucio.
+
+     Eran dos cosas a la vez, y la primera es culpa mía:
+
+     EL SOLAPE. El asa se pega a 0 y mide 44 px; el título se pegaba a 26. Al
+     subir el asa de 34 a 44 px en la tanda de la escala, el título pasó a
+     meterse DENTRO del asa: 18 px de una capa translúcida encima de otra
+     translúcida, con el contenido colándose entre las dos. Ahora el título se
+     pega justo donde acaba el asa, sin inventarse el número: var(--touch).
+
+     LA TRANSPARENCIA. Las dos cabeceras iban al 72 % y con su propio
+     «backdrop-filter». Ese difuminado de dentro no difumina el campo —de eso ya
+     se encarga la hoja entera—, difumina EL CONTENIDO DE LA PROPIA HOJA que
+     pasa por debajo, y un botón rojo difuminado al 28 % de visibilidad no
+     desaparece: se convierte en una mancha roja.
+
+     Probé a subirlas al 96 % para conservar el cristal, y NO valió: un 4 % de
+     un botón saturado sobre un fondo casi negro todavía se ve, y se ve la forma
+     del botón, que es lo que lo delata. Van opacas, con el color de la hoja.
+
+     Lo que este comentario decía antes —que opacas se verían como un parche
+     sobre una hoja de cristal— resultó no ser verdad al mirarlo: la hoja ya va
+     al 82 % sobre un campo difuminado, y la diferencia entre el 82 y el 100 en
+     una tira de arriba no se distingue. Lo que sí se distinguía era el botón
+     rojo asomando. Se quita también el difuminado de dentro, que ya no pinta
+     nada y en un teléfono se paga caro. */
   /* El asa se puede arrastrar, así que el navegador no debe quedarse con el
      gesto para desplazar: lo lleva la aplicación. */
   /* El asa es lo que se agarra para cerrar la hoja de un gesto, y con 26 px de
@@ -978,9 +1011,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      hoja: sin dejar de mirar el campo. */
   /* El tirador se arrastra y se pulsa para cerrar: 34 px era poco para las dos
      cosas, y encima es lo primero que toca el pulgar al subir la hoja. */
-  .sheet-grab{display:block;position:sticky;top:0;z-index:2;touch-action:none;
-    width:100%;height:var(--touch);margin-bottom:2px;border:0;border-radius:var(--r5) var(--r5) 0 0;
-    background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  .sheet-grab{display:block;position:sticky;top:0;z-index:3;touch-action:none;
+    width:100%;height:var(--touch);margin-bottom:2px;border:0;
+    border-radius:var(--r5) var(--r5) 0 0;
+    background:var(--panel-solido)}
   /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
      dedo. La clase la pone y la quita el gesto. */
   .aside.arrastrando{transition:none}
@@ -989,10 +1023,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   /* Cada pestaña enseña su sección y esconde el resto: si abres «Material»,
      ves material, no un panel con todo dentro. */
-  .sheet-tit{display:block;position:sticky;top:26px;z-index:2;margin:0 -14px 12px;
-    padding:6px 14px 12px;border-bottom:1px solid var(--line);
-    background:rgba(13,18,27,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  /* Pegado justo donde acaba el asa, no 18 px dentro de ella. */
+  .sheet-tit{display:block;position:sticky;top:var(--touch);z-index:2;
+    margin:0 -14px 12px;padding:6px 14px 12px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel-solido);
     font-family:var(--ff-display);font-size:var(--t-lg);font-weight:700;letter-spacing:-.01em}
+  /* Y una sombra corta por debajo del título, para que lo que se desplaza se
+     disuelva al pasar por detrás en vez de cortarse contra un canto. Es lo que
+     hace que se lea como «hay más cosas arriba» y no como una costura. */
+  .sheet-tit::after{content:"";position:absolute;left:0;right:0;top:100%;
+    height:14px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(13,18,27,.55),rgba(13,18,27,0))}
   /* Aquí los bloques van SIEMPRE abiertos: la pestaña ya enseña un solo grupo.
      Así que su línea vuelve a ser lo que era, un rótulo: ni se pulsa ni lleva
      flecha. Sin esto se podía plegar «Materiales» de un toque y no había nada
