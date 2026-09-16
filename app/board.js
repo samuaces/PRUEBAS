@@ -3644,13 +3644,25 @@
 
     var lista = PTEquipo.diario();
     var meses = PTEquipo.porMeses(lista);
-    var totalEj = 0, totalMin = 0;
-    lista.forEach(function (s) { totalEj += s.ejercicios.length; totalMin += s.minutos; });
+    /* La cuenta de arriba es de lo ENTRENADO, y una sesión que aún no ha
+       llegado no se ha entrenado. Sumarla aquí decía «60 min esta temporada»
+       cuando 45 eran de un domingo que todavía no ha pasado: el mismo fallo que
+       en las estadísticas, pero en una frase suelta que nadie vuelve a mirar.
+       Las planificadas se cuentan aparte y se dicen aparte. */
+    var totalEj = 0, totalMin = 0, hechas = 0, planes = 0;
+    lista.forEach(function (s) {
+      if (s.futura) { planes++; return; }
+      hechas++;
+      totalEj += s.ejercicios.length;
+      totalMin += s.minutos;
+    });
 
-    var trozos = [lista.length + (lista.length === 1 ? ' sesión' : ' sesiones')];
+    var trozos = [];
+    if (hechas) trozos.push(hechas + (hechas === 1 ? ' sesión' : ' sesiones'));
     if (totalEj) trozos.push(totalEj + (totalEj === 1 ? ' ejercicio' : ' ejercicios'));
     if (totalMin) trozos.push(totalMin + ' min');
-    $('#ses-resumen').textContent = lista.length
+    if (planes) trozos.push(planes + (planes === 1 ? ' planificada' : ' planificadas'));
+    $('#ses-resumen').textContent = trozos.length
       ? 'Temporada ' + PTEquipo.temporadaActual() + ': ' + trozos.join(' · ')
       : 'Temporada ' + PTEquipo.temporadaActual() + ', todavía sin sesiones.';
 
@@ -3668,16 +3680,24 @@
       caja.appendChild(ul);
     });
 
+    /* El selector arranca en hoy. Vacío enseñaba el «mm/dd/yyyy» del navegador,
+       que además sale en el formato de su idioma y no en el de quien mira. Con
+       hoy puesto se ve de qué fecha se parte y el hueco deja de ser un cartel. */
+    $('#ses-dia').value = PTEquipo.hoyISO();
+
     $('#ses-nota').textContent = lista.length
-      ? 'Cada sesión es un día. Todo se queda en este dispositivo.'
+      ? 'Cada sesión es un día. Puedes dejar preparadas las que vienen y ' +
+        'rellenar las de atrás que no apuntaste. Todo se queda en este dispositivo.'
       : 'Una sesión es un día de entrenamiento: quién vino y qué hicisteis. ' +
-        'Empieza por la de hoy, o guarda un ejercicio desde la pizarra y se apunta solo.';
+        'Empieza por la de hoy, elige otro día para dejarlo preparado, o guarda ' +
+        'un ejercicio desde la pizarra y se apunta solo.';
   }
 
   function filaSesion(s) {
     var hoy = PTEquipo.hoyISO();
     var li = document.createElement('li');
-    li.className = 'ses-dia' + (s.fecha === hoy ? ' es-hoy' : '');
+    li.className = 'ses-dia' + (s.fecha === hoy ? ' es-hoy' : '') +
+                   (s.futura ? ' es-plan' : '');
 
     var b = document.createElement('button');
     b.type = 'button';
@@ -3701,9 +3721,13 @@
 
     var sub = document.createElement('small');
     var t = [];
+    /* Lo primero que se dice de un día que aún no ha llegado es que no ha
+       llegado: leído en una lista que va de lo más nuevo a lo más viejo, si no
+       se dijera parecería que ya se entrenó. */
+    if (s.futura) t.push('Planificada');
     if (s.ejercicios.length) t.push(s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
     if (s.minutos) t.push(s.minutos + ' min');
-    if (s.hayAsistencia) t.push(s.presentes.length + (s.presentes.length === 1 ? ' jugador' : ' jugadores'));
+    if (!s.futura && s.hayAsistencia) t.push(s.presentes.length + (s.presentes.length === 1 ? ' jugador' : ' jugadores'));
     sub.textContent = t.join(' · ') || 'Nada apuntado todavía';
     med.appendChild(sub);
     b.appendChild(med);
@@ -3739,6 +3763,17 @@
        hace dos semanas es mandarlo a otro sitio a hacer otra cosa. */
     var asis = $('#ses-asis');
     asis.textContent = '';
+    /* Un día que aún no ha llegado no se pasa lista: no ha venido nadie. Pedirlo
+       sería pedir que te inventes la asistencia, y esa lista es de la que salen
+       después los minutos de cada uno. */
+    if (s.futura) {
+      asis.appendChild(document.createTextNode(
+        'Está por llegar: queda apuntada como plan. Cuando llegue el día podrás ' +
+        'pasar lista, y hasta entonces no cuenta como entrenada.'));
+      pintaEjerciciosDeSesion(s);
+      pintaPieDeSesion(s);
+      return;
+    }
     asis.appendChild(document.createTextNode(s.hayAsistencia
       ? 'Vinieron ' + s.presentes.length +
         (s.presentes.length === 1 ? ' jugador' : ' jugadores') + '. '
@@ -3758,7 +3793,13 @@
     }
 
     pintaEjerciciosDeSesion(s);
+    pintaPieDeSesion(s);
+  }
 
+  /* El pie del detalle. Sacado a su función porque ahora hay dos caminos que
+     llegan a él: el día normal y el que todavía no ha llegado, que se salta
+     todo lo de la asistencia. */
+  function pintaPieDeSesion(s) {
     var pie = [];
     if (s.ejercicios.length) {
       pie.push(s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
@@ -3767,7 +3808,7 @@
     }
     $('#ses-pie').textContent = pie.length ? pie.join(' · ')
       : 'Escribe uno a mano o tráelo de la biblioteca. Los que guardes desde la ' +
-        'pizarra marcando «hecho hoy» entran aquí solos.';
+        'pizarra marcando «añadir a una sesión» entran aquí solos.';
     $('#ses-imprimir').disabled = !s.ejercicios.length;
   }
 
@@ -5845,12 +5886,13 @@
       nota.hidden = true;
     }
 
+    $('#save-dia').value = PTEquipo.hoyISO();   // hoy de salida, que es lo normal
     saveElegidos = PTEquipo.presentesHoy();
     $('#save-part-plantilla').checked = false;
     $('#save-part-caja').hidden = true;
     $('#save-hoy').checked = true;
-    $('#save-hoy-fecha').textContent = diaLargo(PTEquipo.hoyISO());
-    pintaParticipantes();
+    $('#save-dia-fila').hidden = false;
+    pintaDiaDeLaHoja();
 
     /* Sin plantilla montada no hay a quién apuntárselo: el plegable entero
        sobra. La ficha NO: esa vale con plantilla y sin ella. */
@@ -5926,6 +5968,42 @@
     olvidaMini('mia:' + name);
     toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
     return true;
+  }
+
+  /* El día al que se apunta lo que estás guardando. Casi siempre es hoy y por
+     eso viene puesto, pero no siempre: se dibuja el domingo el ejercicio que se
+     hizo el jueves, y se prepara en agosto el de septiembre. */
+  function diaDeLaHoja() {
+    var v = $('#save-dia').value;
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : PTEquipo.hoyISO();
+  }
+
+  function pintaDiaDeLaHoja() {
+    var dia = diaDeLaHoja();
+    var hoy = dia === PTEquipo.hoyISO();
+    var futura = dia > PTEquipo.hoyISO();
+
+    var t = $('#save-sesion-t');
+    if (t) t.textContent = hoy ? 'Añadir a la sesión de hoy'
+      : futura ? 'Añadir a la sesión del ' + diaLargo(dia, true) + ' (aún por llegar)'
+               : 'Añadir a la sesión del ' + diaLargo(dia, true);
+
+    /* Quién lo hizo no se puede contestar de un día que no ha llegado: nadie ha
+       venido todavía. Se esconde en vez de pedirlo, y se dice por qué, que si
+       no parece que falte algo. */
+    $('#save-part-t').hidden = futura || !$('#save-hoy').checked;
+    if (futura) $('#save-part-caja').hidden = true;
+    var aviso = $('#save-dia-nota');
+    if (aviso) {
+      aviso.hidden = !futura;
+      aviso.textContent = futura
+        ? 'Es un día que aún no ha llegado: queda apuntado como plan y no cuenta ' +
+          'como entrenado hasta que pase. Quién vino se apunta el día que sea.'
+        : '';
+    }
+    // Los que vinieron ESE día, no los de hoy.
+    if (!futura) saveElegidos = PTEquipo.presentesDe(dia);
+    pintaParticipantes();
   }
 
   function pintaParticipantes() {
@@ -6222,6 +6300,7 @@
       this.textContent = caja.hidden ? 'cambiar' : 'listo';
     });
     $('#save-part-plantilla').addEventListener('change', pintaParticipantes);
+    $('#save-dia').addEventListener('change', pintaDiaDeLaHoja);
     $('#save-part-todos').addEventListener('click', function () {
       var deHoy = $('#save-part-plantilla').checked
         ? PTEquipo.jugadores().map(function (j) { return j.id; })
@@ -6234,9 +6313,10 @@
       pintaParticipantes();
     });
     $('#save-hoy').addEventListener('change', function () {
-      // Si no se apunta como hecho, a quién se lo apuntas no viene a cuento.
+      // Si no se apunta en ninguna sesión, ni el día ni a quién vienen a cuento.
       var pon = this.checked;
-      $('#save-part-t').hidden = !pon;
+      $('#save-dia-fila').hidden = !pon;
+      $('#save-part-t').hidden = !pon || diaDeLaHoja() > PTEquipo.hoyISO();
       if (!pon) { $('#save-part-caja').hidden = true; $('#save-part-cambiar').textContent = 'cambiar'; }
     });
     /* El único guardado que hay. Lo escrito en la ficha se compromete AQUÍ, no
@@ -6252,7 +6332,8 @@
 
       if (hayPlantilla && $('#save-hoy').checked) {
         var card = doc.card || {};
-        var r = PTEquipo.apuntaHecho(PTEquipo.hoyISO(), {
+        var dia = diaDeLaHoja();
+        var r = PTEquipo.apuntaHecho(dia, {
           // El nombre que acaba de escribir, no el de la ficha. Si no coinciden
           // —y muchas veces no coinciden— ver en la sesión un título distinto
           // del que acabas de teclear no se entiende.
@@ -6260,12 +6341,15 @@
           momento: card.momento || '',
           duracion: card.duracion || '',
           ref: { de: 'guardado', nombre: nombre },
-          quienes: saveElegidos.slice()
+          // De un día por llegar no se apunta quién vino: todavía no ha venido
+          // nadie, y «apuntaHecho» tomaría esa lista por la asistencia del día.
+          quienes: dia > PTEquipo.hoyISO() ? [] : saveElegidos.slice()
         });
         if (!r.ok) {
+          var cual = dia === PTEquipo.hoyISO() ? 'de hoy' : 'del ' + diaLargo(dia, true);
           toast(r.porque === 'tope'
-            ? 'La sesión de hoy ya lleva ' + PTEquipo.TOPE_EJERCICIOS + ' ejercicios'
-            : 'Guardada, pero no ha podido apuntarse en la sesión de hoy');
+            ? 'La sesión ' + cual + ' ya lleva ' + PTEquipo.TOPE_EJERCICIOS + ' ejercicios'
+            : 'Guardada, pero no ha podido apuntarse en la sesión ' + cual);
         } else if (modo === 'equipo') {
           pintaSesiones();
         }
@@ -6333,6 +6417,14 @@
       });
     })();
     $('#ses-hoy').addEventListener('click', function () { abreSesion(PTEquipo.hoyISO()); });
+    /* Ir a un día cualquiera. El día de hoy sigue estando a un toque en su
+       botón —es el caso de casi siempre—; esto es para el martes que viene y
+       para el jueves pasado que no llegaste a apuntar. */
+    $('#ses-dia').addEventListener('change', function () {
+      var f = this.value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return;
+      abreSesion(f);
+    });
     $('#ses-volver').addEventListener('click', vaAlDiario);
     /* Se guarda mientras se escribe, no al salir del campo.
 

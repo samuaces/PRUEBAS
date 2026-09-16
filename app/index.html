@@ -426,7 +426,15 @@
   <div id="ses-diario">
     <div class="ses-cabeza">
       <p class="stats-resumen" id="ses-resumen"></p>
-      <button type="button" class="tbtn primary" id="ses-hoy">La sesión de hoy</button>
+      <div class="ses-ir">
+        <button type="button" class="tbtn primary" id="ses-hoy">La sesión de hoy</button>
+        <!-- Cualquier día, el que sea: el martes que viene para dejarlo
+             preparado, o el jueves pasado que no llegaste a apuntar. El almacén
+             aceptaba fechas cualesquiera desde el principio; lo que no había
+             era por dónde llegar a un día que todavía no existe. -->
+        <label class="field campo-fecha ses-otro"><span>Ir a otro día</span>
+          <input type="date" id="ses-dia" aria-label="Ir a la sesión de otro día"></label>
+      </div>
     </div>
     <div id="ses-meses"></div>
     <p class="block-note" id="ses-nota"></p>
@@ -1078,7 +1086,12 @@
       <div class="plegable-caja">
     <div id="save-part">
       <label class="check check-fila"><input type="checkbox" id="save-hoy" checked>
-        <span>Apuntarlo como hecho hoy, <span id="save-hoy-fecha"></span></span></label>
+        <span>Apuntarlo en una sesión</span></label>
+      <!-- Con su día, que no siempre es hoy: se dibuja el domingo el ejercicio
+           que se hizo el jueves, y se prepara en agosto el de septiembre. -->
+      <label class="field campo-fecha save-dia" id="save-dia-fila"><span>El día</span>
+        <input type="date" id="save-dia" aria-label="Día de la sesión"></label>
+      <p class="block-note" id="save-dia-nota" hidden></p>
       <p class="save-part-t" id="save-part-t">
         <span id="save-part-cuenta"></span>
         <button type="button" class="linkish" id="save-part-cambiar">cambiar</button>
