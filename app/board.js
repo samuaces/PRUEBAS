@@ -36,7 +36,13 @@
   var ZONA = { L: 32, W: 22 };
 
   function viewRect() {
-    var P = PITCH(), m = Math.max(2.5, P.L * 0.05);
+    /* El margen de fuera de banda: sitio para dejar un cono, un maniquí o una
+       ficha fuera del campo. Era el 5 % del largo por cada lado, o sea que el
+       campo solo ocupaba el 91 % de lo dibujado a lo ancho y el 87 % a lo alto.
+       En un escritorio no se nota; en un teléfono instalado como aplicación,
+       con las franjas del sistema comiéndose 93 px, sí. Al 3,5 % sigue
+       cabiendo lo de fuera y el campo se ve un 4 % más grande. */
+    var P = PITCH(), m = Math.max(2.2, P.L * 0.035);
     if (doc.view === 'area') {
       var zl = Math.min(ZONA.L, P.L), zw = Math.min(ZONA.W, P.W), z = 2;
       return {
@@ -58,19 +64,29 @@
   // Geometría de cada tipo de objeto, en metros.
   // Como en cualquier pizarra táctica, las piezas se dibujan algo más grandes que
   // en la realidad: si no, un cono junto a una ficha de jugador sería invisible.
+  /* Los tamaños van en metros de campo, pero no son medidas literales: un
+     jugador de radio 1,45 m mediría casi tres metros de ancho. Son fichas, y
+     su tamaño está elegido para que se vean y se puedan coger.
+
+     Se subieron un escalón —entre un 15 % y un 25 %, más en lo pequeño de pie:
+     picas, conos y banderines— porque en un móvil, con el campo entero en
+     pantalla, las piezas chicas quedaban en cuatro píxeles y arrastrarlas era
+     un ejercicio de puntería. Las porterías y la escalera NO se tocan: esas sí
+     son medidas de verdad (7,32 m es una portería reglamentaria) y agrandarlas
+     sería mentir sobre el espacio que ocupan en el campo. */
   var KIND = {
-    player:   { r: 1.45,               rot: false, label: 'Jugador' },
-    ball:     { r: 0.85,               rot: false, label: 'Balón' },
-    cone:     { r: 0.95,               rot: true,  label: 'Cono' },
-    disc:     { r: 1.00,               rot: true,  label: 'Chino' },
+    player:   { r: 1.70,               rot: false, label: 'Jugador' },
+    ball:     { r: 0.98,               rot: false, label: 'Balón' },
+    cone:     { r: 1.18,               rot: true,  label: 'Cono' },
+    disc:     { r: 1.20,               rot: true,  label: 'Chino' },
     goal:     { w: 7.32, h: 2.0,       rot: true,  label: 'Portería' },
     minigoal: { w: 4.5,  h: 1.8,       rot: true,  label: 'Portería pequeña' },
-    hurdle:   { w: 2.2,  h: 1.1,       rot: true,  label: 'Valla' },
+    hurdle:   { w: 2.6,  h: 1.3,       rot: true,  label: 'Valla' },
     ladder:   { w: 7.0,  h: 1.6,       rot: true,  label: 'Escalera' },
-    pole:     { r: 0.75,               rot: true,  label: 'Pica' },
-    dummy:    { w: 1.4,  h: 2.1,       rot: true,  label: 'Maniquí' },
-    ring:     { r: 1.2,                rot: true,  label: 'Aro' },
-    flag:     { r: 1.00,               rot: true,  label: 'Banderín' },
+    pole:     { r: 0.94,               rot: true,  label: 'Pica' },
+    dummy:    { w: 1.7,  h: 2.5,       rot: true,  label: 'Maniquí' },
+    ring:     { r: 1.42,               rot: true,  label: 'Aro' },
+    flag:     { r: 1.22,               rot: true,  label: 'Banderín' },
     text:     { r: 1.2,                rot: true,  label: 'Texto' }
   };
 
@@ -407,7 +423,7 @@
   function resize() {
     var stage = canvas.parentNode;
     // clientWidth/Height del contenedor: no lo influye el propio canvas, que va absoluto.
-    var pad = 8;
+    var pad = 4;                 // el mismo que el relleno de .stage en el móvil
     CW = Math.max(240, stage.clientWidth - pad * 2);
     CH = Math.max(200, stage.clientHeight - pad * 2);
     var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -1178,18 +1194,36 @@
   // bastante más que su base, así que se dejan tocar con un poco más de margen.
   var DE_PIE = { cone: 1, pole: 1, flag: 1 };
 
+  /* La holgura para acertar con una pieza estaba escrita en METROS de campo, y
+     eso la volvía inútil justo cuando más falta hace. Con el campo entero en la
+     pantalla de un móvil, 0,35 m son dos o tres píxeles: hay que dar en el
+     centro exacto de una pica para poder arrastrarla. Un dedo no apunta así.
+
+     Ahora la holgura tiene además un suelo en PÍXELES DE PANTALLA, que es la
+     unidad en la que vive el dedo, y se convierte a metros con la escala del
+     momento. Alejado, el margen crece; ampliado, manda la medida en metros y
+     las piezas siguen sin robarse el toque unas a otras. */
+  var DEDO_PX = 13;                    // radio extra mínimo, en píxeles
+
+  function holguraEnMetros(minimoEnMetros) {
+    var enMetros = T.s > 0 ? DEDO_PX / T.s : 0;
+    return Math.max(minimoEnMetros, enMetros);
+  }
+
   function hitObject(m) {
     var a = frame().objects;
     for (var i = a.length - 1; i >= 0; i--) {
       var o = a[i], k = dims(o);
       if (k.r != null) {
-        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + (DE_PIE[o.kind] ? 0.75 : 0.35)) return o;
+        var h = holguraEnMetros(DE_PIE[o.kind] ? 0.75 : 0.35);
+        if (Math.hypot(m.x - o.x, m.y - o.y) <= k.r + h) return o;
       } else {
+        var hc = holguraEnMetros(0.3);
         var ang = -(o.rot || 0) * Math.PI / 180;
         var dx = m.x - o.x, dy = m.y - o.y;
         var lx = dx * Math.cos(ang) - dy * Math.sin(ang);
         var ly = dx * Math.sin(ang) + dy * Math.cos(ang);
-        if (Math.abs(lx) <= k.w / 2 + 0.3 && Math.abs(ly) <= k.h / 2 + 0.3) return o;
+        if (Math.abs(lx) <= k.w / 2 + hc && Math.abs(ly) <= k.h / 2 + hc) return o;
       }
     }
     return null;
@@ -1732,8 +1766,12 @@
     add.setAttribute('aria-label', 'Añadir fotograma');
     add.addEventListener('click', addFrame);
     box.appendChild(add);
-    $('#play').disabled = doc.frames.length < 2;
-    $('#delframe').disabled = doc.frames.length < 2;
+    // Mientras haya un solo fotograma no hay nada que reproducir, así que la
+    // barra se encoge y deja el sitio al campo. Lo decide el CSS con esta clase.
+    var solo = doc.frames.length < 2;
+    $('#play').closest('.timeline').classList.toggle('solo-uno', solo);
+    $('#play').disabled = solo;
+    $('#delframe').disabled = solo;
   }
 
   function gotoFrame(i) {
@@ -2033,11 +2071,11 @@
 
   // ---- El formulario ----
 
-  var dlgCard;
-
   function fieldEl(k) { return document.getElementById('f-' + k); }
 
-  function openCard() {
+  /* Volcar la ficha en sus campos. Ya no abre nada: la ficha vive DENTRO de la
+     hoja de guardar, detrás de «Añadir detalles». Se llama al abrir esa hoja. */
+  function llenaCampos() {
     var c = card();
     CARD_FIELDS.forEach(function (k) {
       var el = fieldEl(k);
@@ -2045,11 +2083,14 @@
     });
     if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
     if (!c.categoria) fieldEl('categoria').value = prefs().categoria;
-    if (!dlgCard) dlgCard = $('#dlg-card');
     var primero = $('.paso-btn');
     if (primero) primero.click();          // se abre siempre por el primer apartado
-    dlgCard.showModal();
   }
+
+  /* «Ficha del ejercicio» lleva al mismo sitio que Guardar, con los detalles ya
+     desplegados. Era un diálogo aparte con su propio Guardar: dos puertas al
+     mismo sitio, y la de la ficha se saltaba el paso de a quién apuntárselo. */
+  function openCard() { saveBoard(true); }
 
   function readCard() {
     var c = card();
@@ -2060,23 +2101,11 @@
     return c;
   }
 
-  // Guardar la ficha guarda el ejercicio entero. Antes solo se quedaba dentro
-  // del documento abierto: rellenabas la ficha, le dabas a Guardar, y al ir a
-  // la biblioteca no había nada. Si la ficha tiene título, ese es el nombre, y
-  // volver a guardar actualiza la misma entrada en vez de llenarlo de copias.
-  function saveCard() {
-    readCard();
-    commit();
-    var titulo = (doc.card && doc.card.titulo || '').trim();
-    if (!titulo) { toast('Ficha guardada · ponle un título para tenerla en la biblioteca'); return; }
-    var todas = savedBoards();
-    var nueva = !todas[titulo];
-    todas[titulo] = { at: Date.now(), doc: doc };
-    if (!writeBoards(todas)) { toast('Ficha guardada, pero no cabe en el almacenamiento del navegador'); return; }
-    olvidaMini('mia:' + titulo);
-    toast(nueva ? '«' + titulo + '» guardado en tu biblioteca'
-                : '«' + titulo + '» actualizado en tu biblioteca');
-  }
+  /* Aquí vivía «saveCard», el segundo camino de guardado: leía la ficha y
+     escribía en pt-boards con el título de la ficha, sin pasar por el nombre ni
+     por a quién apuntárselo. Ya no existe. Guardar es uno solo, y lo que hacía
+     esta función —comprometer lo escrito en la ficha— lo hace «readCard» justo
+     antes de guardar. */
 
   function autofillCard() {
     var st = boardStats(), P = PITCH(), puesto = 0;
@@ -2298,7 +2327,7 @@
       panel('Descripción y desarrollo', pp(c.descripcion)) +
       fila + seq +
       '<section class="panel grow"><h2>Observaciones</h2><div class="pbody ruled"></div></section>' +
-      '<footer><span>Pizarra Táctica</span><span>' + esc(fecha) + '</span></footer>' +
+      '<footer><span>Klym</span><span>' + esc(fecha) + '</span></footer>' +
       '</div></body></html>',
       encajarCard);
   }
@@ -2528,6 +2557,8 @@
   // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
   // declara para que lo alcancen los que están fuera de esa función.
   var abreCuenta = function () {};
+  // Lo mismo con los ajustes: los arma el arranque y los abre el cajón.
+  var abreLosAjustes = function () {};
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
   var yo = null;                      // sin cuentas: nadie firma en el servidor
@@ -2622,6 +2653,15 @@
     // Y la fila de Ajustes, que lleva al mismo sitio, dice lo mismo.
     var fila = $('#cfg-cuenta-txt');
     if (fila) fila.textContent = dentro ? (yo.email || 'Tu cuenta') : 'Entrar o crear una cuenta';
+
+    /* Y la del panel, que en el móvil es la única que lleva la palabra escrita:
+       arriba no cabe y se queda en una silueta que nadie relaciona con entrar. */
+    var enPanel = $('#cuenta-row-txt');
+    if (enPanel) {
+      enPanel.textContent = dentro
+        ? 'Tu cuenta · ' + (yo.nombre ? yo.nombre.split(/\s+/)[0] : (yo.email || ''))
+        : 'Entrar con tu correo';
+    }
   }
 
   /* Pedir una contraseña nueva. Lo usan los dos caminos: el de «cambiarla»
@@ -2783,7 +2823,7 @@
       if (n) n.textContent = 'Este es el enlace de la jugada. Cópialo y mándalo.';
     }
     if (navigator.share) {
-      navigator.share({ title: 'Pizarra Táctica', text: nombre, url: url })
+      navigator.share({ title: 'Klym', text: nombre, url: url })
         .catch(function (e) { if (!e || e.name !== 'AbortError') alPortapapeles(); });
       return;
     }
@@ -2815,6 +2855,9 @@
 
       function abre() {
         doc = limpio;
+        /* Lo que llega por enlace no es «una versión de» nada: el enlace trae
+           la jugada entera y suelta, sin biblioteca detrás de la que salga. */
+        docSale = null;
         ui.frame = 0; ui.sel = null; ui.multi = [];
         syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
         hint('');
@@ -2927,7 +2970,10 @@
                      doc: d, at: mias[n].at,
                      // Quién participó. Va aparte del documento a propósito: al
                      // compartir se sube «doc», y los nombres no están ahí.
-                     meta: mias[n].meta || null });
+                     meta: mias[n].meta || null,
+                     // De dónde salió, si salió de algo. Igual que «meta»: fuera
+                     // del documento, porque es cosa de esta copia y no viaja.
+                     sale: mias[n].sale || null });
       });
     return items.concat(nubeMios);
   }
@@ -2992,6 +3038,18 @@
     return m ? Number(m[1]) : null;
   }
 
+  /* Dónde guarda cada origen su vista. Los tres la tienen, pero en un sitio
+     distinto: el del catálogo dentro de «ej», el de la nube suelta, y el
+     guardado dentro de su documento. La primera versión del filtro miraba solo
+     «it.view» y por eso no descartaba nada: el catálogo entero pasaba. Salió en
+     la prueba —24 ejercicios con cualquier espacio— y no leyendo el código.
+
+     Si no se sabe, se devuelve vacío y el filtro lo deja pasar: esconder un
+     ejercicio por no saber dónde cabe es peor que enseñarlo de más. */
+  function vistaDe(it) {
+    return (it.ej && it.ej.view) || it.view || (it.doc && it.doc.view) || '';
+  }
+
   function filtraBiblioteca(items, f) {
     var q = sinAcentos(f.q).trim();
     return items.filter(function (it) {
@@ -3005,6 +3063,26 @@
         if (f.duracion === 'media' && (min <= 15 || min > 25)) return false;
         if (f.duracion === 'larga' && min <= 25) return false;
       }
+      /* Cuántos hacen falta. Lo dice la ficha en cristiano —«4 vs 2», «6 vs 6
+         + 3 comodines», «Grupo entero»— y lo traduce a un número el mismo
+         lector que usa el generador, así que los dos entienden lo mismo.
+
+         Un ejercicio que no dice cuánta gente necesita NO se descarta: «Grupo
+         entero» vale para los que seas. Descartarlo sería esconder la mitad de
+         la biblioteca por no llevar etiqueta. */
+      if (f.cuantos) {
+        var pide = PTEquipo.jugadoresDe(it.card.jugadores);
+        if (pide != null && pide > Number(f.cuantos)) return false;
+      }
+      /* Y cuánto sitio. La vista del ejercicio ya lo dice: un área cabe en
+         medio campo y medio campo cabe en el entero, así que se filtra por
+         «me cabe», no por «es exactamente esto». Los que no pintan campo
+         —una pizarra en blanco— caben en cualquier sitio. */
+      if (f.espacio) {
+        var cabe = { area: 1, half: 2, full: 3 };
+        var suya = cabe[vistaDe(it)] || 0;
+        if (suya && suya > (cabe[f.espacio] || 3)) return false;
+      }
       if (q && sinAcentos(textoItem(it)).indexOf(q) < 0) return false;
       return true;
     });
@@ -3013,7 +3091,8 @@
   // Los filtros arrancan en la modalidad predeterminada: mezclar fútbol 11,
   // fútbol 7 y sala en la misma lista no le sirve a nadie.
   function filtrosPorDefecto() {
-    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '' };
+    return { q: '', origen: 'catalogo', pitch: prefs().pitch, momento: '', duracion: '',
+             cuantos: '', espacio: '' };
   }
   var libFiltros = filtrosPorDefecto();
 
@@ -3021,8 +3100,8 @@
   function notaBiblioteca() {
     if (libFiltros.origen === 'mia') {
       if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
-      if (!yo) return 'Lo guardado se queda en este dispositivo · entra con tu correo ' +
-                      'desde el botón de arriba para tener los tuyos en cualquier sitio';
+      if (!yo) return 'Lo guardado se queda en este dispositivo · para tenerlo en ' +
+                      'cualquier sitio hace falta una cuenta';
       return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
     }
     var partes = ['Los que trae la aplicación'];
@@ -3053,17 +3132,50 @@
       : vistos.length + ' de ' + base.length + palabra(base.length) + modo;
 
     var porDefecto = filtrosPorDefecto();
-    $('#lib-limpiar').hidden = !(libFiltros.q || libFiltros.momento ||
-                                 libFiltros.duracion || libFiltros.pitch !== porDefecto.pitch);
+    /* Un solo sitio que decide si hay algo filtrado. Estaba escrito dos veces,
+       con listas distintas, y al añadir un filtro había que acordarse de los
+       dos: uno para enseñar «quitar filtros» y otro para saber si la lista
+       está vacía por culpa de un filtro o porque de verdad no hay nada. */
+    var hayFiltros = !!(libFiltros.q || libFiltros.momento || libFiltros.duracion ||
+                        libFiltros.cuantos || libFiltros.espacio ||
+                        libFiltros.pitch !== porDefecto.pitch);
+    $('#lib-limpiar').hidden = !hayFiltros;
+
+    /* Los desplegables se pliegan en el móvil, y plegados no pueden tragarse
+       lo que hay puesto: la línea que los abre lleva la cuenta. Se cuentan los
+       desplegables, no la búsqueda escrita, que se ve sola ahí encima. */
+    var mas = $('#lib-mas');
+    if (mas) {
+      var puestos = [libFiltros.momento, libFiltros.duracion, libFiltros.cuantos,
+                     libFiltros.espacio].filter(Boolean).length +
+                    (libFiltros.pitch !== porDefecto.pitch ? 1 : 0);
+      mas.classList.toggle('puestos', puestos > 0);
+      $('#lib-mas-t').textContent = puestos
+        ? (puestos === 1 ? '1 filtro puesto' : puestos + ' filtros puestos')
+        : 'Afinar la búsqueda';
+    }
+
     $$('.lib-tab').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.origen === libFiltros.origen));
     });
     $('#lib-nota').textContent = notaBiblioteca();
+    /* «Entrar desde el botón de arriba» decía dónde estaba la puerta, pero con
+       el diálogo abierto ese botón ni se ve: había que cerrar la biblioteca,
+       buscar una silueta y volver. Se entra desde aquí, que es donde acaba de
+       venir a cuento. */
+    if (libFiltros.origen === 'mia' && hayNube && !yo) {
+      var entrar = document.createElement('button');
+      entrar.type = 'button';
+      entrar.className = 'linkish';
+      entrar.id = 'lib-entrar';
+      entrar.textContent = 'Entrar con tu correo';
+      entrar.addEventListener('click', function () { cierraBiblioteca(); abreCuenta(false); });
+      $('#lib-nota').appendChild(entrar);
+    }
 
     grid.innerHTML = '';
     preparaMiniObs(grid);      // observador nuevo en cada repintado, sin dejar el viejo suelto
     if (!vistos.length) {
-      var hayFiltros = libFiltros.q || libFiltros.momento || libFiltros.duracion;
       if (nubeEstado.cargando) {
         grid.innerHTML = '<p class="empty">Trayendo la biblioteca…</p>';
         return;
@@ -3165,18 +3277,31 @@
     img.itemDeLaTarjeta = it;
     if (miniObs) miniObs.observe(img); else pintaMini(img);   // sin observador, al momento
   }
+  /* Por dónde se desplaza la biblioteca. Hoy es el cuerpo del diálogo; el día
+     que sea una pantalla más, será otra cosa. Lo piden dos sitios —el
+     observador y el primer pintado— y hasta ahora cada uno lo buscaba por su
+     cuenta.
+
+     También aquí conviene no vender humo: probado con «root: null», las
+     miniaturas se siguen dibujando por tandas, porque el observador pasa a
+     mirar la ventana y lo que está debajo del diálogo tampoco se ve desde ahí.
+     Así que esto es un sitio en vez de dos, no un fallo arreglado. */
+  function contenedorDeLaBiblioteca(grid) {
+    return (grid && grid.closest('.dbody')) || null;
+  }
+
   function preparaMiniObs(grid) {
     if (miniObs) { miniObs.disconnect(); miniObs = null; }
     if (typeof IntersectionObserver !== 'function') return;   // navegador viejo: como antes
     miniObs = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (e) { if (e.isIntersecting) pintaMini(e.target); });
-    }, { root: grid.closest('.dbody') || null, rootMargin: '500px 0px' });
+    }, { root: contenedorDeLaBiblioteca(grid), rootMargin: '500px 0px' });
   }
   /* El observador avisa cuando el navegador quiere, y en el primer pintado —con
      el diálogo recién abierto— a veces no ha avisado todavía. Lo que ya cae
      dentro de la pantalla no espera a nadie: se dibuja aquí mismo. */
   function pintaLoQueSeVe(grid) {
-    var cont = grid.closest('.dbody') || document.documentElement;
+    var cont = contenedorDeLaBiblioteca(grid) || document.documentElement;
     var caja = cont.getBoundingClientRect();
     $$('img', grid).forEach(function (img) {
       var r = img.getBoundingClientRect();
@@ -3191,7 +3316,15 @@
     if (it.fuente === 'app') {
       return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'Del catálogo';
     }
-    if (it.fuente === 'local') return 'Tuya, en este dispositivo';
+    /* Una pizarra tuya que salió de otra lo dice: dentro de tres meses, «Rondo
+       4 contra 2 (mi versión)» sin más no te recuerda de qué era versión. */
+    if (it.fuente === 'local') {
+      if (it.sale && it.sale.nombre) {
+        return 'Tuya · a partir de «' + it.sale.nombre + '»' +
+               (it.sale.autor ? ', de ' + it.sale.autor : '');
+      }
+      return 'Tuya, en este dispositivo';
+    }
     if (!it.publicado) return 'Tuyo, sin compartir';
     if (it.mio) return 'Tuyo, compartido';
     return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'De la comunidad';
@@ -3258,6 +3391,12 @@
       return bs;
     }
 
+    /* Lo que no es tuyo se puede hacer tuyo de un toque, sin abrirlo: se copia
+       a este dispositivo y desde ahí ya es una pizarra más, que se edita, se
+       comparte y se mete en una sesión. Es la mitad del sentido de que haya
+       biblioteca común. */
+    boton('Copiar a lo mío', '', function () { copiaALoMio(it); });
+
     if (it.fuente === 'nube' && yo) {
       boton('Reportar', 'sutil', function () {
         ask({ title: 'Reportar «' + it.nombre + '»',
@@ -3280,10 +3419,62 @@
   function abreItem(it) {
     if (it.fuente === 'nube' && it.fila && !it.mio) nube.apertura(it.fila.id);
     doc = clone(itemDoc(it));
+    docSale = saleDe(it);
     ui.frame = 0; ui.sel = null; ui.multi = [];
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
-    $('#dlg-lib').close();
+    cierraBiblioteca();
     toast('«' + (it.nombre || 'Ejercicio') + '» abierto');
+  }
+
+  /* -------------------------------------------------------------------------
+     De dónde sale lo que hay en la pizarra.
+
+     Un entrenador no monta un ejercicio de cero casi nunca: coge uno, le cambia
+     el espacio, le quita dos jugadores y lo hace suyo. Eso es adaptar, y hasta
+     ahora se perdía: guardabas y quedaba una pizarra tuya con el mismo nombre
+     que la del catálogo, sin nada que dijera de dónde venía ni en qué se
+     diferenciaba. Ahora la pizarra se acuerda, el nombre que propone al guardar
+     ya dice que es tu versión, y la tarjeta lo cuenta.
+
+     Vale solo para lo que NO es tuyo. Volver a guardar algo tuyo no es hacer
+     una variante: es guardar. */
+  var docSale = null;
+
+  function saleDe(it) {
+    if (!it || it.fuente === 'local' || it.mio) return null;
+    return {
+      nombre: String(it.nombre || '').slice(0, 80),
+      autor: String(it.autor || '').slice(0, 60),
+      de: it.fuente === 'app' ? 'catalogo' : 'comunidad'
+    };
+  }
+
+  function comoLoLlamarias(sale) {
+    // «Rondo 4 contra 2» → «Rondo 4 contra 2 (mi versión)», y si ya existe esa,
+    // «(mi versión 2)». Sin esto, guardar pisaría la variante anterior.
+    var base = (sale && sale.nombre ? sale.nombre : '').trim() || 'Ejercicio';
+    var guardadas = savedBoards();
+    var n = base + ' (mi versión)';
+    var i = 2;
+    while (guardadas[n] && i < 40) { n = base + ' (mi versión ' + i + ')'; i++; }
+    return n.slice(0, 80);
+  }
+
+  /* Copiar sin abrir: con la biblioteca delante, «este me lo quedo» es un gesto
+     de uno. Se guarda tal cual, con su procedencia, y la biblioteca se repinta
+     para que aparezca ya en «Mías». */
+  function copiaALoMio(it) {
+    var sale = saleDe(it);
+    var nombre = comoLoLlamarias(sale);
+    var guardadas = savedBoards();
+    guardadas[nombre] = { at: Date.now(), doc: clone(itemDoc(it)), sale: sale };
+    if (!writeBoards(guardadas)) {
+      toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
+      return;
+    }
+    olvidaMini('mia:' + nombre);
+    toast('Copiado a lo tuyo como «' + nombre + '»');
+    pintaBiblioteca();
   }
 
   /* =========================================================================
@@ -3987,6 +4178,8 @@
         return;
       }
       doc = clone(todas[ref.nombre].doc);
+      // La suya, no la de lo que hubiera antes en la pizarra.
+      docSale = todas[ref.nombre].sale || null;
       ui.frame = 0; ui.sel = null; ui.multi = [];
       syncViewButtons(); buildFrames(); hideInspector(); commit();
       vaModo('pizarra');               // resize() va dentro: el campo ya tiene hueco
@@ -4069,6 +4262,407 @@
   }
 
   /* =========================================================================
+     LOS PARTIDOS
+
+     La misma forma que Sesiones —una lista y uno por dentro, dentro de la misma
+     pestaña— porque es el mismo gesto y no hacía falta inventar otro.
+
+     Lo que se cuida aquí es el camino corto. Apuntar un partido se hace el
+     domingo por la tarde y con prisa, así que al abrir uno nuevo ya viene la
+     fecha de hoy, la duración según la modalidad y NADIE marcado. Marcas a los
+     que jugaron —un toque cada uno, que les pone los minutos enteros del
+     partido— y Guardar. Los goles, las asistencias y las tarjetas son campos
+     que aparecen al marcar a alguien: si no los tocas, quedan a cero, que es lo
+     que pasa en casi todas las fichas de casi todos los partidos.
+     ====================================================================== */
+  var parId = null;                 // el partido abierto, o null si se ve la lista
+  var parBorrador = null;           // lo que se está editando, sin guardar aún
+
+  function pintaPartidos() {
+    if (!window.PTEquipo) return;
+    if (parId === null && !parBorrador) pintaListaPartidos();
+    else pintaDetallePartido();
+  }
+
+  function vaAPartidos() {
+    parId = null; parBorrador = null; arriba(); pintaPartidos();
+  }
+
+  function abrePartido(id) {
+    var p = id ? PTEquipo.partidoDe(id) : null;
+    if (id && !p) { toast('Ese partido ya no está'); vaAPartidos(); return; }
+    parId = id || null;
+    parBorrador = p ? copiaPartido(p) : partidoNuevo();
+    arriba();
+    pintaPartidos();
+  }
+
+  function partidoNuevo() {
+    return {
+      fecha: PTEquipo.hoyISO(),
+      rival: '', casa: true, competicion: '',
+      duracion: PTEquipo.duracionSugerida(prefs().pitch),
+      golesFavor: null, golesContra: null,
+      convocados: []
+    };
+  }
+
+  function copiaPartido(p) {
+    return {
+      fecha: p.fecha, rival: p.rival, casa: p.casa, competicion: p.competicion,
+      duracion: p.duracion, golesFavor: p.golesFavor, golesContra: p.golesContra,
+      convocados: p.convocados.map(function (c) {
+        return { id: c.id, minutos: c.minutos, goles: c.goles,
+                 asistencias: c.asistencias, amarillas: c.amarillas, roja: c.roja };
+      })
+    };
+  }
+
+  /* ---- la lista ---- */
+
+  function pintaListaPartidos() {
+    $('#par-diario').hidden = false;
+    $('#par-detalle').hidden = true;
+
+    var st = PTEquipo.estadisticasPartidos();
+    var e = st.equipo;
+    var temp = PTEquipo.temporadaActual();
+
+    if (!e.partidos) {
+      $('#par-resumen').textContent = 'Temporada ' + temp + ', todavía sin partidos.';
+    } else {
+      var t = [e.partidos + (e.partidos === 1 ? ' partido' : ' partidos')];
+      if (e.jugados) {
+        t.push(e.victorias + 'G · ' + e.empates + 'E · ' + e.derrotas + 'P');
+        t.push(e.golesFavor + '-' + e.golesContra);
+      }
+      $('#par-resumen').textContent = 'Temporada ' + temp + ': ' + t.join(' · ');
+    }
+
+    var caja = $('#par-meses');
+    caja.textContent = '';
+    PTEquipo.porMeses(st.lista).forEach(function (m) {
+      var h = document.createElement('p');
+      h.className = 'ses-mes';
+      h.textContent = m.nombre;
+      caja.appendChild(h);
+      var ul = document.createElement('ul');
+      ul.className = 'ses-dias';
+      m.sesiones.forEach(function (p) { ul.appendChild(filaPartido(p)); });
+      caja.appendChild(ul);
+    });
+
+    pintaTablaPartidos(st.jugadores);
+
+    $('#par-nota').textContent = e.partidos
+      ? 'Los minutos de partido van por su cuenta: no se mezclan con los del ' +
+        'entrenamiento ni cuentan como asistencia.'
+      : 'Apunta un partido y lleva la cuenta de minutos, goles, asistencias y ' +
+        'tarjetas de cada uno. Se puede apuntar a mano, sin haberlo preparado aquí.';
+  }
+
+  function filaPartido(p) {
+    var li = document.createElement('li');
+    var res = PTEquipo.resultadoDe(p);
+    li.className = 'ses-dia par-dia' + (res ? ' es-' + res : '');
+
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ses-dia-btn';
+
+    var fecha = document.createElement('span');
+    fecha.className = 'ses-dia-fecha';
+    fecha.textContent = p.fecha === PTEquipo.hoyISO() ? 'Hoy' : diaCorto(p.fecha);
+    b.appendChild(fecha);
+
+    var med = document.createElement('span');
+    med.className = 'ses-dia-med';
+    // El nombre del rival lo escribe el entrenador: por el DOM, nunca innerHTML.
+    var tit = document.createElement('b');
+    tit.textContent = p.rival
+      ? (p.casa ? 'vs ' : 'en ') + p.rival
+      : (p.casa ? 'Partido en casa' : 'Partido fuera');
+    if (!p.rival) tit.className = 'flojo';
+    med.appendChild(tit);
+
+    var sub = document.createElement('small');
+    var t = [];
+    if (p.competicion) t.push(p.competicion);
+    var cuantos = p.convocados.filter(function (c) { return c.minutos > 0; }).length;
+    if (cuantos) t.push(cuantos + (cuantos === 1 ? ' jugador' : ' jugadores'));
+    else if (p.convocados.length) t.push('Convocatoria sin minutos');
+    else t.push('Falta apuntar quién jugó');
+    sub.textContent = t.join(' · ');
+    med.appendChild(sub);
+    b.appendChild(med);
+
+    var marc = document.createElement('span');
+    marc.className = 'par-marca';
+    marc.textContent = res ? p.golesFavor + '–' + p.golesContra : '–';
+    if (!res) marc.classList.add('flojo');
+    b.appendChild(marc);
+
+    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true));
+    b.addEventListener('click', function () { abrePartido(p.id); });
+    li.appendChild(b);
+    return li;
+  }
+
+  function pintaTablaPartidos(filas) {
+    var hay = filas.length > 0;
+    $('#par-tabla-tit').hidden = !hay;
+    $('#par-tabla-marco').hidden = !hay;
+    var tb = $('#par-tabla');
+    tb.textContent = '';
+    if (!hay) return;
+
+    filas.forEach(function (f) {
+      var tr = document.createElement('tr');
+      if (f.baja) tr.className = 'flojo';
+
+      var th = document.createElement('th');
+      th.scope = 'row';
+      var quien = document.createElement('span');
+      quien.className = 'par-quien';
+      if (f.dorsal) {
+        var d = document.createElement('span');
+        d.className = 'squad-dorsal';
+        d.textContent = f.dorsal;
+        quien.appendChild(d);
+      }
+      // El nombre lo escribe el entrenador: por el DOM, nunca por innerHTML.
+      var n = document.createElement('b');
+      n.textContent = f.nombre;
+      quien.appendChild(n);
+      th.appendChild(quien);
+      tr.appendChild(th);
+
+      [f.jugados, f.minutos, f.goles, f.asistencias, f.amarillas, f.rojas]
+        .forEach(function (v) {
+          var td = document.createElement('td');
+          td.textContent = String(v);
+          if (!v) td.className = 'cero';
+          tr.appendChild(td);
+        });
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---- uno por dentro ---- */
+
+  function convocadoDe(id) {
+    var l = parBorrador.convocados.filter(function (c) { return c.id === id; });
+    return l.length ? l[0] : null;
+  }
+
+  function pintaDetallePartido() {
+    $('#par-diario').hidden = true;
+    $('#par-detalle').hidden = false;
+
+    var p = parBorrador;
+    $('#par-titulo').textContent = parId ? 'El partido' : 'Un partido nuevo';
+    $('#par-borrar').hidden = !parId;
+
+    $('#par-fecha').value = p.fecha;
+    $('#par-rival').value = p.rival;
+    $('#par-competicion').value = p.competicion;
+    $('#par-duracion').value = String(p.duracion);
+    $('#par-gf').value = p.golesFavor == null ? '' : String(p.golesFavor);
+    $('#par-gc').value = p.golesContra == null ? '' : String(p.golesContra);
+    $$('#par-donde [data-casa]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.casa === '1') === !!p.casa));
+    });
+
+    /* Que el marcador sea SIEMPRE el tuyo primero, juegues donde juegues, es la
+       clase de cosa que hay que decir una vez y no volver a dudar. */
+    $('#par-marcador-nota').textContent = p.casa
+      ? 'Los tuyos primero. Déjalo vacío si no quieres apuntar el resultado.'
+      : 'Los tuyos primero, aunque juguéis fuera. Déjalo vacío si no lo apuntas.';
+
+    pintaJugadoresDelPartido();
+  }
+
+  function pintaJugadoresDelPartido() {
+    var lista = PTEquipo.jugadores(null, true);
+    var ul = $('#par-jugadores');
+    ul.textContent = '';
+
+    // Los de baja solo salen si jugaron: si no, ensucian la convocatoria.
+    lista = lista.filter(function (j) { return !j.baja || convocadoDe(j.id); });
+
+    lista.forEach(function (j) { ul.appendChild(filaDelPartido(j)); });
+
+    cuentaDelPartido();
+    $('#par-jug-nota').textContent = lista.length
+      ? 'Marcar a uno le pone los minutos enteros del partido. Cámbialos si salió ' +
+        'del banquillo, y déjalo a 0 si se quedó sin jugar.'
+      : 'Monta tu plantilla en Plantilla y aquí solo tendrás que marcar quién jugó.';
+  }
+
+  function filaDelPartido(j) {
+    var c = convocadoDe(j.id);
+    var li = document.createElement('li');
+    li.className = 'squad-fila par-fila' + (c ? '' : ' falta');
+
+    var lab = document.createElement('label');
+    lab.className = 'squad-marca';
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!c;
+    cb.setAttribute('aria-label', 'Jugó ' + j.nombre);
+
+    var dor = document.createElement('span');
+    dor.className = 'squad-dorsal';
+    dor.textContent = j.dorsal;
+
+    var nom = document.createElement('span');
+    nom.className = 'squad-nombre';
+    nom.textContent = j.nombre;
+
+    lab.appendChild(cb); lab.appendChild(dor); lab.appendChild(nom);
+    li.appendChild(lab);
+
+    // Los números, solo cuando hay a quién ponérselos.
+    var cifras = document.createElement('div');
+    cifras.className = 'par-cifras';
+    cifras.hidden = !c;
+    li.appendChild(cifras);
+
+    [['minutos', 'Min', 3, 'Minutos de ' + j.nombre],
+     ['goles', 'G', 2, 'Goles de ' + j.nombre],
+     ['asistencias', 'A', 2, 'Asistencias de ' + j.nombre],
+     ['amarillas', 'TA', 1, 'Amarillas de ' + j.nombre]].forEach(function (campo) {
+      var w = document.createElement('label');
+      w.className = 'par-cifra';
+      var t = document.createElement('span');
+      t.textContent = campo[1];
+      var i = document.createElement('input');
+      i.type = 'text';
+      i.inputMode = 'numeric';
+      i.maxLength = campo[2];
+      i.value = c ? String(c[campo[0]]) : '';
+      i.setAttribute('aria-label', campo[3]);
+      i.addEventListener('input', function () {
+        var cc = convocadoDe(j.id);
+        if (!cc) return;
+        var n = parseInt(i.value.replace(/\D/g, ''), 10);
+        cc[campo[0]] = isFinite(n) ? n : 0;
+        if (campo[0] === 'minutos') cuentaDelPartido();
+      });
+      w.appendChild(t); w.appendChild(i);
+      cifras.appendChild(w);
+    });
+
+    // La roja es un sí o un no, no una cuenta.
+    var roja = document.createElement('label');
+    roja.className = 'par-roja';
+    var rcb = document.createElement('input');
+    rcb.type = 'checkbox';
+    rcb.checked = !!(c && c.roja);
+    rcb.setAttribute('aria-label', 'Roja a ' + j.nombre);
+    var rt = document.createElement('span');
+    rt.textContent = 'Roja';
+    rcb.addEventListener('change', function () {
+      var cc = convocadoDe(j.id);
+      if (cc) cc.roja = rcb.checked;
+    });
+    roja.appendChild(rcb); roja.appendChild(rt);
+    cifras.appendChild(roja);
+
+    cb.addEventListener('change', function () {
+      marcaDelPartido(j.id, cb.checked);
+      li.classList.toggle('falta', !cb.checked);
+      cifras.hidden = !cb.checked;
+      var cc = convocadoDe(j.id);
+      if (cc) {
+        var ins = cifras.querySelectorAll('input[type="text"]');
+        ins[0].value = String(cc.minutos);
+        ins[1].value = String(cc.goles);
+        ins[2].value = String(cc.asistencias);
+        ins[3].value = String(cc.amarillas);
+        rcb.checked = !!cc.roja;
+      }
+      cuentaDelPartido();
+    });
+
+    return li;
+  }
+
+  /* Marcar a uno le pone los minutos enteros del partido: es lo que pasa la
+     mayoría de las veces y quita un campo que rellenar a mano once veces. */
+  function marcaDelPartido(id, dentro) {
+    if (!dentro) {
+      parBorrador.convocados = parBorrador.convocados.filter(function (c) {
+        return c.id !== id;
+      });
+      return;
+    }
+    if (convocadoDe(id)) return;
+    parBorrador.convocados.push({
+      id: id, minutos: parBorrador.duracion, goles: 0, asistencias: 0,
+      amarillas: 0, roja: false
+    });
+  }
+
+  function cuentaDelPartido() {
+    var total = PTEquipo.jugadores().length;
+    var jug = parBorrador.convocados.filter(function (c) { return c.minutos > 0; }).length;
+    var banco = parBorrador.convocados.length - jug;
+    var txt = jug + ' de ' + total + (jug === 1 ? ' jugó' : ' jugaron');
+    if (banco) txt += ' · ' + banco + ' sin minutos';
+    $('#par-cuenta').textContent = txt;
+  }
+
+  function leeCamposDelPartido() {
+    var p = parBorrador;
+    p.fecha = $('#par-fecha').value || p.fecha;
+    p.rival = $('#par-rival').value;
+    p.competicion = $('#par-competicion').value;
+    var dur = parseInt($('#par-duracion').value.replace(/\D/g, ''), 10);
+    if (isFinite(dur) && dur > 0) p.duracion = dur;
+    var gf = $('#par-gf').value.replace(/\D/g, '');
+    var gc = $('#par-gc').value.replace(/\D/g, '');
+    p.golesFavor = gf === '' ? null : Number(gf);
+    p.golesContra = gc === '' ? null : Number(gc);
+  }
+
+  function guardaElPartido() {
+    leeCamposDelPartido();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parBorrador.fecha)) {
+      toast('Falta la fecha del partido');
+      $('#par-fecha').focus();
+      return;
+    }
+    var r = PTEquipo.guardaPartido(parId, parBorrador);
+    if (!r.ok) {
+      toast(r.porque === 'tope' ? 'Ya hay ' + 200 + ' partidos guardados'
+          : r.porque === 'no-cabe' ? 'No cabe en el almacenamiento del navegador'
+          : 'No se ha podido guardar');
+      return;
+    }
+    var nuevo = !parId;
+    vaAPartidos();
+    pintaCajon();
+    toast(nuevo ? 'Partido apuntado' : 'Partido guardado');
+  }
+
+  function borraElPartido() {
+    if (!parId) return;
+    ask({ title: '¿Borrar el partido?',
+          message: 'Se van también los minutos, los goles y las tarjetas de ese día. ' +
+                   'Lo demás no se toca.',
+          ok: 'Borrar', danger: true })
+      .then(function (si) {
+        if (!si) return;
+        PTEquipo.quitaPartido(parId);
+        vaAPartidos();
+        pintaCajon();
+        toast('Partido borrado');
+      });
+  }
+
+  /* =========================================================================
      ESTADÍSTICAS
 
      Se calcula todo aquí, leyendo las sesiones guardadas en este navegador.
@@ -4120,11 +4714,79 @@
       caja.appendChild(p);
     }
 
+    /* Y de aquí se sale hacia algún sitio.
+
+       Datos te decía lo que te falta y ahí se acababa: una frase muerta. El
+       generador ya existe, ya tiene un contexto llamado «Lo que te hace falta»
+       y ya lee estas mismas cuentas. Las dos piezas estaban hechas y no se
+       hablaban; lo único que faltaba era el puente. No se añade ninguna función
+       nueva, se enlaza lo que ya hay.
+
+       Sale con CUALQUIERA de las dos señales, no solo con «llevas sin
+       trabajar»: esa lista solo recoge fases que trabajaste y dejaste 21 días,
+       así que un entrenador que empieza no la ve nunca. Lo que sí ve desde el
+       primer día son las fases sin tocar del radar. Si no hay ni una cosa ni
+       la otra, no hay nada que recomendar y no sale botón. */
+    /* Solo se recomienda contra lo que YA has hecho. Sin un solo ejercicio
+       apuntado, «te faltan las seis fases» es verdad y no dice nada: no has
+       empezado. Un recién llegado vería un cartel de recomendación en una
+       pantalla vacía, y el generador no tendría de dónde tirar. La lista de
+       «llevas sin trabajar» sí vale aunque el periodo esté vacío, porque mira
+       todo el historial: se entra por cualquiera de las dos puertas. */
+    var hayHistorial = d.ejercicios > 0;
+    var hueco = PTEquipo.equilibrio(statsPeriodo);
+    if (hayHistorial && hueco && hueco.sinTocar) {
+      /* El porqué, antes del botón. Un «monta una sesión con lo que falta» sin
+         decir qué falta es una recomendación que hay que creerse; con la cuenta
+         delante, se entiende y se puede discutir. El número sale del mismo
+         radar que hay debajo, no de ningún cálculo nuevo. */
+      var q = document.createElement('p');
+      q.className = 'stats-olvido';
+      q.textContent = hueco.sinTocar === 1
+        ? 'En este periodo te falta una de las seis fases del juego.'
+        : 'En este periodo te faltan ' + hueco.sinTocar + ' de las seis fases del juego.';
+      caja.appendChild(q);
+    }
+    if (d.olvidados.length || (hayHistorial && hueco && hueco.sinTocar)) {
+      var ir = document.createElement('button');
+      ir.type = 'button';
+      ir.className = 'tbtn marco';
+      ir.id = 'stats-a-sesion';
+      ir.textContent = 'Montar una sesión con lo que falta';
+      ir.addEventListener('click', function () {
+        vaApartado('sesiones');
+        abreGenerador();
+        // El generador arranca ya en «Lo que te hace falta»: es de donde viene
+        // quien pulsa. Lo deja así pintaGenerador().
+      });
+      caja.appendChild(ir);
+    }
+
     pintaRadar($('#stats-radar'), PTEquipo.equilibrio(statsPeriodo));
 
+    /* El reparto se saca contra los minutos QUE ESTÁN REPARTIDOS, no contra el
+       total. Iba contra el total, y como un ejercicio sin momento del juego
+       suma al total pero no sale en ninguna barra, las barras nunca llegaban a
+       100 y nada explicaba el hueco. */
     pintaBarras($('#stats-momentos'), d.momentos.map(function (m) {
       return { nombre: m.nombre, minutos: m.minutos };
-    }), { total: d.minutos, destaca: true });
+    }), { total: d.minutosConMomento, destaca: true, nombrePct: 'del reparto' });
+
+    /* Y lo que se queda fuera se dice, en vez de desaparecer. No como una barra
+       de «(sin clasificar)» —eso no dice nada de fútbol— sino como una frase
+       que además explica qué hacer: el momento del juego se pone al guardar el
+       ejercicio o al añadirlo a la sesión. */
+    var fuera = $('#stats-momentos-fuera');
+    var sm = d.sinMomento || { ejercicios: 0, minutos: 0 };
+    fuera.hidden = !sm.ejercicios;
+    if (sm.ejercicios) {
+      fuera.textContent = sm.ejercicios === 1
+        ? 'Un ejercicio más (' + sm.minutos + ' min) no entra en este reparto porque no ' +
+          'tiene momento del juego. Se lo pones al guardarlo o al añadirlo a la sesión.'
+        : sm.ejercicios + ' ejercicios más (' + sm.minutos + ' min) no entran en este ' +
+          'reparto porque no tienen momento del juego. Se lo pones al guardarlos o al ' +
+          'añadirlos a la sesión.';
+    }
 
     var jug = d.jugadores.map(function (j) {
       return { dorsal: j.dorsal, nombre: j.nombre, minutos: j.minutos,
@@ -4156,272 +4818,14 @@
       : 'Guarda algún ejercicio con su duración y su momento del juego, y aquí saldrán las cuentas.';
   }
 
-  /* =========================================================================
-     El radar de equilibrio (Kiviat)
-
-     Un radar no sirve para leer valores —para eso están las barras de abajo,
-     con sus minutos exactos—. Sirve para ver de un golpe la FORMA del reparto:
-     si el hexágono está lleno por todos lados o si tiene un pico y tres huecos.
-
-     Dos figuras: lo que llevas en el periodo, en el color de la marca, y la
-     temporada entera en gris de fondo, para comparar contra tu propia costumbre.
-     Y un hexágono fino en el 16,7 %, que es el reparto exactamente igualado.
-
-     Todo SVG a mano: ni lienzo, ni librería, ni una dependencia más.
-     ====================================================================== */
-  var NS = 'http://www.w3.org/2000/svg';
-  var RADAR_ACENTO = '#E11A41';       // la marca: el periodo que se está mirando
-  var RADAR_FONDO  = '#7C8DA3';       // el gris de contexto: la temporada
-
-  function svgEl(nombre, atrs) {
-    var e = document.createElementNS(NS, nombre);
-    for (var k in atrs) if (Object.prototype.hasOwnProperty.call(atrs, k)) {
-      e.setAttribute(k, atrs[k]);
-    }
-    return e;
-  }
-
+  /* El radar y las barras viven en graficos.js: dibujo puro, sin estado de la
+     aplicación. «pintaBarras» se trae con su nombre de siempre porque su firma
+     no cambia; «pintaRadar» sí recibe ahora el periodo y el avisador, que
+     antes cogía del cierre. */
+  var pintaBarras = window.PTGraficos.pintaBarras;
+  var POCO = window.PTGraficos.POCO;        // el umbral de «viene poco»
   function pintaRadar(caja, eq) {
-    caja.textContent = '';
-    // Sin minutos de fase no hay figura que dibujar, y un hexágono vacío no
-    // dice «equilibrado»: dice «todavía no has apuntado nada». Mejor decirlo.
-    if (!eq.total) {
-      var p = document.createElement('p');
-      p.className = 'block-note';
-      p.textContent = 'Cuando guardes ejercicios con su fase de juego —ataque, ' +
-                      'defensa, transiciones, finalización o balón parado— aquí verás ' +
-                      'si los repartes por igual.';
-      caja.appendChild(p);
-      return;
-    }
-
-    /* El lienzo es más ancho que alto a propósito: los nombres de los ejes van
-       FUERA del anillo, y los de los lados son los largos («Balón parado · 0»).
-       Si el lienzo fuera cuadrado, esos dos se saldrían por los lados y el
-       diálogo se los comería. Aquí se les hace sitio dentro. */
-    var ANCHO = 376, ALTO = 246, CX = ANCHO / 2, CY = 118, R = 88, SEPARA = 16;
-    var ejes = eq.ejes, n = ejes.length;
-
-    // La escala: el anillo exterior es el mayor valor, con un mínimo del 40 %
-    // para que un reparto normal no salga pegado al borde.
-    var tope = Math.max(40, eq.igualado);
-    ejes.forEach(function (e) {
-      if (e.pct > tope) tope = e.pct;
-      if (e.refPct > tope) tope = e.refPct;
-    });
-    tope = Math.ceil(tope / 10) * 10;
-
-    var svg = svgEl('svg', {
-      viewBox: '0 0 ' + ANCHO + ' ' + ALTO, class: 'radar',
-      role: 'img',
-      'aria-label': 'Equilibrio por fase de juego. ' + ejes.map(function (e) {
-        return e.nombre + ', ' + Math.round(e.pct) + ' por ciento';
-      }).join('. ')
-    });
-
-    // El ángulo: el primer eje arriba, y de ahí en el sentido del reloj.
-    function punto(i, valor) {
-      var a = -Math.PI / 2 + i * 2 * Math.PI / n;
-      var r = R * Math.min(valor / tope, 1);
-      return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
-    }
-    function poligono(valores) {
-      return valores.map(function (v, i) { return punto(i, v).join(','); }).join(' ');
-    }
-
-    /* Rejilla: solo el anillo de fuera. Los anillos intermedios caían casi
-       encima del hexágono del reparto igualado —16,7 % y 20 % están pegados— y
-       lo dejaban invisible justo a él, que es la única referencia que importa
-       aquí. Dos anillos con dos significados se leen; cuatro, no. */
-    svg.appendChild(svgEl('polygon', {
-      points: poligono(ejes.map(function () { return tope; })), class: 'radar-anillo'
-    }));
-    ejes.forEach(function (e, i) {
-      var f = punto(i, tope);
-      svg.appendChild(svgEl('line', { x1: CX, y1: CY, x2: f[0], y2: f[1], class: 'radar-radio' }));
-    });
-
-    // --- el reparto igualado: la figura contra la que se compara todo ---
-    svg.appendChild(svgEl('polygon', {
-      points: poligono(ejes.map(function () { return eq.igualado; })), class: 'radar-igualado'
-    }));
-
-    // --- la temporada, de fondo ---
-    if (eq.totalRef) {
-      svg.appendChild(svgEl('polygon', {
-        points: poligono(ejes.map(function (e) { return e.refPct; })), class: 'radar-ref'
-      }));
-    }
-
-    // --- el periodo que se está mirando ---
-    svg.appendChild(svgEl('polygon', {
-      points: poligono(ejes.map(function (e) { return e.pct; })), class: 'radar-ahora'
-    }));
-
-    /* Los vértices son además la zona sensible: el círculo que se ve es
-       pequeño, pero encima lleva otro invisible y ancho, que es lo que se toca
-       con el dedo. */
-    ejes.forEach(function (e, i) {
-      var v = punto(i, e.pct);
-      svg.appendChild(svgEl('circle', { cx: v[0], cy: v[1], r: 3.4, class: 'radar-punto' }));
-      var diana = svgEl('circle', { cx: v[0], cy: v[1], r: 16, class: 'radar-diana',
-                                    tabindex: '0', role: 'button' });
-      var dice = e.nombre + ': ' + e.minutos + ' min · ' + Math.round(e.pct) + '%' +
-                 (eq.totalRef ? ' · temporada ' + Math.round(e.refPct) + '%' : '');
-      diana.appendChild(svgEl('title', {})).textContent = dice;
-      diana.addEventListener('click', function () { toast(dice); });
-      diana.addEventListener('focus', function () { toast(dice); });
-      svg.appendChild(diana);
-    });
-
-    // --- los nombres de los ejes, fuera del anillo ---
-    ejes.forEach(function (e, i) {
-      var a = -Math.PI / 2 + i * 2 * Math.PI / n;
-      var x = CX + (R + SEPARA) * Math.cos(a), y = CY + (R + SEPARA) * Math.sin(a);
-      var t = svgEl('text', {
-        x: x, y: y, class: 'radar-eje' + (e.minutos === 0 ? ' vacio' : ''),
-        'text-anchor': Math.abs(Math.cos(a)) < 0.25 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end'),
-        'dominant-baseline': 'middle'
-      });
-      /* Una fase sin tocar se marca escribiéndolo, no pintándolo de otro color:
-         el texto lleva tinta de texto y el color queda para la figura. Además,
-         un «0» lo lee cualquiera, también quien no distingue el rojo. */
-      t.textContent = e.minutos === 0 ? e.corto + ' · 0' : e.corto;
-      svg.appendChild(t);
-    });
-
-    caja.appendChild(svg);
-
-    // Dos series: la leyenda va siempre, y con su cifra al lado.
-    var pie = document.createElement('p');
-    pie.className = 'radar-pie';
-    function marca(clase, texto) {
-      var s = document.createElement('span');
-      s.className = 'radar-clave ' + clase;
-      s.appendChild(document.createTextNode(texto));
-      pie.appendChild(s);
-    }
-    marca('es-ahora', statsPeriodo === 'temporada' ? 'Temporada'
-                    : statsPeriodo === 'mes' ? 'Este mes' : 'Este microciclo');
-    if (eq.totalRef && statsPeriodo !== 'temporada') marca('es-ref', 'Toda la temporada');
-    marca('es-igual', 'Reparto igualado');
-    caja.appendChild(pie);
-
-    var nota = document.createElement('p');
-    nota.className = 'block-note';
-    nota.textContent = eq.sinTocar
-      ? (eq.sinTocar === 1 ? 'Hay una fase sin tocar en este periodo.'
-                           : 'Hay ' + eq.sinTocar + ' fases sin tocar en este periodo.') +
-        ' El anillo de fuera es el ' + tope + '%.'
-      : 'Las seis fases tienen minutos. El anillo de fuera es el ' + tope + '%.';
-    caja.appendChild(nota);
-  }
-
-  /* Barras con div y CSS. El porcentaje se mide contra el total de minutos del
-     periodo; el ancho, contra el mayor de la lista, que es lo que se compara de
-     un vistazo. Si midiera el ancho contra el total, con diez filas todas serían
-     rayitas y no se distinguiría nada.
-
-     Cada cifra va en una columna de ancho fijo y con su nombre escrito en una
-     cabecera. Antes la asistencia salía como un «4/5» en gris entre el nombre y
-     los minutos, sin que en ninguna parte pusiera de qué era: una cifra suelta
-     que nadie podía leer. Ahora la columna se llama «asistencia» y punto.
-
-     opciones: { total, asistencia, destaca }
-       total       minutos del periodo, para la columna «del total»
-       asistencia  true en la lista de jugadores: cambia el % por «vino/de»
-       destaca     pinta la primera fila con el color de la marca             */
-  var POCO = 0.5;                 // venir a menos de la mitad es lo que se avisa
-
-  function pintaBarras(caja, filas, op) {
-    op = op || {};
-    caja.textContent = '';
-    var mayor = 0;
-    filas.forEach(function (f) { if (f.minutos > mayor) mayor = f.minutos; });
-    if (filas.length) caja.appendChild(cabeceraBarras(op.asistencia));
-
-    filas.forEach(function (f, i) {
-      var row = document.createElement('div');
-      row.className = 'barra' + (op.destaca && i === 0 && f.minutos > 0 ? ' top' : '') +
-                                (op.asistencia ? ' conses' : '');
-
-      var pista = document.createElement('div');
-      pista.className = 'barra-pista';
-      var rell = document.createElement('div');
-      rell.className = 'barra-relleno';
-      rell.style.width = (mayor > 0 ? Math.round(f.minutos / mayor * 100) : 0) + '%';
-      pista.appendChild(rell);
-      row.appendChild(pista);
-
-      if (f.dorsal !== undefined) {
-        var dor = document.createElement('span');
-        dor.className = 'barra-dorsal';
-        dor.textContent = f.dorsal || '';
-        row.appendChild(dor);
-      }
-
-      var nom = document.createElement('span');
-      nom.className = 'barra-nombre';
-      nom.textContent = f.nombre + (f.fuera ? ' (ya no está)' : '');
-      row.appendChild(nom);
-
-      var cif = document.createElement('span');
-      cif.className = 'barra-cifra';
-      cif.textContent = String(f.minutos);
-      row.appendChild(cif);
-
-      if (op.asistencia) {
-        var poco = f.deSesiones > 0 && f.sesiones < f.deSesiones * POCO;
-        var asis = document.createElement('span');
-        asis.className = 'barra-asis' + (poco ? ' poco' : '');
-        asis.textContent = f.deSesiones ? f.sesiones + '/' + f.deSesiones : '—';
-        asis.title = f.deSesiones
-          ? 'Ha venido a ' + f.sesiones + ' de ' + f.deSesiones + ' entrenamientos'
-          : 'En este periodo no has apuntado ningún entrenamiento';
-        row.appendChild(asis);
-
-        // El aviso no puede ser solo el color: quien no lo distingue se queda
-        // sin el dato. La marca ocupa su hueco en todas las filas, tenga o no
-        // aviso, para que las columnas no bailen de una fila a otra.
-        var al = document.createElement('span');
-        al.className = 'barra-alerta';
-        al.textContent = poco ? '⚠' : '';
-        if (poco) al.title = 'Ha venido a menos de la mitad';
-        row.appendChild(al);
-      } else {
-        var pct = document.createElement('span');
-        pct.className = 'barra-pct';
-        pct.textContent = op.total > 0 ? Math.round(f.minutos / op.total * 100) + '%' : '—';
-        row.appendChild(pct);
-      }
-
-      caja.appendChild(row);
-    });
-  }
-
-  function cabeceraBarras(conAsistencia) {
-    var h = document.createElement('div');
-    h.className = 'barra-cab' + (conAsistencia ? ' conses' : '');
-    var hueco = document.createElement('span');
-    hueco.className = 'barra-nombre';
-    h.appendChild(hueco);
-
-    var min = document.createElement('span');
-    min.className = 'barra-cifra';
-    min.textContent = 'minutos';
-    h.appendChild(min);
-
-    var otra = document.createElement('span');
-    otra.className = conAsistencia ? 'barra-asis' : 'barra-pct';
-    otra.textContent = conAsistencia ? 'asistencia' : 'del total';
-    h.appendChild(otra);
-
-    if (conAsistencia) {
-      var al = document.createElement('span');
-      al.className = 'barra-alerta';
-      h.appendChild(al);
-    }
-    return h;
+    return window.PTGraficos.pintaRadar(caja, eq, { periodo: statsPeriodo, avisa: toast });
   }
 
   /* =========================================================================
@@ -4435,7 +4839,11 @@
      El modo no se guarda entre visitas a propósito: la aplicación es una
      pizarra, y quien la abre viene a dibujar.
      ====================================================================== */
-  var modo = 'pizarra', eqApartado = 'plantilla';
+  /* Se entra por «Hoy»: es la pantalla que contesta a la pregunta con la que
+     se abre la aplicación. Antes se caía en Plantilla, que es una lista de
+     nombres —útil el primer día y poco más—. Desde Hoy se llega a la plantilla
+     de un toque, y el propio Hoy lo ofrece cuando todavía no hay. */
+  var modo = 'pizarra', eqApartado = 'hoy';
   /* La hoja del móvil se abre y se cierra dentro del cableado, con su estado
      propio. Cambiar de modo tiene que poder cerrarla, así que se deja aquí una
      referencia en vez de repetir la lógica o sacarla de su sitio. */
@@ -4448,9 +4856,7 @@
     }
     modo = cual === 'equipo' ? 'equipo' : 'pizarra';
     document.querySelector('.app').dataset.modo = modo;
-    $$('#modos .modo').forEach(function (b) {
-      b.setAttribute('aria-selected', String(b.dataset.modo === modo));
-    });
+    pintaCajon();
     cierraLaHoja();
     if (modo === 'equipo') { vaApartado(apartado || eqApartado); }
     else {
@@ -4460,23 +4866,380 @@
     }
   }
 
-  var APARTADOS = { plantilla: 1, sesiones: 1, datos: 1 };
+  /* -------------------------------------------------------------------------
+     El cajón.
+
+     «hidden» se quita ANTES de animar y se repone DESPUÉS de cerrarse: mientras
+     está escondido de verdad no lo ve ni el teclado ni un lector de pantalla, y
+     mientras se mueve tiene que estar ahí para que se le vea moverse. */
+  /* ---- el cartel de la primera vez ----
+
+     Cumple el principio de la casa al pie de la letra: no pide nada, no tapa el
+     campo y no hay que contestarle para poder dibujar. Solo dice, una vez, que
+     el botón de tres rayas lleva a algún sitio.
+
+     Se enseña únicamente en una instalación que no ha hecho nada todavía. Quien
+     ya tiene una pizarra guardada, o plantilla, o un partido, no es nuevo: a ese
+     se le estaría explicando su propia aplicación. */
+  function instalacionNueva() {
+    try {
+      if (prefs().vistoElCajon) return false;
+      var llaves = ['pt-boards', 'pt-squad', 'pt-sesiones', 'pt-partidos', 'pt-asistencia'];
+      for (var i = 0; i < llaves.length; i++) {
+        var t = localStorage.getItem(llaves[i]);
+        if (t && t !== '{}' && t !== '[]') return false;
+      }
+      return true;
+    } catch (e) { return false; }   // sin almacén no se enseña y no se insiste
+  }
+
+  function guardaQueYaLoHaVisto() {
+    var p = prefs();
+    if (p.vistoElCajon) return;
+    p.vistoElCajon = true;
+    guardaPrefs(p);
+  }
+
+  function cierraLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || e.hidden) return;
+    e.hidden = true;
+    guardaQueYaLoHaVisto();
+  }
+
+  function quizaEnseñaLaPista() {
+    var e = $('#pista-cajon');
+    if (!e || !instalacionNueva()) return;
+    e.hidden = false;
+    /* Y se va sola al primer trazo: quien ha empezado a dibujar ya está
+       haciendo lo que venía a hacer, y el cartel sobra sin tocarlo. */
+    var lienzo = $('#board');
+    if (lienzo) lienzo.addEventListener('pointerdown', cierraLaPista, { once: true });
+  }
+
+  function abreCajon() {
+    cierraLaPista();                 // abrir el menú es haber entendido el cartel
+    var c = $('#cajon');
+    c.hidden = false;
+    pintaCajon();
+    requestAnimationFrame(function () {
+      c.classList.add('open');
+      $('#cajon-scrim').classList.add('show');
+      $('#cajon-btn').setAttribute('aria-expanded', 'true');
+      var actual = $('.cajon-ir[aria-current="true"]') || $('.cajon-ir');
+      if (actual) actual.focus();
+    });
+  }
+
+  function cierraCajon() {
+    var c = $('#cajon');
+    if (!c.classList.contains('open')) { c.hidden = true; return; }
+    c.classList.remove('open');
+    $('#cajon-scrim').classList.remove('show');
+    $('#cajon-btn').setAttribute('aria-expanded', 'false');
+    setTimeout(function () {
+      if (!c.classList.contains('open')) c.hidden = true;
+    }, 240);
+  }
+
+  /* A dónde lleva cada destino. Cuatro de ellos son apartados de Equipo, que ya
+     existían como pestañas: «vaModo» acepta apartado desde el principio, así
+     que subirlos al cajón no cambia nada por dentro. Los tres del pie abren lo
+     suyo y te dejan donde estabas: ajustes o ayuda no son sitios a los que ir.
+     La biblioteca sigue siendo un diálogo; lo que cambia es que ahora se ve. */
+  var DESTINOS = {
+    hoy:        { modo: 'equipo', apartado: 'hoy',       nombre: 'Hoy' },
+    sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
+    plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
+    partidos:   { modo: 'equipo', apartado: 'partidos',  nombre: 'Partidos' },
+    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
+    pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
+    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
+    cuenta:     { abre: function () { abreCuenta(false); } },
+    ajustes:    { abre: function () { abreLosAjustes(); } },
+    ayuda:      { abre: function () { $('#dlg-help').showModal(); } }
+  };
+
+  function vaDestino(id) {
+    var d = DESTINOS[id];
+    if (!d) return;
+    if (d.abre) { d.abre(); return; }
+    vaModo(d.modo, d.apartado);
+  }
+
+  /* El botón dice dónde estás. Un icono de tres rayas solo dice «hay más», y
+     con el interruptor fuera esa es la única señal de en qué sección andas. */
+  function dondeEstoy() {
+    if (modo !== 'equipo') return 'pizarra';
+    return eqApartado;                       // hoy · sesiones · plantilla · datos
+  }
+
+  function pintaCajon() {
+    var aqui = dondeEstoy();
+    var t = $('#cajon-btn-txt');
+    if (t) t.textContent = (DESTINOS[aqui] && DESTINOS[aqui].nombre) || 'Ir a';
+    $$('.cajon-ir').forEach(function (b) {
+      if (b.dataset.ir === aqui) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+    });
+    pistasDelCajon();
+  }
+
+  /* Cada destino dice en qué estado está lo suyo. Es lo que convierte una lista
+     de nombres en algo que guía: ves «sin plantilla» o «la de hoy sin montar» y
+     ya sabes dónde te falta trabajo, sin entrar a mirar. */
+  function pistasDelCajon() {
+    if (!window.PTEquipo) return;
+    function pon(id, txt) {
+      var e = $('[data-pista="' + id + '"]');
+      if (e && txt) e.textContent = txt;
+    }
+    var jug = PTEquipo.jugadores().length;
+    var hoy = PTEquipo.sesionDe(PTEquipo.hoyISO());
+    var d = PTEquipo.estadisticas('micro');
+
+    pon('plantilla', jug ? jug + (jug === 1 ? ' jugador' : ' jugadores') : 'Sin montar todavía');
+    pon('hoy', !jug ? 'Empieza por aquí'
+             : hoy.vacia ? 'La sesión de hoy está sin montar'
+             : !hoy.hayAsistencia ? 'Falta apuntar quién vino'
+             : 'Todo al día');
+    pon('sesiones', hoy.vacia ? 'Hoy no tienes nada apuntado'
+                              : 'Hoy: ' + hoy.ejercicios.length +
+                                (hoy.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+    var par = PTEquipo.estadisticasPartidos().equipo;
+    pon('partidos', !par.partidos ? 'Sin partidos apuntados'
+      : par.partidos + (par.partidos === 1 ? ' partido' : ' partidos') +
+        (par.jugados ? ' · ' + par.victorias + 'G ' + par.empates + 'E ' + par.derrotas + 'P' : ''));
+    pon('datos', d.ejercicios
+      ? d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') + ' estos siete días'
+      : 'Cuando apuntes algo, sale aquí');
+    var cta = $('[data-pista="cuenta"]');
+    if (cta) {
+      var b = cta.closest('.cajon-ir').querySelector('span');
+      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = yo.email || 'Entrada'; }
+      else { b.textContent = 'Entrar'; cta.textContent = 'Para compartir y tenerlo en otro sitio'; }
+    }
+  }
+
+  var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, partidos: 1, datos: 1 };
 
   function vaApartado(cual) {
-    eqApartado = APARTADOS[cual] ? cual : 'plantilla';
+    eqApartado = APARTADOS[cual] ? cual : 'hoy';
+    $('#eq-hoy').hidden       = eqApartado !== 'hoy';
     $('#eq-plantilla').hidden = eqApartado !== 'plantilla';
     $('#eq-sesiones').hidden  = eqApartado !== 'sesiones';
+    $('#eq-partidos').hidden  = eqApartado !== 'partidos';
     $('#eq-datos').hidden     = eqApartado !== 'datos';
     $$('[data-eq]').forEach(function (b) {
       var suyo = b.dataset.eq === eqApartado;
       b.setAttribute('aria-selected', String(suyo));
       b.setAttribute('aria-pressed', String(suyo));
     });
-    if (eqApartado === 'plantilla') pintaApartadoPlantilla();
+    pintaCajon();
+    if (eqApartado === 'hoy') pintaHoy();
+    else if (eqApartado === 'plantilla') pintaApartadoPlantilla();
     else if (eqApartado === 'sesiones') pintaSesiones();
+    else if (eqApartado === 'partidos') pintaPartidos();
     else pintaStats();
     var cuerpo = $('#equipo');
     if (cuerpo) cuerpo.scrollTop = 0;
+  }
+
+  /* ---- Hoy · qué toca ----------------------------------------------------
+
+     Klym sabía muchas cosas y no decía ninguna. Los minutos por fase, quién
+     vino, qué lleva semanas sin tocarse, si hay sesión puesta para hoy: todo
+     eso ya se calculaba, repartido entre tres pantallas, y el entrenador tenía
+     que juntarlo en su cabeza y decidir solo.
+
+     Esta pantalla no calcula NADA nuevo. Coge esas cuentas y las convierte en
+     una frase y un botón. Y cada cosa que dice se puede discutir, porque
+     enseña de dónde sale: «llevas 3 fases sin tocar», no «te recomiendo esto».
+
+     El orden no es casual: va de lo que te bloquea a lo que te mejora. Sin
+     plantilla no hay nada que hacer; con plantilla pero sin la sesión de hoy,
+     lo urgente es esa; y con la sesión puesta, lo útil es mirar qué falta. */
+  function pintaHoy() {
+    var caja = $('#eq-hoy');
+    caja.textContent = '';
+
+    var jug = PTEquipo.jugadores();
+    var hoy = PTEquipo.hoyISO();
+    var ses = PTEquipo.sesionDe(hoy);
+    var d = PTEquipo.estadisticas('micro');
+    var eq = PTEquipo.equilibrio('micro');
+
+    function bloque(rotulo) {
+      var h = document.createElement('p');
+      h.className = 'form-group';
+      h.textContent = rotulo;
+      caja.appendChild(h);
+    }
+    function dice(txt, clase) {
+      var p = document.createElement('p');
+      p.className = clase || 'hoy-frase';
+      p.textContent = txt;
+      caja.appendChild(p);
+      return p;
+    }
+    /* Esta pantalla contesta a «¿qué hago ahora?», y esa pregunta tiene una
+       respuesta, no dos. Dos botones rojos en la misma pantalla obligan a
+       elegir justo a quien ha entrado para que le digan. El primero que pide
+       ser principal se lo queda —son los bloques en orden de urgencia— y los
+       demás bajan a secundarios aunque los pidan. */
+    var yaHayPrincipal = false;
+    function boton(txt, alPulsar, principal) {
+      var manda = principal && !yaHayPrincipal;
+      if (manda) yaHayPrincipal = true;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tbtn ' + (manda ? 'primary' : 'marco');
+      b.textContent = txt;
+      b.addEventListener('click', alPulsar);
+      caja.appendChild(b);
+      return b;
+    }
+
+    // ---- 1 · lo primero que falta ----
+    bloque('Lo siguiente');
+    if (!jug.length) {
+      dice('Todavía no tienes plantilla. Sin ella no se puede apuntar quién ' +
+           'viene a entrenar ni saber cuántos minutos lleva cada uno.');
+      boton('Montar la plantilla', function () { vaApartado('plantilla'); }, true);
+    } else if (!ses || !ses.ejercicios.length) {
+      dice('Hoy no tienes sesión apuntada. Ponla y, al acabar, marca quién vino: ' +
+           'de ahí salen todas las cuentas.');
+      boton('La sesión de hoy', function () {
+        vaApartado('sesiones');
+        abreSesion(hoy);
+      }, true);
+    } else {
+      var min = ses.ejercicios.reduce(function (a, e) {
+        return a + (PTEquipo.minutosDe ? (PTEquipo.minutosDe(e.duracion) || 0) : 0);
+      }, 0);
+      dice('La sesión de hoy está puesta: ' + ses.ejercicios.length +
+           (ses.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios') +
+           (min ? ' · ' + min + ' min' : '') + '.');
+
+      /* Y aquí se cierra el círculo: entrenar → REGISTRAR. Apuntar quién vino
+         es el paso que más se olvida y del que dependen todas las cuentas de
+         después; los minutos de un ejercicio son de quien estuvo. Si no está
+         apuntado, se pide desde aquí en vez de esperar a que alguien se
+         acuerde de ir a Plantilla. */
+      /* Con «presentesDe» no basta: cuando el día no tiene lista, devuelve la
+         plantilla entera, que es lo razonable para proponerla marcada. Pero
+         aquí la pregunta es otra —¿se ha pasado lista o no?— y «todos» se leía
+         como «ya está hecho». Eso lo dice «hayAsistencia», que distingue entre
+         no haber apuntado nada y haber apuntado que vinieron todos. */
+      var vinieron = ses.presentes || [];
+      if (!ses.hayAsistencia) {
+        dice('Falta apuntar quién vino. Sin eso, los minutos de hoy no son de nadie ' +
+             'y no cuentan en la asistencia.', 'block-note');
+        boton('Apuntar quién ha venido', function () {
+          vaApartado('sesiones');
+          abreSesion(hoy);
+          abrePasarLista();          // la pantalla de asistencia, que ya existe
+        }, true);
+      } else {
+        dice('Vinieron ' + vinieron.length + ' de ' + jug.length + '.', 'block-note');
+      }
+      boton('Ver la sesión', function () { vaApartado('sesiones'); abreSesion(hoy); });
+    }
+
+    // ---- 2 · qué se ha entrenado ----
+    bloque('Estos siete días');
+    if (!d.ejercicios) {
+      dice('Nada apuntado todavía. En cuanto guardes un ejercicio en una sesión, ' +
+           'aquí empiezan a salir las cuentas.');
+    } else {
+      dice(d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') +
+           ' · ' + d.minutos + ' min' +
+           (d.sesiones ? ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') : ''));
+      var top = d.momentos.slice(0, 2).map(function (m) {
+        return m.nombre.toLowerCase() + ' (' + m.minutos + ' min)';
+      });
+      if (top.length) dice('Sobre todo ' + top.join(' y ') + '.', 'block-note');
+    }
+
+    /* ---- 3 · lo que se juega ----
+       Entrenar es la mitad; la otra mitad es el domingo. Este bloque existe
+       para que el partido no se quede sin apuntar por no saber dónde va: la
+       primera vez lo explica, y a partir de ahí lleva la cuenta y avisa de lo
+       que esté a medias, que casi siempre es el resultado o quién jugó. */
+    if (jug.length) {
+      var par = PTEquipo.estadisticasPartidos();
+      var hoyPar = par.lista.filter(function (p) { return p.fecha === hoy; });
+      var aMedias = par.lista.filter(function (p) {
+        return !p.convocados.length || PTEquipo.resultadoDe(p) === null;
+      });
+      bloque('Los partidos');
+      if (hoyPar.length && !hoyPar[0].convocados.length) {
+        dice('Hoy tienes un partido apuntado y todavía no dice quién jugó.');
+        boton('Apuntar quién jugó', function () {
+          vaApartado('partidos'); abrePartido(hoyPar[0].id);
+        }, true);
+      } else if (!par.equipo.partidos) {
+        dice('Cuando juguéis, apúntalo aquí: quién salió, cuántos minutos, ' +
+             'goles, asistencias y tarjetas. Se puede apuntar a mano, aunque no ' +
+             'lo hayas preparado en la aplicación.');
+        boton('Apuntar un partido', function () {
+          vaApartado('partidos'); abrePartido(null);
+        });
+      } else {
+        var e2 = par.equipo;
+        dice(e2.partidos + (e2.partidos === 1 ? ' partido' : ' partidos') +
+             ' esta temporada' +
+             (e2.jugados ? ' · ' + e2.victorias + 'G · ' + e2.empates + 'E · ' +
+                           e2.derrotas + 'P · ' + e2.golesFavor + '-' + e2.golesContra : '') + '.');
+        if (aMedias.length) {
+          dice(aMedias.length === 1
+            ? 'Uno se quedó a medias: le falta el resultado o quién jugó.'
+            : aMedias.length + ' se quedaron a medias: les falta el resultado o quién jugó.',
+            'block-note');
+          boton('Terminar de apuntarlo' + (aMedias.length > 1 ? 's' : ''), function () {
+            vaApartado('partidos'); abrePartido(aMedias[0].id);
+          });
+        } else {
+          boton('Apuntar un partido', function () {
+            vaApartado('partidos'); abrePartido(null);
+          });
+        }
+      }
+    }
+
+    // ---- 4 · qué falta ----
+    if (d.ejercicios && eq && eq.sinTocar) {
+      bloque('Lo que te falta');
+      var sinTocar = (eq.ejes || []).filter(function (e) { return !e.minutos; })
+        .map(function (e) { return e.nombre.toLowerCase(); });
+      dice(sinTocar.length
+        ? 'En estos siete días no has tocado ' + enLista(sinTocar) + '.'
+        : 'Te faltan ' + eq.sinTocar + ' de las seis fases del juego.');
+      if (d.olvidados.length) {
+        dice('Y lo que más tiempo lleva parado: ' + d.olvidados.slice(0, 2).map(function (o) {
+          return o.nombre.toLowerCase() + ', ' + o.dias + ' días';
+        }).join(' · ') + '.', 'block-note');
+      }
+      boton('Montar una sesión con lo que falta', function () {
+        vaApartado('sesiones');
+        abreGenerador();
+      }, true);
+    }
+
+    // ---- 5 · de dónde sale todo esto ----
+    var pie = document.createElement('p');
+    // «tras-boton» deja pasar el resplandor del botón rojo de arriba. El
+    // número vive en la hoja de estilos, con el resto de la escala, y no aquí.
+    pie.className = 'block-note tras-boton';
+    pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
+                      'Nada se inventa y nada sale a internet.';
+    caja.appendChild(pie);
+  }
+
+  // «a, b y c», como se escribe en castellano.
+  function enLista(xs) {
+    if (xs.length === 1) return xs[0];
+    return xs.slice(0, -1).join(', ') + ' ni ' + xs[xs.length - 1];
   }
 
   /* La biblioteca, en modo «elegir». Es la misma de siempre, con sus filtros y
@@ -4485,14 +5248,38 @@
      pantalla que ya se sabe usar vale más que otra nueva parecida. */
   var libParaSesion = null;         // fecha de la sesión, o null en modo normal
 
+  /* -------------------------------------------------------------------------
+     Salir de la biblioteca, en un solo sitio.
+
+     Antes se cerraba con «$('#dlg-lib').close()» desde tres sitios, y el «para
+     qué» —la fecha de la sesión para la que estás eligiendo— se limpiaba en el
+     evento «close». Ahora se sale por aquí: el día que la biblioteca deje de
+     ser un diálogo, esto es lo único que hay que cambiar.
+
+     Conviene decir lo que esto NO es, porque yo mismo lo di por más grave de lo
+     que es: NO arregla ningún fallo. Se probó rompiéndolo a propósito y la
+     aplicación siguió bien, porque «openLibrary» reinicia el para qué en cada
+     apertura. Es un sitio en vez de tres, no una red de seguridad. */
+  function cierraBiblioteca() {
+    libParaSesion = null;
+    var d = $('#dlg-lib');
+    if (d && d.open) d.close();
+  }
+
   function openLibrary(paraSesion) {
     libParaSesion = paraSesion || null;
     // La modalidad vuelve a la tuya cada vez que se abre; lo demás también.
     libFiltros = filtrosPorDefecto();
     $('#lib-q').value = '';
-    $('#lib-momento').value = ''; $('#lib-duracion').value = '';
+    ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+      .forEach(function (id) { $(id).value = ''; });
     $('#lib-pitch').value = libFiltros.pitch;
     $('#dlg-lib-t').textContent = libParaSesion ? 'Elegir para la sesión' : 'Biblioteca';
+    /* En una pantalla ancha los cinco desplegables caben y no estorban; en un
+       móvil son media pantalla antes del primer ejercicio. Se decide al abrir,
+       no en el HTML, porque el mismo archivo se ve en las dos. */
+    var mas0 = $('#lib-mas');
+    if (mas0) mas0.open = !matchMedia('(max-width: 560px)').matches;
     pintaBiblioteca();
     $('#dlg-lib').showModal();
     cargaNube();
@@ -4637,7 +5424,7 @@
           new Date().toLocaleDateString('es-ES') + '</span></header>' +
           '<div class="grid' + (doc.frames.length === 1 ? ' one' : '') + '">' + imgs + '</div>' +
           '<div class="notes"></div>' +
-          '<footer>Pizarra Táctica</footer>' +
+          '<footer>Klym</footer>' +
           '</body></html>');
         toast('Hoja de sesión preparada');
       });
@@ -4719,169 +5506,15 @@
     return '';
   }
 
-  /* =========================================================================
-     Codificador GIF (sin dependencias)
-     Un GIF lo abre cualquier cosa: Fotos del iPhone, WhatsApp, Telegram, correo.
-     Paleta global por corte mediano y compresión LZW, como manda GIF89a.
-     ====================================================================== */
+  /* Los dos codificadores —GIF y MP4— viven en codecs.js: son manejo de bits
+     puro, no tocan nada de la aplicación y aquí solo estorbaban. Se traen con
+     su nombre de siempre para que quien los usa se lea igual que antes. */
+  var medianCut = window.PTCodecs.medianCut,
+      quantize  = window.PTCodecs.quantize,
+      GifWriter = window.PTCodecs.GifWriter,
+      buildMp4  = window.PTCodecs.buildMp4,
+      pickAvc   = window.PTCodecs.pickAvc;
 
-  // Reduce los colores de la jugada a una paleta de como mucho `maxColors`.
-  function medianCut(samples, maxColors) {
-    function stats(list) {
-      var lo = [255, 255, 255], hi = [0, 0, 0];
-      for (var i = 0; i < list.length; i += 3) {
-        for (var c = 0; c < 3; c++) {
-          var v = list[i + c];
-          if (v < lo[c]) lo[c] = v;
-          if (v > hi[c]) hi[c] = v;
-        }
-      }
-      return [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
-    }
-
-    var boxes = [{ list: samples, range: stats(samples) }];
-
-    while (boxes.length < maxColors) {
-      var bi = -1, best = 0;
-      for (var i = 0; i < boxes.length; i++) {
-        var r = Math.max(boxes[i].range[0], boxes[i].range[1], boxes[i].range[2]);
-        if (r > best && boxes[i].list.length > 3) { best = r; bi = i; }
-      }
-      if (bi < 0) break;
-
-      var box = boxes[bi];
-      var ch = box.range.indexOf(Math.max(box.range[0], box.range[1], box.range[2]));
-      var triples = [];
-      for (var j = 0; j < box.list.length; j += 3) {
-        triples.push([box.list[j], box.list[j + 1], box.list[j + 2]]);
-      }
-      triples.sort(function (a, b) { return a[ch] - b[ch]; });
-
-      var mid = triples.length >> 1, a1 = [], a2 = [];
-      for (var k = 0; k < triples.length; k++) {
-        var t = triples[k], dst = k < mid ? a1 : a2;
-        dst.push(t[0], t[1], t[2]);
-      }
-      if (!a1.length || !a2.length) break;
-      boxes.splice(bi, 1, { list: a1, range: stats(a1) }, { list: a2, range: stats(a2) });
-    }
-
-    return boxes.map(function (b) {
-      var n = b.list.length / 3, r = 0, g = 0, bl = 0;
-      for (var i = 0; i < b.list.length; i += 3) {
-        r += b.list[i]; g += b.list[i + 1]; bl += b.list[i + 2];
-      }
-      return [Math.round(r / n), Math.round(g / n), Math.round(bl / n)];
-    });
-  }
-
-  function GifWriter(w, h, palette, delayCs) {
-    var out = [];
-    var bits = Math.max(1, Math.ceil(Math.log(palette.length) / Math.LN2));
-    var size = 1 << bits;
-
-    function byte(b) { out.push(b & 255); }
-    function word(v) { byte(v); byte(v >> 8); }
-    function text(t) { for (var i = 0; i < t.length; i++) byte(t.charCodeAt(i)); }
-
-    text('GIF89a');
-    word(w); word(h);
-    byte(0xF0 | (bits - 1));            // hay tabla global de color
-    byte(0); byte(0);
-    for (var i = 0; i < size; i++) {
-      var c = palette[i] || [0, 0, 0];
-      byte(c[0]); byte(c[1]); byte(c[2]);
-    }
-    byte(0x21); byte(0xFF); byte(11); text('NETSCAPE2.0');   // repetir siempre
-    byte(3); byte(1); word(0); byte(0);
-
-    // x,y,fw,fh delimitan la zona que cambia respecto al fotograma anterior.
-    // Con disposal 1 ("dejar tal cual") el resto de la imagen se conserva, que es
-    // lo que permite que un GIF de una jugada pese una fracción de lo normal.
-    this.addFrame = function (indices, x, y, fw, fh) {
-      byte(0x21); byte(0xF9); byte(4); byte(0x04);
-      word(delayCs); byte(0); byte(0);
-      byte(0x2C); word(x || 0); word(y || 0); word(fw || w); word(fh || h); byte(0);
-      lzw(indices, bits);
-    };
-
-    this.finish = function () {
-      byte(0x3B);
-      return new Uint8Array(out);
-    };
-
-    function lzw(px, minBits) {
-      var codeSize = Math.max(2, minBits);
-      byte(codeSize);
-
-      var clear = 1 << codeSize, eoi = clear + 1;
-      var dict, next, cur;
-      var block = [], acc = 0, accBits = 0;
-
-      function flush() {
-        if (!block.length) return;
-        byte(block.length);
-        for (var i = 0; i < block.length; i++) byte(block[i]);
-        block = [];
-      }
-      function emit(code, len) {
-        acc |= code << accBits;
-        accBits += len;
-        while (accBits >= 8) {
-          block.push(acc & 255);
-          acc >>= 8;
-          accBits -= 8;
-          if (block.length === 255) flush();
-        }
-      }
-      function reset() { dict = new Map(); next = eoi + 1; cur = codeSize + 1; }
-
-      reset();
-      emit(clear, cur);
-
-      var prev = px[0];
-      for (var i = 1; i < px.length; i++) {
-        var k = px[i], key = prev * 4096 + k;
-        var hit = dict.get(key);
-        if (hit !== undefined) { prev = hit; continue; }
-        emit(prev, cur);
-        dict.set(key, next++);
-        if (next >= (1 << cur)) {
-          if (cur < 12) cur++;
-          else { emit(clear, cur); reset(); }
-        }
-        prev = k;
-      }
-      emit(prev, cur);
-      emit(eoi, cur);
-      if (accBits > 0) { block.push(acc & 255); if (block.length === 255) flush(); }
-      flush();
-      byte(0);
-    }
-  }
-
-  // Convierte una imagen RGBA al índice de paleta más cercano, con caché.
-  function quantize(data, palette, cache) {
-    var n = data.length / 4, idx = new Uint8Array(n);
-    for (var i = 0; i < n; i++) {
-      var r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
-      var key = (r << 16) | (g << 8) | b;
-      var hit = cache.get(key);
-      if (hit === undefined) {
-        var bestD = Infinity, bestI = 0;
-        for (var p = 0; p < palette.length; p++) {
-          var c = palette[p];
-          var dr = r - c[0], dg = g - c[1], db = b - c[2];
-          var d = dr * dr + dg * dg + db * db;
-          if (d < bestD) { bestD = d; bestI = p; }
-        }
-        hit = bestI;
-        cache.set(key, hit);
-      }
-      idx[i] = hit;
-    }
-    return idx;
-  }
 
   // Genera el GIF pintando la animación fotograma a fotograma en un lienzo aparte.
   function exportGif() {
@@ -4969,119 +5602,6 @@
 
 
 
-  /* =========================================================================
-     Empaquetador MP4 (ISO BMFF) para vídeo H.264
-     Cuando el navegador no sabe grabar MP4 por sí solo, se codifica con
-     WebCodecs y se arma aquí el contenedor. Sin bibliotecas externas.
-     ====================================================================== */
-
-  function mp4Bytes(str) {
-    var a = [];
-    for (var i = 0; i < str.length; i++) a.push(str.charCodeAt(i) & 255);
-    return a;
-  }
-  function u32(v) { return [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]; }
-  function u16(v) { return [(v >>> 8) & 255, v & 255]; }
-
-  function mp4Box(type, parts) {
-    var payload = [];
-    for (var i = 0; i < parts.length; i++) payload = payload.concat(parts[i]);
-    return u32(payload.length + 8).concat(mp4Bytes(type), payload);
-  }
-  function mp4Full(type, version, flags, parts) {
-    return mp4Box(type, [[version, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]].concat(parts));
-  }
-
-  var MP4_MATRIX = u32(0x00010000).concat(u32(0), u32(0),
-                                          u32(0), u32(0x00010000), u32(0),
-                                          u32(0), u32(0), u32(0x40000000));
-
-  // samples: [{ data: Uint8Array, key: boolean }] · todos con la misma duración
-  function buildMp4(width, height, timescale, delta, samples, avcC) {
-    var count = samples.length, duration = count * delta;
-    var sizes = [], keys = [], dataLen = 0;
-    samples.forEach(function (s2, i) {
-      sizes = sizes.concat(u32(s2.data.length));
-      dataLen += s2.data.length;
-      if (s2.key) keys = keys.concat(u32(i + 1));
-    });
-
-    var ftyp = mp4Box('ftyp', [mp4Bytes('isom'), u32(512),
-                               mp4Bytes('isom'), mp4Bytes('iso2'), mp4Bytes('avc1'), mp4Bytes('mp41')]);
-    var mdatOffset = ftyp.length + 8;   // los datos empiezan tras la cabecera de mdat
-
-    var avc1 = mp4Box('avc1', [
-      [0, 0, 0, 0, 0, 0], u16(1),
-      u16(0), u16(0), u32(0), u32(0), u32(0),
-      u16(width), u16(height),
-      u32(0x00480000), u32(0x00480000),
-      u32(0), u16(1),
-      new Array(32).fill(0),
-      u16(0x0018), [0xFF, 0xFF],
-      mp4Box('avcC', [Array.prototype.slice.call(avcC)])
-    ]);
-
-    var stbl = mp4Box('stbl', [
-      mp4Full('stsd', 0, 0, [u32(1), avc1]),
-      mp4Full('stts', 0, 0, [u32(1), u32(count), u32(delta)]),
-      mp4Full('stss', 0, 0, [u32(keys.length / 4), keys]),
-      mp4Full('stsc', 0, 0, [u32(1), u32(1), u32(count), u32(1)]),
-      mp4Full('stsz', 0, 0, [u32(0), u32(count), sizes]),
-      mp4Full('stco', 0, 0, [u32(1), u32(mdatOffset)])
-    ]);
-
-    var minf = mp4Box('minf', [
-      mp4Full('vmhd', 0, 1, [u16(0), u16(0), u16(0), u16(0)]),
-      mp4Box('dinf', [mp4Full('dref', 0, 0, [u32(1), mp4Full('url ', 0, 1, [])])]),
-      stbl
-    ]);
-
-    var mdia = mp4Box('mdia', [
-      mp4Full('mdhd', 0, 0, [u32(0), u32(0), u32(timescale), u32(duration), u16(0x55C4), u16(0)]),
-      mp4Full('hdlr', 0, 0, [u32(0), mp4Bytes('vide'), u32(0), u32(0), u32(0), mp4Bytes('VideoHandler'), [0]]),
-      minf
-    ]);
-
-    var trak = mp4Box('trak', [
-      mp4Full('tkhd', 0, 3, [u32(0), u32(0), u32(1), u32(0), u32(duration),
-                             u32(0), u32(0), u16(0), u16(0), u16(0), u16(0),
-                             MP4_MATRIX, u32(width * 65536), u32(height * 65536)]),
-      mdia
-    ]);
-
-    var moov = mp4Box('moov', [
-      mp4Full('mvhd', 0, 0, [u32(0), u32(0), u32(timescale), u32(duration),
-                             u32(0x00010000), u16(0x0100), u16(0), u32(0), u32(0),
-                             MP4_MATRIX, u32(0), u32(0), u32(0), u32(0), u32(0), u32(0), u32(2)]),
-      trak
-    ]);
-
-    var out = new Uint8Array(ftyp.length + 8 + dataLen + moov.length);
-    var at = 0;
-    out.set(ftyp, at); at += ftyp.length;
-    out.set(u32(dataLen + 8), at); at += 4;
-    out.set(mp4Bytes('mdat'), at); at += 4;
-    samples.forEach(function (s2) { out.set(s2.data, at); at += s2.data.length; });
-    out.set(moov, at);
-    return new Blob([out], { type: 'video/mp4' });
-  }
-
-  // ¿Puede este navegador codificar H.264 con WebCodecs?
-  function pickAvc(width, height, fps) {
-    if (typeof VideoEncoder === 'undefined') return Promise.resolve(null);
-    var perfiles = ['avc1.42001f', 'avc1.42E01E', 'avc1.4D401F', 'avc1.640028'];
-    var i = 0;
-    function siguiente() {
-      if (i >= perfiles.length) return Promise.resolve(null);
-      var codec = perfiles[i++];
-      return VideoEncoder.isConfigSupported({
-        codec: codec, width: width, height: height, bitrate: 5000000, framerate: fps
-      }).then(function (r) {
-        return (r && r.supported) ? codec : siguiente();
-      }, function () { return siguiente(); });
-    }
-    return siguiente();
-  }
 
   /* =========================================================================
      Exportar la jugada en vídeo
@@ -5245,7 +5765,7 @@
       try {
         var d = JSON.parse(fr.result);
         if (!d || !Array.isArray(d.frames) || !d.frames.length) throw 0;
-        doc = saneaDoc(d); ui.frame = 0; ui.sel = null; ui.multi = [];
+        doc = saneaDoc(d); docSale = null; ui.frame = 0; ui.sel = null; ui.multi = [];
         syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
         toast('Pizarra importada');
       } catch (e) { toast('El archivo no es una pizarra válida'); }
@@ -5277,14 +5797,53 @@
      a mitad—, y por eso empieza plegada detrás de un «cambiar». */
   var saveElegidos = null;          // ids marcados en el diálogo abierto
 
-  function saveBoard() {
+  /* «conDetalles» abre la hoja con la ficha ya desplegada: es por donde entra
+     «Ficha del ejercicio», que antes era otro diálogo. */
+  function saveBoard(conDetalles) {
     var dlg = $('#dlg-save');
     if (!dlg || !window.PTEquipo) { saveBoardSimple(); return; }
+
+    // La ficha vive aquí dentro: se vuelca siempre, esté plegada o no.
+    llenaCampos();
+    var det = $('#save-detalles');
+    if (det) det.open = !!conDetalles;
+    var ses = $('#save-sesion');
+    if (ses) ses.open = false;
 
     var campo = $('#save-nombre');
     // El nombre que propone es el de la ficha, si la hay: es el que el
     // entrenador ya ha escrito y por el que va a buscarla después.
     campo.value = (doc.card && doc.card.titulo || '').trim();
+    /* Y si no hay ficha —que es lo normal, porque la ficha nunca es
+       obligatoria—, se propone algo con lo que volver a encontrarlo. Antes se
+       quedaba vacío y guardar pedía escribir un nombre a quien solo quería
+       guardar: el camino rápido tiene que serlo también sin ficha. */
+    // «martes 16 de septiembre» → «16 de septiembre»: el día de la semana no
+    // ayuda a reconocerlo dentro de tres meses, la fecha sí.
+    if (!campo.value) {
+      campo.value = 'Ejercicio del ' + diaLargo(PTEquipo.hoyISO()).replace(/^\S+\s/, '');
+    }
+
+    /* Salvo que esto venga de un ejercicio de otro. Entonces lo que se está
+       guardando es TU versión, y proponer el nombre de pila del original deja
+       dos cosas distintas llamadas igual: la del catálogo y la tuya.
+
+       Pero solo si el título sigue siendo el suyo. Si el entrenador ya le ha
+       puesto nombre en la ficha, ese es el que quiere: pisárselo con «(mi
+       versión)» sería corregirle algo que acaba de escribir a mano. */
+    var nota = $('#save-sale');
+    var sinTocarElTitulo = !!docSale &&
+      campo.value.toLowerCase() === String(docSale.nombre || '').trim().toLowerCase();
+    if (docSale) {
+      if (sinTocarElTitulo || !campo.value) campo.value = comoLoLlamarias(docSale);
+      nota.textContent = 'Sale de «' + docSale.nombre + '»' +
+        (docSale.autor ? ', de ' + docSale.autor : docSale.de === 'catalogo' ? ', del catálogo' : '') +
+        '. Lo que guardes es tu versión: el original se queda como está.';
+      nota.hidden = false;
+    } else {
+      nota.textContent = '';
+      nota.hidden = true;
+    }
 
     saveElegidos = PTEquipo.presentesHoy();
     $('#save-part-plantilla').checked = false;
@@ -5293,12 +5852,31 @@
     $('#save-hoy-fecha').textContent = diaLargo(PTEquipo.hoyISO());
     pintaParticipantes();
 
-    // Sin plantilla montada, la sección entera sobra: no se enseña un hueco.
-    $('#save-part').hidden = PTEquipo.jugadores().length === 0;
+    /* Sin plantilla montada no hay a quién apuntárselo: el plegable entero
+       sobra. La ficha NO: esa vale con plantilla y sin ella. */
+    var sinPlantilla = PTEquipo.jugadores().length === 0;
+    $('#save-part').hidden = sinPlantilla;
+    if (ses) ses.hidden = sinPlantilla;
+
+    /* Publicar solo tiene sentido con cuenta, y viene desmarcado siempre:
+       subir algo a la vista de todos no puede pasar por no mirar una casilla. */
+    var pub = $('#save-publicar');
+    if (pub) {
+      pub.checked = false;
+      $('#save-publicar-fila').hidden = !(hayNube && yo);
+    }
+
+    /* El nombre de arriba y el título de la ficha son el mismo nombre escrito
+       dos veces. Si el entrenador abre los detalles y escribe el título ahí, el
+       de arriba lo sigue —pero solo mientras nadie lo haya tocado a mano: en
+       cuanto escribe arriba, manda lo de arriba y la ficha deja de pisárselo. */
+    nombrePropuesto = campo.value;
 
     dlg.showModal();
     setTimeout(function () { campo.select(); }, 30);
   }
+
+  var nombrePropuesto = '';
 
   /* «2026-09-14» → «lunes 14 de septiembre». Sin el año, que casi siempre es el
      de ahora y solo hace la frase más larga; se pone cuando no lo es. */
@@ -5337,6 +5915,9 @@
     var nueva = !all[name];
     var entrada = { at: Date.now(), doc: doc };
     if (meta) entrada.meta = meta;
+    /* De dónde salió. Si guardas con OTRO nombre distinto del que se proponía,
+       sigue saliendo de ahí: lo que cuenta es de dónde viene el dibujo. */
+    if (docSale) entrada.sale = docSale;
     all[name] = entrada;
     if (!writeBoards(all)) {
       toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
@@ -5517,6 +6098,7 @@
         .then(function (yes) {
           if (!yes) return;
           doc = { pitch: prefs().pitch, view: doc.view, card: emptyCard(), frames: [emptyFrame()] };
+          docSale = null;
           ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
           commit(); buildFrames(); draw();
         });
@@ -5560,16 +6142,41 @@
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));
     $('#ex-json').addEventListener('click', exportar(exportJSON));
-    $('#save').addEventListener('click', saveBoard);
+    /* Sin envolver, el manejador le pasaría el evento como «conDetalles» y la
+       ficha saldría desplegada: el camino rápido dejaría de serlo. */
+    $('#save').addEventListener('click', function () { saveBoard(false); });
     // Sin envolver, el «click» llegaría como si fuera una fecha de sesión y la
     // biblioteca se abriría en modo elegir desde el botón de siempre.
     $('#open').addEventListener('click', function () { openLibrary(null); });
+    /* Y con Escape o tocando fuera también se sale, sin pasar por el botón.
+       Aquí NO se llama a «cierraBiblioteca»: el diálogo ya se está cerrando y
+       volver a cerrarlo sería morderse la cola. Solo se olvida el para qué. */
     $('#dlg-lib').addEventListener('close', function () { libParaSesion = null; });
 
     // ---- Mi equipo, participantes y estadísticas ----
     // El interruptor de modo y los apartados de Equipo.
-    $$('#modos .modo').forEach(function (b) {
-      b.addEventListener('click', function () { vaModo(b.dataset.modo); });
+    /* ---- El cajón ----
+       Sustituye al interruptor Pizarra/Equipo. Se abre, se elige, se cierra.
+       Lo de cerca —las pestañas de abajo— sigue donde estaba: el cajón es para
+       saltar lejos, no para moverse dentro de lo que ya estás haciendo. */
+    $('#cajon-btn').addEventListener('click', function () {
+      if ($('#cajon').classList.contains('open')) cierraCajon(); else abreCajon();
+    });
+    $('#cajon-scrim').addEventListener('click', cierraCajon);
+    $('#pista-ver').addEventListener('click', abreCajon);
+    $('#pista-no').addEventListener('click', cierraLaPista);
+    $$('.cajon-ir').forEach(function (b) {
+      b.addEventListener('click', function () {
+        cierraCajon();
+        vaDestino(b.dataset.ir);
+      });
+    });
+    // Escape cierra lo de arriba, que es el cajón si está abierto.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('#cajon').classList.contains('open')) {
+        e.preventDefault();
+        cierraCajon();
+      }
     });
     $$('[data-eq]').forEach(function (b) {
       b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
@@ -5594,14 +6201,20 @@
       sueltaElDiaAbierto();
       pintaPlantilla();
     });
+    /* Estos dos guardan como todo lo demás, pero eran los únicos que no
+       miraban si el navegador había aceptado los datos. Con el almacén lleno la
+       marca se deshacía sola al repintar y no se decía por qué: parecía que el
+       botón no funcionaba. Todos los demás caminos de guardado ya avisaban. */
+    function marcaTodos(ids) {
+      if (!PTEquipo.ponAsistencia(ids)) {
+        toast('No cabe en el almacenamiento del navegador');
+      }
+      pintaPlantilla();
+    }
     $('#squad-todos').addEventListener('click', function () {
-      PTEquipo.ponAsistencia(PTEquipo.jugadores().map(function (j) { return j.id; }));
-      pintaPlantilla();
+      marcaTodos(PTEquipo.jugadores().map(function (j) { return j.id; }));
     });
-    $('#squad-ninguno').addEventListener('click', function () {
-      PTEquipo.ponAsistencia([]);
-      pintaPlantilla();
-    });
+    $('#squad-ninguno').addEventListener('click', function () { marcaTodos([]); });
 
     $('#save-part-cambiar').addEventListener('click', function () {
       var caja = $('#save-part-caja');
@@ -5626,11 +6239,16 @@
       $('#save-part-t').hidden = !pon;
       if (!pon) { $('#save-part-caja').hidden = true; $('#save-part-cambiar').textContent = 'cambiar'; }
     });
-    $('#save-ok').addEventListener('click', function () {
+    /* El único guardado que hay. Lo escrito en la ficha se compromete AQUÍ, no
+       en un botón aparte: esté la ficha plegada o desplegada, lo que el
+       entrenador haya escrito entra en el documento antes de guardarlo. */
+    function guardaDesdeLaHoja() {
       var nombre = $('#save-nombre').value.trim();
-      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
+      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return false; }
+      readCard();
+      commit();
       var hayPlantilla = PTEquipo.jugadores().length > 0;
-      if (!guardaConNombre(nombre, hayPlantilla ? PTEquipo.metaDeHoy() : null)) return;
+      if (!guardaConNombre(nombre, hayPlantilla ? PTEquipo.metaDeHoy() : null)) return false;
 
       if (hayPlantilla && $('#save-hoy').checked) {
         var card = doc.card || {};
@@ -5652,10 +6270,40 @@
           pintaSesiones();
         }
       }
+
+      /* Y si ha marcado publicarlo, va detrás de guardarlo: primero es suyo en
+         su dispositivo, y solo después sale a la vista de todos. Si la subida
+         falla, lo guardado se queda guardado. */
+      var pub = $('#save-publicar');
+      if (pub && pub.checked && hayNube && yo) {
+        var copia = clone(doc);
+        if (!copia.card) copia.card = emptyCard();
+        if (!copia.card.titulo) copia.card.titulo = nombre;
+        nube.publica(copia, { publicado: true })
+          .then(function () { toast('Guardado y publicado en la biblioteca común'); nubeMios = []; cargaNube(); })
+          .catch(function (e) { toast('Guardado, pero no ha podido publicarse: ' + (e.message || 'error')); });
+      }
+
       $('#dlg-save').close();
+      return true;
+    }
+
+    $('#save-ok').addEventListener('click', guardaDesdeLaHoja);
+    /* Imprimir la ficha era el otro botón del diálogo viejo. Guarda igual y
+       manda a imprimir: si no se ha podido guardar, no se imprime nada. */
+    $('#save-imprimir').addEventListener('click', function () {
+      if (guardaDesdeLaHoja()) setTimeout(printCard, 120);
     });
     $('#save-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('#save-ok').click(); }
+    });
+    // Escribir el título dentro de la ficha rellena el nombre de arriba,
+    // mientras el de arriba siga siendo el que propuso la aplicación.
+    fieldEl('titulo').addEventListener('input', function () {
+      var campo = $('#save-nombre');
+      if (campo.value !== nombrePropuesto) return;      // lo tocó él: manda él
+      campo.value = this.value.trim();
+      nombrePropuesto = campo.value;
     });
 
     $$('#stats-periodo [data-periodo]').forEach(function (b) {
@@ -5693,13 +6341,23 @@
        al volver la pantalla se repinta con lo que hay guardado, que era nada.
        Con un respiro de medio segundo no se escribe en el almacén en cada
        tecla, y «change» se queda como red por si se sale muy rápido. */
+    /* Y avisa si no cabe, pero UNA sola vez: esto se dispara mientras escribes,
+       así que sin la marca soltaría un aviso cada medio segundo. Se rearma en
+       cuanto vuelve a caber. */
+    var avisadoNombre = false;
+    function guardaElNombre(txt) {
+      if (!sesFecha) return;
+      if (PTEquipo.guardaSesion(sesFecha, { nombre: txt })) { avisadoNombre = false; return; }
+      if (!avisadoNombre) {
+        avisadoNombre = true;
+        toast('El nombre no se ha guardado: no cabe en el almacenamiento del navegador');
+      }
+    }
     var guardaNombre = conRespiro(function () {
-      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: $('#ses-nombre').value });
+      guardaElNombre($('#ses-nombre').value);
     }, 500);
     $('#ses-nombre').addEventListener('input', guardaNombre);
-    $('#ses-nombre').addEventListener('change', function () {
-      if (sesFecha) PTEquipo.guardaSesion(sesFecha, { nombre: this.value });
-    });
+    $('#ses-nombre').addEventListener('change', function () { guardaElNombre(this.value); });
     $('#ses-ej-add').addEventListener('click', añadeEjercicioAMano);
     $('#ses-ej-titulo').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); añadeEjercicioAMano(); }
@@ -5727,6 +6385,43 @@
       guardaAsistenciaDeSesion();
       pintaListaDeAsistencia();
     });
+    // ---- Partidos ----
+    $('#par-nuevo').addEventListener('click', function () { abrePartido(null); });
+    $('#par-volver').addEventListener('click', vaAPartidos);
+    $('#par-guardar').addEventListener('click', guardaElPartido);
+    $('#par-borrar').addEventListener('click', borraElPartido);
+    $$('#par-donde [data-casa]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!parBorrador) return;
+        parBorrador.casa = b.dataset.casa === '1';
+        pintaDetallePartido();
+      });
+    });
+    /* Cambiar la duración con gente ya marcada tiene que arrastrar a los que
+       jugaron el partido entero: si no, pones «80» después de marcar a once y
+       los once se quedan con los 90 de antes sin que nadie lo diga. Al que ya
+       le habías tocado los minutos no se le tocan. */
+    $('#par-duracion').addEventListener('change', function () {
+      if (!parBorrador) return;
+      var antes = parBorrador.duracion;
+      leeCamposDelPartido();
+      if (parBorrador.duracion === antes) return;
+      parBorrador.convocados.forEach(function (c) {
+        if (c.minutos === antes) c.minutos = parBorrador.duracion;
+      });
+      pintaJugadoresDelPartido();
+    });
+    $('#par-todos').addEventListener('click', function () {
+      if (!parBorrador) return;
+      PTEquipo.jugadores().forEach(function (j) { marcaDelPartido(j.id, true); });
+      pintaJugadoresDelPartido();
+    });
+    $('#par-ninguno').addEventListener('click', function () {
+      if (!parBorrador) return;
+      parBorrador.convocados = [];
+      pintaJugadoresDelPartido();
+    });
+
     $('#import').addEventListener('change', function () {
       if (this.files[0]) { dlgExport.close(); importJSON(this.files[0]); }
       this.value = '';
@@ -5747,8 +6442,8 @@
         cargaNube();
       });
     });
-    [['#lib-pitch', 'pitch'],
-     ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion']].forEach(function (par) {
+    [['#lib-pitch', 'pitch'], ['#lib-momento', 'momento'], ['#lib-duracion', 'duracion'],
+     ['#lib-cuantos', 'cuantos'], ['#lib-espacio', 'espacio']].forEach(function (par) {
       $(par[0]).addEventListener('change', function () {
         libFiltros[par[1]] = this.value;
         pintaBiblioteca();
@@ -5761,7 +6456,8 @@
       libFiltros = filtrosPorDefecto();
       libFiltros.origen = origen;                 // la pestaña donde estás no se toca
       $('#lib-q').value = '';
-      ['#lib-momento', '#lib-duracion'].forEach(function (id) { $(id).value = ''; });
+      ['#lib-momento', '#lib-duracion', '#lib-cuantos', '#lib-espacio']
+        .forEach(function (id) { $(id).value = ''; });
       $('#lib-pitch').value = libFiltros.pitch;
       pintaBiblioteca();
       cargaNube();
@@ -5779,6 +6475,13 @@
     if (!hayNube) {
       $('#cuenta-btn').closest('.group').hidden = true;
       $('#cfg-cuenta-bloque').hidden = true;
+      // La del panel, por lo mismo: es la misma puerta, y sin servidor detrás
+      // no da a ninguna parte. Es justo el caso del archivo suelto.
+      $('#cuenta-row').hidden = true;
+      // Y la del cajón. Un destino que no lleva a ninguna parte es peor que
+      // no tenerlo, y el cajón es justo donde se mira para saber qué hay.
+      var eCta = $('.cajon-ir[data-ir="cuenta"]');
+      if (eCta) eCta.hidden = true;
     }
 
     if (hayNube) {
@@ -5795,6 +6498,7 @@
         if (!yo) setTimeout(function () { var e = $('#cuenta-email'); if (e) e.focus(); }, 120);
       };
       $('#cuenta-btn').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
+      $('#cuenta-row').addEventListener('click', function () { sheetClose(); abreCuenta(false); });
       $('#cfg-cuenta').addEventListener('click', function () { abreCuenta(false); });
 
       // Entrar y registrarse son dos cosas distintas y se piden por separado.
@@ -5976,7 +6680,7 @@
       $$('.paso-btn').forEach(function (b) {
         b.setAttribute('aria-pressed', String(b.dataset.paso === id));
       });
-      var cuerpo = $('#dlg-card .dbody');
+      var cuerpo = $('#dlg-save .dbody');
       if (cuerpo) cuerpo.scrollTop = 0;
     }
     $$('.paso-btn').forEach(function (b) {
@@ -5992,14 +6696,9 @@
       ask({ title: 'Usar la plantilla', message: 'Se sustituye lo que hayas escrito en la ficha, menos la categoría, la fecha y la sesión.', ok: 'Sustituir' })
         .then(function (si) { if (si) aplicaPlantilla(id); });
     });
-    $('#card-edit').addEventListener('click', function () { sheetClose(); openCard(); });
+    // La ficha salió de la barra: ahora su única entrada propia es la fila del
+    // panel, y su sitio de verdad es dentro de Guardar.
     $('#f-auto').addEventListener('click', autofillCard);
-    $('#f-guardar').addEventListener('click', function () { saveCard(); $('#dlg-card').close(); });
-    $('#f-imprimir').addEventListener('click', function () {
-      saveCard();
-      $('#dlg-card').close();
-      setTimeout(printCard, 120);
-    });
     // ---- Ajustes ----
     function pintaAjustes() {
       var p = prefs();
@@ -6009,6 +6708,8 @@
       $('#cfg-categoria').value = p.categoria;
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
+    // El cajón también lleva a los ajustes, y vive fuera de este trozo.
+    abreLosAjustes = abreAjustes;
     $('#cfg').addEventListener('click', abreAjustes);
     $('#cfg-row').addEventListener('click', function () { sheetClose(); abreAjustes(); });
     $$('[data-cfg-pitch]').forEach(function (b) {
@@ -6063,6 +6764,58 @@
     scrim.addEventListener('click', sheetClose);
     $('#sheet-grab').addEventListener('click', sheetClose);
 
+    /* Arrastrar la hoja hacia abajo para cerrarla.
+
+       El asa tiene forma de asa, así que la gente la arrastra. Y no pasaba
+       nada: solo respondía al toque. Peor todavía, al tirar hacia abajo con la
+       hoja ya arriba del todo, el navegador la hacía rebotar sobre sí misma y
+       dejaba a la vista una franja vacía encima del asa. La hoja parecía rota
+       sin estarlo.
+
+       Se arrastra desde el asa siempre, y desde el cuerpo solo cuando ya está
+       arriba del todo: si no, tirar hacia abajo para leer lo de arriba
+       cerraría la hoja en vez de desplazarla. */
+    (function hojaArrastrable() {
+      var y0 = 0, dy = 0, activo = false, desdeAsa = false, t0 = 0;
+      var CIERRA = 88;                 // lo que hay que bajarla para que se cierre
+
+      function empieza(e) {
+        if (!aside.classList.contains('open') || e.touches.length !== 1) return;
+        desdeAsa = !!(e.target.closest && e.target.closest('.sheet-grab, .sheet-tit'));
+        activo = desdeAsa || aside.scrollTop <= 0;
+        y0 = e.touches[0].clientY; dy = 0; t0 = Date.now();
+      }
+      function mueve(e) {
+        if (!activo) return;
+        var d = e.touches[0].clientY - y0;
+        // Hacia arriba no: se devuelve el gesto al desplazamiento normal.
+        if (d <= 0) {
+          if (!desdeAsa) { activo = false; suelta(); }
+          return;
+        }
+        e.preventDefault();            // esto es lo que mata el rebote
+        dy = d;
+        aside.classList.add('arrastrando');
+        aside.style.transform = 'translateY(' + d.toFixed(1) + 'px)';
+        // El velo se va aclarando: el gesto se ve, no solo se nota al soltar.
+        scrim.style.opacity = String(Math.max(0, 1 - d / 280));
+      }
+      function suelta() {
+        aside.classList.remove('arrastrando');
+        aside.style.transform = '';
+        scrim.style.opacity = '';
+        // Un golpe corto y rápido cierra aunque no haya bajado los 88 px: es
+        // el gesto que hace todo el mundo, un manotazo hacia abajo.
+        var rapido = (Date.now() - t0) < 320 && dy > 34;
+        if (dy > CIERRA || rapido) sheetClose();
+        activo = false; desdeAsa = false; dy = 0;
+      }
+      aside.addEventListener('touchstart', empieza, { passive: true });
+      aside.addEventListener('touchmove', mueve, { passive: false });
+      aside.addEventListener('touchend', function () { if (activo) suelta(); });
+      aside.addEventListener('touchcancel', function () { if (activo) suelta(); });
+    })();
+
     // Elegir una herramienta o un material cierra la hoja y deja el campo libre.
     aside.addEventListener('click', function (e) {
       if (window.innerWidth <= 900 && e.target.closest('[data-tool],[data-place],[data-view],[data-width],.sw')) {
@@ -6101,6 +6854,9 @@
     });
 
     window.addEventListener('resize', resize);
+    // Al pasar de escritorio a móvil (o al girar el teléfono) los bloques del
+    // panel tienen que volver a su sitio: plegados allí, abiertos aquí.
+    window.addEventListener('resize', ajustaBloquesDelPanel);
     window.addEventListener('orientationchange', function () { setTimeout(resize, 260); });
     if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
     if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas.parentNode);
@@ -6188,8 +6944,53 @@
 
   function ensurePitch() { if (!doc.pitch) doc.pitch = 'f11'; }
 
+  /* -------------------------------------------------------------------------
+     Los bloques plegables del panel.
+
+     En el escritorio el panel enseñaba los siete bloques a la vez: treinta y
+     nueve mandos en frío, que es de lo que se quejaba el encargo. Los cuatro
+     secundarios se pliegan ahí. En el móvil NO: la hoja ya enseña un solo
+     grupo por pestaña, y plegarlos costaría un toque de más en cada material.
+
+     Lo que abras se recuerda en los ajustes. Un entrenador que use los conos
+     todos los días los abre una vez, no una vez por sesión. */
+  var BLOQUES_PLEGABLES = ['b-tools-mas', 'b-color', 'b-forms', 'b-mats', 'b-view', 'b-actions'];
+
+  function esEscritorio() { return window.innerWidth > 900; }
+
+  /* Poner «open» desde aquí dispara el evento «toggle», igual que si lo hubiera
+     pulsado alguien. Sin esta bandera, abrir la aplicación en un escritorio
+     dejaba escritos en los ajustes cuatro bloques «cerrados» que nadie había
+     cerrado, y al abrirla luego en el móvil se leerían como una decisión. */
+  var ajustandoBloques = false;
+
+  function ajustaBloquesDelPanel() {
+    var abiertos = prefs().panel || {};
+    ajustandoBloques = true;
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (!d || d.tagName !== 'DETAILS') return;
+      d.open = !esEscritorio() || !!abiertos[id];
+    });
+    setTimeout(function () { ajustandoBloques = false; }, 0);
+  }
+
+  function recuerdaBloque(id, abierto) {
+    if (ajustandoBloques) return;         // no lo ha tocado nadie
+    if (!esEscritorio()) return;          // en el móvil van siempre abiertos
+    var p = prefs();
+    if (!p.panel) p.panel = {};
+    p.panel[id] = !!abierto;
+    guardaPrefs(p);
+  }
+
   function start() {
     wire();
+    ajustaBloquesDelPanel();
+    BLOQUES_PLEGABLES.forEach(function (id) {
+      var d = document.getElementById(id);
+      if (d) d.addEventListener('toggle', function () { recuerdaBloque(id, d.open); });
+    });
     cargaCatalogo();
     setupInstall();
     var saved = null;
@@ -6235,7 +7036,55 @@
      de salir salvo borrando los datos del navegador a mano. Así que se tira lo
      guardado y se arranca limpio una vez. Si vuelve a fallar, ya no es eso: se
      deja pasar el error para que se vea en la consola. */
+  /* -------------------------------------------------------------------------
+     La copia de seguridad de antes de tocar nada.
+
+     Lo que hay en este navegador es lo único que hay: no se sincroniza con
+     ningún sitio a propósito. Si un cambio en el guardado sale mal, no hay
+     servidor del que recuperar la biblioteca de un entrenador, ni su plantilla,
+     ni un año de asistencia. Así que antes de que esta versión escriba nada, se
+     guarda una foto de lo que había.
+
+     Se hace UNA vez y no se vuelve a tocar. Es a propósito: una copia que se
+     refresca sola acabaría copiando encima lo que se rompió, que es justo
+     cuando hace falta la copia.
+
+     Queda fuera «pt-autosave» —la pizarra a medias que tienes delante—: es lo
+     más volátil, es lo que la red de seguridad de abajo borra cuando algo viene
+     dañado, y ocupa tanto como el resto junto.
+
+     Si no cabe, no pasa nada y nadie se entera: una copia de seguridad que
+     impida arrancar es peor que no tenerla. */
+  var LLAVE_COPIA = 'pt-backup-v1';
+  var COPIA_DE = ['pt-boards', 'pt-squad', 'pt-asistencia', 'pt-sesiones', 'pt-prefs'];
+
+  function copiaDeSeguridadUnaVez() {
+    try {
+      if (localStorage.getItem(LLAVE_COPIA)) return 'ya estaba';
+      var claves = {}, hayAlgo = false;
+      COPIA_DE.forEach(function (k) {
+        var v = localStorage.getItem(k);
+        if (v == null) return;
+        claves[k] = v;
+        hayAlgo = true;
+      });
+      // Un navegador estrenado no necesita copia de nada.
+      if (!hayAlgo) return 'no hay nada que copiar';
+      localStorage.setItem(LLAVE_COPIA, JSON.stringify({
+        hecha: new Date().toISOString(),
+        porque: 'antes de unificar el guardado',
+        claves: claves
+      }));
+      return 'hecha';
+    } catch (e) {
+      // Con el almacén lleno, setItem lanza y puede dejar la llave a medias.
+      try { localStorage.removeItem(LLAVE_COPIA); } catch (e2) {}
+      return 'no cabe';
+    }
+  }
+
   function arranca() {
+    copiaDeSeguridadUnaVez();
     try {
       start();
     } catch (e) {
@@ -6245,6 +7094,9 @@
         toast('La pizarra que tenías guardada estaba dañada y se ha empezado de cero');
       }, 900);
     }
+    /* Después de arrancar, no antes: el cartel señala al menú, y el menú tiene
+       que existir. Con un respiro para que lo primero que se vea sea el campo. */
+    setTimeout(quizaEnseñaLaPista, 700);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca);

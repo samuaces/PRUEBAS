@@ -1,7 +1,7 @@
 {
-  "name": "Pizarra Táctica de Fútbol",
-  "short_name": "Pizarra Táctica",
-  "description": "Pizarra táctica de fútbol: material de entrenamiento, formaciones y animación de la jugada por fotogramas. Sin registro y sin conexión.",
+  "name": "Klym · Planifica tus entrenamientos",
+  "short_name": "Klym",
+  "description": "Planifica tus entrenamientos de fútbol: pizarra táctica que se anima, sesiones por día, plantilla, asistencia y minutos por fase del juego. Sin registro y sin conexión.",
   "lang": "es",
   "dir": "ltr",
   "start_url": "./app/",
