@@ -2170,6 +2170,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   <div class="dbody">
     <label class="field wide"><span>Nombre del ejercicio</span>
       <input type="text" id="save-nombre" maxlength="80" placeholder="Rondo de los martes"></label>
+    <!-- Solo sale cuando la pizarra viene de un ejercicio de otro: dice de cuál
+         y deja claro que el original no se toca. -->
+    <p class="block-note" id="save-sale" hidden></p>
 
     <div id="save-part">
       <label class="check check-fila"><input type="checkbox" id="save-hoy" checked>
@@ -11506,6 +11509,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var todas = savedBoards();
     var nueva = !todas[titulo];
     todas[titulo] = { at: Date.now(), doc: doc };
+    // Guardar desde la ficha guarda lo mismo que guardar desde la barra, así
+    // que también tiene que acordarse de dónde salió el dibujo.
+    if (docSale) todas[titulo].sale = docSale;
     if (!writeBoards(todas)) { toast('Ficha guardada, pero no cabe en el almacenamiento del navegador'); return; }
     olvidaMini('mia:' + titulo);
     toast(nueva ? '«' + titulo + '» guardado en tu biblioteca'
@@ -12249,6 +12255,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
       function abre() {
         doc = limpio;
+        /* Lo que llega por enlace no es «una versión de» nada: el enlace trae
+           la jugada entera y suelta, sin biblioteca detrás de la que salga. */
+        docSale = null;
         ui.frame = 0; ui.sel = null; ui.multi = [];
         syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
         hint('');
@@ -12361,7 +12370,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
                      doc: d, at: mias[n].at,
                      // Quién participó. Va aparte del documento a propósito: al
                      // compartir se sube «doc», y los nombres no están ahí.
-                     meta: mias[n].meta || null });
+                     meta: mias[n].meta || null,
+                     // De dónde salió, si salió de algo. Igual que «meta»: fuera
+                     // del documento, porque es cosa de esta copia y no viaja.
+                     sale: mias[n].sale || null });
       });
     return items.concat(nubeMios);
   }
@@ -12678,7 +12690,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (it.fuente === 'app') {
       return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'Del catálogo';
     }
-    if (it.fuente === 'local') return 'Tuya, en este dispositivo';
+    /* Una pizarra tuya que salió de otra lo dice: dentro de tres meses, «Rondo
+       4 contra 2 (mi versión)» sin más no te recuerda de qué era versión. */
+    if (it.fuente === 'local') {
+      if (it.sale && it.sale.nombre) {
+        return 'Tuya · a partir de «' + it.sale.nombre + '»' +
+               (it.sale.autor ? ', de ' + it.sale.autor : '');
+      }
+      return 'Tuya, en este dispositivo';
+    }
     if (!it.publicado) return 'Tuyo, sin compartir';
     if (it.mio) return 'Tuyo, compartido';
     return it.autor ? 'De ' + it.autor + (it.club ? ' · ' + it.club : '') : 'De la comunidad';
@@ -12745,6 +12765,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       return bs;
     }
 
+    /* Lo que no es tuyo se puede hacer tuyo de un toque, sin abrirlo: se copia
+       a este dispositivo y desde ahí ya es una pizarra más, que se edita, se
+       comparte y se mete en una sesión. Es la mitad del sentido de que haya
+       biblioteca común. */
+    boton('Copiar a lo mío', '', function () { copiaALoMio(it); });
+
     if (it.fuente === 'nube' && yo) {
       boton('Reportar', 'sutil', function () {
         ask({ title: 'Reportar «' + it.nombre + '»',
@@ -12767,10 +12793,62 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function abreItem(it) {
     if (it.fuente === 'nube' && it.fila && !it.mio) nube.apertura(it.fila.id);
     doc = clone(itemDoc(it));
+    docSale = saleDe(it);
     ui.frame = 0; ui.sel = null; ui.multi = [];
     syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
     $('#dlg-lib').close();
     toast('«' + (it.nombre || 'Ejercicio') + '» abierto');
+  }
+
+  /* -------------------------------------------------------------------------
+     De dónde sale lo que hay en la pizarra.
+
+     Un entrenador no monta un ejercicio de cero casi nunca: coge uno, le cambia
+     el espacio, le quita dos jugadores y lo hace suyo. Eso es adaptar, y hasta
+     ahora se perdía: guardabas y quedaba una pizarra tuya con el mismo nombre
+     que la del catálogo, sin nada que dijera de dónde venía ni en qué se
+     diferenciaba. Ahora la pizarra se acuerda, el nombre que propone al guardar
+     ya dice que es tu versión, y la tarjeta lo cuenta.
+
+     Vale solo para lo que NO es tuyo. Volver a guardar algo tuyo no es hacer
+     una variante: es guardar. */
+  var docSale = null;
+
+  function saleDe(it) {
+    if (!it || it.fuente === 'local' || it.mio) return null;
+    return {
+      nombre: String(it.nombre || '').slice(0, 80),
+      autor: String(it.autor || '').slice(0, 60),
+      de: it.fuente === 'app' ? 'catalogo' : 'comunidad'
+    };
+  }
+
+  function comoLoLlamarias(sale) {
+    // «Rondo 4 contra 2» → «Rondo 4 contra 2 (mi versión)», y si ya existe esa,
+    // «(mi versión 2)». Sin esto, guardar pisaría la variante anterior.
+    var base = (sale && sale.nombre ? sale.nombre : '').trim() || 'Ejercicio';
+    var guardadas = savedBoards();
+    var n = base + ' (mi versión)';
+    var i = 2;
+    while (guardadas[n] && i < 40) { n = base + ' (mi versión ' + i + ')'; i++; }
+    return n.slice(0, 80);
+  }
+
+  /* Copiar sin abrir: con la biblioteca delante, «este me lo quedo» es un gesto
+     de uno. Se guarda tal cual, con su procedencia, y la biblioteca se repinta
+     para que aparezca ya en «Mías». */
+  function copiaALoMio(it) {
+    var sale = saleDe(it);
+    var nombre = comoLoLlamarias(sale);
+    var guardadas = savedBoards();
+    guardadas[nombre] = { at: Date.now(), doc: clone(itemDoc(it)), sale: sale };
+    if (!writeBoards(guardadas)) {
+      toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
+      return;
+    }
+    olvidaMini('mia:' + nombre);
+    toast('Copiado a lo tuyo como «' + nombre + '»');
+    pintaBiblioteca();
   }
 
   /* =========================================================================
@@ -13474,6 +13552,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         return;
       }
       doc = clone(todas[ref.nombre].doc);
+      // La suya, no la de lo que hubiera antes en la pizarra.
+      docSale = todas[ref.nombre].sale || null;
       ui.frame = 0; ui.sel = null; ui.multi = [];
       syncViewButtons(); buildFrames(); hideInspector(); commit();
       vaModo('pizarra');               // resize() va dentro: el campo ya tiene hueco
@@ -14437,7 +14517,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       try {
         var d = JSON.parse(fr.result);
         if (!d || !Array.isArray(d.frames) || !d.frames.length) throw 0;
-        doc = saneaDoc(d); ui.frame = 0; ui.sel = null; ui.multi = [];
+        doc = saneaDoc(d); docSale = null; ui.frame = 0; ui.sel = null; ui.multi = [];
         syncViewButtons(); buildFrames(); hideInspector(); commit(); resize();
         toast('Pizarra importada');
       } catch (e) { toast('El archivo no es una pizarra válida'); }
@@ -14477,6 +14557,27 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     // El nombre que propone es el de la ficha, si la hay: es el que el
     // entrenador ya ha escrito y por el que va a buscarla después.
     campo.value = (doc.card && doc.card.titulo || '').trim();
+
+    /* Salvo que esto venga de un ejercicio de otro. Entonces lo que se está
+       guardando es TU versión, y proponer el nombre de pila del original deja
+       dos cosas distintas llamadas igual: la del catálogo y la tuya.
+
+       Pero solo si el título sigue siendo el suyo. Si el entrenador ya le ha
+       puesto nombre en la ficha, ese es el que quiere: pisárselo con «(mi
+       versión)» sería corregirle algo que acaba de escribir a mano. */
+    var nota = $('#save-sale');
+    var sinTocarElTitulo = !!docSale &&
+      campo.value.toLowerCase() === String(docSale.nombre || '').trim().toLowerCase();
+    if (docSale) {
+      if (sinTocarElTitulo || !campo.value) campo.value = comoLoLlamarias(docSale);
+      nota.textContent = 'Sale de «' + docSale.nombre + '»' +
+        (docSale.autor ? ', de ' + docSale.autor : docSale.de === 'catalogo' ? ', del catálogo' : '') +
+        '. Lo que guardes es tu versión: el original se queda como está.';
+      nota.hidden = false;
+    } else {
+      nota.textContent = '';
+      nota.hidden = true;
+    }
 
     saveElegidos = PTEquipo.presentesHoy();
     $('#save-part-plantilla').checked = false;
@@ -14529,6 +14630,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var nueva = !all[name];
     var entrada = { at: Date.now(), doc: doc };
     if (meta) entrada.meta = meta;
+    /* De dónde salió. Si guardas con OTRO nombre distinto del que se proponía,
+       sigue saliendo de ahí: lo que cuenta es de dónde viene el dibujo. */
+    if (docSale) entrada.sale = docSale;
     all[name] = entrada;
     if (!writeBoards(all)) {
       toast('No cabe en el almacenamiento del navegador: borra alguna pizarra guardada');
@@ -14709,6 +14813,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         .then(function (yes) {
           if (!yes) return;
           doc = { pitch: prefs().pitch, view: doc.view, card: emptyCard(), frames: [emptyFrame()] };
+          docSale = null;
           ui.frame = 0; ui.sel = null; ui.multi = []; hideInspector();
           commit(); buildFrames(); draw();
         });

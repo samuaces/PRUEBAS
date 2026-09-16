@@ -1434,6 +1434,87 @@ async function run(w,d){
   await wait(300);
   w.localStorage.removeItem('pt-boards');
 
+  /* --- adaptar un ejercicio de otro ----------------------------------------
+     Nadie monta un ejercicio de cero: coge uno, le cambia el espacio y lo hace
+     suyo. Eso antes se perdía —quedaba una pizarra tuya con el mismo nombre que
+     la del catálogo y sin rastro de dónde venía—. Ahora la pizarra se acuerda,
+     el nombre que propone al guardar ya dice que es tu versión, y la tarjeta lo
+     cuenta. El original no se toca nunca. */
+  w.localStorage.removeItem('pt-boards');
+  d.getElementById('open').click();await wait(1100);
+  var nombreOriginal=d.querySelector('#lib-grid .lib-card b').textContent.trim();
+  var cuantosCatalogo=d.querySelectorAll('#lib-grid .lib-card').length;
+
+  // (1) copiar sin abrir
+  var copiar=[].filter.call(d.querySelectorAll('#lib-grid .lib-card button'),
+    function(b){return b.textContent.trim()==='Copiar a lo mío';})[0];
+  ok('cada ejercicio que no es tuyo se puede copiar a lo tuyo sin abrirlo',!!copiar);
+  copiar.click();await wait(600);
+  var copiadas=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
+  var nCopia=Object.keys(copiadas)[0]||'';
+  ok('la copia se guarda con un nombre que dice que es tuya',
+     Object.keys(copiadas).length===1 && /\(mi versión\)$/.test(nCopia),nCopia);
+  ok('y se acuerda de cuál era el original',
+     !!copiadas[nCopia].sale && copiadas[nCopia].sale.nombre===nombreOriginal,
+     JSON.stringify(copiadas[nCopia].sale));
+  ok('y el original se queda donde estaba, sin tocar',
+     d.querySelectorAll('#lib-grid .lib-card').length===cuantosCatalogo,
+     d.querySelectorAll('#lib-grid .lib-card').length+' de '+cuantosCatalogo);
+
+  // (2) la tarjeta de «Mías» lo cuenta
+  d.querySelectorAll('.lib-tab')[1].click();await wait(500);
+  var firma=d.querySelector('#lib-grid .lib-origen');
+  ok('en «Mías», la tarjeta dice de qué ejercicio salió',
+     !!firma && firma.textContent.indexOf(nombreOriginal)>=0,
+     firma?firma.textContent:'no hay tarjeta');
+
+  // (3) copiar dos veces no pisa la primera
+  d.querySelectorAll('.lib-tab')[0].click();await wait(600);
+  [].filter.call(d.querySelectorAll('#lib-grid .lib-card button'),
+    function(b){return b.textContent.trim()==='Copiar a lo mío';})[0].click();
+  await wait(600);
+  var dos=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
+  ok('copiarlo otra vez no pisa la copia anterior',Object.keys(dos).length===2,
+     Object.keys(dos).join(' · '));
+
+  // (4) abrirlo y guardarlo: propone tu versión y dice de dónde sale
+  w.localStorage.removeItem('pt-boards');
+  d.querySelector('#lib-grid .lib-card button.primary').click();await wait(700);
+  d.getElementById('save').click();await wait(350);
+  ok('abriendo uno del catálogo, Guardar propone tu versión',
+     /\(mi versión\)$/.test(d.getElementById('save-nombre').value),
+     d.getElementById('save-nombre').value);
+  ok('y dice de dónde sale y que el original no se toca',
+     !d.getElementById('save-sale').hidden &&
+     d.getElementById('save-sale').textContent.indexOf(nombreOriginal)>=0,
+     d.getElementById('save-sale').textContent.slice(0,90));
+
+  // (5) pero si le has puesto tu propio título, ese manda
+  d.querySelector('#dlg-save [data-close]').click();await wait(250);
+  w.localStorage.removeItem('pt-boards');
+  d.getElementById('card-edit').click();await wait(400);
+  d.getElementById('f-titulo').value='Salida a tres, mi versión de siempre';
+  d.getElementById('f-guardar').click();await wait(500);
+  var deLaFicha=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
+  ok('guardando desde la ficha también se acuerda de dónde salió',
+     !!(deLaFicha['Salida a tres, mi versión de siempre']||{}).sale,
+     Object.keys(deLaFicha).join(' · '));
+  d.getElementById('save').click();await wait(350);
+  ok('pero un título que has escrito tú no se pisa con «(mi versión)»',
+     d.getElementById('save-nombre').value==='Salida a tres, mi versión de siempre',
+     d.getElementById('save-nombre').value);
+  ok('y aun así sigue diciendo de dónde sale, que es la otra mitad',
+     !d.getElementById('save-sale').hidden);
+
+  // (6) empezar de cero corta el cordón
+  d.getElementById('reset').click();await wait(400);
+  if(d.getElementById('dlg-ask').open){d.getElementById('ask-ok').click();await wait(400);}
+  d.getElementById('save').click();await wait(350);
+  ok('y empezando una pizarra nueva ya no sale de ningún sitio',
+     d.getElementById('save-sale').hidden);
+  d.querySelector('#dlg-save [data-close]').click();await wait(250);
+  w.localStorage.removeItem('pt-boards');
+
   // --- imprimir sin ventanas emergentes ---
   // En el iPhone y dentro de otras aplicaciones las bloquean, y el botón se
   // quedaba muerto. Ahora se imprime desde un marco del propio documento.

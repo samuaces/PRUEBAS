@@ -865,6 +865,9 @@
   <div class="dbody">
     <label class="field wide"><span>Nombre del ejercicio</span>
       <input type="text" id="save-nombre" maxlength="80" placeholder="Rondo de los martes"></label>
+    <!-- Solo sale cuando la pizarra viene de un ejercicio de otro: dice de cuál
+         y deja claro que el original no se toca. -->
+    <p class="block-note" id="save-sale" hidden></p>
 
     <div id="save-part">
       <label class="check check-fila"><input type="checkbox" id="save-hoy" checked>
