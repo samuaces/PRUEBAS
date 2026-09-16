@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v16';   // v16: sesiones de cualquier día
+var CACHE = 'pizarra-tactica-v17';   // v17: el pico de las esquinas de la hoja
 
 var SHELL = [
   './',
