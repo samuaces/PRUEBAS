@@ -1156,6 +1156,26 @@ async function run(w,d){
     ok('ningún apartado se queda sin pestaña que lo abra',huerfanos.length===0,
        huerfanos.join(', ')||Object.keys(grupos).length+' apartados, todos alcanzables');
   })();
+  /* Y de borde a borde. La hoja tiene las esquinas de arriba redondeadas y
+     recorta lo de dentro contra ese arco; si una cabecera pegada empieza 14 px
+     por dentro —por ir a «width:100%» del área CON RELLENO— su propio arco
+     queda por dentro del de la hoja, y entre los dos arcos queda una media luna
+     que ella no tapa y la hoja sí deja pintar. Por ahí asomaba lo que pasara
+     por detrás: en un iPhone se veían dos triángulos amarillos del botón de
+     «Comodín» en las dos esquinas.
+
+     Se mide contra los bordes de la hoja, no contra un 14 escrito aquí: el día
+     que cambie el relleno, la prueba sigue valiendo. */
+  (function(){
+    var hoja=d.querySelector('.aside').getBoundingClientRect();
+    var mal=[].filter.call(d.querySelectorAll('.sheet-grab, .sheet-tit'),function(e){
+      var c=e.getBoundingClientRect();
+      return c.left > hoja.left + 1 || c.right < hoja.right - 1;});
+    ok('las cabeceras pegadas llegan a los dos bordes de la hoja',
+       mal.length===0,
+       mal.map(function(e){return e.id;}).join(' · ') || 'asa y título, de borde a borde');
+  })();
+
   /* --- las cabeceras pegadas de la hoja ---------------------------------
 
      Lo que se desplaza tiene que pasar POR DETRÁS del asa y del título, no

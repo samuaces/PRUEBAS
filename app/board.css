@@ -980,7 +980,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     border-right:0;border-top:1px solid var(--line-strong);
     border-radius:var(--r5) var(--r5) 0 0;
-    padding:0 14px 18px;
+    /* El relleno de los lados en una variable porque las cabeceras pegadas
+       tienen que salirse de él para llegar a los bordes de la hoja. Con el
+       número copiado a mano en tres sitios, al primero que cambie uno se le
+       queda un pico abierto en las esquinas. */
+    --hoja-lado:14px;
+    padding:0 var(--hoja-lado) 18px;
     box-shadow:0 -30px 70px -26px rgba(0,0,0,.92),inset 0 1px 0 var(--sheen);
     transform:translateY(calc(101% + var(--tabbar) + var(--safe-b)));
     transition:transform .3s var(--ease);
@@ -1023,8 +1028,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      hoja: sin dejar de mirar el campo. */
   /* El tirador se arrastra y se pulsa para cerrar: 34 px era poco para las dos
      cosas, y encima es lo primero que toca el pulgar al subir la hoja. */
+  /* De borde a borde, no solo del área con relleno.
+
+     Aquí había un pico abierto en las dos esquinas de arriba, y se veía: en el
+     iPhone salían dos triángulos amarillos del botón de «Comodín» asomando por
+     ellas. El asa iba a «width:100%», que es el 100 % del área CON RELLENO, así
+     que empezaba 14 px por dentro y su arco quedaba 14 px por dentro del arco
+     de la hoja. Entre los dos arcos queda una media luna que el asa no tapa y
+     que la hoja sí deja pintar, y por ahí asomaba lo que estuviera detrás.
+
+     El título ya se salía del relleno con un margen negativo; al asa le
+     faltaba. Ahora los dos usan la misma variable. */
   .sheet-grab{display:block;position:sticky;top:0;z-index:3;touch-action:none;
-    width:100%;height:var(--touch);margin-bottom:2px;border:0;
+    /* Ancho explícito: un «button» con «width:auto» se encoge a su contenido
+       aunque esté en «display:block», y el asa no tiene contenido. */
+    width:calc(100% + var(--hoja-lado) * 2);
+    margin:0 calc(var(--hoja-lado) * -1) 2px;
+    height:var(--touch);border:0;
     border-radius:var(--r5) var(--r5) 0 0;
     background:var(--panel-solido)}
   /* Mientras se arrastra no hay transición: la hoja tiene que ir pegada al
@@ -1037,7 +1057,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      ves material, no un panel con todo dentro. */
   /* Pegado justo donde acaba el asa, no 18 px dentro de ella. */
   .sheet-tit{display:block;position:sticky;top:var(--touch);z-index:2;
-    margin:0 -14px 12px;padding:6px 14px 12px;
+    margin:0 calc(var(--hoja-lado) * -1) 12px;
+    padding:6px var(--hoja-lado) 12px;
     border-bottom:1px solid var(--line);
     background:var(--panel-solido);
     font-family:var(--ff-display);font-size:var(--t-lg);font-weight:700;letter-spacing:-.01em}
