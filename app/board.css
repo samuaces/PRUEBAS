@@ -386,8 +386,38 @@ a:hover{color:var(--text)}
    pero solo difumina de la barra superior hacia abajo. Difuminándolo todo, los
    botones de arriba se convertían en manchas y la aplicación parecía rota; así
    la barra se atenúa pero se sigue leyendo. */
+/* ---------------- El cajón ----------------
+   De aquí se salta a cualquier sección. Sustituye al interruptor Pizarra/Equipo
+   de la barra, que ocupaba 145 px donde a 320 px sobraban seis. */
+.cajon-btn{gap:8px;font-weight:700}
+.cajon-btn svg{width:18px;height:18px;flex:none}
+.cajon-btn-txt{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cajon{position:fixed;z-index:60;top:0;left:0;bottom:0;width:min(290px,84vw);
+  padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px);
+  background:var(--bg-2);border-right:1px solid var(--line);
+  box-shadow:0 0 60px -12px rgba(0,0,0,.7);
+  transform:translateX(-102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);
+  overflow-y:auto;overscroll-behavior:none}
+.cajon.open{transform:none}
+/* Sin transición no hay a qué esperar para esconderlo del teclado y del lector:
+   se quita el «hidden» al abrir y se repone al acabar de cerrarse. */
+.cajon[hidden]{display:none}
+.cajon-tit{margin:0 0 12px 4px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85}
+.cajon-ir{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
+  gap:2px 11px;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;
+  border:1px solid transparent;border-radius:var(--r3);background:none;color:var(--text);
+  font:inherit;cursor:pointer;min-height:var(--touch)}
+.cajon-ir svg{grid-row:1/3;align-self:center;width:21px;height:21px;color:var(--muted)}
+.cajon-ir span{font-family:var(--ff-display);font-weight:700;font-size:14.5px}
+.cajon-ir small{color:var(--muted);font-size:11.5px;line-height:1.35}
+.cajon-ir:hover{background:var(--glass-2)}
+.cajon-ir[aria-current="true"]{background:var(--glass-3);border-color:var(--line);}
+.cajon-ir[aria-current="true"] svg{color:var(--brand-2)}
+
 .scrim{position:fixed;inset:0;display:none;z-index:35;background:transparent}
 .scrim.show{display:block}
+#cajon-scrim{z-index:55;background:rgba(3,6,10,.5)}
 .scrim::before,.scrim::after{content:"";position:absolute;left:0;right:0;background:rgba(3,6,10,.5)}
 .scrim::before{top:0;height:calc(var(--topbar) + var(--safe-t))}
 /* 5 px y no más: este difuminado cubre media pantalla y se rehace en cada
@@ -912,37 +942,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 }
 
 @media (max-width:430px){
-  /* La marca es lo único decorativo de la barra, y en un teléfono no dice nada
-     que no sepas ya: estás DENTRO de la aplicación. Su sitio se lo queda la
-     palabra «Entrar», que sí hace falta. Antes se escondía solo por debajo de
-     365 px; ahora, en cualquier teléfono. */
-  .topbar .logo{display:none}
-  /* Y seis píxeles más de los lados del botón de la cuenta, que con la palabra
-     dentro ya no necesita el relleno que pedía un icono suelto. */
+  /* La marca volvió: al sacar el interruptor Pizarra/Equipo de la barra, esta
+     pasó de ir al límite a sobrarle 67 px a 320 px. Se escondía por falta de
+     sitio, no porque estorbara. */
   .topbar .cuenta-btn{padding-left:7px;padding-right:7px}
-}
-
-@media (max-width:375px){
-  /* Quedaban cuatro píxeles. Salen de deshacer, rehacer y guardar, que son
-     iconos y no palabras: de 40 a 38 de ancho mínimo, dos cada uno. El alto no
-     se toca —que es lo que se toca— y 38 sigue por encima del suelo de 34 que
-     vigila la prueba de la barra. */
-  .topbar .tbtn{min-width:38px}
 }
 
 @media (max-width:340px){
   .topbar{gap:3px;padding-left:6px;padding-right:6px}
   .topbar .tbtn{min-width:34px;padding-left:5px;padding-right:5px}
   .topbar .tbtn svg{width:15px;height:15px}
-  /* Aquí «Entrar» NO cabe: medido, la barra pide 339 px y hay 320. No son dos
-     píxeles que apretar, son diecinueve, y sacarlos significaría quitarle el
-     nombre al modo en el que estás —cambiar una cosa que se lee por otra— o
-     dejar los botones por debajo de lo que pide un dedo. Así que en el ancho
-     más estrecho que se soporta vuelve el icono solo, y la puerta con su
-     nombre escrito es la del panel de «Más». De 360 px para arriba, que es
-     donde está cualquier teléfono en uso, manda la palabra. */
-  .topbar .cuenta-btn:not(.dentro) .cuenta-avatar{display:inline-flex}
-  .topbar .cuenta-btn:not(.dentro) .hide-sm{display:none}
+  /* Aquí «Entrar» tampoco cabía: la barra pedía 339 px y había 320. Ahora
+     sobran 67, así que la palabra se queda también en el teléfono más estrecho
+     que se soporta. */
 }
 
 @media (max-width:420px){

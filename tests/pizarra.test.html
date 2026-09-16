@@ -18,6 +18,16 @@ var log=[],fails=0;
 function ok(n,c,x){log.push((c?'PASA  ':'FALLA ')+n+(x?'  ('+x+')':''));if(!c)fails++;}
 function raf(){return new Promise(function(r){setTimeout(r,70);});}
 function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+/* Ir a una sección. El interruptor Pizarra/Equipo de la barra ya no existe: se
+   navega por el cajón, que es abrir, elegir y que se cierre solo. Las pruebas
+   lo hacen como lo haría un dedo, no llamando por dentro. */
+async function irA(d,x){
+  d.getElementById('cajon-btn').click();
+  await new Promise(function(r){setTimeout(r,320);});
+  d.querySelector('.cajon-ir[data-ir="'+x+'"]').click();
+  await new Promise(function(r){setTimeout(r,420);});
+}
+
 var fr=document.getElementById('fr'),errors=[],arrancado=false;
 fr.addEventListener('load',function(){var w=fr.contentWindow,d=fr.contentDocument;
   /* Un iframe sin src carga about:blank y también avisa: solo cuenta la carga
@@ -801,7 +811,7 @@ async function run(w,d){
     // La prueba de fondo: los dos modos. Equipo era el que no tenía salida.
     var modos=['pizarra','equipo'],llega=[];
     for(var iM=0;iM<modos.length;iM++){
-      d.querySelector('.modo[data-modo="'+modos[iM]+'"]').click();await wait(350);
+      await irA(d,modos[iM]);
       var seVeAqui=veAncho('cuenta-btn');
       d.getElementById('cuenta-btn').click();await wait(350);
       var abrio=d.getElementById('dlg-cuenta').open;
@@ -811,7 +821,7 @@ async function run(w,d){
     }
     ok('se llega a la cuenta desde los dos modos',
        llega.join(' ').indexOf('NO')<0,llega.join(' · '));
-    d.querySelector('.modo[data-modo="pizarra"]').click();await wait(300);
+    await irA(d,'pizarra');await wait(300);
     // Y la cuenta ya no vive dentro de Ajustes: son dos diálogos distintos.
     ok('la cuenta tiene diálogo propio, no un rincón de Ajustes',
        !!d.getElementById('dlg-cuenta')&&
@@ -1452,9 +1462,9 @@ async function run(w,d){
     return {alto:Math.round(r.height),abajo:Math.round(r.bottom),
             minTab:alturas.length?Math.min.apply(null,alturas):0};
   }
-  d.querySelector('#modos [data-modo="pizarra"]').click();await wait(450);
+  await irA(d,'pizarra');await wait(450);
   var bPiz=mideBarra('.tabbar.solo-pizarra');
-  d.querySelector('#modos [data-modo="equipo"]').click();await wait(550);
+  await irA(d,'equipo');await wait(550);
   var bEq=mideBarra('.tabbar-eq');
   ok('con el hueco del iPhone, la barra de la pizarra lo cubre',
      bPiz.alto>=94,bPiz.alto+' px de alto');
@@ -1465,7 +1475,7 @@ async function run(w,d){
   ok('y ninguna pestaña baja de lo que toca un dedo en ningún modo',
      bPiz.minTab>=44&&bEq.minTab>=44,
      'pizarra '+bPiz.minTab+' px · equipo '+bEq.minTab+' px');
-  d.querySelector('#modos [data-modo="pizarra"]').click();await wait(450);
+  await irA(d,'pizarra');await wait(450);
   d.documentElement.style.removeProperty('--safe-b');
   marco3.style.width='1200px';await wait(600);
 
@@ -1705,6 +1715,63 @@ async function run(w,d){
      rotulos.every(function(x){return /=none$/.test(x);}),rotulos.join(' · '));
   marcoP.style.width=anchoP||'1200px';await wait(500);
   w.dispatchEvent(new w.Event('resize'));await wait(300);
+
+  /* --- el cajón -----------------------------------------------------------
+
+     Sustituye al interruptor Pizarra/Equipo de la barra, que ocupaba 145 px
+     donde a 320 px sobraban seis. Lo de cerca —las pestañas de abajo— sigue
+     donde estaba: el cajón es para saltar lejos. */
+  ok('el interruptor de modo ya no está en la barra',
+     !d.getElementById('modos'),'#modos');
+  var cajon=d.getElementById('cajon');
+  ok('y en su sitio hay un cajón, cerrado y fuera del alcance del teclado',
+     !!cajon&&!cajon.classList.contains('open')&&cajon.hidden);
+
+  d.getElementById('cajon-btn').click();await wait(400);
+  ok('el botón lo abre',cajon.classList.contains('open')&&!cajon.hidden);
+  ok('y se ve el velo por encima de todo',
+     d.getElementById('cajon-scrim').classList.contains('show'));
+  ok('con las secciones que hay hoy',
+     d.querySelectorAll('.cajon-ir').length===2,
+     [].map.call(d.querySelectorAll('.cajon-ir'),function(b){
+       return b.dataset.ir;}).join(' · '));
+  ok('y marcada la que estás mirando',
+     (d.querySelector('.cajon-ir[aria-current="true"]')||{}).dataset.ir==='pizarra');
+
+  // Escape lo cierra, que es lo que espera cualquiera.
+  d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  await wait(400);
+  ok('Escape lo cierra',!cajon.classList.contains('open'));
+
+  await irA(d,'equipo');
+  ok('elegir una sección lleva a ella y cierra el cajón',
+     d.querySelector('.app').dataset.modo==='equipo'&&!cajon.classList.contains('open'));
+  ok('y el botón dice dónde estás: un icono de tres rayas solo dice «hay más»',
+     d.getElementById('cajon-btn-txt').textContent==='Equipo',
+     d.getElementById('cajon-btn-txt').textContent);
+
+  /* Volver a la pizarra tiene que MEDIRLA. Aviso para el que venga: no es que
+     el campo se quede en blanco —«resize» tiene un suelo de 240 px, así que a
+     cero no baja nunca—; es que se queda con la medida VIEJA. Cambias de
+     sección, giras el teléfono, vuelves, y el campo está dibujado para un ancho
+     que ya no existe. Se comprueba contra el hueco que tiene, no contra cero,
+     que es lo que hace que la prueba mida algo.
+
+     Aviso de honestidad para el que venga: NO he conseguido hacerla fallar
+     quitando el «resize» de «vaModo». La aplicación vuelve a medir por más de
+     un camino, así que esto fija la propiedad, no caza ese fallo concreto. */
+  var marcoC=w.frameElement,anchoC=marcoC.style.width;
+  await irA(d,'equipo');
+  marcoC.style.width='700px';await wait(450);   // girar el teléfono, ya en Equipo
+  w.dispatchEvent(new w.Event('resize'));await wait(350);
+  await irA(d,'pizarra');
+  var lienzo=d.getElementById('board').getBoundingClientRect().width;
+  var hueco=d.querySelector('.stage').clientWidth;
+  ok('al volver, el campo se mide contra el hueco que hay AHORA',
+     Math.abs(lienzo-hueco)<=20,
+     Math.round(lienzo)+'px de lienzo para '+hueco+'px de hueco');
+  marcoC.style.width=anchoC||'1200px';await wait(450);
+  w.dispatchEvent(new w.Event('resize'));await wait(350);
 
   // --- imprimir sin ventanas emergentes ---
   // En el iPhone y dentro de otras aplicaciones las bloquean, y el botón se

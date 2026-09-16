@@ -22,6 +22,16 @@
 var log = [], fails = 0;
 function ok(n, c, x){ log.push((c?'PASA  ':'FALLA ') + n + (x ? '  (' + x + ')' : '')); if(!c) fails++; }
 var wait = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+/* Ir a una sección. El interruptor Pizarra/Equipo de la barra ya no existe: se
+   navega por el cajón, que es abrir, elegir y que se cierre solo. Las pruebas
+   lo hacen como lo haría un dedo, no llamando por dentro. */
+async function irA(d,x){
+  d.getElementById('cajon-btn').click();
+  await new Promise(function(r){setTimeout(r,320);});
+  d.querySelector('.cajon-ir[data-ir="'+x+'"]').click();
+  await new Promise(function(r){setTimeout(r,420);});
+}
+
 
 var DIA = 86400000;
 var w, d, E;
@@ -497,7 +507,7 @@ function siembra(lista){
   /* Ya no son diálogos: son los dos apartados del modo Equipo. Lo que se
      comprueba es lo mismo —que el mando lleva a su sitio y que el sitio trae
      lo que tiene que traer—, pero contra la pantalla de verdad. */
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(400);
   ok('el interruptor lleva al modo Equipo',
      d.querySelector('.app').dataset.modo === 'equipo');
@@ -628,7 +638,7 @@ function siembra(lista){
   await wait(200);
   ok('«Todos» los vuelve a marcar',
      d.querySelectorAll('#squad-lista .squad-fila.falta').length === 0);
-  d.querySelector('#modos [data-modo="pizarra"]').click();
+  await irA(d,'pizarra');
   await wait(400);
   ok('y al volver, la pizarra está donde estaba',
      d.querySelector('.app').dataset.modo === 'pizarra' &&
@@ -704,7 +714,7 @@ function siembra(lista){
                                  duracion:'20 min' });
   E.añadeEjercicio(E.hoyISO(), { titulo:'Con fase B', momento:'Defensa organizada',
                                  duracion:'10 min' });
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="datos"]').click();
   await wait(400);
@@ -777,7 +787,7 @@ function siembra(lista){
     dia(3, [], [ana.id])
   ]);
 
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="datos"]').click();
   await wait(200);
@@ -1075,7 +1085,7 @@ function siembra(lista){
                                  duracion:'12 min' });
   E.guardaSesion(E.hoyISO(), { nombre:'Sesión de pantalla' });
 
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1221,7 +1231,7 @@ function siembra(lista){
      ser un diálogo y uno de los dos caminos desaparezca. */
   d.getElementById('dlg-lib').close();
   await wait(300);
-  d.querySelector('.modo[data-modo="pizarra"]').click(); await wait(350);
+  await irA(d,'pizarra'); await wait(350);
   d.getElementById('open').click(); await wait(900);
   var tarjeta2 = d.querySelector('#lib-grid .lib-card .lib-pie .primary');
   ok('al reabrir la biblioteca ya no está eligiendo para una sesión',
@@ -1230,7 +1240,7 @@ function siembra(lista){
      d.getElementById('dlg-lib-t').textContent === 'Biblioteca',
      d.getElementById('dlg-lib-t').textContent);
   d.getElementById('dlg-lib').close(); await wait(250);
-  d.querySelector('.modo[data-modo="equipo"]').click(); await wait(350);
+  await irA(d,'equipo'); await wait(350);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click(); await wait(400);
   d.querySelector('#ses-meses .ses-dia-btn').click(); await wait(300);
   // Ese sí tiene dibujo: su título abre la pizarra.
@@ -1242,7 +1252,7 @@ function siembra(lista){
   await wait(400);
   ok('al pulsarlo se va a la pizarra con el ejercicio puesto',
      d.querySelector('.app').dataset.modo === 'pizarra');
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.getElementById('open').click();
   await wait(500);
@@ -1444,7 +1454,7 @@ function siembra(lista){
   var AYER = iso(Date.now() - 2*DIA);
   E.añadeEjercicio(AYER, { titulo:'Algo de anteayer', duracion:'20 min' });
 
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1715,7 +1725,7 @@ function siembra(lista){
   var G3 = E.añade('2026/27', { dorsal:'9',  nombre:'Gen Campo B', posicion:'Delantero' }).jugador;
   E.ponAsistenciaEn(E.hoyISO(), [G1.id, G2.id, G3.id]);
 
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1828,7 +1838,7 @@ function siembra(lista){
   limpia();
   E.cambiaTemporada('2026/27');
   E.añadeEjercicio(E.hoyISO(), { titulo:'Para el nombre', duracion:'10 min' });
-  d.querySelector('#modos [data-modo="equipo"]').click();
+  await irA(d,'equipo');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1913,7 +1923,7 @@ function siembra(lista){
   ok('vaciar el día estando dentro no deja la pantalla en blanco',
      !d.getElementById('ses-detalle').hidden || !d.getElementById('ses-diario').hidden);
 
-  d.querySelector('#modos [data-modo="pizarra"]').click();
+  await irA(d,'pizarra');
   await wait(300);
 
   /* ---- 19 · el reparto por momentos no pierde minutos por el camino ----
@@ -1941,7 +1951,7 @@ function siembra(lista){
      st.sinMomento.ejercicios === 1 && st.sinMomento.minutos === 20,
      st.sinMomento.ejercicios + ' ejercicio, ' + st.sinMomento.minutos + ' min');
 
-  d.querySelector('#modos [data-modo="equipo"]').click(); await wait(350);
+  await irA(d,'equipo'); await wait(350);
   d.querySelector('[data-eq="datos"]').click(); await wait(600);
   var barraAt = [].filter.call(d.querySelectorAll('#stats-momentos .barra'), function(r){
     return /Ataque organizado/.test(r.textContent); })[0];
@@ -1995,7 +2005,7 @@ function siembra(lista){
   ok('sin datos que comentar, no se ofrece montar nada',
      !d.getElementById('stats-a-sesion'));
 
-  d.querySelector('#modos [data-modo="pizarra"]').click(); await wait(300);
+  await irA(d,'pizarra'); await wait(300);
 
   limpia();
   pinta();

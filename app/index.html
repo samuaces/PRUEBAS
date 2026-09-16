@@ -93,14 +93,15 @@
 
     <!-- Dos modos, un interruptor. Dibujar una jugada y llevar un equipo son
          dos trabajos distintos que antes compartían la misma barra. -->
-    <div class="modos" id="modos" role="tablist" aria-label="Qué estás haciendo">
-      <button class="modo" data-modo="pizarra" role="tab" aria-selected="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
-        <span>Pizarra</span></button>
-      <button class="modo" data-modo="equipo" role="tab" aria-selected="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
-        <span>Equipo</span></button>
-    </div>
+    <!-- El cajón: de aquí se salta a cualquier sitio. Sustituye al interruptor
+         Pizarra/Equipo, que ocupaba 145 px de una barra donde a 320 px sobraban
+         seis. Lo de cerca —las pestañas de abajo— se queda donde está: un cajón
+         es para saltar lejos, no para moverse dentro de lo que estás haciendo. -->
+    <button class="tbtn cajon-btn" id="cajon-btn" aria-label="Ir a" aria-expanded="false"
+            aria-controls="cajon" title="Ir a">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span class="cajon-btn-txt" id="cajon-btn-txt">Pizarra</span>
+    </button>
 
     <span class="spacer"></span>
 
@@ -590,6 +591,23 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
       Datos</button>
   </nav>
+
+  <!-- Los destinos. Hoy son dos; las otras cuatro secciones ya existen como
+       pestañas dentro de Equipo y suben aquí en la siguiente tanda. -->
+  <nav class="cajon" id="cajon" aria-label="Secciones" hidden>
+    <p class="cajon-tit">Ir a</p>
+    <button type="button" class="cajon-ir" data-ir="pizarra" aria-current="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
+      <span>Pizarra</span>
+      <small>Dibujar el ejercicio</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="equipo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+      <span>Equipo</span>
+      <small>Hoy, plantilla, sesiones y datos</small>
+    </button>
+  </nav>
+  <div class="scrim" id="cajon-scrim"></div>
 
   <div class="scrim" id="scrim"></div>
 </div>

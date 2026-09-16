@@ -396,8 +396,38 @@ a:hover{color:var(--text)}
    pero solo difumina de la barra superior hacia abajo. Difuminándolo todo, los
    botones de arriba se convertían en manchas y la aplicación parecía rota; así
    la barra se atenúa pero se sigue leyendo. */
+/* ---------------- El cajón ----------------
+   De aquí se salta a cualquier sección. Sustituye al interruptor Pizarra/Equipo
+   de la barra, que ocupaba 145 px donde a 320 px sobraban seis. */
+.cajon-btn{gap:8px;font-weight:700}
+.cajon-btn svg{width:18px;height:18px;flex:none}
+.cajon-btn-txt{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cajon{position:fixed;z-index:60;top:0;left:0;bottom:0;width:min(290px,84vw);
+  padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px);
+  background:var(--bg-2);border-right:1px solid var(--line);
+  box-shadow:0 0 60px -12px rgba(0,0,0,.7);
+  transform:translateX(-102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);
+  overflow-y:auto;overscroll-behavior:none}
+.cajon.open{transform:none}
+/* Sin transición no hay a qué esperar para esconderlo del teclado y del lector:
+   se quita el «hidden» al abrir y se repone al acabar de cerrarse. */
+.cajon[hidden]{display:none}
+.cajon-tit{margin:0 0 12px 4px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85}
+.cajon-ir{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
+  gap:2px 11px;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;
+  border:1px solid transparent;border-radius:var(--r3);background:none;color:var(--text);
+  font:inherit;cursor:pointer;min-height:var(--touch)}
+.cajon-ir svg{grid-row:1/3;align-self:center;width:21px;height:21px;color:var(--muted)}
+.cajon-ir span{font-family:var(--ff-display);font-weight:700;font-size:14.5px}
+.cajon-ir small{color:var(--muted);font-size:11.5px;line-height:1.35}
+.cajon-ir:hover{background:var(--glass-2)}
+.cajon-ir[aria-current="true"]{background:var(--glass-3);border-color:var(--line);}
+.cajon-ir[aria-current="true"] svg{color:var(--brand-2)}
+
 .scrim{position:fixed;inset:0;display:none;z-index:35;background:transparent}
 .scrim.show{display:block}
+#cajon-scrim{z-index:55;background:rgba(3,6,10,.5)}
 .scrim::before,.scrim::after{content:"";position:absolute;left:0;right:0;background:rgba(3,6,10,.5)}
 .scrim::before{top:0;height:calc(var(--topbar) + var(--safe-t))}
 /* 5 px y no más: este difuminado cubre media pantalla y se rehace en cada
@@ -922,37 +952,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 }
 
 @media (max-width:430px){
-  /* La marca es lo único decorativo de la barra, y en un teléfono no dice nada
-     que no sepas ya: estás DENTRO de la aplicación. Su sitio se lo queda la
-     palabra «Entrar», que sí hace falta. Antes se escondía solo por debajo de
-     365 px; ahora, en cualquier teléfono. */
-  .topbar .logo{display:none}
-  /* Y seis píxeles más de los lados del botón de la cuenta, que con la palabra
-     dentro ya no necesita el relleno que pedía un icono suelto. */
+  /* La marca volvió: al sacar el interruptor Pizarra/Equipo de la barra, esta
+     pasó de ir al límite a sobrarle 67 px a 320 px. Se escondía por falta de
+     sitio, no porque estorbara. */
   .topbar .cuenta-btn{padding-left:7px;padding-right:7px}
-}
-
-@media (max-width:375px){
-  /* Quedaban cuatro píxeles. Salen de deshacer, rehacer y guardar, que son
-     iconos y no palabras: de 40 a 38 de ancho mínimo, dos cada uno. El alto no
-     se toca —que es lo que se toca— y 38 sigue por encima del suelo de 34 que
-     vigila la prueba de la barra. */
-  .topbar .tbtn{min-width:38px}
 }
 
 @media (max-width:340px){
   .topbar{gap:3px;padding-left:6px;padding-right:6px}
   .topbar .tbtn{min-width:34px;padding-left:5px;padding-right:5px}
   .topbar .tbtn svg{width:15px;height:15px}
-  /* Aquí «Entrar» NO cabe: medido, la barra pide 339 px y hay 320. No son dos
-     píxeles que apretar, son diecinueve, y sacarlos significaría quitarle el
-     nombre al modo en el que estás —cambiar una cosa que se lee por otra— o
-     dejar los botones por debajo de lo que pide un dedo. Así que en el ancho
-     más estrecho que se soporta vuelve el icono solo, y la puerta con su
-     nombre escrito es la del panel de «Más». De 360 px para arriba, que es
-     donde está cualquier teléfono en uso, manda la palabra. */
-  .topbar .cuenta-btn:not(.dentro) .cuenta-avatar{display:inline-flex}
-  .topbar .cuenta-btn:not(.dentro) .hide-sm{display:none}
+  /* Aquí «Entrar» tampoco cabía: la barra pedía 339 px y había 320. Ahora
+     sobran 67, así que la palabra se queda también en el teléfono más estrecho
+     que se soporta. */
 }
 
 @media (max-width:420px){
@@ -1482,14 +1494,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     <!-- Dos modos, un interruptor. Dibujar una jugada y llevar un equipo son
          dos trabajos distintos que antes compartían la misma barra. -->
-    <div class="modos" id="modos" role="tablist" aria-label="Qué estás haciendo">
-      <button class="modo" data-modo="pizarra" role="tab" aria-selected="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
-        <span>Pizarra</span></button>
-      <button class="modo" data-modo="equipo" role="tab" aria-selected="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
-        <span>Equipo</span></button>
-    </div>
+    <!-- El cajón: de aquí se salta a cualquier sitio. Sustituye al interruptor
+         Pizarra/Equipo, que ocupaba 145 px de una barra donde a 320 px sobraban
+         seis. Lo de cerca —las pestañas de abajo— se queda donde está: un cajón
+         es para saltar lejos, no para moverse dentro de lo que estás haciendo. -->
+    <button class="tbtn cajon-btn" id="cajon-btn" aria-label="Ir a" aria-expanded="false"
+            aria-controls="cajon" title="Ir a">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span class="cajon-btn-txt" id="cajon-btn-txt">Pizarra</span>
+    </button>
 
     <span class="spacer"></span>
 
@@ -1979,6 +1992,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
       Datos</button>
   </nav>
+
+  <!-- Los destinos. Hoy son dos; las otras cuatro secciones ya existen como
+       pestañas dentro de Equipo y suben aquí en la siguiente tanda. -->
+  <nav class="cajon" id="cajon" aria-label="Secciones" hidden>
+    <p class="cajon-tit">Ir a</p>
+    <button type="button" class="cajon-ir" data-ir="pizarra" aria-current="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
+      <span>Pizarra</span>
+      <small>Dibujar el ejercicio</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="equipo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
+      <span>Equipo</span>
+      <small>Hoy, plantilla, sesiones y datos</small>
+    </button>
+  </nav>
+  <div class="scrim" id="cajon-scrim"></div>
 
   <div class="scrim" id="scrim"></div>
 </div>
@@ -13967,9 +13997,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }
     modo = cual === 'equipo' ? 'equipo' : 'pizarra';
     document.querySelector('.app').dataset.modo = modo;
-    $$('#modos .modo').forEach(function (b) {
-      b.setAttribute('aria-selected', String(b.dataset.modo === modo));
-    });
+    pintaCajon();
     cierraLaHoja();
     if (modo === 'equipo') { vaApartado(apartado || eqApartado); }
     else {
@@ -13977,6 +14005,49 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
          hueco que tiene, y mientras estaba escondido ese hueco era cero. */
       resize();
     }
+  }
+
+  /* -------------------------------------------------------------------------
+     El cajón.
+
+     «hidden» se quita ANTES de animar y se repone DESPUÉS de cerrarse: mientras
+     está escondido de verdad no lo ve ni el teclado ni un lector de pantalla, y
+     mientras se mueve tiene que estar ahí para que se le vea moverse. */
+  function abreCajon() {
+    var c = $('#cajon');
+    c.hidden = false;
+    pintaCajon();
+    requestAnimationFrame(function () {
+      c.classList.add('open');
+      $('#cajon-scrim').classList.add('show');
+      $('#cajon-btn').setAttribute('aria-expanded', 'true');
+      var actual = $('.cajon-ir[aria-current="true"]') || $('.cajon-ir');
+      if (actual) actual.focus();
+    });
+  }
+
+  function cierraCajon() {
+    var c = $('#cajon');
+    if (!c.classList.contains('open')) { c.hidden = true; return; }
+    c.classList.remove('open');
+    $('#cajon-scrim').classList.remove('show');
+    $('#cajon-btn').setAttribute('aria-expanded', 'false');
+    setTimeout(function () {
+      if (!c.classList.contains('open')) c.hidden = true;
+    }, 240);
+  }
+
+  /* El botón dice dónde estás. Un icono de tres rayas solo dice «hay más», y
+     con el interruptor fuera esa es la única señal de en qué sección andas. */
+  var NOMBRE_SECCION = { pizarra: 'Pizarra', equipo: 'Equipo' };
+
+  function pintaCajon() {
+    var t = $('#cajon-btn-txt');
+    if (t) t.textContent = NOMBRE_SECCION[modo] || 'Ir a';
+    $$('.cajon-ir').forEach(function (b) {
+      if (b.dataset.ir === modo) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+    });
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
@@ -15063,8 +15134,26 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     // ---- Mi equipo, participantes y estadísticas ----
     // El interruptor de modo y los apartados de Equipo.
-    $$('#modos .modo').forEach(function (b) {
-      b.addEventListener('click', function () { vaModo(b.dataset.modo); });
+    /* ---- El cajón ----
+       Sustituye al interruptor Pizarra/Equipo. Se abre, se elige, se cierra.
+       Lo de cerca —las pestañas de abajo— sigue donde estaba: el cajón es para
+       saltar lejos, no para moverse dentro de lo que ya estás haciendo. */
+    $('#cajon-btn').addEventListener('click', function () {
+      if ($('#cajon').classList.contains('open')) cierraCajon(); else abreCajon();
+    });
+    $('#cajon-scrim').addEventListener('click', cierraCajon);
+    $$('.cajon-ir').forEach(function (b) {
+      b.addEventListener('click', function () {
+        cierraCajon();
+        vaModo(b.dataset.ir);
+      });
+    });
+    // Escape cierra lo de arriba, que es el cajón si está abierto.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('#cajon').classList.contains('open')) {
+        e.preventDefault();
+        cierraCajon();
+      }
     });
     $$('[data-eq]').forEach(function (b) {
       b.addEventListener('click', function () { vaApartado(b.dataset.eq); });

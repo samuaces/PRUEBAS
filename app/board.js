@@ -4453,9 +4453,7 @@
     }
     modo = cual === 'equipo' ? 'equipo' : 'pizarra';
     document.querySelector('.app').dataset.modo = modo;
-    $$('#modos .modo').forEach(function (b) {
-      b.setAttribute('aria-selected', String(b.dataset.modo === modo));
-    });
+    pintaCajon();
     cierraLaHoja();
     if (modo === 'equipo') { vaApartado(apartado || eqApartado); }
     else {
@@ -4463,6 +4461,49 @@
          hueco que tiene, y mientras estaba escondido ese hueco era cero. */
       resize();
     }
+  }
+
+  /* -------------------------------------------------------------------------
+     El cajón.
+
+     «hidden» se quita ANTES de animar y se repone DESPUÉS de cerrarse: mientras
+     está escondido de verdad no lo ve ni el teclado ni un lector de pantalla, y
+     mientras se mueve tiene que estar ahí para que se le vea moverse. */
+  function abreCajon() {
+    var c = $('#cajon');
+    c.hidden = false;
+    pintaCajon();
+    requestAnimationFrame(function () {
+      c.classList.add('open');
+      $('#cajon-scrim').classList.add('show');
+      $('#cajon-btn').setAttribute('aria-expanded', 'true');
+      var actual = $('.cajon-ir[aria-current="true"]') || $('.cajon-ir');
+      if (actual) actual.focus();
+    });
+  }
+
+  function cierraCajon() {
+    var c = $('#cajon');
+    if (!c.classList.contains('open')) { c.hidden = true; return; }
+    c.classList.remove('open');
+    $('#cajon-scrim').classList.remove('show');
+    $('#cajon-btn').setAttribute('aria-expanded', 'false');
+    setTimeout(function () {
+      if (!c.classList.contains('open')) c.hidden = true;
+    }, 240);
+  }
+
+  /* El botón dice dónde estás. Un icono de tres rayas solo dice «hay más», y
+     con el interruptor fuera esa es la única señal de en qué sección andas. */
+  var NOMBRE_SECCION = { pizarra: 'Pizarra', equipo: 'Equipo' };
+
+  function pintaCajon() {
+    var t = $('#cajon-btn-txt');
+    if (t) t.textContent = NOMBRE_SECCION[modo] || 'Ir a';
+    $$('.cajon-ir').forEach(function (b) {
+      if (b.dataset.ir === modo) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+    });
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
@@ -5549,8 +5590,26 @@
 
     // ---- Mi equipo, participantes y estadísticas ----
     // El interruptor de modo y los apartados de Equipo.
-    $$('#modos .modo').forEach(function (b) {
-      b.addEventListener('click', function () { vaModo(b.dataset.modo); });
+    /* ---- El cajón ----
+       Sustituye al interruptor Pizarra/Equipo. Se abre, se elige, se cierra.
+       Lo de cerca —las pestañas de abajo— sigue donde estaba: el cajón es para
+       saltar lejos, no para moverse dentro de lo que ya estás haciendo. */
+    $('#cajon-btn').addEventListener('click', function () {
+      if ($('#cajon').classList.contains('open')) cierraCajon(); else abreCajon();
+    });
+    $('#cajon-scrim').addEventListener('click', cierraCajon);
+    $$('.cajon-ir').forEach(function (b) {
+      b.addEventListener('click', function () {
+        cierraCajon();
+        vaModo(b.dataset.ir);
+      });
+    });
+    // Escape cierra lo de arriba, que es el cajón si está abierto.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('#cajon').classList.contains('open')) {
+        e.preventDefault();
+        cierraCajon();
+      }
     });
     $$('[data-eq]').forEach(function (b) {
       b.addEventListener('click', function () { vaApartado(b.dataset.eq); });
