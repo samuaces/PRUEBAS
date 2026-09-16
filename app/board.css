@@ -606,6 +606,30 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .lib-cuenta{font-size:12px;color:var(--muted)}
 .lib-nota{margin:0;font-size:11.5px;line-height:1.45;color:var(--muted);opacity:.85}
 .lib-nota:empty{display:none}
+
+/* ---------------- Plegables de la hoja de guardar ----------------
+   Guardar es «nombre + Guardar», dos toques. Todo lo demás —la ficha entera,
+   a quién apuntárselo— va detrás de una línea que se abre solo si hace falta.
+   Plegado no es escondido: la línea dice lo que hay dentro. */
+.plegable{border:1px solid var(--line);border-radius:var(--r3);background:var(--well);margin-top:12px}
+.plegable > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  min-height:44px;padding:10px 13px;color:var(--text);font-size:13.5px;font-weight:600;
+  user-select:none;border-radius:var(--r3)}
+.plegable > summary::-webkit-details-marker{display:none}
+.plegable > summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;
+  border-right:1.8px solid var(--muted);border-bottom:1.8px solid var(--muted);
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.plegable[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.plegable > summary:hover{background:var(--glass-2)}
+.plegable[open] > summary{border-bottom:1px solid var(--line);border-radius:var(--r3) var(--r3) 0 0}
+.plegable-caja{padding:13px}
+/* Dentro del plegable, la ficha ya no es un diálogo: no necesita su propio
+   margen de arriba ni pintarse como una tarjeta dentro de otra. */
+.plegable-caja > .seg.pasos{margin-top:0}
+.plegable-caja .paso > .form-group:first-child{margin-top:0}
+/* Imprimir la ficha vive con la ficha: imprimir una ficha vacía no es nada. */
+.ficha-pie{display:flex;justify-content:flex-end;margin:14px 0 0}
+.ficha-pie .tbtn{min-height:var(--touch)}
 /* Entrar desde aquí es una acción, no el final de la frase: va en su renglón,
    sin el punto volado colgando del anterior. */
 #lib-entrar{display:block;margin-top:6px;padding:0;text-align:left}

@@ -2071,11 +2071,11 @@
 
   // ---- El formulario ----
 
-  var dlgCard;
-
   function fieldEl(k) { return document.getElementById('f-' + k); }
 
-  function openCard() {
+  /* Volcar la ficha en sus campos. Ya no abre nada: la ficha vive DENTRO de la
+     hoja de guardar, detrás de «Añadir detalles». Se llama al abrir esa hoja. */
+  function llenaCampos() {
     var c = card();
     CARD_FIELDS.forEach(function (k) {
       var el = fieldEl(k);
@@ -2083,11 +2083,14 @@
     });
     if (!c.fecha) fieldEl('fecha').value = new Date().toLocaleDateString('es-ES');
     if (!c.categoria) fieldEl('categoria').value = prefs().categoria;
-    if (!dlgCard) dlgCard = $('#dlg-card');
     var primero = $('.paso-btn');
     if (primero) primero.click();          // se abre siempre por el primer apartado
-    dlgCard.showModal();
   }
+
+  /* «Ficha del ejercicio» lleva al mismo sitio que Guardar, con los detalles ya
+     desplegados. Era un diálogo aparte con su propio Guardar: dos puertas al
+     mismo sitio, y la de la ficha se saltaba el paso de a quién apuntárselo. */
+  function openCard() { saveBoard(true); }
 
   function readCard() {
     var c = card();
@@ -2098,26 +2101,11 @@
     return c;
   }
 
-  // Guardar la ficha guarda el ejercicio entero. Antes solo se quedaba dentro
-  // del documento abierto: rellenabas la ficha, le dabas a Guardar, y al ir a
-  // la biblioteca no había nada. Si la ficha tiene título, ese es el nombre, y
-  // volver a guardar actualiza la misma entrada en vez de llenarlo de copias.
-  function saveCard() {
-    readCard();
-    commit();
-    var titulo = (doc.card && doc.card.titulo || '').trim();
-    if (!titulo) { toast('Ficha guardada · ponle un título para tenerla en la biblioteca'); return; }
-    var todas = savedBoards();
-    var nueva = !todas[titulo];
-    todas[titulo] = { at: Date.now(), doc: doc };
-    // Guardar desde la ficha guarda lo mismo que guardar desde la barra, así
-    // que también tiene que acordarse de dónde salió el dibujo.
-    if (docSale) todas[titulo].sale = docSale;
-    if (!writeBoards(todas)) { toast('Ficha guardada, pero no cabe en el almacenamiento del navegador'); return; }
-    olvidaMini('mia:' + titulo);
-    toast(nueva ? '«' + titulo + '» guardado en tu biblioteca'
-                : '«' + titulo + '» actualizado en tu biblioteca');
-  }
+  /* Aquí vivía «saveCard», el segundo camino de guardado: leía la ficha y
+     escribía en pt-boards con el título de la ficha, sin pasar por el nombre ni
+     por a quién apuntárselo. Ya no existe. Guardar es uno solo, y lo que hacía
+     esta función —comprometer lo escrito en la ficha— lo hace «readCard» justo
+     antes de guardar. */
 
   function autofillCard() {
     var st = boardStats(), P = PITCH(), puesto = 0;
@@ -5172,14 +5160,32 @@
      a mitad—, y por eso empieza plegada detrás de un «cambiar». */
   var saveElegidos = null;          // ids marcados en el diálogo abierto
 
-  function saveBoard() {
+  /* «conDetalles» abre la hoja con la ficha ya desplegada: es por donde entra
+     «Ficha del ejercicio», que antes era otro diálogo. */
+  function saveBoard(conDetalles) {
     var dlg = $('#dlg-save');
     if (!dlg || !window.PTEquipo) { saveBoardSimple(); return; }
+
+    // La ficha vive aquí dentro: se vuelca siempre, esté plegada o no.
+    llenaCampos();
+    var det = $('#save-detalles');
+    if (det) det.open = !!conDetalles;
+    var ses = $('#save-sesion');
+    if (ses) ses.open = false;
 
     var campo = $('#save-nombre');
     // El nombre que propone es el de la ficha, si la hay: es el que el
     // entrenador ya ha escrito y por el que va a buscarla después.
     campo.value = (doc.card && doc.card.titulo || '').trim();
+    /* Y si no hay ficha —que es lo normal, porque la ficha nunca es
+       obligatoria—, se propone algo con lo que volver a encontrarlo. Antes se
+       quedaba vacío y guardar pedía escribir un nombre a quien solo quería
+       guardar: el camino rápido tiene que serlo también sin ficha. */
+    // «martes 16 de septiembre» → «16 de septiembre»: el día de la semana no
+    // ayuda a reconocerlo dentro de tres meses, la fecha sí.
+    if (!campo.value) {
+      campo.value = 'Ejercicio del ' + diaLargo(PTEquipo.hoyISO()).replace(/^\S+\s/, '');
+    }
 
     /* Salvo que esto venga de un ejercicio de otro. Entonces lo que se está
        guardando es TU versión, y proponer el nombre de pila del original deja
@@ -5209,12 +5215,31 @@
     $('#save-hoy-fecha').textContent = diaLargo(PTEquipo.hoyISO());
     pintaParticipantes();
 
-    // Sin plantilla montada, la sección entera sobra: no se enseña un hueco.
-    $('#save-part').hidden = PTEquipo.jugadores().length === 0;
+    /* Sin plantilla montada no hay a quién apuntárselo: el plegable entero
+       sobra. La ficha NO: esa vale con plantilla y sin ella. */
+    var sinPlantilla = PTEquipo.jugadores().length === 0;
+    $('#save-part').hidden = sinPlantilla;
+    if (ses) ses.hidden = sinPlantilla;
+
+    /* Publicar solo tiene sentido con cuenta, y viene desmarcado siempre:
+       subir algo a la vista de todos no puede pasar por no mirar una casilla. */
+    var pub = $('#save-publicar');
+    if (pub) {
+      pub.checked = false;
+      $('#save-publicar-fila').hidden = !(hayNube && yo);
+    }
+
+    /* El nombre de arriba y el título de la ficha son el mismo nombre escrito
+       dos veces. Si el entrenador abre los detalles y escribe el título ahí, el
+       de arriba lo sigue —pero solo mientras nadie lo haya tocado a mano: en
+       cuanto escribe arriba, manda lo de arriba y la ficha deja de pisárselo. */
+    nombrePropuesto = campo.value;
 
     dlg.showModal();
     setTimeout(function () { campo.select(); }, 30);
   }
+
+  var nombrePropuesto = '';
 
   /* «2026-09-14» → «lunes 14 de septiembre». Sin el año, que casi siempre es el
      de ahora y solo hace la frase más larga; se pone cuando no lo es. */
@@ -5480,7 +5505,9 @@
     $('#ex-video').addEventListener('click', exportar(exportVideo));
     $('#ex-gif').addEventListener('click', exportar(exportGif));
     $('#ex-json').addEventListener('click', exportar(exportJSON));
-    $('#save').addEventListener('click', saveBoard);
+    /* Sin envolver, el manejador le pasaría el evento como «conDetalles» y la
+       ficha saldría desplegada: el camino rápido dejaría de serlo. */
+    $('#save').addEventListener('click', function () { saveBoard(false); });
     // Sin envolver, el «click» llegaría como si fuera una fecha de sesión y la
     // biblioteca se abriría en modo elegir desde el botón de siempre.
     $('#open').addEventListener('click', function () { openLibrary(null); });
@@ -5552,11 +5579,16 @@
       $('#save-part-t').hidden = !pon;
       if (!pon) { $('#save-part-caja').hidden = true; $('#save-part-cambiar').textContent = 'cambiar'; }
     });
-    $('#save-ok').addEventListener('click', function () {
+    /* El único guardado que hay. Lo escrito en la ficha se compromete AQUÍ, no
+       en un botón aparte: esté la ficha plegada o desplegada, lo que el
+       entrenador haya escrito entra en el documento antes de guardarlo. */
+    function guardaDesdeLaHoja() {
       var nombre = $('#save-nombre').value.trim();
-      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return; }
+      if (!nombre) { toast('Hace falta un nombre para poder encontrarla luego'); return false; }
+      readCard();
+      commit();
       var hayPlantilla = PTEquipo.jugadores().length > 0;
-      if (!guardaConNombre(nombre, hayPlantilla ? PTEquipo.metaDeHoy() : null)) return;
+      if (!guardaConNombre(nombre, hayPlantilla ? PTEquipo.metaDeHoy() : null)) return false;
 
       if (hayPlantilla && $('#save-hoy').checked) {
         var card = doc.card || {};
@@ -5578,10 +5610,40 @@
           pintaSesiones();
         }
       }
+
+      /* Y si ha marcado publicarlo, va detrás de guardarlo: primero es suyo en
+         su dispositivo, y solo después sale a la vista de todos. Si la subida
+         falla, lo guardado se queda guardado. */
+      var pub = $('#save-publicar');
+      if (pub && pub.checked && hayNube && yo) {
+        var copia = clone(doc);
+        if (!copia.card) copia.card = emptyCard();
+        if (!copia.card.titulo) copia.card.titulo = nombre;
+        nube.publica(copia, { publicado: true })
+          .then(function () { toast('Guardado y publicado en la biblioteca común'); nubeMios = []; cargaNube(); })
+          .catch(function (e) { toast('Guardado, pero no ha podido publicarse: ' + (e.message || 'error')); });
+      }
+
       $('#dlg-save').close();
+      return true;
+    }
+
+    $('#save-ok').addEventListener('click', guardaDesdeLaHoja);
+    /* Imprimir la ficha era el otro botón del diálogo viejo. Guarda igual y
+       manda a imprimir: si no se ha podido guardar, no se imprime nada. */
+    $('#save-imprimir').addEventListener('click', function () {
+      if (guardaDesdeLaHoja()) setTimeout(printCard, 120);
     });
     $('#save-nombre').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('#save-ok').click(); }
+    });
+    // Escribir el título dentro de la ficha rellena el nombre de arriba,
+    // mientras el de arriba siga siendo el que propuso la aplicación.
+    fieldEl('titulo').addEventListener('input', function () {
+      var campo = $('#save-nombre');
+      if (campo.value !== nombrePropuesto) return;      // lo tocó él: manda él
+      campo.value = this.value.trim();
+      nombrePropuesto = campo.value;
     });
 
     $$('#stats-periodo [data-periodo]').forEach(function (b) {
@@ -5917,7 +5979,7 @@
       $$('.paso-btn').forEach(function (b) {
         b.setAttribute('aria-pressed', String(b.dataset.paso === id));
       });
-      var cuerpo = $('#dlg-card .dbody');
+      var cuerpo = $('#dlg-save .dbody');
       if (cuerpo) cuerpo.scrollTop = 0;
     }
     $$('.paso-btn').forEach(function (b) {
@@ -5935,12 +5997,6 @@
     });
     $('#card-edit').addEventListener('click', function () { sheetClose(); openCard(); });
     $('#f-auto').addEventListener('click', autofillCard);
-    $('#f-guardar').addEventListener('click', function () { saveCard(); $('#dlg-card').close(); });
-    $('#f-imprimir').addEventListener('click', function () {
-      saveCard();
-      $('#dlg-card').close();
-      setTimeout(printCard, 120);
-    });
     // ---- Ajustes ----
     function pintaAjustes() {
       var p = prefs();
@@ -6228,7 +6284,55 @@
      de salir salvo borrando los datos del navegador a mano. Así que se tira lo
      guardado y se arranca limpio una vez. Si vuelve a fallar, ya no es eso: se
      deja pasar el error para que se vea en la consola. */
+  /* -------------------------------------------------------------------------
+     La copia de seguridad de antes de tocar nada.
+
+     Lo que hay en este navegador es lo único que hay: no se sincroniza con
+     ningún sitio a propósito. Si un cambio en el guardado sale mal, no hay
+     servidor del que recuperar la biblioteca de un entrenador, ni su plantilla,
+     ni un año de asistencia. Así que antes de que esta versión escriba nada, se
+     guarda una foto de lo que había.
+
+     Se hace UNA vez y no se vuelve a tocar. Es a propósito: una copia que se
+     refresca sola acabaría copiando encima lo que se rompió, que es justo
+     cuando hace falta la copia.
+
+     Queda fuera «pt-autosave» —la pizarra a medias que tienes delante—: es lo
+     más volátil, es lo que la red de seguridad de abajo borra cuando algo viene
+     dañado, y ocupa tanto como el resto junto.
+
+     Si no cabe, no pasa nada y nadie se entera: una copia de seguridad que
+     impida arrancar es peor que no tenerla. */
+  var LLAVE_COPIA = 'pt-backup-v1';
+  var COPIA_DE = ['pt-boards', 'pt-squad', 'pt-asistencia', 'pt-sesiones', 'pt-prefs'];
+
+  function copiaDeSeguridadUnaVez() {
+    try {
+      if (localStorage.getItem(LLAVE_COPIA)) return 'ya estaba';
+      var claves = {}, hayAlgo = false;
+      COPIA_DE.forEach(function (k) {
+        var v = localStorage.getItem(k);
+        if (v == null) return;
+        claves[k] = v;
+        hayAlgo = true;
+      });
+      // Un navegador estrenado no necesita copia de nada.
+      if (!hayAlgo) return 'no hay nada que copiar';
+      localStorage.setItem(LLAVE_COPIA, JSON.stringify({
+        hecha: new Date().toISOString(),
+        porque: 'antes de unificar el guardado',
+        claves: claves
+      }));
+      return 'hecha';
+    } catch (e) {
+      // Con el almacén lleno, setItem lanza y puede dejar la llave a medias.
+      try { localStorage.removeItem(LLAVE_COPIA); } catch (e2) {}
+      return 'no cabe';
+    }
+  }
+
   function arranca() {
+    copiaDeSeguridadUnaVez();
     try {
       start();
     } catch (e) {

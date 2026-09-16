@@ -279,9 +279,14 @@ async function run(w,d){
   await wait(200);
 
   // --- ficha del ejercicio ---
-  d.getElementById('card-edit').click();await wait(120);
-  var dlgF=d.getElementById('dlg-card');
+  /* La ficha ya no es un diálogo aparte: vive dentro de la hoja de guardar,
+     detrás de «Añadir detalles». «Ficha del ejercicio» abre esa hoja con el
+     plegable ya fuera, que es lo que se comprueba. */
+  d.getElementById('card-edit').click();await wait(200);
+  var dlgF=d.getElementById('dlg-save');
   ok('la ficha del ejercicio se abre desde la pizarra',dlgF.open);
+  ok('y se abre con los detalles desplegados, no plegados',
+     d.getElementById('save-detalles').open);
   ok('la ficha trae la fecha de hoy puesta',/\d{1,2}\/\d{1,2}\/\d{4}/.test(d.getElementById('f-fecha').value),
      d.getElementById('f-fecha').value);
 
@@ -300,13 +305,19 @@ async function run(w,d){
   d.getElementById('f-objetivo').value='Progresar desde portería con pase interior.';
   d.getElementById('f-consignas').value='Perfil abierto al recibir\nPrimer pase al lado contrario';
   d.getElementById('f-normas').value='Máximo dos toques';
-  d.getElementById('f-guardar').click();await wait(150);
+  // Poner «.value» a mano no dispara «input»; escribiendo de verdad, sí.
+  d.getElementById('f-titulo').dispatchEvent(new w.Event('input',{bubbles:true}));
+  await wait(120);
+  d.getElementById('save-ok').click();await wait(300);
   ok('guardar la ficha cierra el formulario',!dlgF.open);
+  ok('y el nombre que propuso fue el título de la ficha',
+     !!JSON.parse(w.localStorage.getItem('pt-boards')||'{}')['Salida de balón bajo presión'],
+     Object.keys(JSON.parse(w.localStorage.getItem('pt-boards')||'{}')).join(' · '));
 
   // la ficha viaja dentro del documento: sobrevive a deshacer y rehacer
   d.getElementById('undo').click();await wait(60);
   d.getElementById('redo').click();await wait(60);
-  d.getElementById('card-edit').click();await wait(120);
+  d.getElementById('card-edit').click();await wait(200);
   ok('la ficha se guarda con la pizarra',
      d.getElementById('f-titulo').value==='Salida de balón bajo presión',
      d.getElementById('f-titulo').value);
@@ -315,15 +326,15 @@ async function run(w,d){
 
   // una ficha ya rellenada tiene que poder volver a abrirse; el botón de la
   // barra de arriba es ahora el único camino, y no imprime sola
-  d.querySelector('#dlg-card [data-close]').click();await wait(150);
+  d.querySelector('#dlg-save [data-close]').click();await wait(150);
   var imprimio=false,oldOpen3=w.open;
   w.open=function(){ imprimio=true; return {document:{write:function(){},close:function(){}},
     focus:function(){},print:function(){}}; };
   d.getElementById('card-edit').click();await wait(400);
   w.open=oldOpen3;
   ok('la ficha rellenada se vuelve a abrir, no se imprime sola',
-     d.getElementById('dlg-card').open&&!imprimio,
-     'diálogo '+d.getElementById('dlg-card').open+' · imprimió '+imprimio);
+     d.getElementById('dlg-save').open&&!imprimio,
+     'diálogo '+d.getElementById('dlg-save').open+' · imprimió '+imprimio);
   ok('la ficha conserva lo que ya tenía escrito',
      d.getElementById('f-titulo').value==='Salida de balón bajo presión',
      d.getElementById('f-titulo').value);
@@ -332,7 +343,7 @@ async function run(w,d){
   // abrir pestañas: las bloquean el iPhone y los navegadores incrustados.
   var emerg=0,oldOpen2=w.open;
   w.open=function(){ emerg++; return null; };
-  d.getElementById('f-imprimir').click();await wait(2600);
+  d.getElementById('save-imprimir').click();await wait(2600);
   w.open=oldOpen2;
   var fichaM=[].filter.call(d.querySelectorAll('iframe'),function(m){
     return m.getAttribute('title')==='Hoja para imprimir'&&!m.id;})[0];
@@ -1036,7 +1047,7 @@ async function run(w,d){
      d.getElementById('f-consignas').value.split('\n').length>=3,
      d.getElementById('f-titulo').value);
   ok('el selector de plantilla vuelve a su sitio tras usarlo',plant.value==='');
-  d.querySelector('#dlg-card [data-close]').click();await raf();
+  d.querySelector('#dlg-save [data-close]').click();await raf();
 
   // --- la ficha, por apartados y con sugerencias ---
   d.getElementById('card-edit').click();await wait(300);
@@ -1061,7 +1072,7 @@ async function run(w,d){
   ok('en las listas la sugerencia suma una línea y no repite',
      d.getElementById('f-consignas').value.split('\n').length===2,
      JSON.stringify(d.getElementById('f-consignas').value));
-  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+  d.querySelector('#dlg-save [data-close]').click();await wait(200);
 
   // --- ajustes ---
   d.getElementById('cfg').click();await wait(250);
@@ -1081,7 +1092,7 @@ async function run(w,d){
   d.getElementById('card-edit').click();await wait(250);
   ok('la ficha hereda tu equipo',d.getElementById('f-categoria').value==='Cadete A',
      d.getElementById('f-categoria').value);
-  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+  d.querySelector('#dlg-save [data-close]').click();await wait(200);
   d.getElementById('cfg').click();await wait(200);
   d.querySelector('[data-cfg-pitch="f11"]').click();await wait(200);
   d.querySelector('#dlg-cfg [data-close]').click();await wait(200);
@@ -1184,7 +1195,7 @@ async function run(w,d){
   var comps = w.getComputedStyle;
   d.getElementById('card-edit').click();await wait(300);
   var campoFicha = comps(d.getElementById('f-titulo'));
-  d.querySelector('#dlg-card [data-close]').click();await wait(200);
+  d.querySelector('#dlg-save [data-close]').click();await wait(200);
   d.getElementById('open').click();await wait(500);
   var campoLib = comps(d.getElementById('lib-q'));
   d.querySelector('#dlg-lib [data-close]').click();await wait(200);
@@ -1472,14 +1483,19 @@ async function run(w,d){
   w.localStorage.removeItem('pt-boards');
   d.getElementById('card-edit').click();await wait(400);
   d.getElementById('f-titulo').value='Prueba de guardado';
-  d.getElementById('f-guardar').click();await wait(500);
+  d.getElementById('f-titulo').dispatchEvent(new w.Event('input',{bubbles:true}));
+  await wait(120);
+  ok('el título de la ficha rellena el nombre de arriba',
+     d.getElementById('save-nombre').value==='Prueba de guardado',
+     d.getElementById('save-nombre').value);
+  d.getElementById('save-ok').click();await wait(500);
   var guardadas=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
   ok('guardar la ficha deja el ejercicio en la biblioteca',
      !!guardadas['Prueba de guardado'],Object.keys(guardadas).join(','));
   ok('y guarda la pizarra entera con ella',
      !!(guardadas['Prueba de guardado']&&guardadas['Prueba de guardado'].doc.frames.length));
   d.getElementById('card-edit').click();await wait(400);
-  d.getElementById('f-guardar').click();await wait(500);
+  d.getElementById('save-ok').click();await wait(500);
   ok('volver a guardarla no crea una copia',
      Object.keys(JSON.parse(w.localStorage.getItem('pt-boards')||'{}')).length===1);
   /* Guardar ya no es un cuadro de una línea: es un diálogo con el nombre y,
@@ -1556,7 +1572,9 @@ async function run(w,d){
   w.localStorage.removeItem('pt-boards');
   d.getElementById('card-edit').click();await wait(400);
   d.getElementById('f-titulo').value='Salida a tres, mi versión de siempre';
-  d.getElementById('f-guardar').click();await wait(500);
+  d.getElementById('f-titulo').dispatchEvent(new w.Event('input',{bubbles:true}));
+  await wait(120);
+  d.getElementById('save-ok').click();await wait(500);
   var deLaFicha=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
   ok('guardando desde la ficha también se acuerda de dónde salió',
      !!(deLaFicha['Salida a tres, mi versión de siempre']||{}).sale,
@@ -1574,6 +1592,64 @@ async function run(w,d){
   d.getElementById('save').click();await wait(350);
   ok('y empezando una pizarra nueva ya no sale de ningún sitio',
      d.getElementById('save-sale').hidden);
+  d.querySelector('#dlg-save [data-close]').click();await wait(250);
+  w.localStorage.removeItem('pt-boards');
+
+  /* --- guardar es UNA puerta y dos toques -------------------------------
+
+     Había dos caminos al mismo sitio: el botón Guardar y el Guardar de dentro
+     de la ficha, que escribía con el título de la ficha saltándose el nombre y
+     el paso de a quién apuntárselo. Ahora la ficha vive DENTRO de la hoja de
+     guardar, plegada, y guardar es: nombre + Guardar. */
+  w.localStorage.removeItem('pt-boards');
+  var puertas=['dlg-card','f-guardar','f-imprimir'].filter(function(id){
+    return !!d.getElementById(id);});
+  ok('ya no hay un segundo guardado por su cuenta',puertas.length===0,puertas.join(' · '));
+
+  d.getElementById('save').click();await wait(400);
+  var hoja=d.getElementById('dlg-save');
+  ok('Guardar abre una sola hoja',hoja.open);
+  ok('con la ficha dentro, no en otro diálogo',
+     !!d.getElementById('save-detalles').querySelector('#f-titulo'));
+  ok('y la ficha viene plegada: nunca es obligatoria',
+     !d.getElementById('save-detalles').open);
+  ok('el nombre viene propuesto, no en blanco',
+     d.getElementById('save-nombre').value.trim().length>0,
+     d.getElementById('save-nombre').value);
+
+  /* Dos toques de verdad: lo que se ve sin desplegar nada tiene que bastar.
+     Se cuentan los controles de la hoja que se ven en frío. */
+  /* Ojo con cómo se mide esto: el navegador sin ventana CALCULA la caja del
+     contenido de un «details» cerrado aunque no lo pinte —pasa hasta en una
+     página en blanco sin una línea de CSS—, así que «offsetParent» diría que la
+     ficha entera se ve. Se cuenta por lo que significa: lo que NO está dentro
+     de un plegable cerrado. */
+  var dentroDePlegadoCerrado=function(e){
+    // La línea que abre el plegable SÍ se ve: es parte de lo que hay en frío.
+    if(e.tagName==='SUMMARY') return false;
+    var det=e.closest('details');
+    while(det){ if(!det.open) return true; det=det.parentElement&&det.parentElement.closest('details'); }
+    return false;};
+  var aLaVista=[].filter.call(
+    d.querySelectorAll('#dlg-save button, #dlg-save input, #dlg-save select, #dlg-save summary'),
+    function(e){return e.offsetParent!==null&&!dentroDePlegadoCerrado(e);});
+  ok('y en frío la hoja no enseña más de lo justo',aLaVista.length<=8,
+     aLaVista.length+' controles: '+aLaVista.map(function(e){
+       return (e.id||e.textContent.trim().slice(0,14)||e.tagName);}).join(' · '));
+
+  d.getElementById('save-ok').click();await wait(500);
+  var trasDosToques=JSON.parse(w.localStorage.getItem('pt-boards')||'{}');
+  ok('nombre y Guardar bastan: el ejercicio queda guardado',
+     Object.keys(trasDosToques).length===1,Object.keys(trasDosToques).join(' · '));
+  ok('y se guarda con la pizarra entera, con la ficha vacía o sin ella',
+     !!trasDosToques[Object.keys(trasDosToques)[0]].doc.frames.length);
+  ok('la hoja se cierra al guardar',!hoja.open);
+
+  // Y «Ficha del ejercicio» lleva a la MISMA hoja, con los detalles fuera.
+  d.getElementById('card-edit').click();await wait(400);
+  ok('«Ficha» no abre otra cosa: abre la misma hoja',d.getElementById('dlg-save').open);
+  ok('y la abre por los detalles, que es a lo que vas',
+     d.getElementById('save-detalles').open);
   d.querySelector('#dlg-save [data-close]').click();await wait(250);
   w.localStorage.removeItem('pt-boards');
 
@@ -1595,6 +1671,59 @@ async function run(w,d){
   if(marcoImp&&marcoImp.parentNode)marcoImp.parentNode.removeChild(marcoImp);
   if(d.getElementById('dlg-hoja').open)d.getElementById('dlg-hoja').close();
   await wait(200);
+
+  /* --- la copia de seguridad de antes de tocar el guardado -----------------
+
+     Lo que hay en este navegador es lo único que hay: no se sincroniza con
+     ningún sitio a propósito. Si el guardado se rompe, no hay servidor del que
+     recuperar la biblioteca de un entrenador ni un año de asistencia. Va al
+     final de la tanda porque recarga la aplicación. */
+  ok('un navegador estrenado no se guarda una copia de nada',
+     w.localStorage.getItem('pt-backup-v1')===null,
+     String(w.localStorage.getItem('pt-backup-v1')).slice(0,40));
+
+  // Se deja algo que perder y se recarga: la copia tiene que salir sola.
+  var antesBoards=JSON.stringify({'Rondo de los martes':{at:1,doc:{pitch:'f11',view:'full',
+    card:{titulo:'Rondo de los martes'},frames:[{objects:[],strokes:[]}]}}});
+  w.localStorage.setItem('pt-boards',antesBoards);
+  w.localStorage.setItem('pt-squad',JSON.stringify({actual:'2026/27',
+    temporadas:{'2026/27':[{id:'j1',nombre:'Ana Ferrer',dorsal:'7'}]}}));
+  w.localStorage.removeItem('pt-backup-v1');
+
+  /* Tras recargar, «w» y «d» apuntan al documento VIEJO. Hay que volver a
+     pedírselos al marco, que es lo único que sobrevive a la recarga. */
+  var marcoR=w.frameElement;
+  var recarga=function(){return new Promise(function(res){
+    var alCargar=function(){marcoR.removeEventListener('load',alCargar);setTimeout(res,900);};
+    marcoR.addEventListener('load',alCargar);
+    marcoR.contentWindow.location.reload();});};
+  await recarga();
+  var w2=marcoR.contentWindow;
+  var copia=null;
+  try{copia=JSON.parse(w2.localStorage.getItem('pt-backup-v1'));}catch(e){}
+  ok('con algo que perder, al arrancar se guarda una copia',!!copia,
+     copia?'hecha el '+String(copia.hecha).slice(0,10):'no hay copia');
+  ok('y la copia trae la biblioteca tal cual estaba',
+     !!copia&&copia.claves&&copia.claves['pt-boards']===antesBoards,
+     copia&&copia.claves?String(copia.claves['pt-boards']).slice(0,50):'-');
+  ok('y también la plantilla, que es lo que no se puede volver a escribir',
+     !!copia&&copia.claves&&/Ana Ferrer/.test(copia.claves['pt-squad']||''));
+  ok('la pizarra a medias se queda fuera: es lo más volátil y lo que más ocupa',
+     !!copia&&copia.claves&&!('pt-autosave' in copia.claves),
+     copia&&copia.claves?Object.keys(copia.claves).join(' · '):'-');
+
+  /* Y no se refresca nunca más. Una copia que se rehace sola acabaría copiando
+     encima lo que se acaba de romper, que es justo cuando hace falta. */
+  w2.localStorage.setItem('pt-boards',JSON.stringify({'Otra cosa':{at:2,doc:{}}}));
+  await recarga();
+  var w3=marcoR.contentWindow;
+  var copia2=null;
+  try{copia2=JSON.parse(w3.localStorage.getItem('pt-backup-v1'));}catch(e){}
+  ok('y no se rehace: sigue siendo la foto de antes, no la de ahora',
+     !!copia2&&copia2.claves&&copia2.claves['pt-boards']===antesBoards,
+     copia2&&copia2.claves?String(copia2.claves['pt-boards']).slice(0,50):'-');
+  ok('la aplicación arranca igual con la copia hecha',
+     !!marcoR.contentDocument.getElementById('board'),'el canvas sigue ahí');
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }
