@@ -1410,8 +1410,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* ---- las sesiones ----
    El diario y el detalle viven en la misma pestaña, uno escondiendo al otro.
    Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
-.ses-cabeza{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
-.ses-cabeza .stats-resumen{flex:1;min-width:180px;margin:0}
+.ses-cabeza{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 var(--e2)}
+.ses-cabeza .stats-resumen{flex:1 1 100%;min-width:180px;margin:0}
+/* El botón de hoy y el selector de día, uno al lado del otro: hoy es lo de
+   siempre y va primero; el resto de días es lo de vez en cuando y va al lado,
+   no escondido. */
+.ses-ir{display:flex;align-items:flex-end;gap:var(--e3);flex-wrap:wrap;width:100%}
+.ses-ir .tbtn{flex:0 0 auto}
+.ses-otro{flex:1 1 150px;max-width:220px}
+.ses-otro > span{white-space:nowrap}
+@media (max-width:400px){ .ses-ir .tbtn{width:100%} .ses-otro{max-width:none} }
+
+/* El día que todavía no ha llegado se lee distinto del que ya pasó: no es un
+   registro, es un plan. Filete discontinuo y la palabra «Planificada» en la
+   propia fila; por la forma y por la palabra, no solo por el color. */
+.ses-dia.es-plan .ses-dia-btn{border-style:dashed;
+  border-color:color-mix(in srgb,var(--brand) 34%,var(--line))}
+.ses-dia.es-plan .ses-dia-fecha{color:var(--brand-2)}
 .ses-mes{margin:var(--e7) 0 var(--e3);
   color:var(--muted)}
 .ses-dias{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -1555,6 +1570,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   font-family:var(--ff-display);font-size:16px;font-variant-numeric:tabular-nums}
 .par-marcador span{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg)}
 #par-marcador-nota{margin:var(--e1) 0 0}
+/* El día al que se apunta lo que estás guardando. Debajo de la casilla y
+   sangrado como ella, para que se lea como parte de la misma frase. */
+.save-dia{margin:var(--e3) 0 0;max-width:240px}
 
 /* El resultado en la lista: la cifra a la derecha, teñida según cómo acabó. Se
    distingue además por el propio número, no solo por el color. */

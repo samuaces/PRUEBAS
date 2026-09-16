@@ -23,7 +23,11 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
   estás y ofrece el único botón que toca pulsar: montar la plantilla si aún no la hay,
   preparar la sesión si el día no tiene ninguna, apuntar quién ha venido si la sesión está
   puesta pero la asistencia no, o abrir la sesión si ya está todo. No hay que buscar nada.
-- **Sesiones**: un diario por fechas dentro de una temporada. Cada día lleva sus ejercicios
+- **Sesiones**: un diario por fechas dentro de una temporada. Se abre en el día de hoy,
+  pero se puede ir a cualquier día: dejar preparadas las sesiones que vienen o rellenar
+  las de atrás que no se apuntaron. Una sesión de un día que aún no ha llegado se marca
+  como planificada, no se le pasa lista —no ha venido nadie todavía— y no cuenta como
+  entrenada en ninguna estadística hasta que llega el día. Cada día lleva sus ejercicios
   en orden, con su duración; se añaden desde la biblioteca o desde la pizarra abierta, se
   reordenan y se marcan como hechos. La sesión se imprime en A4 con el dibujo de cada
   ejercicio. El generador propone una sesión entera a partir de los minutos disponibles, la

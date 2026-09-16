@@ -449,6 +449,11 @@
       // Un día con asistencia apuntada ya es una sesión, aunque no lleve
       // ejercicios: vinieron, entrenaron, y eso cuenta para la asistencia.
       hayAsistencia: !!a,
+      /* Un día que aún no ha llegado es un PLAN, no un registro. No cuenta en
+         las cuentas de lo entrenado, no se le pasa lista —nadie ha venido
+         todavía— y en el diario se dice que está por delante. Quien lo pinta no
+         tiene que calcular esto por su cuenta cada vez. */
+      futura: f > hoyISO(),
       vacia: !s || !s.ejercicios.length,
       minutos: min,
       sinDuracion: sinDuracion
@@ -913,15 +918,36 @@
   /* El periodo: 'micro' son 7 días, 'mes' 30, y 'temporada' es la temporada
      actual entera. Los dos primeros mandan por fecha; el tercero, por la
      temporada con la que se guardó. */
+  /* Lo que se ha hecho, que no es lo que está apuntado.
+
+     Desde que se pueden apuntar sesiones de días que aún no han llegado, esta
+     función tiene un techo además de un suelo. Sin él, planificar tres sesiones
+     para la semana que viene hacía que Klym dijera que ya las habías entrenado:
+     los minutos, el reparto por fases, lo que llevas sin tocar… todo contando
+     como hecho algo que todavía no ha pasado. Es el fallo silencioso de dejar
+     elegir la fecha, y es de los que no dan ningún error.
+
+     El techo es el final del día de hoy, no este instante: una sesión apuntada
+     para esta tarde a las ocho es de hoy y cuenta, aunque se mire a las tres.
+     El suelo de «temporada» no existe —es la temporada entera—, pero el techo
+     sí, por lo mismo. */
+  function finDeHoy(ahora) {
+    var t = ahora == null ? Date.now() : ahora;
+    return new Date(hoyISO(new Date(t)) + 'T23:59:59').getTime();
+  }
+
   function delPeriodo(lista, periodo, ahora) {
     var t = ahora == null ? Date.now() : ahora;
+    var hasta = finDeHoy(t);
     if (periodo === 'temporada') {
       var actual = temporadaActual();
-      return lista.filter(function (e) { return e.temporada === actual; });
+      return lista.filter(function (e) {
+        return e.temporada === actual && e.at <= hasta;
+      });
     }
     var dias = periodo === 'mes' ? 30 : 7;
     var desde = t - dias * 86400000;
-    return lista.filter(function (e) { return e.at >= desde; });
+    return lista.filter(function (e) { return e.at >= desde && e.at <= hasta; });
   }
 
   // Con los mismos minutos, por orden alfabético: así la lista no baila.

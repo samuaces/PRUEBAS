@@ -651,8 +651,15 @@ function siembra(lista){
   ok('Guardar abre el diálogo nuevo', d.getElementById('dlg-save').open);
   ok('la casilla de «hecho hoy» viene marcada: es lo que se hace casi siempre',
      d.getElementById('save-hoy').checked);
-  ok('y dice de qué día habla', /septiembre/.test(d.getElementById('save-hoy-fecha').textContent),
-     d.getElementById('save-hoy-fecha').textContent);
+  /* El día ya no es un texto fijo que diga «hoy»: es un campo, y de salida
+     trae hoy. Lo que se comprueba es eso —que venga puesto en hoy— y que el
+     rótulo del plegable hable de ese mismo día, no de otro. */
+  ok('el día viene puesto en hoy, que es lo que se hace casi siempre',
+     d.getElementById('save-dia').value === E.hoyISO(),
+     d.getElementById('save-dia').value);
+  ok('y el plegable dice de qué día habla',
+     /sesión de hoy/i.test(d.getElementById('save-sesion-t').textContent),
+     d.getElementById('save-sesion-t').textContent);
   ok('y cuántos van, sin tener que abrir nada',
      /3 jugadores/.test(d.getElementById('save-part-cuenta').textContent),
      d.getElementById('save-part-cuenta').textContent);
@@ -2005,6 +2012,94 @@ function siembra(lista){
   d.querySelector('[data-eq="datos"]').click(); await wait(500);
   ok('sin datos que comentar, no se ofrece montar nada',
      !d.getElementById('stats-a-sesion'));
+
+  /* =======================================================================
+     CUALQUIER DÍA, NO SOLO HOY
+
+     Se pueden dejar sesiones preparadas para la semana que viene y rellenar
+     días de atrás que no se apuntaron. El almacén aceptaba fechas cualesquiera
+     desde el principio; lo que no había era por dónde llegar a un día que
+     todavía no existe.
+
+     Y lo que de verdad hay que vigilar no es que se guarde: es que lo que
+     todavía no ha pasado NO cuente como entrenado. Sin eso, planificar tres
+     sesiones para la semana que viene hace que Klym diga que ya las has hecho
+     —minutos, reparto por fases, lo que llevas sin tocar— y ninguna de esas
+     cuentas volvería a querer decir nada. Es un fallo que no da ningún error.
+     ==================================================================== */
+  limpia();
+  /* Ojo con el reloj: esta tanda fija un «AHORA» para que sus cuentas no
+     dependan de la hora, pero la APLICACIÓN usa el reloj de verdad. Aquí se
+     mide lo que hace la aplicación con días futuros y pasados, así que los días
+     se cuentan desde SU hoy, no desde el nuestro. Mezclarlos me costó dos
+     fallos: el «hoy» de la prueba iba un día por detrás del de la aplicación. */
+  var DIAMS = 86400000;
+  var HOY_APP = E.hoyISO();
+  var isoD = function(n){
+    return new Date(new Date(HOY_APP + 'T12:00:00').getTime() + n*DIAMS)
+      .toISOString().slice(0,10); };
+  var FUT = isoD(5), PAS = isoD(-6);
+  E.añade(null, { nombre:'Uno Uno', dorsal:'1' });
+
+  E.añadeEjercicio(PAS, { titulo:'Lo del jueves pasado', momento:'Finalización', duracion:'30 min' });
+  E.añadeEjercicio(FUT, { titulo:'Lo del martes que viene', momento:'Ataque organizado', duracion:'25 min' });
+
+  ok('un día que aún no ha llegado se guarda igual que cualquiera',
+     E.sesionDe(FUT).ejercicios.length===1);
+  ok('y la sesión sabe decir de sí misma que está por llegar',
+     E.sesionDe(FUT).futura===true && E.sesionDe(PAS).futura===false);
+
+  /* LA LÍNEA QUE NO SE CRUZA: planificado no es entrenado. */
+  ['micro','mes','temporada'].forEach(function(per){
+    var st = E.estadisticas(per);
+    ok('lo planificado no cuenta como entrenado · '+per,
+       st.ejercicios===1 && st.minutos===30,
+       st.ejercicios+' ejercicios · '+st.minutos+' min (debe ser 1 y 30)');
+  });
+  /* Y el día de hoy entero SÍ cuenta, aunque se mire por la mañana: una sesión
+     apuntada para esta tarde es de hoy. El techo es el final del día, no este
+     instante, y esta comprobación es la que lo sujeta. */
+  E.añadeEjercicio(HOY_APP, { titulo:'Lo de esta tarde', duracion:'10 min' });
+  ok('y lo de hoy cuenta aunque sea más tarde que ahora mismo',
+     E.estadisticas('micro').minutos===40,
+     E.estadisticas('micro').minutos+' min');
+
+  ok('pero el diario los enseña todos, que para eso es un diario',
+     E.diario().length===3, E.diario().length+' días');
+
+  // --- la pantalla ---
+  await irA(d,'sesiones');
+  (function(){
+    var sel = d.getElementById('ses-dia');
+    ok('el diario tiene por dónde ir a otro día', !!sel && sel.type==='date');
+    sel.value = FUT;
+    sel.dispatchEvent(new w.Event('change',{bubbles:true}));
+  })();
+  await wait(600);
+  ok('elegir un día abre su sesión, exista o no en el diario',
+     !d.getElementById('ses-detalle').hidden &&
+     d.getElementById('ses-fecha').textContent.indexOf(String(Number(FUT.slice(8))))>=0,
+     d.getElementById('ses-fecha').textContent);
+  /* De un día que no ha llegado NO se pasa lista: no ha venido nadie, y esa
+     lista es de la que salen después los minutos de cada uno. Pedirla sería
+     pedir que te la inventes. */
+  ok('y no se ofrece pasar lista de un día que no ha llegado',
+     d.querySelectorAll('#ses-asis button').length===0 &&
+     /por llegar/i.test(d.getElementById('ses-asis').textContent),
+     d.getElementById('ses-asis').textContent.slice(0,44));
+  d.getElementById('ses-volver').click(); await wait(500);
+  /* Y el resumen de arriba tampoco suma lo que no ha pasado: decía «60 min
+     esta temporada» con 45 de un domingo por llegar. Es el mismo fallo que en
+     las estadísticas, escondido en una frase que nadie vuelve a mirar. */
+  ok('el resumen del diario cuenta aparte lo hecho y lo planificado',
+     /2 sesiones/.test(d.getElementById('ses-resumen').textContent) &&
+     /40 min/.test(d.getElementById('ses-resumen').textContent) &&
+     /1 planificada/.test(d.getElementById('ses-resumen').textContent),
+     d.getElementById('ses-resumen').textContent);
+  ok('y en el diario se distingue del que ya pasó, por la palabra y no solo por el color',
+     !!d.querySelector('#ses-meses .ses-dia.es-plan') &&
+     /Planificada/.test(d.querySelector('#ses-meses .ses-dia.es-plan').textContent),
+     (d.querySelector('#ses-meses .ses-dia.es-plan')||{}).className);
 
   /* =======================================================================
      LOS PARTIDOS
