@@ -809,7 +809,7 @@ async function run(w,d){
        /entrar/i.test(d.getElementById('cuenta-btn').getAttribute('aria-label')||''),
        d.getElementById('cuenta-btn').getAttribute('aria-label'));
     // La prueba de fondo: los dos modos. Equipo era el que no tenía salida.
-    var modos=['pizarra','equipo'],llega=[];
+    var modos=['pizarra','hoy'],llega=[];
     for(var iM=0;iM<modos.length;iM++){
       await irA(d,modos[iM]);
       var seVeAqui=veAncho('cuenta-btn');
@@ -1464,7 +1464,7 @@ async function run(w,d){
   }
   await irA(d,'pizarra');await wait(450);
   var bPiz=mideBarra('.tabbar.solo-pizarra');
-  await irA(d,'equipo');await wait(550);
+  await irA(d,'hoy');await wait(550);
   var bEq=mideBarra('.tabbar-eq');
   ok('con el hueco del iPhone, la barra de la pizarra lo cubre',
      bPiz.alto>=94,bPiz.alto+' px de alto');
@@ -1731,24 +1731,86 @@ async function run(w,d){
   ok('el botón lo abre',cajon.classList.contains('open')&&!cajon.hidden);
   ok('y se ve el velo por encima de todo',
      d.getElementById('cajon-scrim').classList.contains('show'));
-  ok('con las secciones que hay hoy',
-     d.querySelectorAll('.cajon-ir').length===2,
-     [].map.call(d.querySelectorAll('.cajon-ir'),function(b){
-       return b.dataset.ir;}).join(' · '));
+  /* El mapa entero. Con dos entradas el cajón no era un mapa, era un
+     interruptor con otra forma: no decía de qué va la aplicación. Ahora están
+     los cuatro apartados de Equipo —que ya existían como pestañas—, la
+     biblioteca, la pizarra y el pie. */
+  var DESTINOS=['hoy','sesiones','ejercicios','pizarra','plantilla','datos',
+                'cuenta','ajustes','ayuda'];
+  var hay=[].map.call(d.querySelectorAll('.cajon-ir'),function(b){
+    return b.dataset.ir;});
+  ok('están todos los destinos, y en el orden en que se trabaja',
+     hay.join(',')===DESTINOS.join(','),hay.join(' · '));
+  ok('la biblioteca es uno de ellos: deja de estar escondida en un botón',
+     hay.indexOf('ejercicios')>=0);
+  ok('y los tres de abajo van aparte, que no son sitios a los que ir',
+     [].every.call(d.querySelectorAll('.cajon-pie .cajon-ir'),function(b){
+       return ['cuenta','ajustes','ayuda'].indexOf(b.dataset.ir)>=0;})&&
+     d.querySelectorAll('.cajon-pie .cajon-ir').length===3);
   ok('y marcada la que estás mirando',
      (d.querySelector('.cajon-ir[aria-current="true"]')||{}).dataset.ir==='pizarra');
+  /* «Entrar» solo si hay servidor detrás. En el archivo suelto —el que se manda
+     por correo— no lo hay, y un destino que no lleva a ninguna parte es peor
+     que no tenerlo. Las otras tres puertas a la cuenta ya se apagaban ahí. */
+  var hayServidor=!!(w.PTNube&&w.PTNube.hay());
+  ok('y «Entrar» solo está puesto si hay servidor detrás',
+     d.querySelector('.cajon-ir[data-ir="cuenta"]').hidden===!hayServidor,
+     hayServidor?'con servidor':'sin servidor');
+
+  /* Las pistas. Sin ellas la lista son nueve nombres; con ellas es lo que te
+     guía, porque ves dónde te falta trabajo sin entrar a mirar. Esta pizarra
+     arranca sin plantilla: es el primer día de cualquiera. */
+  function pista(id){
+    var e=d.querySelector('[data-pista="'+id+'"]');
+    return e?e.textContent.trim():'(no está)';}
+  ok('sin plantilla, «Hoy» es por donde se empieza',
+     pista('hoy')==='Empieza por aquí',pista('hoy'));
+  ok('y la plantilla lo dice sin rodeos',
+     pista('plantilla')==='Sin montar todavía',pista('plantilla'));
+  ok('y Análisis no finge que hay datos',
+     /Cuando apuntes algo/.test(pista('datos')),pista('datos'));
 
   // Escape lo cierra, que es lo que espera cualquiera.
   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
   await wait(400);
   ok('Escape lo cierra',!cajon.classList.contains('open'));
 
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   ok('elegir una sección lleva a ella y cierra el cajón',
      d.querySelector('.app').dataset.modo==='equipo'&&!cajon.classList.contains('open'));
   ok('y el botón dice dónde estás: un icono de tres rayas solo dice «hay más»',
-     d.getElementById('cajon-btn-txt').textContent==='Equipo',
+     d.getElementById('cajon-btn-txt').textContent==='Hoy',
      d.getElementById('cajon-btn-txt').textContent);
+
+  /* Los cuatro apartados de Equipo llevan a SU apartado, no a Equipo a secas.
+     Era el riesgo de subirlos: que el cajón te dejara en la pestaña de antes. */
+  var llegadas=[];
+  var APS=[['sesiones','sesiones'],['plantilla','plantilla'],['datos','datos'],
+           ['hoy','hoy']];
+  for(var iA=0;iA<APS.length;iA++){
+    await irA(d,APS[iA][0]);
+    var sel=d.querySelector('.tabbar-eq [aria-selected="true"]');
+    llegadas.push(APS[iA][0]+'→'+((sel&&sel.dataset.eq)||'?'));
+  }
+  ok('cada apartado del cajón abre el suyo, no el último que miraste',
+     llegadas.every(function(x){var p=x.split('→');return p[0]===p[1];}),
+     llegadas.join(' · '));
+
+  // Y el de la biblioteca la abre sin moverte de sitio.
+  var dondeEstaba=d.querySelector('.app').dataset.modo;
+  await irA(d,'ejercicios');
+  ok('«Ejercicios» abre la biblioteca',d.getElementById('dlg-lib').open);
+  ok('y no te saca de donde estabas',
+     d.querySelector('.app').dataset.modo===dondeEstaba);
+  d.getElementById('dlg-lib').close();await wait(250);
+
+  // Ajustes y Ayuda igual: abren lo suyo y te dejan donde estás.
+  await irA(d,'ajustes');
+  ok('«Ajustes» abre los ajustes',d.getElementById('dlg-cfg').open);
+  d.getElementById('dlg-cfg').close();await wait(250);
+  await irA(d,'ayuda');
+  ok('«Ayuda» abre la ayuda',d.getElementById('dlg-help').open);
+  d.getElementById('dlg-help').close();await wait(250);
 
   /* Volver a la pizarra tiene que MEDIRLA. Aviso para el que venga: no es que
      el campo se quede en blanco —«resize» tiene un suelo de 240 px, así que a
@@ -1761,7 +1823,7 @@ async function run(w,d){
      quitando el «resize» de «vaModo». La aplicación vuelve a medir por más de
      un camino, así que esto fija la propiedad, no caza ese fallo concreto. */
   var marcoC=w.frameElement,anchoC=marcoC.style.width;
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   marcoC.style.width='700px';await wait(450);   // girar el teléfono, ya en Equipo
   w.dispatchEvent(new w.Event('resize'));await wait(350);
   await irA(d,'pizarra');

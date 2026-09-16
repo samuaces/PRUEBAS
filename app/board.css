@@ -402,6 +402,18 @@ a:hover{color:var(--text)}
 /* Sin transición no hay a qué esperar para esconderlo del teclado y del lector:
    se quita el «hidden» al abrir y se repone al acabar de cerrarse. */
 .cajon[hidden]{display:none}
+/* La cabecera: dice en qué aplicación estás, que es lo primero que se mira al
+   abrir un menú. */
+.cajon-cab{display:flex;align-items:center;gap:10px;margin:0 4px 18px;
+  font-family:var(--ff-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+.cajon-marca{width:28px;height:28px;flex:none}
+/* Lo de abajo —cuenta, ajustes, ayuda— no son sitios a los que ir: abren lo
+   suyo y te dejan donde estabas. Van separados y más apagados para que se lean
+   como otra cosa. */
+.cajon-pie{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
+.cajon-pie .cajon-ir span{font-size:13.5px;font-weight:600}
+.cajon-pie .cajon-ir svg{width:18px;height:18px}
+.cajon-tit:not(:first-of-type){margin-top:18px}
 .cajon-tit{margin:0 0 12px 4px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
   letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85}
 .cajon-ir{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;

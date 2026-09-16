@@ -412,6 +412,18 @@ a:hover{color:var(--text)}
 /* Sin transición no hay a qué esperar para esconderlo del teclado y del lector:
    se quita el «hidden» al abrir y se repone al acabar de cerrarse. */
 .cajon[hidden]{display:none}
+/* La cabecera: dice en qué aplicación estás, que es lo primero que se mira al
+   abrir un menú. */
+.cajon-cab{display:flex;align-items:center;gap:10px;margin:0 4px 18px;
+  font-family:var(--ff-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+.cajon-marca{width:28px;height:28px;flex:none}
+/* Lo de abajo —cuenta, ajustes, ayuda— no son sitios a los que ir: abren lo
+   suyo y te dejan donde estabas. Van separados y más apagados para que se lean
+   como otra cosa. */
+.cajon-pie{margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
+.cajon-pie .cajon-ir span{font-size:13.5px;font-weight:600}
+.cajon-pie .cajon-ir svg{width:18px;height:18px}
+.cajon-tit:not(:first-of-type){margin-top:18px}
 .cajon-tit{margin:0 0 12px 4px;font-family:var(--ff-display);font-size:10.5px;font-weight:700;
   letter-spacing:.15em;text-transform:uppercase;color:var(--muted);opacity:.85}
 .cajon-ir{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
@@ -1995,18 +2007,74 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   <!-- Los destinos. Hoy son dos; las otras cuatro secciones ya existen como
        pestañas dentro de Equipo y suben aquí en la siguiente tanda. -->
+  <!-- El mapa entero, en el orden en que se trabaja: planteas, entrenas,
+       registras y miras qué falta. Quien entra por primera vez lee el cajón de
+       arriba abajo y ya sabe de qué va la aplicación. -->
   <nav class="cajon" id="cajon" aria-label="Secciones" hidden>
-    <p class="cajon-tit">Ir a</p>
-    <button type="button" class="cajon-ir" data-ir="pizarra" aria-current="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
+    <div class="cajon-cab">
+      <svg class="cajon-marca" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="url(#lg)"/>
+        <g stroke="#fff" stroke-width="1.5" fill="none" opacity=".8" stroke-linejoin="round">
+          <rect x="4.5" y="3.5" width="23" height="25" rx="2"/><path d="M4.5 16h23"/>
+          <path d="M11.5 3.5v3.6h9V3.5M11.5 28.5v-3.6h9v3.6"/></g>
+        <path d="M7.6 23.4 L13.4 17 L16.6 20.2 L22.4 12.4" stroke="#fff" stroke-width="2.7" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M25.6 8.6 L24.2 15.4 L18.2 12.6 Z" fill="#fff"/>
+      </svg>
+      <span>Klym</span>
+    </div>
+
+    <p class="cajon-tit">Preparar</p>
+    <button type="button" class="cajon-ir" data-ir="hoy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>
+      <span>Hoy</span>
+      <small data-pista="hoy">Qué toca</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="sesiones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/><path d="M7.5 13h4M7.5 16.5h7"/></svg>
+      <span>Sesiones</span>
+      <small data-pista="sesiones">El calendario de entrenamientos</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="ejercicios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg>
+      <span>Ejercicios</span>
+      <small data-pista="ejercicios">La biblioteca y los tuyos</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="pizarra">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
       <span>Pizarra</span>
-      <small>Dibujar el ejercicio</small>
+      <small data-pista="pizarra">Dibujar un ejercicio</small>
     </button>
-    <button type="button" class="cajon-ir" data-ir="equipo">
+
+    <p class="cajon-tit">Tu equipo</p>
+    <button type="button" class="cajon-ir" data-ir="plantilla">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.6a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4A6 6 0 0 1 21 20"/></svg>
-      <span>Equipo</span>
-      <small>Hoy, plantilla, sesiones y datos</small>
+      <span>Plantilla</span>
+      <small data-pista="plantilla">Jugadores y asistencia</small>
     </button>
+    <button type="button" class="cajon-ir" data-ir="datos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
+      <span>Análisis</span>
+      <small data-pista="datos">Minutos y qué falta por trabajar</small>
+    </button>
+
+    <div class="cajon-pie">
+    <button type="button" class="cajon-ir" data-ir="cuenta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+      <span>Entrar</span>
+      <small data-pista="cuenta">Para compartir y tenerlo en otro sitio</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      <span>Ajustes</span>
+      <small data-pista="ajustes">Modalidad y categoría</small>
+    </button>
+    <button type="button" class="cajon-ir" data-ir="ayuda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/></svg>
+      <span>Ayuda</span>
+      <small data-pista="ayuda">Atajos y cómo funciona</small>
+    </button>
+    </div>
   </nav>
   <div class="scrim" id="cajon-scrim"></div>
 
@@ -12101,6 +12169,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
   // declara para que lo alcancen los que están fuera de esa función.
   var abreCuenta = function () {};
+  // Lo mismo con los ajustes: los arma el arranque y los abre el cajón.
+  var abreLosAjustes = function () {};
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
   var yo = null;                      // sin cuentas: nadie firma en el servidor
@@ -14037,17 +14107,78 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }, 240);
   }
 
+  /* A dónde lleva cada destino. Cuatro de ellos son apartados de Equipo, que ya
+     existían como pestañas: «vaModo» acepta apartado desde el principio, así
+     que subirlos al cajón no cambia nada por dentro. Los tres del pie abren lo
+     suyo y te dejan donde estabas: ajustes o ayuda no son sitios a los que ir.
+     La biblioteca sigue siendo un diálogo; lo que cambia es que ahora se ve. */
+  var DESTINOS = {
+    hoy:        { modo: 'equipo', apartado: 'hoy',       nombre: 'Hoy' },
+    sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
+    plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
+    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
+    pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
+    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
+    cuenta:     { abre: function () { abreCuenta(false); } },
+    ajustes:    { abre: function () { abreLosAjustes(); } },
+    ayuda:      { abre: function () { $('#dlg-help').showModal(); } }
+  };
+
+  function vaDestino(id) {
+    var d = DESTINOS[id];
+    if (!d) return;
+    if (d.abre) { d.abre(); return; }
+    vaModo(d.modo, d.apartado);
+  }
+
   /* El botón dice dónde estás. Un icono de tres rayas solo dice «hay más», y
      con el interruptor fuera esa es la única señal de en qué sección andas. */
-  var NOMBRE_SECCION = { pizarra: 'Pizarra', equipo: 'Equipo' };
+  function dondeEstoy() {
+    if (modo !== 'equipo') return 'pizarra';
+    return eqApartado;                       // hoy · sesiones · plantilla · datos
+  }
 
   function pintaCajon() {
+    var aqui = dondeEstoy();
     var t = $('#cajon-btn-txt');
-    if (t) t.textContent = NOMBRE_SECCION[modo] || 'Ir a';
+    if (t) t.textContent = (DESTINOS[aqui] && DESTINOS[aqui].nombre) || 'Ir a';
     $$('.cajon-ir').forEach(function (b) {
-      if (b.dataset.ir === modo) b.setAttribute('aria-current', 'true');
+      if (b.dataset.ir === aqui) b.setAttribute('aria-current', 'true');
       else b.removeAttribute('aria-current');
     });
+    pistasDelCajon();
+  }
+
+  /* Cada destino dice en qué estado está lo suyo. Es lo que convierte una lista
+     de nombres en algo que guía: ves «sin plantilla» o «la de hoy sin montar» y
+     ya sabes dónde te falta trabajo, sin entrar a mirar. */
+  function pistasDelCajon() {
+    if (!window.PTEquipo) return;
+    function pon(id, txt) {
+      var e = $('[data-pista="' + id + '"]');
+      if (e && txt) e.textContent = txt;
+    }
+    var jug = PTEquipo.jugadores().length;
+    var hoy = PTEquipo.sesionDe(PTEquipo.hoyISO());
+    var d = PTEquipo.estadisticas('micro');
+
+    pon('plantilla', jug ? jug + (jug === 1 ? ' jugador' : ' jugadores') : 'Sin montar todavía');
+    pon('hoy', !jug ? 'Empieza por aquí'
+             : hoy.vacia ? 'La sesión de hoy está sin montar'
+             : !hoy.hayAsistencia ? 'Falta apuntar quién vino'
+             : 'Todo al día');
+    pon('sesiones', hoy.vacia ? 'Hoy no tienes nada apuntado'
+                              : 'Hoy: ' + hoy.ejercicios.length +
+                                (hoy.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+    pon('datos', d.ejercicios
+      ? d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') + ' estos siete días'
+      : 'Cuando apuntes algo, sale aquí');
+    var cta = $('[data-pista="cuenta"]');
+    if (cta) {
+      var b = cta.closest('.cajon-ir').querySelector('span');
+      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = yo.email || 'Entrada'; }
+      else { b.textContent = 'Entrar'; cta.textContent = 'Para compartir y tenerlo en otro sitio'; }
+    }
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
@@ -14063,6 +14194,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       b.setAttribute('aria-selected', String(suyo));
       b.setAttribute('aria-pressed', String(suyo));
     });
+    pintaCajon();
     if (eqApartado === 'hoy') pintaHoy();
     else if (eqApartado === 'plantilla') pintaApartadoPlantilla();
     else if (eqApartado === 'sesiones') pintaSesiones();
@@ -15145,7 +15277,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $$('.cajon-ir').forEach(function (b) {
       b.addEventListener('click', function () {
         cierraCajon();
-        vaModo(b.dataset.ir);
+        vaDestino(b.dataset.ir);
       });
     });
     // Escape cierra lo de arriba, que es el cajón si está abierto.
@@ -15418,6 +15550,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       // La del panel, por lo mismo: es la misma puerta, y sin servidor detrás
       // no da a ninguna parte. Es justo el caso del archivo suelto.
       $('#cuenta-row').hidden = true;
+      // Y la del cajón. Un destino que no lleva a ninguna parte es peor que
+      // no tenerlo, y el cajón es justo donde se mira para saber qué hay.
+      var eCta = $('.cajon-ir[data-ir="cuenta"]');
+      if (eCta) eCta.hidden = true;
     }
 
     if (hayNube) {
@@ -15644,6 +15780,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#cfg-categoria').value = p.categoria;
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
+    // El cajón también lleva a los ajustes, y vive fuera de este trozo.
+    abreLosAjustes = abreAjustes;
     $('#cfg').addEventListener('click', abreAjustes);
     $('#cfg-row').addEventListener('click', function () { sheetClose(); abreAjustes(); });
     $$('[data-cfg-pitch]').forEach(function (b) {

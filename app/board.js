@@ -2557,6 +2557,8 @@
   // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
   // declara para que lo alcancen los que están fuera de esa función.
   var abreCuenta = function () {};
+  // Lo mismo con los ajustes: los arma el arranque y los abre el cajón.
+  var abreLosAjustes = function () {};
   var nubeLista = [];                 // lo que ha compartido cualquiera
   var nubeMios  = [];                 // los tuyos, compartidos o no
   var yo = null;                      // sin cuentas: nadie firma en el servidor
@@ -4493,17 +4495,78 @@
     }, 240);
   }
 
+  /* A dónde lleva cada destino. Cuatro de ellos son apartados de Equipo, que ya
+     existían como pestañas: «vaModo» acepta apartado desde el principio, así
+     que subirlos al cajón no cambia nada por dentro. Los tres del pie abren lo
+     suyo y te dejan donde estabas: ajustes o ayuda no son sitios a los que ir.
+     La biblioteca sigue siendo un diálogo; lo que cambia es que ahora se ve. */
+  var DESTINOS = {
+    hoy:        { modo: 'equipo', apartado: 'hoy',       nombre: 'Hoy' },
+    sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
+    plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
+    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
+    pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
+    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
+    cuenta:     { abre: function () { abreCuenta(false); } },
+    ajustes:    { abre: function () { abreLosAjustes(); } },
+    ayuda:      { abre: function () { $('#dlg-help').showModal(); } }
+  };
+
+  function vaDestino(id) {
+    var d = DESTINOS[id];
+    if (!d) return;
+    if (d.abre) { d.abre(); return; }
+    vaModo(d.modo, d.apartado);
+  }
+
   /* El botón dice dónde estás. Un icono de tres rayas solo dice «hay más», y
      con el interruptor fuera esa es la única señal de en qué sección andas. */
-  var NOMBRE_SECCION = { pizarra: 'Pizarra', equipo: 'Equipo' };
+  function dondeEstoy() {
+    if (modo !== 'equipo') return 'pizarra';
+    return eqApartado;                       // hoy · sesiones · plantilla · datos
+  }
 
   function pintaCajon() {
+    var aqui = dondeEstoy();
     var t = $('#cajon-btn-txt');
-    if (t) t.textContent = NOMBRE_SECCION[modo] || 'Ir a';
+    if (t) t.textContent = (DESTINOS[aqui] && DESTINOS[aqui].nombre) || 'Ir a';
     $$('.cajon-ir').forEach(function (b) {
-      if (b.dataset.ir === modo) b.setAttribute('aria-current', 'true');
+      if (b.dataset.ir === aqui) b.setAttribute('aria-current', 'true');
       else b.removeAttribute('aria-current');
     });
+    pistasDelCajon();
+  }
+
+  /* Cada destino dice en qué estado está lo suyo. Es lo que convierte una lista
+     de nombres en algo que guía: ves «sin plantilla» o «la de hoy sin montar» y
+     ya sabes dónde te falta trabajo, sin entrar a mirar. */
+  function pistasDelCajon() {
+    if (!window.PTEquipo) return;
+    function pon(id, txt) {
+      var e = $('[data-pista="' + id + '"]');
+      if (e && txt) e.textContent = txt;
+    }
+    var jug = PTEquipo.jugadores().length;
+    var hoy = PTEquipo.sesionDe(PTEquipo.hoyISO());
+    var d = PTEquipo.estadisticas('micro');
+
+    pon('plantilla', jug ? jug + (jug === 1 ? ' jugador' : ' jugadores') : 'Sin montar todavía');
+    pon('hoy', !jug ? 'Empieza por aquí'
+             : hoy.vacia ? 'La sesión de hoy está sin montar'
+             : !hoy.hayAsistencia ? 'Falta apuntar quién vino'
+             : 'Todo al día');
+    pon('sesiones', hoy.vacia ? 'Hoy no tienes nada apuntado'
+                              : 'Hoy: ' + hoy.ejercicios.length +
+                                (hoy.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios'));
+    pon('datos', d.ejercicios
+      ? d.ejercicios + (d.ejercicios === 1 ? ' ejercicio' : ' ejercicios') + ' estos siete días'
+      : 'Cuando apuntes algo, sale aquí');
+    var cta = $('[data-pista="cuenta"]');
+    if (cta) {
+      var b = cta.closest('.cajon-ir').querySelector('span');
+      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = yo.email || 'Entrada'; }
+      else { b.textContent = 'Entrar'; cta.textContent = 'Para compartir y tenerlo en otro sitio'; }
+    }
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, datos: 1 };
@@ -4519,6 +4582,7 @@
       b.setAttribute('aria-selected', String(suyo));
       b.setAttribute('aria-pressed', String(suyo));
     });
+    pintaCajon();
     if (eqApartado === 'hoy') pintaHoy();
     else if (eqApartado === 'plantilla') pintaApartadoPlantilla();
     else if (eqApartado === 'sesiones') pintaSesiones();
@@ -5601,7 +5665,7 @@
     $$('.cajon-ir').forEach(function (b) {
       b.addEventListener('click', function () {
         cierraCajon();
-        vaModo(b.dataset.ir);
+        vaDestino(b.dataset.ir);
       });
     });
     // Escape cierra lo de arriba, que es el cajón si está abierto.
@@ -5874,6 +5938,10 @@
       // La del panel, por lo mismo: es la misma puerta, y sin servidor detrás
       // no da a ninguna parte. Es justo el caso del archivo suelto.
       $('#cuenta-row').hidden = true;
+      // Y la del cajón. Un destino que no lleva a ninguna parte es peor que
+      // no tenerlo, y el cajón es justo donde se mira para saber qué hay.
+      var eCta = $('.cajon-ir[data-ir="cuenta"]');
+      if (eCta) eCta.hidden = true;
     }
 
     if (hayNube) {
@@ -6100,6 +6168,8 @@
       $('#cfg-categoria').value = p.categoria;
     }
     function abreAjustes() { pintaAjustes(); $('#dlg-cfg').showModal(); }
+    // El cajón también lleva a los ajustes, y vive fuera de este trozo.
+    abreLosAjustes = abreAjustes;
     $('#cfg').addEventListener('click', abreAjustes);
     $('#cfg-row').addEventListener('click', function () { sheetClose(); abreAjustes(); });
     $$('[data-cfg-pitch]').forEach(function (b) {

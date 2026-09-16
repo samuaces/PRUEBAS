@@ -507,7 +507,7 @@ function siembra(lista){
   /* Ya no son diálogos: son los dos apartados del modo Equipo. Lo que se
      comprueba es lo mismo —que el mando lleva a su sitio y que el sitio trae
      lo que tiene que traer—, pero contra la pantalla de verdad. */
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(400);
   ok('el interruptor lleva al modo Equipo',
      d.querySelector('.app').dataset.modo === 'equipo');
@@ -714,7 +714,7 @@ function siembra(lista){
                                  duracion:'20 min' });
   E.añadeEjercicio(E.hoyISO(), { titulo:'Con fase B', momento:'Defensa organizada',
                                  duracion:'10 min' });
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="datos"]').click();
   await wait(400);
@@ -787,7 +787,7 @@ function siembra(lista){
     dia(3, [], [ana.id])
   ]);
 
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="datos"]').click();
   await wait(200);
@@ -1085,7 +1085,7 @@ function siembra(lista){
                                  duracion:'12 min' });
   E.guardaSesion(E.hoyISO(), { nombre:'Sesión de pantalla' });
 
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1240,7 +1240,7 @@ function siembra(lista){
      d.getElementById('dlg-lib-t').textContent === 'Biblioteca',
      d.getElementById('dlg-lib-t').textContent);
   d.getElementById('dlg-lib').close(); await wait(250);
-  await irA(d,'equipo'); await wait(350);
+  await irA(d,'hoy'); await wait(350);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click(); await wait(400);
   d.querySelector('#ses-meses .ses-dia-btn').click(); await wait(300);
   // Ese sí tiene dibujo: su título abre la pizarra.
@@ -1252,7 +1252,7 @@ function siembra(lista){
   await wait(400);
   ok('al pulsarlo se va a la pizarra con el ejercicio puesto',
      d.querySelector('.app').dataset.modo === 'pizarra');
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.getElementById('open').click();
   await wait(500);
@@ -1454,7 +1454,7 @@ function siembra(lista){
   var AYER = iso(Date.now() - 2*DIA);
   E.añadeEjercicio(AYER, { titulo:'Algo de anteayer', duracion:'20 min' });
 
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1725,7 +1725,7 @@ function siembra(lista){
   var G3 = E.añade('2026/27', { dorsal:'9',  nombre:'Gen Campo B', posicion:'Delantero' }).jugador;
   E.ponAsistenciaEn(E.hoyISO(), [G1.id, G2.id, G3.id]);
 
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1838,7 +1838,7 @@ function siembra(lista){
   limpia();
   E.cambiaTemporada('2026/27');
   E.añadeEjercicio(E.hoyISO(), { titulo:'Para el nombre', duracion:'10 min' });
-  await irA(d,'equipo');
+  await irA(d,'hoy');
   await wait(300);
   d.querySelector('.tabbar-eq [data-eq="sesiones"]').click();
   await wait(350);
@@ -1951,7 +1951,7 @@ function siembra(lista){
      st.sinMomento.ejercicios === 1 && st.sinMomento.minutos === 20,
      st.sinMomento.ejercicios + ' ejercicio, ' + st.sinMomento.minutos + ' min');
 
-  await irA(d,'equipo'); await wait(350);
+  await irA(d,'hoy'); await wait(350);
   d.querySelector('[data-eq="datos"]').click(); await wait(600);
   var barraAt = [].filter.call(d.querySelectorAll('#stats-momentos .barra'), function(r){
     return /Ataque organizado/.test(r.textContent); })[0];
