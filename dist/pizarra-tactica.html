@@ -738,11 +738,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .group{gap:3px;padding:3px}
   .logo span{display:none}
   .topbar .tbtn{min-width:var(--touch);min-height:38px}
-  /* El de la cuenta va sin nombre aquí: con el nombre no cabía la barra entera
-     en un teléfono estrecho, y la barra recorta por los lados sin avisar, así
-     que el botón habría desaparecido sin más. El alto se respeta, que es lo que
-     se toca; lo que se recorta es el ancho sobrante de un icono solo. */
-  .topbar .cuenta-btn{min-width:38px;padding-left:9px;padding-right:9px}
+  /* Sin entrar, aquí manda la PALABRA, no el icono: una silueta fina en una
+     barra llena de iconos finos no se lee como «entrar», y encima se parece a
+     la del modo Equipo que tiene al lado. Nadie adivinaba que por ahí se
+     entraba.
+
+     Y cabe porque se cambia una cosa por otra, no porque se añada: la palabra
+     sola ocupa menos que el icono con su cajita. Medido a 320 px, que es el
+     ancho más apretado que se soporta. Entrando ya, mandan las iniciales: eso
+     sí se lee como «eres tú», y encima dice quién eres. */
+  .topbar .cuenta-btn{min-width:38px;padding-left:10px;padding-right:10px}
+  .topbar .cuenta-btn:not(.dentro) .cuenta-avatar{display:none}
+  .topbar .cuenta-btn:not(.dentro) .hide-sm{display:inline}
+  .topbar .cuenta-btn:not(.dentro){font-weight:700;color:var(--text)}
   /* En Equipo, con el móvil, no había NINGUNA manera de abrir Ajustes: la hoja
      de «Más», que es donde vive en la pizarra, solo existe en la pizarra. Aquí
      la barra va vacía por la derecha, así que el engranaje vuelve a ella. */
@@ -863,15 +871,38 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .topbar .tbtn{min-width:40px;padding-left:8px;padding-right:8px}
 }
 
-@media (max-width:365px){
-  /* Aquí ya no cabe la marca, y es lo único decorativo de la barra. */
+@media (max-width:430px){
+  /* La marca es lo único decorativo de la barra, y en un teléfono no dice nada
+     que no sepas ya: estás DENTRO de la aplicación. Su sitio se lo queda la
+     palabra «Entrar», que sí hace falta. Antes se escondía solo por debajo de
+     365 px; ahora, en cualquier teléfono. */
   .topbar .logo{display:none}
+  /* Y seis píxeles más de los lados del botón de la cuenta, que con la palabra
+     dentro ya no necesita el relleno que pedía un icono suelto. */
+  .topbar .cuenta-btn{padding-left:7px;padding-right:7px}
+}
+
+@media (max-width:375px){
+  /* Quedaban cuatro píxeles. Salen de deshacer, rehacer y guardar, que son
+     iconos y no palabras: de 40 a 38 de ancho mínimo, dos cada uno. El alto no
+     se toca —que es lo que se toca— y 38 sigue por encima del suelo de 34 que
+     vigila la prueba de la barra. */
+  .topbar .tbtn{min-width:38px}
 }
 
 @media (max-width:340px){
   .topbar{gap:3px;padding-left:6px;padding-right:6px}
   .topbar .tbtn{min-width:34px;padding-left:5px;padding-right:5px}
   .topbar .tbtn svg{width:15px;height:15px}
+  /* Aquí «Entrar» NO cabe: medido, la barra pide 339 px y hay 320. No son dos
+     píxeles que apretar, son diecinueve, y sacarlos significaría quitarle el
+     nombre al modo en el que estás —cambiar una cosa que se lee por otra— o
+     dejar los botones por debajo de lo que pide un dedo. Así que en el ancho
+     más estrecho que se soporta vuelve el icono solo, y la puerta con su
+     nombre escrito es la del panel de «Más». De 360 px para arriba, que es
+     donde está cualquier teléfono en uso, manda la palabra. */
+  .topbar .cuenta-btn:not(.dentro) .cuenta-avatar{display:inline-flex}
+  .topbar .cuenta-btn:not(.dentro) .hide-sm{display:none}
 }
 
 @media (max-width:420px){

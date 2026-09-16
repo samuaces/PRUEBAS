@@ -833,6 +833,28 @@ async function run(w,d){
     ok('en el móvil se entra desde un sitio que dice «entrar», no solo desde un icono',
        seLeeArriba||seLeeAbajo,
        'arriba: '+seLeeArriba+' · en el panel: '+(fila?fila.textContent.trim():'no hay'));
+
+    /* Y en la BARRA, que es donde se busca. Un icono de silueta en una barra
+       llena de iconos finos no se lee como «entrar», y encima se parece al del
+       modo Equipo que tiene al lado. A 320 px no cabe la palabra y se acepta
+       —ahí la puerta escrita es la del panel—, pero de 360 para arriba, que es
+       donde está cualquier teléfono en uso, tiene que estar escrita. */
+    var conPalabra=[],sinPalabra=[];
+    for(var iP=0;iP<3;iP++){
+      var anP=[360,390,430][iP];
+      fr.style.width=anP+'px';await wait(420);
+      var bt=d.getElementById('cuenta-btn');
+      var pal=d.getElementById('cuenta-btn-txt');
+      var seLee=!!(pal&&pal.offsetParent!==null&&/entrar/i.test(pal.textContent));
+      var barra=d.querySelector('.topbar').getBoundingClientRect();
+      var rr=bt.getBoundingClientRect();
+      var cabeEntero=rr.width>0&&rr.left>=barra.left-0.5&&rr.right<=barra.right+0.5;
+      (seLee&&cabeEntero?conPalabra:sinPalabra).push(anP+'px'+(seLee?'':' sin palabra')+
+        (cabeEntero?'':' SE SALE'));
+    }
+    fr.style.width='390px';await wait(400);
+    ok('y en la barra de arriba pone «Entrar», entero y sin salirse',
+       sinPalabra.length===0,sinPalabra.join(' · ')||conPalabra.join(' · '));
     if(seLeeAbajo){
       fila.click();await wait(450);
       ok('y esa puerta abre la cuenta de verdad',d.getElementById('dlg-cuenta').open);
