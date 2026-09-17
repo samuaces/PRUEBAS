@@ -55,3 +55,18 @@ node tests/cofre.mjs
 ```
 
 No necesita navegador ni servidor: WebCrypto está en Node desde la 19, y es la misma API.
+
+## La fusión
+
+`fusion.mjs` prueba cómo se juntan los datos de dos dispositivos (`app/fusion.js`).
+Además de los casos concretos —que lo apuntado el martes en el ordenador y lo del
+miércoles en el móvil convivan, que un borrado no resucite, que un choque se anote en
+vez de callarse— comprueba con datos al azar las dos propiedades sin las cuales dos
+dispositivos no vuelven a juntarse nunca: que dé igual el orden en que se fusione, y que
+fusionar lo ya fusionado no mueva nada.
+
+```bash
+node tests/fusion.mjs
+```
+
+No necesita navegador ni servidor.
