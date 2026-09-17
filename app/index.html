@@ -417,8 +417,10 @@
     <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
   </div>
   <p class="block-note" id="squad-nota"></p>
-  <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
-    a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+  <!-- Lo rellena pintaPrivacidadDelEquipo(): lo que dice depende de si la
+       sincronización está encendida, y decir lo que no es sería peor que
+       no decir nada. -->
+  <p class="block-note squad-aviso" id="squad-aviso"></p>
       </div>
 
       <div class="eq-cuerpo" id="eq-sesiones" role="tabpanel" hidden>
@@ -609,8 +611,7 @@
       <button type="button" class="tbtn primary" id="par-guardar">Guardar el partido</button>
       <button type="button" class="tbtn marco danger" id="par-borrar" hidden>Borrar</button>
     </div>
-    <p class="block-note squad-aviso">Los nombres y lo que hizo cada uno se quedan en este
-      dispositivo. No se suben a la biblioteca común ni viajan en los enlaces.</p>
+    <p class="block-note squad-aviso" id="par-aviso"></p>
   </div>
       </div>
 
@@ -1177,6 +1178,22 @@
         <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
         <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
       </div>
+      <!-- Tener el equipo en todos los dispositivos. Viene apagado: hasta ahora
+           la aplicación prometía que estos nombres no salían de aquí, y eso no
+           se cambia sin preguntar. -->
+      <div class="paso" id="cuenta-sincro" style="margin-top:12px" hidden>
+        <p class="form-group">Tu equipo en todos tus dispositivos</p>
+        <label class="check check-fila">
+          <input type="checkbox" id="cuenta-sincro-si" style="margin-top:2px">
+          <span>Guardar mi plantilla, sesiones, asistencia y partidos en mi cuenta, para
+            verlos igual en el móvil y en el ordenador.</span>
+        </label>
+        <p class="block-note" style="margin:8px 0 0">Van <b>cifrados en este dispositivo</b>
+          antes de salir, con una clave que sale de tu contraseña. En el servidor solo hay
+          un bloque que nadie puede leer, ni nosotros.</p>
+        <p class="block-note" id="cuenta-sincro-estado" style="margin:6px 0 0"></p>
+      </div>
+
       <div class="stack" style="margin-top:10px">
         <button type="button" class="row-btn" id="cuenta-clave-nueva">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -1314,7 +1331,10 @@
 <script src="config.js"></script>
 <script src="nube.js"></script>
 <script src="enlace.js"></script>
+<script src="cofre.js"></script>
+<script src="fusion.js"></script>
 <script src="equipo.js"></script>
+<script src="sincro.js"></script>
 <script src="codecs.js"></script>
 <script src="graficos.js"></script>
 <script src="board.js" defer></script>

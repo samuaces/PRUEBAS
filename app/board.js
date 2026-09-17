@@ -2108,7 +2108,7 @@
      antes de guardar. */
 
   function autofillCard() {
-    var st = boardStats(), P = PITCH(), puesto = 0;
+    var st = boardStats(), puesto = 0;
     function set(k, v) {
       var el = fieldEl(k);
       if (!el || !v) return;
@@ -2118,7 +2118,15 @@
     set('jugadores', statsPlayers(st));
     set('porteros', st.gk ? String(st.gk) : '');
     set('material', statsMaterial(st));
-    set('espacio', doc.view === 'full' ? P.L + ' × ' + P.W + ' m' : statsSpace(st));
+    /* El espacio se MIDE, siempre, esté la pizarra en el encuadre que esté.
+
+       Antes, con la vista en «Completo», se escribía «105 × 68 m» sin mirar:
+       un rondo dibujado en el círculo central salía en su ficha pidiendo un
+       campo de fútbol entero. Y eso no es un adorno de la ficha: quien mira la
+       biblioteca con medio campo disponible lo descarta, y el ejercicio no lo
+       hace nadie. El encuadre es cómo se mira el dibujo; lo que ocupa lo dicen
+       las piezas. */
+    set('espacio', statsSpace(st));
     set('categoria', prefs().categoria);
     set('fecha', new Date().toLocaleDateString('es-ES'));
     toast(puesto ? 'Rellenados ' + puesto + ' campos desde la pizarra' : 'No había nada nuevo que rellenar');
@@ -2554,6 +2562,11 @@
 
   var nube = window.PTNube || null;
   var hayNube = !!(nube && nube.hay());
+  /* La sincronización entre dispositivos. Va aparte de «nube» a propósito:
+     aquella habla con el servidor y esta decide cuándo y con qué. Si no está
+     —el archivo suelto, un navegador sin WebCrypto—, la aplicación funciona
+     igual que siempre, cada dispositivo con lo suyo. */
+  var sincro = (window.PTSincro && window.PTSincro.hay()) ? window.PTSincro : null;
   // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
   // declara para que lo alcancen los que están fuera de esa función.
   var abreCuenta = function () {};
@@ -2626,6 +2639,7 @@
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+    pintaSincro();
 
     /* El botón de la barra dice de un vistazo si estás dentro: con la sesión
        abierta enseña tus iniciales sobre el color de la casa; sin ella, una
@@ -2678,9 +2692,169 @@
           return pideClaveNueva(mensaje);                 // se vuelve a pedir
         }
         return nube.cambiaClave(clave)
+          .then(function () {
+            /* Y volver a envolver el cofre con la contraseña nueva. Si esto no
+               se hiciera, los datos del equipo se quedarían cerrados con la
+               vieja y el siguiente dispositivo que entrara no los abriría: la
+               contraseña serviría para la cuenta y no para lo de dentro. */
+            if (!sincro || !sincro.abierto()) return;
+            return sincro.alCambiarContraseña(clave).then(function (r) {
+              if (!r.ok) {
+                toast('Contraseña cambiada, pero los datos del equipo se han quedado ' +
+                      'con la anterior. Vuelve a entrar para arreglarlo.');
+              }
+            }, function () {});
+          })
           .then(function () { toast('Contraseña cambiada. Ya puedes entrar con ella'); return true; })
           .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); return false; });
       });
+  }
+
+  /* ---- lo que la sincronización tiene que contar -------------------------
+
+     Tres cosas, y ninguna es un tecnicismo:
+
+       Que el cofre no se ha podido abrir. Eso significa que los datos que hay
+       en el servidor están cerrados con otra contraseña, y hay que decir qué
+       hacer, no soltar un error.
+
+       Que ha llegado algo nuevo de otro dispositivo, para repintar. Sin esto,
+       los datos entran y la pantalla sigue enseñando lo de antes: parece que
+       no ha pasado nada y luego «se ha borrado solo» al recargar.
+
+       Que dos dispositivos cambiaron lo mismo y ha habido que elegir. Esto no
+       se puede callar: alguien perdió un cambio y tiene derecho a saber
+       cuál. */
+
+  function avisaDelCofre(r) {
+    if (!r || r.ok) {
+      if (r && r.reenvuelto) {
+        toast('Tus datos del equipo ya van con la contraseña nueva');
+      }
+      return;
+    }
+    if (r.porque === 'cerrado') {
+      toast('Tus datos del equipo están guardados con otra contraseña. Entra con la que ' +
+            'usaste la última vez, o en el dispositivo donde ya habías entrado.');
+    } else if (r.porque === 'a-la-vez') {
+      toast('Otro dispositivo estaba cambiando lo mismo. Vuelve a intentarlo.');
+    }
+    // Lo demás —sin red, sin nube— no se dice: no se ha perdido nada y lo de
+    // este dispositivo sigue entero.
+  }
+
+  /* La pregunta de la primera vez. Se hace justo después de entrar, que es
+     cuando la contraseña está a mano, y con las palabras de verdad: qué sale
+     de este dispositivo, cifrado con qué, y qué pasa si se olvida la
+     contraseña. Sin eufemismos y sin letra pequeña. */
+  var TEXTO_SINCRO =
+    'Ahora Klym puede guardar tu plantilla, tus sesiones, la asistencia y los partidos ' +
+    'en tu cuenta, para que los veas igual en el móvil y en el ordenador.\n\n' +
+    'Van cifrados en este dispositivo antes de salir, con una clave que sale de tu ' +
+    'contraseña. En el servidor queda un bloque que nadie puede leer, tampoco nosotros.\n\n' +
+    'Si no lo enciendes, todo sigue exactamente como hasta ahora: cada dispositivo con ' +
+    'lo suyo, sin salir de aquí. Puedes cambiarlo cuando quieras en Tu cuenta.';
+
+  function quizaPregunta(clave) {
+    if (!sincro) return Promise.resolve();
+    var q = sincro.quiere();
+    if (q === 'no') return Promise.resolve();
+    if (q === 'si') return sincro.enciende(clave).then(avisaDelCofre, function () {});
+    return ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO,
+                 ok: 'Encenderlo' }).then(function (si) {
+      if (!si) { sincro.apaga(); return; }
+      /* Y queda anotado que aceptó ESTE texto, no el de antes: lo que cambió
+         es dónde están sus datos, y un consentimiento a otra cosa no vale. */
+      return nube.acepta().catch(function () {})
+        .then(function () { return sincro.enciende(clave); })
+        .then(avisaDelCofre, function () {});
+    });
+  }
+
+  /* El interruptor de Tu cuenta, para cambiar de idea. Encenderlo desde aquí
+     pide la contraseña otra vez: no se guarda en ningún sitio, y sin ella no
+     hay clave con la que cifrar. */
+  /* Los avisos que hay junto a la plantilla y junto a los partidos. Decían
+     «los nombres se quedan en este dispositivo», y eso deja de ser verdad en
+     cuanto alguien enciende la sincronización. Un aviso de privacidad que
+     miente es peor que no tenerlo: la gente decide fiándose de él. */
+  function pintaPrivacidadDelEquipo() {
+    var enNube = !!(sincro && sincro.quiere() === 'si');
+    var a = $('#squad-aviso'), b = $('#par-aviso');
+    var texto = enNube
+      ? 'Los nombres se guardan en tu cuenta, cifrados en este dispositivo antes de salir: ' +
+        'en el servidor son un bloque que nadie puede leer. No se suben a la biblioteca ' +
+        'común, no viajan en los enlaces y no aparecen en la pizarra.'
+      : 'Los nombres se quedan en este dispositivo. No se suben a la biblioteca común, no ' +
+        'viajan en los enlaces y no aparecen en la pizarra.';
+    if (a) a.textContent = texto;
+    if (b) {
+      b.textContent = enNube
+        ? 'Los nombres y lo que hizo cada uno se guardan en tu cuenta, cifrados antes de ' +
+          'salir de aquí. No se suben a la biblioteca común ni viajan en los enlaces.'
+        : 'Los nombres y lo que hizo cada uno se quedan en este dispositivo. No se suben a ' +
+          'la biblioteca común ni viajan en los enlaces.';
+    }
+  }
+
+  /* «Todo se queda en este dispositivo» era una coletilla repetida en cuatro
+     pantallas. Ahora depende de un interruptor, así que se dice en un sitio y
+     las cuatro preguntan. Cuatro copias de una frase es una frase que algún
+     día dirá cosas distintas en cada pantalla. */
+  function dondeSeQueda() {
+    return (sincro && sincro.quiere() === 'si')
+      ? ' Se guarda en tu cuenta, cifrado antes de salir de aquí.'
+      : ' Todo se queda en este dispositivo.';
+  }
+
+  function pintaSincro() {
+    pintaPrivacidadDelEquipo();
+    var caja = $('#cuenta-sincro');
+    if (!caja) return;
+    caja.hidden = !(sincro && yo);
+    if (caja.hidden) return;
+    $('#cuenta-sincro-si').checked = sincro.quiere() === 'si';
+    var e = sincro.estado(), t = $('#cuenta-sincro-estado');
+    t.textContent =
+      sincro.quiere() !== 'si' ? 'Apagado. Tus datos solo están en este dispositivo.'
+      : e.estado === 'cerrado' ? 'Los datos de tu cuenta están cerrados con otra contraseña. ' +
+          'Cierra sesión y entra con la que usaste la última vez.'
+      : e.estado === 'pendiente' || e.estado === 'sin-red' ? 'Sin conexión. Se guardará en cuanto vuelva.'
+      : e.estado === 'sincronizando' ? 'Guardando…'
+      : e.cuando ? 'Al día.'
+      : 'Encendido.';
+  }
+
+  function cuentaLosChoques(ch) {
+    var QUE = { jugador: 'un jugador', sesion: 'una sesión',
+                asistencia: 'una lista de asistencia', partido: 'un partido' };
+    var uno = QUE[ch[0].qué] || 'algo';
+    toast(ch.length === 1
+      ? 'Habías cambiado ' + uno + ' (' + ch[0].clave + ') en dos dispositivos. Se ha ' +
+        'quedado lo último que guardaste.'
+      : ch.length + ' cosas habían cambiado en dos dispositivos. Se ha quedado lo último ' +
+        'que guardaste de cada una.');
+  }
+
+  /* Repintar cuando llega algo de otro dispositivo. Con una precaución: si hay
+     un campo con el foco, la persona está escribiendo, y repintar le quitaría
+     de las manos lo que está a medio escribir. Se espera a que suelte. */
+  var relojRepinte = null;
+  function repintaElEquipo() {
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) {
+      clearTimeout(relojRepinte);
+      relojRepinte = setTimeout(repintaElEquipo, 2000);
+      return;
+    }
+    if (!window.PTEquipo) return;
+    pintaApartadoPlantilla();
+    pintaSesiones();
+    pintaDiario();
+    pintaPartidos();
+    pintaStats();
+    pintaHoy();
+    pistasDelCajon();
   }
 
   // Quién eres, para saber qué puedes hacer.
@@ -2697,7 +2871,11 @@
     p.textContent = !hayNube
       ? 'Todo se guarda en tu dispositivo: nada viaja a ningún servidor.'
       : 'Tus pizarras se guardan en este dispositivo. Al servidor solo va lo que compartes ' +
-        'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.';
+        'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.' +
+        ((sincro && sincro.quiere() === 'si')
+          ? ' Y los datos de tu equipo, que has puesto en tu cuenta: van cifrados desde aquí, ' +
+            'y en el servidor son un bloque que nadie puede leer.'
+          : ' Los datos de tu equipo no salen de aquí mientras no lo enciendas en Tu cuenta.');
   }
 
   // Compartir la pizarra que tienes abierta.
@@ -3046,8 +3224,64 @@
 
      Si no se sabe, se devuelve vacío y el filtro lo deja pasar: esconder un
      ejercicio por no saber dónde cabe es peor que enseñarlo de más. */
-  function vistaDe(it) {
-    return (it.ej && it.ej.view) || it.view || (it.doc && it.doc.view) || '';
+  /* ---- cuánto sitio pide un ejercicio -------------------------------------
+
+     Esto se sacaba del encuadre del dibujo, y era un error con consecuencias.
+     El encuadre es cómo se MIRA la pizarra; el sitio que hace falta lo dicen
+     las piezas. Un rondo de fútbol sala dibujado sobre la pista entera —que
+     es el único encuadre que tiene esa modalidad— salía como «necesita la
+     pista completa» cuando ocupa ocho metros por ocho.
+
+     Y quien filtra por «medio campo» no ve lo que el filtro cree que no cabe.
+     Así que cinco ejercicios perfectamente hacibles en un rincón estaban
+     escondidos para casi todo el mundo: en fútbol base lo normal es compartir
+     campo, no tenerlo entero.
+
+     Ahora se mide la huella real, y se mide GIRADA también: lo que ocupa 30 ×
+     20 cabe en un hueco de 20 × 30, porque un ejercicio se puede orientar como
+     haga falta. «Un área» son 32 × 22 m, que es un área grande de verdad, y
+     vale igual para las tres modalidades: es una cantidad de terreno, no una
+     fracción del campo. */
+
+  var AREA = [32, 22];
+
+  function huellaDe(it) {
+    if (it.huella !== undefined) return it.huella;
+    var piezas = [], trazos = [];
+    if (it.ej) { piezas = it.ej.objects || []; trazos = it.ej.strokes || []; }
+    else {
+      // Todos los fotogramas, no solo el primero: la jugada usa lo que recorre.
+      ((it.doc && it.doc.frames) || []).forEach(function (f) {
+        piezas = piezas.concat(f.objects || []);
+        trazos = trazos.concat(f.strokes || []);
+      });
+    }
+    var pts = piezas.slice();
+    trazos.forEach(function (s) { pts = pts.concat(s.pts || []); });
+    pts = pts.filter(function (p) { return p && isFinite(p.x) && isFinite(p.y); });
+    if (!pts.length) { it.huella = null; return null; }
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (p) {
+      if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+      if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+    });
+    it.huella = { largo: x1 - x0, ancho: y1 - y0 };
+    return it.huella;
+  }
+
+  function cabeEn(h, L, W) {
+    // Un metro de margen: las fichas tienen radio y el dibujo no es un plano.
+    return (h.largo <= L + 1 && h.ancho <= W + 1) ||
+           (h.ancho <= L + 1 && h.largo <= W + 1);
+  }
+
+  function cuantoSitio(it) {
+    var h = huellaDe(it);
+    if (!h) return '';                       // sin piezas, cabe donde sea
+    if (cabeEn(h, AREA[0], AREA[1])) return 'area';
+    var P = PITCHES[it.pitch] || PITCHES.f11;
+    if (cabeEn(h, P.L / 2, P.W)) return 'half';
+    return 'full';
   }
 
   function filtraBiblioteca(items, f) {
@@ -3074,13 +3308,13 @@
         var pide = PTEquipo.jugadoresDe(it.card.jugadores);
         if (pide != null && pide > Number(f.cuantos)) return false;
       }
-      /* Y cuánto sitio. La vista del ejercicio ya lo dice: un área cabe en
-         medio campo y medio campo cabe en el entero, así que se filtra por
-         «me cabe», no por «es exactamente esto». Los que no pintan campo
-         —una pizarra en blanco— caben en cualquier sitio. */
+      /* Y cuánto sitio, medido en las piezas (ver «cuantoSitio»). Se filtra
+         por «me cabe», no por «es exactamente esto»: un área cabe en medio
+         campo y medio campo cabe en el entero. Lo que no ocupa nada —una
+         pizarra en blanco— cabe en cualquier sitio. */
       if (f.espacio) {
         var cabe = { area: 1, half: 2, full: 3 };
-        var suya = cabe[vistaDe(it)] || 0;
+        var suya = cabe[cuantoSitio(it)] || 0;
         if (suya && suya > (cabe[f.espacio] || 3)) return false;
       }
       if (q && sinAcentos(textoItem(it)).indexOf(q) < 0) return false;
@@ -3687,7 +3921,7 @@
 
     $('#ses-nota').textContent = lista.length
       ? 'Cada sesión es un día. Puedes dejar preparadas las que vienen y ' +
-        'rellenar las de atrás que no apuntaste. Todo se queda en este dispositivo.'
+        'rellenar las de atrás que no apuntaste.' + dondeSeQueda()
       : 'Una sesión es un día de entrenamiento: quién vino y qué hicisteis. ' +
         'Empieza por la de hoy, elige otro día para dejarlo preparado, o guarda ' +
         'un ejercicio desde la pizarra y se apunta solo.';
@@ -3932,7 +4166,7 @@
     cuentaAsistenciaDeSesion(lista.length);
 
     $('#ses-asis-nota').textContent = lista.length
-      ? 'Se guarda solo, según vas marcando. Los nombres no salen de este dispositivo.'
+      ? 'Se guarda solo, según vas marcando.' + dondeSeQueda()
       : 'Todavía no tienes plantilla. Móntala en el apartado Plantilla y vuelve aquí.';
   }
 
@@ -4855,7 +5089,8 @@
           : 'Nadie baja de la mitad.');
 
     $('#stats-nota').textContent = d.ejercicios
-      ? 'Todo se calcula en este dispositivo, con lo que has guardado. No sale nada a internet.'
+      ? 'Las cuentas se hacen en este dispositivo, con lo que has guardado: ' +
+        'no hay ningún servidor echándolas.'
       : 'Guarda algún ejercicio con su duración y su momento del juego, y aquí saldrán las cuentas.';
   }
 
@@ -5057,9 +5292,23 @@
     var cta = $('[data-pista="cuenta"]');
     if (cta) {
       var b = cta.closest('.cajon-ir').querySelector('span');
-      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = yo.email || 'Entrada'; }
+      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = comoVaLaCuenta(); }
       else { b.textContent = 'Entrar'; cta.textContent = 'Para compartir y tenerlo en otro sitio'; }
     }
+  }
+
+  /* Qué decir debajo de «Tu cuenta». Lo normal es que no haya nada que contar
+     y entonces pone el correo, que es lo útil. Se habla de los datos solo
+     cuando hay algo que saber. */
+  function comoVaLaCuenta() {
+    var correo = (yo && yo.email) || 'Entrada';
+    if (!sincro || sincro.quiere() !== 'si') return correo;
+    var e = sincro.estado();
+    if (e.estado === 'cerrado') return 'Tus datos no se están guardando · toca aquí';
+    if (e.estado === 'pendiente' || e.estado === 'sin-red') return correo + ' · sin guardar aún';
+    if (e.estado === 'sincronizando') return correo + ' · guardando…';
+    if (e.estado === 'listo' && e.cuando) return correo + ' · al día';
+    return correo;
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, partidos: 1, datos: 1 };
@@ -5272,8 +5521,8 @@
     // «tras-boton» deja pasar el resplandor del botón rojo de arriba. El
     // número vive en la hoja de estilos, con el resto de la escala, y no aquí.
     pie.className = 'block-note tras-boton';
-    pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
-                      'Nada se inventa y nada sale a internet.';
+    pie.textContent = 'Todo esto sale de lo que tú has apuntado, y se calcula aquí. ' +
+                      'Nada se inventa.';
     caja.appendChild(pie);
   }
 
@@ -6637,6 +6886,11 @@
         var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre, true)
                                      : nube.entra(correo, clave);
         tarea.then(function () {
+          /* Este es el único momento en el que la contraseña está a mano, y de
+             ella sale la clave que abre los datos del equipo. Después ya no se
+             puede: no se guarda en ningún sitio, y menos mal. */
+          return quizaPregunta(clave);
+        }).then(function () {
           return refrescaCuenta().then(function () {
             if (modo === 'crear' && (nombre || club)) {
               return nube.perfil({ nombre: nombre || 'Entrenador', club: club })
@@ -6731,6 +6985,54 @@
 
       refrescaCuenta();
       nube.alCambiar(function () { refrescaCuenta(); });
+
+      /* La sincronización entre dispositivos. Se arranca aquí, con la cuenta
+         ya montada: si se hiciera antes, no sabría de quién es el cofre. Y
+         solo si está encendida, que viene apagada a propósito. */
+      if (sincro) {
+        sincro.alCambiar(function (e) {
+          pistasDelCajon();
+          pintaSincro();
+          if (e.datosNuevos) repintaElEquipo();
+          if (e.choques && e.choques.length) cuentaLosChoques(e.choques);
+        });
+        if (sincro.quiere() === 'si') sincro.arranca();
+
+        $('#cuenta-sincro-si').addEventListener('change', function () {
+          var caja = this;
+          if (!caja.checked) {
+            ask({ title: 'Apagar la sincronización',
+                  message: 'Se borrarán del servidor los datos de tu equipo. Lo que hay en ' +
+                           'este dispositivo se queda entero, pero dejará de verse en los ' +
+                           'demás.', ok: 'Apagar', danger: true })
+              .then(function (si) {
+                if (!si) { caja.checked = true; return; }
+                return sincro.apaga().then(function () {
+                  toast('Apagado. Tus datos se han borrado del servidor');
+                  pintaSincro(); pistasDelCajon();
+                });
+              });
+            return;
+          }
+          ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO +
+                  '\n\nEscribe tu contraseña: de ella sale la clave con la que se cifra, y ' +
+                  'no está guardada en ningún sitio.',
+                input: '', tipo: 'password', placeholder: 'Tu contraseña', ok: 'Encenderlo' })
+            .then(function (clave) {
+              if (clave === null || !String(clave)) { caja.checked = false; return; }
+              return nube.acepta().catch(function () {})
+                .then(function () { return sincro.enciende(clave); })
+                .then(function (r) {
+                  avisaDelCofre(r);
+                  if (!r || !r.ok) { caja.checked = false; sincro.apaga(); return; }
+                  sincro.arranca();
+                  toast('Listo. Tu equipo se verá igual en todos tus dispositivos');
+                })
+                .then(refrescaCuenta)
+                .then(function () { pintaSincro(); pistasDelCajon(); });
+            });
+        });
+      }
 
       /* Cuando se vuelve del enlace de un correo, la sesión llega en la
          dirección. La nube la recogía y guardaba, pero nadie miraba el
