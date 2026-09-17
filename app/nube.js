@@ -316,6 +316,27 @@
 
      Devuelve la fila nueva, o null si no ha escrito porque ya no era esa
      versión. Un null aquí NO es un error: es la respuesta correcta. */
+  /* «¿Ha cambiado algo?», y nada más.
+
+     Esto existe para poder preguntarlo cada pocos segundos sin traerse el
+     cofre entero: una temporada cargada son 150 KB y bajarlos cada diez
+     segundos para descubrir que no ha cambiado nada sería gastar la conexión
+     de alguien por gusto. Aquí vuelve un número.
+
+     Devuelve null si todavía no hay cofre o si no se puede preguntar; quien
+     llama lo trata como «no sé», no como «no ha cambiado». */
+  function versionCofre() {
+    if (!ses) return Promise.resolve(null);
+    return quienSoy().then(function (p) {
+      if (!p) return null;
+      return pide('/rest/v1/cofres?select=version&id=eq.' + p.id)
+        .then(function (filas) {
+          var v = filas && filas[0] && filas[0].version;
+          return typeof v === 'number' ? v : null;
+        });
+    });
+  }
+
   function guardaCofre(campos, version) {
     return quienSoy().then(function (p) {
       if (!p) throw new Error('Entra con tu correo primero');
@@ -589,7 +610,8 @@
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura,
-    cofre: cofre, estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
+    cofre: cofre, versionCofre: versionCofre,
+    estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
     acepta: acepta
   };
 })();

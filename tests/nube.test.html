@@ -34,7 +34,9 @@ var servidor = {
   cuentas: { 'ana@ejemplo.com': 'secreta1' },
   exigeConfirmacion: false,
   reportes: [],
-  borradas: []
+  borradas: [],
+  cofre: { sal: 'c2FsZGVwcnVlYmE=', maestra: 'bWFlc3RyYQ==', bloque: 'Ym9scXVl',
+           version: 7, actualizado: '2026-09-17T10:00:00Z' }
 };
 
 var real = window.fetch;
@@ -106,6 +108,18 @@ window.fetch = function (url, opts) {
   }
 
   // --- PostgREST ---
+  /* El cofre. Lo que importa de estas dos rutas es que la de «¿ha cambiado?»
+     conteste SOLO el número: se pregunta cada pocos segundos y traerse el
+     bloque entero para descubrir que no ha cambiado nada sería gastar la
+     conexión de alguien por gusto. */
+  if (ruta.indexOf('/rest/v1/cofres') === 0) {
+    if (!servidor.cofre) return da(200, []);
+    var pedido = (ruta.match(/select=([^&]*)/) || [, ''])[1].split(',');
+    var fila = {};
+    pedido.forEach(function (k) { if (k in servidor.cofre) fila[k] = servidor.cofre[k]; });
+    return da(200, [fila]);
+  }
+
   if (ruta.indexOf('/rest/v1/entrenadores') === 0) {
     if (opts.method === 'PATCH') {
       servidor.perfil.nombre = cuerpo.nombre; servidor.perfil.club = cuerpo.club;
@@ -211,6 +225,31 @@ function ultima(fragmento) {
   ok('el perfil se guarda con PATCH sobre tu fila',
      ultima('/rest/v1/entrenadores').metodo === 'PATCH' &&
      /id=eq\.u-1/.test(ultima('/rest/v1/entrenadores').url));
+
+  /* ---- el cofre: preguntar tiene que ser barato ----------------------------
+
+     La aplicación pregunta cada pocos segundos si ha cambiado algo, para que
+     el móvil encima de la mesa se entere de lo que acabas de hacer en el
+     ordenador. Eso solo se puede hacer si preguntar cuesta un número. Si
+     alguien «simplifica» esto y se trae la fila entera, una temporada de
+     150 KB viajaría seis veces por minuto y por dispositivo. */
+  var v = await N.versionCofre();
+  ok('la versión del cofre se puede preguntar sola', v === 7, String(v));
+  var q = ultima('/rest/v1/cofres');
+  ok('y se pide SOLO la versión, no el cofre entero',
+     /select=version(&|$)/.test(q.url), q.url.replace(BASE, ''));
+  ok('preguntando por tu fila, no por todas', /id=eq\.u-1/.test(q.url));
+  ok('con tu testigo', q.cabeceras.Authorization === 'Bearer t-1');
+
+  var entero = await N.cofre();
+  ok('y el cofre entero sí trae lo que hace falta para abrirlo',
+     entero && entero.sal && entero.maestra && entero.bloque && entero.version === 7);
+
+  servidor.cofre = null;
+  ok('sin cofre todavía, la versión es null y no un error',
+     (await N.versionCofre()) === null);
+  servidor.cofre = { sal: 'c2FsZGVwcnVlYmE=', maestra: 'bWFlc3RyYQ==', bloque: 'Ym9scXVl',
+                     version: 7, actualizado: '2026-09-17T10:00:00Z' };
 
   // ---- la biblioteca común ----
   var lista = await N.lista({ pitch: 'f11' }, 0, 60);
