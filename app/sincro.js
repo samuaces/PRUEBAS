@@ -34,6 +34,21 @@
    retraso a propósito: escribir el nombre de una sesión son veinte cambios, y
    no son veinte subidas.
 
+   Y —esto es lo que faltaba— MIENTRAS LA APLICACIÓN ESTÁ DELANTE, aunque nadie
+   la toque. Si no, el móvil encima de la mesa no se entera nunca de lo que
+   acabas de cambiar en el ordenador: solo miraba al abrirlo o al tocarlo.
+
+   Preguntar no cuesta lo que cuesta traerse los datos. Cada pocos segundos se
+   pide SOLO el número de versión de la fila —un número— y solo si ha cambiado
+   se baja el cofre y se fusiona. Una temporada cargada son 150 KB; bajarlos
+   cada diez segundos para descubrir que no ha cambiado nada sería gastar la
+   conexión de alguien por gusto.
+
+   Y se pregunta más a menudo cuando hay alguien trabajando —lo normal es que
+   los dos dispositivos estén en marcha a la vez— y más despacio cuando la
+   pantalla lleva un rato quieta. Con la aplicación de fondo no se pregunta
+   nada: ahí no hay nada que enseñar.
+
    Si se cierra la pestaña dentro de esos segundos, el cambio se queda aquí
    hasta la próxima vez que se abra la aplicación, que sincroniza. No se pierde
    nada; puede tardar.
@@ -76,15 +91,28 @@
   var LLAVE  = 'pt-llave';      // la clave de este dispositivo
   var ESTADO = 'pt-sincro';     // qué se sabe de la última vez
 
-  var ESPERA_CAMBIO = 2500;     // lo que se deja pasar tras un cambio
+  var ESPERA_CAMBIO = 1500;     // lo que se deja pasar tras un cambio
   var REINTENTOS    = [30000, 120000, 600000];
   var VUELTAS_CHOQUE = 3;       // veces que se reintenta si alguien se adelantó
+
+  /* Cada cuánto se pregunta si ha cambiado algo, con la aplicación delante.
+     Ocho segundos mientras hay trasiego, medio minuto cuando lleva un rato
+     quieta. Lo que se pide es un número, no el cofre. */
+  var MIRA_VIVO   = 8000;
+  var MIRA_QUIETO = 30000;
+  var SIGO_VIVO   = 120000;     // lo que se considera «hay alguien delante»
 
   var C = null, F = null, N = null, E = null;   // las piezas, al arrancar
   var clave = null;             // la clave maestra, en memoria
   var cuenta = null;            // de quién es
   var enMarcha = false, pendiente = false, fallos = 0;
-  var reloj = null, relojReintento = null;
+  var reloj = null, relojReintento = null, relojMira = null;
+  /* La última versión del servidor que ya tenemos dentro. Sirve para no
+     fusionar por gusto: si el número que hay allí es este, no hay nada nuevo.
+     Se actualiza tanto al bajar como al subir, porque subir también cambia el
+     número y si no, nuestra propia escritura se parecería a la de otro. */
+  var versionVista = -1;
+  var ultimoToque = 0;          // cuándo se cambió algo por última vez aquí
   var oyentes = [];
   var ultimo = { estado: 'fuera', cuando: 0, choques: [] };
 
@@ -116,6 +144,8 @@
      compartido es lo mínimo. */
 
   function olvidaTodo() {
+    clearTimeout(relojMira);
+    versionVista = -1;
     olvidaLlave();
     avisa('fuera');
   }
@@ -224,6 +254,7 @@
     if (!clave) return Promise.resolve({ ok: false, porque: 'cerrado' });
     return N.cofre().then(function (fila) {
       if (!fila) return { ok: false, porque: 'sin-cofre' };
+      versionVista = fila.version;
       return C.reenvuelve(clave, nueva).then(function (n) {
         return N.guardaCofre({ sal: n.sal, maestra: n.maestra }, fila.version)
           .then(function (g) { return g ? { ok: true } : { ok: false, porque: 'a-la-vez' }; });
@@ -245,6 +276,7 @@
 
     return N.cofre().then(function (fila) {
       if (!fila) return { ok: false, porque: 'sin-cofre' };
+      versionVista = fila.version;
       var abrir = fila.bloque ? C.abre(clave, fila.bloque) : Promise.resolve({});
       return abrir.then(function (remoto) {
         // null es «esta clave no abre esto». No es un error de red ni de
@@ -269,6 +301,7 @@
               enMarcha = false;
               return sincroniza((vuelta || 0) + 1);
             }
+            versionVista = g.version;
             return fin(r.choques, traido);
           });
         });
@@ -276,6 +309,7 @@
     }).then(function (r) {
       enMarcha = false;
       if (pendiente) { pendiente = false; setTimeout(sincroniza, 0); }
+      mira();
       return r;
     }, function (e) {
       enMarcha = false;
@@ -292,6 +326,10 @@
 
   function fin(choques, traido) {
     fallos = 0;
+    /* Si ha llegado algo de otro dispositivo, es que hay alguien trabajando
+       al otro lado: se mira más a menudo un rato. Es justo el caso de los dos
+       aparatos abiertos a la vez, que es cuando se nota. */
+    if (traido) ultimoToque = Date.now();
     var t = Date.now();
     try { localStorage.setItem(ESTADO, JSON.stringify({ cuando: t })); } catch (e) {}
     avisa('listo', { cuando: t, choques: choques || [], datosNuevos: !!traido });
@@ -317,8 +355,37 @@
   /* ---- los disparos ------------------------------------------------------ */
 
   function pronto() {
+    ultimoToque = Date.now();
     clearTimeout(reloj);
     reloj = setTimeout(function () { sincroniza(); }, ESPERA_CAMBIO);
+  }
+
+  /* ---- mirar si ha cambiado algo, sin que nadie toque nada ---------------
+
+     Lo barato primero: se pide el número de versión de la fila y solo si no
+     es el que ya tenemos se hace el ciclo entero. Así el móvil encima de la
+     mesa se entera de lo que acabas de cambiar en el ordenador sin bajarse
+     una temporada cada diez segundos.
+
+     Con la aplicación de fondo no se mira: no hay nada que enseñar y el
+     sistema operativo tampoco lo agradecería. Al volver a primer plano se
+     mira de inmediato, que es donde de verdad se nota. */
+
+  function ritmo() {
+    return (Date.now() - ultimoToque) < SIGO_VIVO ? MIRA_VIVO : MIRA_QUIETO;
+  }
+
+  function mira() {
+    clearTimeout(relojMira);
+    if (!clave || !hay() || !N.dentro()) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    relojMira = setTimeout(function () {
+      N.versionCofre().then(function (v) {
+        // null es «no sé»: no hay cofre todavía, o la llamada no ha ido. No se
+        // toca nada y se vuelve a preguntar luego.
+        if (v !== null && v !== versionVista) sincroniza();
+      }, function () {}).then(mira, mira);
+    }, ritmo());
   }
 
   var arrancado = false;
@@ -338,7 +405,10 @@
       // Volver a la aplicación después de dejarla: es cuando más probable es
       // que el otro dispositivo haya cambiado algo.
       document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && clave) sincroniza();
+        clearTimeout(relojMira);
+        if (document.hidden || !clave) return;
+        // Al volver, primero se mira de verdad; luego sigue el vigilante.
+        sincroniza();
       });
     }
 
@@ -350,7 +420,7 @@
         return recupera(p.id).then(function (k) {
           if (!k) { avisa('cerrado'); return; }
           clave = k; cuenta = p.id;
-          sincroniza();
+          return sincroniza();
         });
       }).catch(function () {});
     }
