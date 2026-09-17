@@ -114,9 +114,18 @@
     } catch (e) { return null; }
   }
 
+  /* Encender es distinto de entrar con esto ya encendido, y por eso se marca.
+
+     Si falla al ENTRAR, la persona no estaba pidiendo nada: la sincronización
+     reintenta sola y avisar de cada bache sería ruido. Si falla al ENCENDER,
+     acaba de pedirlo expresamente y se ha quedado sin hacer: hay que decirle
+     por qué. La marca es lo que deja distinguir los dos casos en un sitio. */
   function enciende(contraseña) {
     try { localStorage.setItem(QUIERE, 'si'); } catch (e) {}
-    return alEntrar(contraseña);
+    return alEntrar(contraseña).then(function (r) {
+      r.encendiendo = true;
+      return r;
+    });
   }
 
   /* Apagarlo borra la fila del servidor. Quien apaga esto está diciendo «quita
@@ -184,9 +193,13 @@
       if (r.ok) { avisa('listo'); sincroniza(); }
       else avisa(r.porque === 'cerrado' ? 'cerrado' : 'apagado');
       return r;
-    }, function () {
+    }, function (e) {
+      /* El motivo se devuelve, no se traga. Antes salía un «sin-red» pelado y
+         quien encendía el interruptor veía que no pasaba nada y se quedaba sin
+         saber por qué: la causa más probable —que el servidor todavía no tenga
+         la tabla— no se parece en nada a estar sin cobertura. */
       avisa('sin-red');
-      return { ok: false, porque: 'sin-red' };
+      return { ok: false, porque: 'sin-red', error: (e && e.message) || '' };
     });
   }
 
