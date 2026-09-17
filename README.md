@@ -214,13 +214,15 @@ Cómo queda repartido:
   Safari solo abre la hoja de compartir del teléfono si se le pide dentro del mismo gesto.
 - **Con cuenta** —correo y contraseña, sin confirmación ni enlaces— se comparten ejercicios y
   se recuperan desde cualquier dispositivo.
-- **El equipo en todos tus dispositivos**, si se enciende en Tu cuenta. Viene apagado: hasta
-  ahora la aplicación prometía por escrito que los nombres de los jugadores no salían del
-  dispositivo, y eso no se cambia sin preguntar. Encendido, la plantilla, la asistencia, las
-  sesiones y los partidos se cifran **en el navegador** (AES-GCM de 256, clave derivada de la
-  contraseña con PBKDF2-SHA256 y 310 000 vueltas) y al servidor llega un bloque que nadie
-  puede leer. No se fusionan almacenes sino **registros**: lo apuntado el martes en el
-  ordenador y lo del miércoles en el móvil conviven. Ver `app/cofre.js`, `app/fusion.js` y
+- **El equipo va con la cuenta.** Entras y ahí está: la plantilla, la asistencia, las
+  sesiones y los partidos, iguales en el móvil y en el ordenador. No hay nada que activar.
+  Se cifran **en el navegador** antes de salir (AES-GCM de 256, clave derivada de la
+  contraseña con PBKDF2-SHA256 y 310 000 vueltas) y al servidor llega un bloque que no
+  puede abrir nadie más. La contrapartida se dice clara y no se esconde: perder el correo
+  y la contraseña es perder esos datos.
+
+  No se fusionan almacenes sino **registros**: lo apuntado el martes en el ordenador y lo
+  del miércoles en el móvil conviven. Ver `app/cofre.js`, `app/fusion.js` y
   `app/sincro.js`, y sus pruebas en `tests/cofre.mjs` y `tests/fusion.mjs`.
 - **Si se olvida la contraseña** se pide un correo con un enlace para ponerse otra, y con la
   sesión abierta se cambia desde Ajustes. Es el único correo que manda la aplicación: se quitó

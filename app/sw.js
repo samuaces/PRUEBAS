@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v20';   // v20: decir por qué no se enciende la sincronización
+var CACHE = 'pizarra-tactica-v21';   // v21: el equipo va con la cuenta, sin interruptor
 
 var SHELL = [
   './',

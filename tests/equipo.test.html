@@ -2502,55 +2502,69 @@ function siembra(lista){
 
   /* ═══ La promesa de privacidad tiene que decir la verdad ═════════════════
 
-     Cuatro pantallas decían «los nombres se quedan en este dispositivo». Con
-     la sincronización encendida eso deja de ser cierto, y un aviso de
-     privacidad que miente es peor que no tener ninguno: la gente decide
-     fiándose de él.
+     Cuatro pantallas dicen dónde se guardan los nombres, y eso depende de si
+     hay cuenta: sin ella se quedan en el dispositivo, con ella van con la
+     cuenta y cifrados. Un aviso de privacidad que miente es peor que no tener
+     ninguno, porque la gente decide fiándose de él.
 
-     Así que se recorre la aplicación entera con el interruptor encendido y se
-     busca esa frase, en todas sus formas. Si algún día alguien añade una
-     pantalla nueva con la coletilla copiada, esto falla. */
+     Aquí se puede probar de verdad la mitad SIN CUENTA, que es la que esta
+     batería alcanza: el proyecto de Supabase no se puede llamar desde las
+     pruebas. Y es además la mitad que importa vigilar, porque es la que
+     afirma algo: «no sale de aquí». */
   limpia();
-  try { w.localStorage.setItem('pt-sincro-si', 'si'); } catch(e) {}
-  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html?sincro'; });
+  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html?sincuenta'; });
   w = fr.contentWindow; d = fr.contentDocument; E = w.PTEquipo;
   await wait(1400);
 
-  ok('el módulo de sincronización está cargado', !!(w.PTSincro && w.PTSincro.quiere));
-  ok('y se ha quedado encendido', w.PTSincro.quiere() === 'si');
+  ok('el módulo de sincronización está cargado', !!(w.PTSincro && w.PTSincro.hay));
+  ok('y no hay que encender nada: va con la cuenta',
+     typeof w.PTSincro.quiere === 'undefined' && typeof w.PTSincro.enciende === 'undefined');
 
   E.añade(null, { nombre:'Ana Ferrer', dorsal:'7' });
-  var MIENTE = /(no salen|no sale|se quedan|se queda|no viaja[n]?) (de|en) (este|tu) dispositivo|nada (sale|viaja) a (internet|ningún servidor)/i;
-  var sucias = [];
-  for (var dst of ['hoy','plantilla','sesiones','partidos','datos']) {
-    await irA(d, dst); await wait(400);
-    var caja = d.getElementById('eq-' + dst);
-    if (caja && MIENTE.test(caja.textContent)) {
-      sucias.push(dst + ': «' + (caja.textContent.match(MIENTE)||[''])[0] + '»');
-    }
-  }
-  ok('con la sincronización encendida ninguna pantalla dice que no sale de aquí',
-     !sucias.length, sucias.join(' · '));
+  await irA(d,'plantilla'); await wait(400);
+  var sinCuenta = d.getElementById('squad-aviso').textContent;
+  ok('sin cuenta dice que se quedan en este dispositivo',
+     /se quedan en este dispositivo/i.test(sinCuenta), sinCuenta.slice(0, 70));
+  ok('y no habla de cifrado, que sin cuenta no hay nada que cifrar',
+     !/cifrad/i.test(sinCuenta));
+  await irA(d,'partidos'); await wait(400);
+  ok('y lo mismo en partidos',
+     /se quedan en este dispositivo/i.test(d.getElementById('par-aviso').textContent));
 
-  /* Y al revés: apagada, tiene que seguir diciéndolo, que es lo cierto
-     entonces. Una regla que solo mira en un sentido se cumple borrando la
-     frase de todas partes, y así nadie se entera de nada. */
-  await irA(d,'plantilla'); await wait(300);
-  var conNube = d.getElementById('squad-aviso').textContent;
-  ok('y sí dice que va cifrado', /cifrad/i.test(conNube), conNube.slice(0, 70));
+  /* La otra mitad —con cuenta— no se puede provocar desde aquí, así que se
+     mira el código, como se hace con las reglas de la casa que no se ven
+     probando. Lo que no puede pasar es que la frase de «se queda en este
+     dispositivo» salga SUELTA, fuera de una rama que dependa de la cuenta:
+     eso sería afirmarlo siempre, y con cuenta no es verdad. */
+  var fuente = await (await fetch('../app/board.js')).text();
+  var trozo = fuente.slice(fuente.indexOf('function pintaPrivacidadDelEquipo'),
+                           fuente.indexOf('function pintaSincro'));
+  ok('el aviso de privacidad tiene sus dos ramas, y la de la cuenta habla de cifrado',
+     /cifrad/i.test(trozo) && /se quedan en este dispositivo/i.test(trozo),
+     trozo.length + ' caracteres mirados');
+  /* Y que la rama la decida LA CUENTA. Sin esto, poner «var conCuenta = false»
+     dejaba el aviso afirmando para siempre que los nombres no salen de aquí y
+     ninguna prueba se enteraba: esta batería corre sin cuenta, así que esa
+     mentira no se ve desde fuera. Comprobado rompiéndolo. */
+  ok('y esa rama la decide la cuenta, no una constante',
+     /conCuenta\s*=\s*[^;]*\byo\b/.test(trozo),
+     (trozo.match(/var conCuenta[^;]*/) || ['no está'])[0]);
 
-  try { w.localStorage.setItem('pt-sincro-si', 'no'); } catch(e) {}
-  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html?sinsincro'; });
-  w = fr.contentWindow; d = fr.contentDocument; E = w.PTEquipo;
-  await wait(1400);
-  await irA(d,'plantilla'); await wait(300);
-  ok('apagada, vuelve a decir que se queda en este dispositivo',
-     /se quedan en este dispositivo/i.test(d.getElementById('squad-aviso').textContent),
-     d.getElementById('squad-aviso').textContent.slice(0, 70));
-  ok('y no habla de cifrado, que entonces no hay',
-     !/cifrad/i.test(d.getElementById('squad-aviso').textContent));
+  /* Y que no se diga de los NOMBRES en ningún otro sitio sin condición.
 
-  try { w.localStorage.removeItem('pt-sincro-si'); } catch(e) {}
+     La primera versión de esta regla miraba la frase entera «se queda en este
+     dispositivo» y cazó tres líneas que hablan de las pizarras guardadas, no
+     de la plantilla. Y esas son verdad: las pizarras no van a la cuenta, solo
+     el equipo. Una regla que grita por lo que está bien se acaba apagando, así
+     que mira lo que de verdad protege: los nombres. */
+  var resto = fuente.replace(trozo, '');
+  var sueltas = resto.split('\n').filter(function(l){
+    // Solo lo que se le ENSEÑA a alguien: una cadena, no un comentario.
+    return /['\"]/.test(l) && /nombres/i.test(l) && /(este|tu) dispositivo/i.test(l);
+  });
+  ok('de los nombres no se afirma eso en ningún sitio sin mirar la cuenta',
+     !sueltas.length, sueltas.join(' · ').slice(0, 140));
+
   limpia();
   pinta();
 })().catch(function(e){

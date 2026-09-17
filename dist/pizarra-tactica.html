@@ -2940,19 +2940,18 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
         <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
       </div>
-      <!-- Tener el equipo en todos los dispositivos. Viene apagado: hasta ahora
-           la aplicación prometía que estos nombres no salían de aquí, y eso no
-           se cambia sin preguntar. -->
+      <!-- Tu equipo va con la cuenta. No es una opción, así que aquí no hay
+           interruptor: solo se cuenta qué pasa y cómo va. -->
       <div class="paso" id="cuenta-sincro" style="margin-top:12px" hidden>
-        <p class="form-group">Tu equipo en todos tus dispositivos</p>
-        <label class="check check-fila">
-          <input type="checkbox" id="cuenta-sincro-si" style="margin-top:2px">
-          <span>Guardar mi plantilla, sesiones, asistencia y partidos en mi cuenta, para
-            verlos igual en el móvil y en el ordenador.</span>
-        </label>
-        <p class="block-note" style="margin:8px 0 0">Van <b>cifrados en este dispositivo</b>
-          antes de salir, con una clave que sale de tu contraseña. En el servidor solo hay
-          un bloque que nadie puede leer, ni nosotros.</p>
+        <p class="form-group">Tu equipo va con tu cuenta</p>
+        <p class="block-note" style="margin:0">Tu plantilla, tus sesiones, la asistencia y
+          los partidos se guardan en tu cuenta y los tienes igual en el móvil y en el
+          ordenador. Van <b>cifrados en este dispositivo</b> antes de salir, con una clave
+          que sale de tu contraseña: en el servidor son un bloque que no puede abrir nadie
+          más, tampoco nosotros.</p>
+        <p class="block-note" style="margin:8px 0 0">La otra cara: <b>si pierdes el correo y
+          la contraseña, se pierden</b>. Nadie puede devolverte unos datos que nadie puede
+          leer.</p>
         <p class="block-note" id="cuenta-sincro-estado" style="margin:6px 0 0"></p>
       </div>
 
@@ -3409,17 +3408,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
      Devuelve la fila nueva, o null si no ha escrito porque ya no era esa
      versión. Un null aquí NO es un error: es la respuesta correcta. */
-  /* Dejar de sincronizar se lleva la fila entera, no la deja vacía. Quien
-     apaga esto está diciendo «quita mis datos de ahí», y dejar un bloque
-     cifrado guardado «por si vuelve» sería no haberle hecho caso. */
-  function borraCofre() {
-    return quienSoy().then(function (p) {
-      if (!p) return false;
-      return pide('/rest/v1/cofres?id=eq.' + p.id, { method: 'DELETE' })
-        .then(function () { return true; });
-    });
-  }
-
   function guardaCofre(campos, version) {
     return quienSoy().then(function (p) {
       if (!p) throw new Error('Entra con tu correo primero');
@@ -3694,7 +3682,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura,
     cofre: cofre, estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
-    borraCofre: borraCofre, acepta: acepta
+    acepta: acepta
   };
 })();
 
@@ -6253,6 +6241,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    nada; puede tardar.
 
    ---------------------------------------------------------------------------
+   VA CON LA CUENTA, NO ES UNA OPCIÓN
+
+   Esto llegó a tener un interruptor y una pregunta la primera vez. Se quitó
+   a propósito: la plantilla es de la cuenta, igual que los ejercicios que
+   subes. Entras y está; entras en otro sitio y está. Un interruptor para algo
+   que va de suyo solo añade un sitio donde equivocarse y una pregunta que
+   nadie sabe contestar la primera vez que la ve.
+
+   La contraprestación se dice clara y no se esconde: todo va con la
+   contraseña. Si se pierden el correo y la contraseña, se pierden los datos,
+   porque nadie más puede abrirlos.
+
+   ---------------------------------------------------------------------------
    LA LLAVE SE QUEDA EN ESTE DISPOSITIVO, Y HAY QUE DECIRLO
 
    Al entrar se guarda aquí la clave que abre el cofre. Eso tiene un precio y
@@ -6276,7 +6277,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   var LLAVE  = 'pt-llave';      // la clave de este dispositivo
   var ESTADO = 'pt-sincro';     // qué se sabe de la última vez
-  var QUIERE = 'pt-sincro-si';  // si esta persona lo ha encendido
 
   var ESPERA_CAMBIO = 2500;     // lo que se deja pasar tras un cambio
   var REINTENTOS    = [30000, 120000, 600000];
@@ -6288,7 +6288,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   var enMarcha = false, pendiente = false, fallos = 0;
   var reloj = null, relojReintento = null;
   var oyentes = [];
-  var ultimo = { estado: 'apagado', cuando: 0, choques: [] };
+  var ultimo = { estado: 'fuera', cuando: 0, choques: [] };
 
   /* Las piezas se enganchan aquí y no en «arranca», porque el interruptor de
      Tu cuenta puede encender esto sin que se haya arrancado nunca —alguien que
@@ -6311,49 +6311,15 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     oyentes.forEach(function (f) { try { f(ultimo); } catch (e) {} });
   }
 
-  /* ---- encendido o apagado, y lo decide la persona -----------------------
+  /* ---- entrar y salir ----------------------------------------------------
 
-     Esto viene apagado. Hasta ahora la aplicación decía, por escrito, que los
-     nombres de la plantilla no salían del dispositivo; encenderlo en una
-     actualización y sin preguntar cambiaría eso a espaldas de quien lo leyó.
-     Van cifrados, sí, pero lo que cambia es dónde están.
+     No hay nada que encender: mientras haya sesión, esto funciona. Al cerrar
+     sesión se olvida la llave de este dispositivo, que en un ordenador
+     compartido es lo mínimo. */
 
-     Así que se pregunta una vez, con las palabras claras, y quien dice que no
-     sigue exactamente como estaba. */
-
-  function quiere() {
-    try {
-      var v = localStorage.getItem(QUIERE);
-      return v === 'si' || v === 'no' ? v : null;   // null = todavía no se ha preguntado
-    } catch (e) { return null; }
-  }
-
-  /* Encender es distinto de entrar con esto ya encendido, y por eso se marca.
-
-     Si falla al ENTRAR, la persona no estaba pidiendo nada: la sincronización
-     reintenta sola y avisar de cada bache sería ruido. Si falla al ENCENDER,
-     acaba de pedirlo expresamente y se ha quedado sin hacer: hay que decirle
-     por qué. La marca es lo que deja distinguir los dos casos en un sitio. */
-  function enciende(contraseña) {
-    try { localStorage.setItem(QUIERE, 'si'); } catch (e) {}
-    return alEntrar(contraseña).then(function (r) {
-      r.encendiendo = true;
-      return r;
-    });
-  }
-
-  /* Apagarlo borra la fila del servidor. Quien apaga esto está diciendo «quita
-     mis datos de ahí», no «deja de mirarlos»: dejar el bloque guardado por si
-     vuelve sería no haberle hecho caso. Lo de este dispositivo no se toca. */
-  function apaga() {
-    try { localStorage.setItem(QUIERE, 'no'); } catch (e) {}
-    var fin = (hay() && N.dentro()) ? N.borraCofre().catch(function () { return false; })
-                                    : Promise.resolve(false);
-    return fin.then(function (r) {
-      olvidaLlave();
-      avisa('apagado');
-      return r;
-    });
+  function olvidaTodo() {
+    olvidaLlave();
+    avisa('fuera');
   }
 
   /* ---- la llave de este dispositivo ------------------------------------- */
@@ -6392,7 +6358,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      momento en el que la contraseña está a mano. De la contraseña sale la
      clave, y de ahí en adelante ya no hace falta. */
   function alEntrar(contraseña) {
-    if (!hay()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    if (!hay()) return Promise.resolve({ ok: false, porque: 'sin-nube' });
     return N.quienSoy().then(function (p) {
       if (!p) return { ok: false, porque: 'sin-cuenta' };
       return N.cofre().then(function (fila) {
@@ -6405,7 +6371,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       });
     }).then(function (r) {
       if (r.ok) { avisa('listo'); sincroniza(); }
-      else avisa(r.porque === 'cerrado' ? 'cerrado' : 'apagado');
+      else avisa(r.porque === 'cerrado' ? 'cerrado' : 'fuera');
       return r;
     }, function (e) {
       /* El motivo se devuelve, no se traga. Antes salía un «sin-red» pelado y
@@ -6470,7 +6436,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   /* ---- el ciclo ---------------------------------------------------------- */
 
   function sincroniza(vuelta) {
-    if (!hay() || !clave || !N.dentro()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    if (!hay() || !clave || !N.dentro()) return Promise.resolve({ ok: false, porque: 'fuera' });
     if (enMarcha) { pendiente = true; return Promise.resolve({ ok: false, porque: 'ocupado' }); }
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       avisa('sin-red');
@@ -6559,7 +6525,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   var arrancado = false;
   function arranca() {
-    if (arrancado || !hay() || quiere() !== 'si') return false;
+    if (arrancado || !hay()) return false;
     arrancado = true;
 
     // Cualquier cambio del equipo, con unos segundos de respiro.
@@ -6567,7 +6533,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     // Salir de la cuenta se lleva la llave: en un ordenador compartido, lo
     // contrario sería dejarla puesta.
-    N.alCambiar(function () { if (!N.dentro()) { olvidaLlave(); avisa('apagado'); } });
+    N.alCambiar(function () { if (!N.dentro()) olvidaTodo(); });
 
     if (typeof window.addEventListener === 'function') {
       window.addEventListener('online', function () { fallos = 0; sincroniza(); });
@@ -6595,15 +6561,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   window.PTSincro = {
     hay: hay,
-    quiere: quiere,
-    enciende: enciende,
-    apaga: apaga,
+    olvida: olvidaTodo,
     arranca: arranca,
     alEntrar: alEntrar,
     alCambiarContraseña: alCambiarContraseña,
     sincroniza: function () { return sincroniza(); },
     ahora: function () { clearTimeout(reloj); return sincroniza(); },
-    olvidaLlave: olvidaLlave,
     abierto: function () { return !!clave; },
     estado: function () { return ultimo; },
     alCambiar: function (f) { if (typeof f === 'function') oyentes.push(f); }
@@ -21900,66 +21863,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
             'usaste la última vez, o en el dispositivo donde ya habías entrado.');
     } else if (r.porque === 'a-la-vez') {
       toast('Otro dispositivo estaba cambiando lo mismo. Vuelve a intentarlo.');
-    } else if (r.encendiendo) {
-      /* Solo cuando se acaba de PEDIR encenderlo. Si falla al entrar con esto
-         ya encendido, no se dice nada: se reintenta solo y avisar de cada
-         bache de red es ruido. Pero quien acaba de darle al interruptor y no
-         ve nada creería que el botón no funciona. */
-      toast(r.error || 'No se ha podido encender. Inténtalo dentro de un momento.');
+    } else if (r.porque === 'sin-red' && r.error) {
+      /* Al entrar sí se dice, una vez: acaba de escribir su contraseña
+         esperando encontrarse su equipo, y si el servidor no contesta tiene
+         que saberlo. Los baches de después se los traga la sincronización,
+         que reintenta sola. */
+      toast(r.error);
     }
-    // Lo demás no se dice: no se ha perdido nada y lo de este dispositivo
-    // sigue entero.
   }
 
-  /* La pregunta de la primera vez. Se hace justo después de entrar, que es
-     cuando la contraseña está a mano, y con las palabras de verdad: qué sale
-     de este dispositivo, cifrado con qué, y qué pasa si se olvida la
-     contraseña. Sin eufemismos y sin letra pequeña. */
-  var TEXTO_SINCRO =
-    'Ahora Klym puede guardar tu plantilla, tus sesiones, la asistencia y los partidos ' +
-    'en tu cuenta, para que los veas igual en el móvil y en el ordenador.\n\n' +
-    'Van cifrados en este dispositivo antes de salir, con una clave que sale de tu ' +
-    'contraseña. En el servidor queda un bloque que nadie puede leer, tampoco nosotros.\n\n' +
-    'Si no lo enciendes, todo sigue exactamente como hasta ahora: cada dispositivo con ' +
-    'lo suyo, sin salir de aquí. Puedes cambiarlo cuando quieras en Tu cuenta.';
-
-  function quizaPregunta(clave) {
-    if (!sincro) return Promise.resolve();
-    var q = sincro.quiere();
-    if (q === 'no') return Promise.resolve();
-    if (q === 'si') return sincro.enciende(clave).then(avisaDelCofre, function () {});
-    return ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO,
-                 ok: 'Encenderlo' }).then(function (si) {
-      if (!si) { sincro.apaga(); return; }
-      /* Y queda anotado que aceptó ESTE texto, no el de antes: lo que cambió
-         es dónde están sus datos, y un consentimiento a otra cosa no vale. */
-      return nube.acepta().catch(function () {})
-        .then(function () { return sincro.enciende(clave); })
-        .then(avisaDelCofre, function () {});
-    });
-  }
-
-  /* El interruptor de Tu cuenta, para cambiar de idea. Encenderlo desde aquí
-     pide la contraseña otra vez: no se guarda en ningún sitio, y sin ella no
-     hay clave con la que cifrar. */
   /* Los avisos que hay junto a la plantilla y junto a los partidos. Decían
      «los nombres se quedan en este dispositivo», y eso deja de ser verdad en
      cuanto alguien enciende la sincronización. Un aviso de privacidad que
      miente es peor que no tenerlo: la gente decide fiándose de él. */
   function pintaPrivacidadDelEquipo() {
-    var enNube = !!(sincro && sincro.quiere() === 'si');
+    /* Con cuenta, la plantilla va con la cuenta; sin cuenta, se queda aquí.
+       Es la única diferencia que hay, y es la que hay que contar. */
+    var conCuenta = !!(sincro && yo);
     var a = $('#squad-aviso'), b = $('#par-aviso');
-    var texto = enNube
-      ? 'Los nombres se guardan en tu cuenta, cifrados en este dispositivo antes de salir: ' +
-        'en el servidor son un bloque que nadie puede leer. No se suben a la biblioteca ' +
-        'común, no viajan en los enlaces y no aparecen en la pizarra.'
-      : 'Los nombres se quedan en este dispositivo. No se suben a la biblioteca común, no ' +
-        'viajan en los enlaces y no aparecen en la pizarra.';
-    if (a) a.textContent = texto;
+    if (a) {
+      a.textContent = conCuenta
+        ? 'Los nombres van con tu cuenta, cifrados en este dispositivo antes de salir: en el ' +
+          'servidor son un bloque que no puede abrir nadie más. No se suben a la biblioteca ' +
+          'común, no viajan en los enlaces y no aparecen en la pizarra.'
+        : 'Los nombres se quedan en este dispositivo. No se suben a la biblioteca común, no ' +
+          'viajan en los enlaces y no aparecen en la pizarra.';
+    }
     if (b) {
-      b.textContent = enNube
-        ? 'Los nombres y lo que hizo cada uno se guardan en tu cuenta, cifrados antes de ' +
-          'salir de aquí. No se suben a la biblioteca común ni viajan en los enlaces.'
+      b.textContent = conCuenta
+        ? 'Los nombres y lo que hizo cada uno van con tu cuenta, cifrados antes de salir de ' +
+          'aquí. No se suben a la biblioteca común ni viajan en los enlaces.'
         : 'Los nombres y lo que hizo cada uno se quedan en este dispositivo. No se suben a ' +
           'la biblioteca común ni viajan en los enlaces.';
     }
@@ -21970,8 +21903,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      las cuatro preguntan. Cuatro copias de una frase es una frase que algún
      día dirá cosas distintas en cada pantalla. */
   function dondeSeQueda() {
-    return (sincro && sincro.quiere() === 'si')
-      ? ' Se guarda en tu cuenta, cifrado antes de salir de aquí.'
+    return (sincro && yo)
+      ? ' Va con tu cuenta, cifrado antes de salir de aquí.'
       : ' Todo se queda en este dispositivo.';
   }
 
@@ -21981,16 +21914,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!caja) return;
     caja.hidden = !(sincro && yo);
     if (caja.hidden) return;
-    $('#cuenta-sincro-si').checked = sincro.quiere() === 'si';
     var e = sincro.estado(), t = $('#cuenta-sincro-estado');
     t.textContent =
-      sincro.quiere() !== 'si' ? 'Apagado. Tus datos solo están en este dispositivo.'
-      : e.estado === 'cerrado' ? 'Los datos de tu cuenta están cerrados con otra contraseña. ' +
-          'Cierra sesión y entra con la que usaste la última vez.'
-      : e.estado === 'pendiente' || e.estado === 'sin-red' ? 'Sin conexión. Se guardará en cuanto vuelva.'
+        e.estado === 'cerrado' ? 'No se están guardando: lo que hay en tu cuenta está cerrado ' +
+          'con otra contraseña. Cierra sesión y entra con la que usaste la última vez.'
+      : e.estado === 'pendiente' || e.estado === 'sin-red' ? 'Sin conexión. Se guardarán en cuanto vuelva.'
       : e.estado === 'sincronizando' ? 'Guardando…'
       : e.cuando ? 'Al día.'
-      : 'Encendido.';
+      : 'Se guardan al entrar y cada vez que cambias algo.';
   }
 
   function cuentaLosChoques(ch) {
@@ -22040,10 +21971,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       ? 'Todo se guarda en tu dispositivo: nada viaja a ningún servidor.'
       : 'Tus pizarras se guardan en este dispositivo. Al servidor solo va lo que compartes ' +
         'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.' +
-        ((sincro && sincro.quiere() === 'si')
-          ? ' Y los datos de tu equipo, que has puesto en tu cuenta: van cifrados desde aquí, ' +
-            'y en el servidor son un bloque que nadie puede leer.'
-          : ' Los datos de tu equipo no salen de aquí mientras no lo enciendas en Tu cuenta.');
+        (sincro
+          ? ' Los datos de tu equipo van con tu cuenta, pero cifrados desde aquí: en el ' +
+            'servidor son un bloque que no puede abrir nadie más.'
+          : ' Los datos de tu equipo no salen de este dispositivo.');
   }
 
   // Compartir la pizarra que tienes abierta.
@@ -24470,7 +24401,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      cuando hay algo que saber. */
   function comoVaLaCuenta() {
     var correo = (yo && yo.email) || 'Entrada';
-    if (!sincro || sincro.quiere() !== 'si') return correo;
+    if (!sincro) return correo;
     var e = sincro.estado();
     if (e.estado === 'cerrado') return 'Tus datos no se están guardando · toca aquí';
     if (e.estado === 'pendiente' || e.estado === 'sin-red') return correo + ' · sin guardar aún';
@@ -26057,7 +25988,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           /* Este es el único momento en el que la contraseña está a mano, y de
              ella sale la clave que abre los datos del equipo. Después ya no se
              puede: no se guarda en ningún sitio, y menos mal. */
-          return quizaPregunta(clave);
+          if (sincro) return sincro.alEntrar(clave).then(avisaDelCofre, function () {});
         }).then(function () {
           return refrescaCuenta().then(function () {
             if (modo === 'crear' && (nombre || club)) {
@@ -26155,8 +26086,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       nube.alCambiar(function () { refrescaCuenta(); });
 
       /* La sincronización entre dispositivos. Se arranca aquí, con la cuenta
-         ya montada: si se hiciera antes, no sabría de quién es el cofre. Y
-         solo si está encendida, que viene apagada a propósito. */
+         ya montada: si se hiciera antes, no sabría de quién es el cofre.
+
+         No hay nada que encender. La plantilla va con la cuenta, igual que los
+         ejercicios que subes: entras y está. Llegó a tener un interruptor y
+         una pregunta la primera vez, y se quitaron: un interruptor para algo
+         que va de suyo solo añade un sitio donde equivocarse y una pregunta
+         que nadie sabe contestar la primera vez que la ve. */
       if (sincro) {
         sincro.alCambiar(function (e) {
           pistasDelCajon();
@@ -26164,42 +26100,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           if (e.datosNuevos) repintaElEquipo();
           if (e.choques && e.choques.length) cuentaLosChoques(e.choques);
         });
-        if (sincro.quiere() === 'si') sincro.arranca();
-
-        $('#cuenta-sincro-si').addEventListener('change', function () {
-          var caja = this;
-          if (!caja.checked) {
-            ask({ title: 'Apagar la sincronización',
-                  message: 'Se borrarán del servidor los datos de tu equipo. Lo que hay en ' +
-                           'este dispositivo se queda entero, pero dejará de verse en los ' +
-                           'demás.', ok: 'Apagar', danger: true })
-              .then(function (si) {
-                if (!si) { caja.checked = true; return; }
-                return sincro.apaga().then(function () {
-                  toast('Apagado. Tus datos se han borrado del servidor');
-                  pintaSincro(); pistasDelCajon();
-                });
-              });
-            return;
-          }
-          ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO +
-                  '\n\nEscribe tu contraseña: de ella sale la clave con la que se cifra, y ' +
-                  'no está guardada en ningún sitio.',
-                input: '', tipo: 'password', placeholder: 'Tu contraseña', ok: 'Encenderlo' })
-            .then(function (clave) {
-              if (clave === null || !String(clave)) { caja.checked = false; return; }
-              return nube.acepta().catch(function () {})
-                .then(function () { return sincro.enciende(clave); })
-                .then(function (r) {
-                  avisaDelCofre(r);
-                  if (!r || !r.ok) { caja.checked = false; sincro.apaga(); return; }
-                  sincro.arranca();
-                  toast('Listo. Tu equipo se verá igual en todos tus dispositivos');
-                })
-                .then(refrescaCuenta)
-                .then(function () { pintaSincro(); pistasDelCajon(); });
-            });
-        });
+        sincro.arranca();
       }
 
       /* Cuando se vuelve del enlace de un correo, la sesión llega en la
