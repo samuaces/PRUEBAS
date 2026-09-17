@@ -97,7 +97,10 @@ const biblioteca = readFileSync(join(raiz, 'assets/biblioteca.json'), 'utf8');
 // archivo va siempre sin ella: la configuración se deja vacía a propósito.
 const nube = leer('app/nube.js');
 const enlace = leer('app/enlace.js');
+const cofre = leer('app/cofre.js');
+const fusion = leer('app/fusion.js');
 const equipo = leer('app/equipo.js');
+const sincro = leer('app/sincro.js');
 const codecs = leer('app/codecs.js');
 const graficos = leer('app/graficos.js');
 
@@ -108,7 +111,10 @@ const salida =
   '<script>window.PT_NUBE = { url: "", key: "" };</script>\n' +
   '<script>\n' + nube + '\n</script>\n' +
   '<script>\n' + enlace + '\n</script>\n' +
+  '<script>\n' + cofre + '\n</script>\n' +
+  '<script>\n' + fusion + '\n</script>\n' +
   '<script>\n' + equipo + '\n</script>\n' +
+  '<script>\n' + sincro + '\n</script>\n' +
   '<script>\n' + codecs + '\n</script>\n' +
   '<script>\n' + graficos + '\n</script>\n' +
   '<script>window.__BIBLIOTECA__ = ' + biblioteca.trim() + ';</script>\n' +

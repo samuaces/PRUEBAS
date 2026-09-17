@@ -98,9 +98,69 @@ create table if not exists public.reportes (
   unique (ejercicio, quien)
 );
 
+-- ---------------------------------------------------------------------------
+-- Cofres: los datos del equipo de cada entrenador, para que su cuenta sea la
+-- misma en el móvil y en el ordenador.
+--
+-- ESTA TABLA NO SE PUEDE LEER. Ni desde aquí, ni con la clave secreta, ni con
+-- acceso a la base de datos. «bloque» sale del navegador ya cifrado con una
+-- clave que sale de la contraseña de la persona y que nunca se sube (ver
+-- app/cofre.js). Lo que hay guardado aquí son bytes sin significado.
+--
+-- Eso no es un adorno: dentro van nombres de críos y quién faltó a entrenar.
+-- Con la tabla en claro, cualquier fallo de permisos —o cualquiera con acceso
+-- al servidor— sería una lista de menores. Cifrado, es ruido.
+--
+-- Una fila por cuenta. Una temporada cargada mide unos 150 KB cifrada, así que
+-- una fila sobra: no hace falta trocear nada.
+-- ---------------------------------------------------------------------------
+create table if not exists public.cofres (
+  id      uuid primary key references auth.users(id) on delete cascade,
+
+  -- La sal y la clave maestra envuelta. Ninguna de las dos es secreta por sí
+  -- sola: sin la contraseña no abren nada.
+  sal     text not null check (char_length(sal) between 16 and 64),
+  maestra text not null check (char_length(maestra) <= 512),
+
+  -- Los datos, cifrados. El tope es holgado a propósito —una temporada muy
+  -- cargada no llega a 200 KB— pero tiene que existir: sin él, una fila puede
+  -- crecer hasta donde quiera quien la escriba.
+  bloque  text not null default '' check (octet_length(bloque) <= 4194304),
+
+  /* El número de versión es lo que evita que dos dispositivos se pisen.
+
+     Sin él: el móvil se baja la versión 5, el ordenador también, los dos
+     fusionan con lo suyo y los dos suben. El segundo pisa al primero y lo que
+     el primero había añadido desaparece, aunque la fusión estuviera perfecta.
+
+     Con él, quien sube dice contra qué versión fusionó. Si ya no es esa, el
+     servidor no escribe nada, y el que llegó tarde se baja lo nuevo, vuelve a
+     fusionar y lo intenta otra vez. Lo pone el servidor, no el navegador. */
+  version     integer     not null default 0,
+  actualizado timestamptz not null default now()
+);
+
+comment on table public.cofres is
+  'Datos del equipo, cifrados en el dispositivo. El servidor no puede leerlos.';
+
 -- ============================================================================
 -- Disparadores
 -- ============================================================================
+
+/* La versión y la hora las pone el servidor. Si las mandara el navegador, un
+   dispositivo con el reloj mal —o con una versión inventada— podría saltarse
+   la comprobación de arriba y pisar lo de otro. */
+create or replace function public.sella_cofre()
+returns trigger language plpgsql as $$
+begin
+  new.version := coalesce(old.version, 0) + 1;
+  new.actualizado := now();
+  return new;
+end $$;
+
+drop trigger if exists sella_cofre on public.cofres;
+create trigger sella_cofre before insert or update on public.cofres
+  for each row execute function public.sella_cofre();
 
 /* Qué condiciones están publicadas ahora mismo. Vive aquí, en el servidor, y
    no en el navegador: el navegador dice si acepta o no, pero QUÉ acepta no lo
@@ -110,7 +170,7 @@ create table if not exists public.reportes (
    Al cambiar el texto de privacidad.html se cambia también esta cadena, y
    entonces lo anotado deja de coincidir y se vuelve a preguntar. */
 create or replace function public.condiciones_vigentes()
-returns text language sql immutable as $$ select '2026-09-a'::text $$;
+returns text language sql immutable as $$ select '2026-09-b'::text $$;
 grant execute on function public.condiciones_vigentes() to anon, authenticated;
 
 /* Al crear la cuenta se crea el perfil, para que publicar no falle nunca.
@@ -204,6 +264,28 @@ begin
   delete from auth.users where id = quien;
 end $$;
 
+/* Volver a aceptar cuando las condiciones cambian.
+
+   Hasta ahora el consentimiento se anotaba solo al registrarse y no había
+   manera de volver a pedirlo: cambiar el texto dejaba a todo el mundo con una
+   versión aceptada que ya no era la publicada, y el registro dejaba de valer
+   para lo único que sirve.
+
+   No lleva parámetros, igual que borra_mi_cuenta(): la versión la pone
+   condiciones_vigentes() y la fila la decide auth.uid(). Si el navegador
+   pudiera decir QUÉ acepta, cualquiera se anotaría una versión futura y no
+   volvería a ver la pregunta nunca. */
+create or replace function public.acepto_las_condiciones()
+returns text language plpgsql security definer set search_path = public as $$
+declare quien uuid := auth.uid(); v text := public.condiciones_vigentes();
+begin
+  if quien is null then
+    raise exception 'Hay que haber entrado para aceptar las condiciones';
+  end if;
+  update public.entrenadores set acepto = v, acepto_en = now() where id = quien;
+  return v;
+end $$;
+
 -- Contar aperturas sin dejar que nadie escriba en la fila de otro.
 create or replace function public.suma_apertura(ej uuid)
 returns void language sql security definer set search_path = public as $$
@@ -219,6 +301,7 @@ $$;
 alter table public.entrenadores enable row level security;
 alter table public.ejercicios   enable row level security;
 alter table public.reportes     enable row level security;
+alter table public.cofres       enable row level security;
 
 -- --- Entrenadores ---------------------------------------------------------
 drop policy if exists "el perfil es público"   on public.entrenadores;
@@ -263,6 +346,28 @@ create policy "reporto una vez" on public.reportes
 create policy "los ve el admin" on public.reportes
   for select using (public.es_admin() or quien = auth.uid());
 
+-- --- Cofres ---------------------------------------------------------------
+/* El único sitio de todo esto donde el administrador tampoco entra.
+
+   En las otras tablas «es_admin()» tiene sentido: hay que poder esconder un
+   ejercicio denunciado. Aquí no lo tiene, porque no hay nada que moderar —son
+   bytes cifrados— y porque dejar la puerta abierta «por si acaso» es lo que
+   convierte una promesa en una intención. Aunque entrara, no podría leerlo;
+   pero sí podría borrarlo, y eso es la temporada de alguien. */
+drop policy if exists "mi cofre lo veo yo"    on public.cofres;
+drop policy if exists "creo mi cofre"         on public.cofres;
+drop policy if exists "escribo en el mío"     on public.cofres;
+drop policy if exists "borro el mío"          on public.cofres;
+
+create policy "mi cofre lo veo yo" on public.cofres
+  for select using (id = auth.uid());
+create policy "creo mi cofre" on public.cofres
+  for insert with check (id = auth.uid());
+create policy "escribo en el mío" on public.cofres
+  for update using (id = auth.uid()) with check (id = auth.uid());
+create policy "borro el mío" on public.cofres
+  for delete using (id = auth.uid());
+
 -- ============================================================================
 -- Quién puede llamar a qué
 -- ============================================================================
@@ -293,10 +398,20 @@ grant update (titulo, pitch, vista, momento, categoria, minutos, objetivo,
    le miren los permisos por columna, que se comprueban contra lo que pide la
    sentencia. Lo comprueba supabase/permisos.test.sql. */
 grant insert, select on public.reportes to authenticated;
+/* El cofre: solo quien ha entrado, y nunca «anon». Y por columnas, igual que
+   arriba: «version» y «actualizado» las escribe el disparador, no el
+   navegador. Si el navegador pudiera escribir la versión, la comprobación que
+   evita que dos dispositivos se pisen no valdría nada, porque el que llega
+   tarde podría decir que iba primero. */
+grant select, insert, delete on public.cofres to authenticated;
+grant update (sal, maestra, bloque) on public.cofres to authenticated;
 grant execute on function public.suma_apertura(uuid) to anon, authenticated;
 -- Borrarse a sí mismo. No lleva parámetros: la fila la decide auth.uid().
 grant execute on function public.borra_mi_cuenta() to authenticated;
 revoke execute on function public.borra_mi_cuenta() from anon, public;
+-- Volver a aceptar. Tampoco lleva parámetros, y por el mismo motivo.
+grant execute on function public.acepto_las_condiciones() to authenticated;
+revoke execute on function public.acepto_las_condiciones() from anon, public;
 
 -- ============================================================================
 -- Para nombrarte administrador (una vez, con tu cuenta ya creada):

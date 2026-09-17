@@ -2179,8 +2179,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     <button type="button" class="tbtn primary" id="squad-add" aria-label="Añadir jugador">Añadir</button>
   </div>
   <p class="block-note" id="squad-nota"></p>
-  <p class="block-note squad-aviso">Los nombres se quedan en este dispositivo. No se suben
-    a la biblioteca común, no viajan en los enlaces y no aparecen en la pizarra.</p>
+  <!-- Lo rellena pintaPrivacidadDelEquipo(): lo que dice depende de si la
+       sincronización está encendida, y decir lo que no es sería peor que
+       no decir nada. -->
+  <p class="block-note squad-aviso" id="squad-aviso"></p>
       </div>
 
       <div class="eq-cuerpo" id="eq-sesiones" role="tabpanel" hidden>
@@ -2371,8 +2373,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <button type="button" class="tbtn primary" id="par-guardar">Guardar el partido</button>
       <button type="button" class="tbtn marco danger" id="par-borrar" hidden>Borrar</button>
     </div>
-    <p class="block-note squad-aviso">Los nombres y lo que hizo cada uno se quedan en este
-      dispositivo. No se suben a la biblioteca común ni viajan en los enlaces.</p>
+    <p class="block-note squad-aviso" id="par-aviso"></p>
   </div>
       </div>
 
@@ -2939,6 +2940,22 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         <button type="button" class="tbtn primary" id="cuenta-guardar">Guardar</button>
         <button type="button" class="tbtn" id="cuenta-salir">Cerrar sesión</button>
       </div>
+      <!-- Tener el equipo en todos los dispositivos. Viene apagado: hasta ahora
+           la aplicación prometía que estos nombres no salían de aquí, y eso no
+           se cambia sin preguntar. -->
+      <div class="paso" id="cuenta-sincro" style="margin-top:12px" hidden>
+        <p class="form-group">Tu equipo en todos tus dispositivos</p>
+        <label class="check check-fila">
+          <input type="checkbox" id="cuenta-sincro-si" style="margin-top:2px">
+          <span>Guardar mi plantilla, sesiones, asistencia y partidos en mi cuenta, para
+            verlos igual en el móvil y en el ordenador.</span>
+        </label>
+        <p class="block-note" style="margin:8px 0 0">Van <b>cifrados en este dispositivo</b>
+          antes de salir, con una clave que sale de tu contraseña. En el servidor solo hay
+          un bloque que nadie puede leer, ni nosotros.</p>
+        <p class="block-note" id="cuenta-sincro-estado" style="margin:6px 0 0"></p>
+      </div>
+
       <div class="stack" style="margin-top:10px">
         <button type="button" class="row-btn" id="cuenta-clave-nueva">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -3331,14 +3348,78 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (perfilCache) return Promise.resolve(perfilCache);
     return pide('/auth/v1/user').then(function (u) {
       if (!u || !u.id) return null;
-      return pide('/rest/v1/entrenadores?select=id,nombre,club,admin&id=eq.' + u.id)
+      return pide('/rest/v1/entrenadores?select=id,nombre,club,admin,acepto&id=eq.' + u.id)
         .then(function (filas) {
-          var p = (filas && filas[0]) || { id: u.id, nombre: '', club: '', admin: false };
+          var p = (filas && filas[0]) ||
+                  { id: u.id, nombre: '', club: '', admin: false, acepto: '' };
           p.email = u.email;
           perfilCache = p;
           return p;
         });
     }).catch(function () { return null; });
+  }
+
+  /* ---- el cofre: los datos del equipo, cifrados ---------------------------
+
+     Aquí no se cifra ni se descifra nada: eso es de app/cofre.js y de
+     app/sincro.js. Esto solo son las tres llamadas al servidor, que es lo que
+     sabe hacer este archivo.
+
+     Lo que sube es un bloque que este archivo no entiende, y así tiene que
+     seguir siendo: si algún día alguien mete aquí una clave para «facilitar»
+     algo, la promesa de que el servidor no puede leer los nombres se acaba. */
+
+  var COFRE = 'select=sal,maestra,bloque,version,actualizado';
+
+  function cofre() {
+    if (!ses) return Promise.resolve(null);
+    return quienSoy().then(function (p) {
+      if (!p) return null;
+      return pide('/rest/v1/cofres?' + COFRE + '&id=eq.' + p.id)
+        .then(function (filas) { return (filas && filas[0]) || null; });
+    });
+  }
+
+  function estrenaCofre(campos) {
+    return quienSoy().then(function (p) {
+      if (!p) throw new Error('Entra con tu correo primero');
+      return pide('/rest/v1/cofres?' + COFRE, {
+        method: 'POST', headers: { Prefer: 'return=representation' },
+        body: { id: p.id, sal: campos.sal, maestra: campos.maestra,
+                bloque: campos.bloque || '' }
+      }).then(function (filas) { return (filas && filas[0]) || null; });
+    });
+  }
+
+  /* Guardar, pero solo si nadie ha escrito desde que nos bajamos esto.
+
+     El «version=eq.» no es una precaución de manual: sin él, el móvil y el
+     ordenador se bajan la versión 5, los dos fusionan con lo suyo y los dos
+     suben; el segundo pisa al primero y lo que el primero había añadido
+     desaparece, con la fusión impecable. Con él, el segundo no escribe nada,
+     se entera y vuelve a intentarlo con lo nuevo.
+
+     Devuelve la fila nueva, o null si no ha escrito porque ya no era esa
+     versión. Un null aquí NO es un error: es la respuesta correcta. */
+  /* Dejar de sincronizar se lleva la fila entera, no la deja vacía. Quien
+     apaga esto está diciendo «quita mis datos de ahí», y dejar un bloque
+     cifrado guardado «por si vuelve» sería no haberle hecho caso. */
+  function borraCofre() {
+    return quienSoy().then(function (p) {
+      if (!p) return false;
+      return pide('/rest/v1/cofres?id=eq.' + p.id, { method: 'DELETE' })
+        .then(function () { return true; });
+    });
+  }
+
+  function guardaCofre(campos, version) {
+    return quienSoy().then(function (p) {
+      if (!p) throw new Error('Entra con tu correo primero');
+      return pide('/rest/v1/cofres?' + COFRE + '&id=eq.' + p.id +
+                  '&version=eq.' + Number(version), {
+        method: 'PATCH', headers: { Prefer: 'return=representation' }, body: campos
+      }).then(function (filas) { return (filas && filas[0]) || null; });
+    });
   }
 
   /* ---- ejercicios ------------------------------------------------------ */
@@ -3398,7 +3479,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      texto de privacidad.html cambie, cambia esta etiqueta con él: lo que queda
      anotado en la cuenta es CUÁL se aceptó, porque «aceptó las condiciones»,
      sin decir cuáles, no es constancia de nada dentro de dos años. */
-  var CONDICIONES = '2026-09-a';
+  var CONDICIONES = '2026-09-b';
 
   function registra(email, clave, nombre, acepto) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
@@ -3490,6 +3571,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!ses) return Promise.reject(new Error('Entra con tu correo primero'));
     return pide('/auth/v1/user', { method: 'PUT', body: { password: String(nueva || '') } })
       .then(function () { return true; });
+  }
+
+  /* Volver a aceptar unas condiciones nuevas. No se manda QUÉ se acepta: la
+     versión la pone el servidor, igual que en el registro y por lo mismo. */
+  function acepta() {
+    if (!ses) return Promise.reject(new Error('Hay que haber entrado'));
+    return pide('/rest/v1/rpc/acepto_las_condiciones', { method: 'POST', body: {} })
+      .then(function (v) { perfilCache = null; return v; });
   }
 
   function sale() {
@@ -3595,7 +3684,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
-    borra: borra, reporta: reporta, apertura: apertura
+    borra: borra, reporta: reporta, apertura: apertura,
+    cofre: cofre, estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
+    borraCofre: borraCofre, acepta: acepta
   };
 })();
 
@@ -3833,6 +3924,544 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 </script>
 <script>
 /* =============================================================================
+   El cofre · cifrado de extremo a extremo
+
+   Lo que hay aquí es lo que permite que tu plantilla esté en el móvil y en el
+   ordenador sin que ni este proyecto ni Supabase puedan leer el nombre de un
+   crío. Se cifra EN EL DISPOSITIVO, antes de salir; el servidor guarda un
+   bloque que no significa nada sin tu contraseña.
+
+   ---------------------------------------------------------------------------
+   POR QUÉ DOS CLAVES Y NO UNA
+
+   Lo evidente sería sacar una clave de la contraseña y cifrar con ella. Se hace
+   una vez y funciona… hasta que alguien cambia la contraseña: entonces habría
+   que descifrar y volver a cifrar TODO, y si eso se corta a la mitad —se cae la
+   red, se cierra la pestaña— la temporada se queda ilegible.
+
+   Así que hay dos:
+
+     LA CLAVE MAESTRA (MK) es aleatoria, se crea una sola vez y es la que cifra
+     los datos de verdad. No sale nunca en claro de este archivo.
+
+     LA CLAVE DE LA CONTRASEÑA (KEK) sale de la contraseña con PBKDF2 y solo
+     sirve para envolver a la maestra.
+
+   Cambiar la contraseña es volver a envolver la maestra: unos bytes. Los datos
+   ni se tocan. Y es lo que hace posible lo del párrafo siguiente.
+
+   ---------------------------------------------------------------------------
+   QUÉ PASA SI SE OLVIDA LA CONTRASEÑA
+
+   Sin rodeos: recuperar la contraseña por correo NO recupera los datos. Eso
+   cambia la credencial de entrada, pero la clave que abre el cofre salía de la
+   contraseña vieja. Quien diga lo contrario está diciendo que el servidor puede
+   leer tus datos.
+
+   Lo que sí se puede, y es lo que hace esta aplicación: cada dispositivo donde
+   ya has entrado guarda la clave maestra. Si olvidas la contraseña y pones una
+   nueva, cualquiera de esos dispositivos ve que el cofre está cerrado con la
+   llave vieja, lo vuelve a envolver con la nueva y sigues. Solo se pierde si
+   olvidas la contraseña Y no te queda ningún dispositivo abierto.
+
+   Eso hay que decirlo en la pantalla, no aquí.
+
+   ---------------------------------------------------------------------------
+   LAS DECISIONES DE CRIPTOGRAFÍA, Y POR QUÉ
+
+   PBKDF2-HMAC-SHA256 con 310.000 vueltas. No es lo más moderno —Argon2id lo
+   es—, pero Argon2 no viene en el navegador y meter una librería rompería la
+   regla de no tener dependencias y engordaría lo que hay que descargar sin red.
+   310.000 es lo que recomienda OWASP para PBKDF2-SHA256.
+
+   AES-GCM de 256 bits. Cifra y autentica a la vez: si alguien toca un byte del
+   bloque en el servidor, al abrirlo falla en vez de devolver basura.
+
+   El vector de inicialización (IV) es de 12 bytes y ALEATORIO EN CADA CIFRADO.
+   Repetir un IV con la misma clave en GCM no es un descuido menor: rompe el
+   cifrado de verdad. Por eso se genera dentro de «cierra» y nadie lo pasa
+   desde fuera.
+
+   La sal no es secreta y se guarda junto al bloque. Su oficio es que dos
+   personas con la misma contraseña no tengan la misma clave.
+
+   Hay pruebas en tests/cofre.mjs. Si esto se rompe, se rompe en silencio y con
+   los datos de alguien dentro.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var VUELTAS = 310000;        // OWASP, para PBKDF2-HMAC-SHA256
+  var SAL_BYTES = 16;
+  var IV_BYTES = 12;           // lo que pide AES-GCM
+
+  // En el navegador es window.crypto; en Node, globalThis.crypto desde la 19.
+  var cripto = (typeof globalThis !== 'undefined' && globalThis.crypto) || null;
+  var subtle = cripto && cripto.subtle;
+
+  function hay() { return !!(subtle && cripto.getRandomValues); }
+
+  /* ---- de bytes a texto y al revés ------------------------------------
+
+     Se pasa por base64 porque lo que viaja es JSON y una columna de texto.
+     «btoa» no existe en Node y Buffer no existe en el navegador, así que se
+     hace a mano una vez y funciona en los dos. */
+  var B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+  function aBase64(bytes) {
+    var b = new Uint8Array(bytes), s = '', i;
+    for (i = 0; i + 2 < b.length; i += 3) {
+      s += B64[b[i] >> 2] + B64[((b[i] & 3) << 4) | (b[i + 1] >> 4)] +
+           B64[((b[i + 1] & 15) << 2) | (b[i + 2] >> 6)] + B64[b[i + 2] & 63];
+    }
+    if (i < b.length) {
+      s += B64[b[i] >> 2];
+      if (i + 1 === b.length) s += B64[(b[i] & 3) << 4] + '==';
+      else s += B64[((b[i] & 3) << 4) | (b[i + 1] >> 4)] + B64[(b[i + 1] & 15) << 2] + '=';
+    }
+    return s;
+  }
+
+  function deBase64(s) {
+    var limpio = String(s).replace(/[^A-Za-z0-9+/]/g, '');
+    var n = limpio.length, bytes = new Uint8Array((n * 3) >> 2), p = 0, i, a, b, c, d;
+    for (i = 0; i + 3 < n; i += 4) {
+      a = B64.indexOf(limpio[i]); b = B64.indexOf(limpio[i + 1]);
+      c = B64.indexOf(limpio[i + 2]); d = B64.indexOf(limpio[i + 3]);
+      bytes[p++] = (a << 2) | (b >> 4);
+      bytes[p++] = ((b & 15) << 4) | (c >> 2);
+      bytes[p++] = ((c & 3) << 6) | d;
+    }
+    if (i + 1 < n) {
+      a = B64.indexOf(limpio[i]); b = B64.indexOf(limpio[i + 1]);
+      bytes[p++] = (a << 2) | (b >> 4);
+      if (i + 2 < n) {
+        c = B64.indexOf(limpio[i + 2]);
+        bytes[p++] = ((b & 15) << 4) | (c >> 2);
+      }
+    }
+    return bytes.subarray(0, p);
+  }
+
+  var UTF8 = {
+    aBytes: function (s) { return new TextEncoder().encode(s); },
+    aTexto: function (b) { return new TextDecoder().decode(b); }
+  };
+
+  function alAzar(n) { return cripto.getRandomValues(new Uint8Array(n)); }
+
+  /* ---- las claves ------------------------------------------------------ */
+
+  function salNueva() { return aBase64(alAzar(SAL_BYTES)); }
+
+  /* La clave que sale de la contraseña. Solo sirve para envolver a la maestra,
+     nunca para cifrar datos: así cambiar la contraseña no toca los datos. */
+  function claveDeContraseña(contraseña, salB64) {
+    return subtle.importKey('raw', UTF8.aBytes(String(contraseña)),
+                            { name: 'PBKDF2' }, false, ['deriveKey'])
+      .then(function (base) {
+        return subtle.deriveKey(
+          { name: 'PBKDF2', salt: deBase64(salB64), iterations: VUELTAS, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      });
+  }
+
+  /* La clave maestra. «extractable» a propósito: hay que poder sacarla para
+     guardarla en este dispositivo y para volver a envolverla al cambiar la
+     contraseña. Sale de aquí solo hacia el almacén local, nunca a la red. */
+  function maestraNueva() {
+    return subtle.generateKey({ name: 'AES-GCM', length: 256 }, true,
+                              ['encrypt', 'decrypt']);
+  }
+
+  function maestraATexto(mk) {
+    return subtle.exportKey('raw', mk).then(aBase64);
+  }
+  function maestraDeTexto(b64) {
+    return subtle.importKey('raw', deBase64(b64), { name: 'AES-GCM' }, true,
+                            ['encrypt', 'decrypt']);
+  }
+
+  /* ---- cerrar y abrir --------------------------------------------------
+
+     El bloque es IV + cifrado, todo junto en base64. El IV va delante porque
+     hace falta para abrir y no es secreto. */
+
+  function cierra(clave, obj) {
+    var iv = alAzar(IV_BYTES);
+    var claro = UTF8.aBytes(JSON.stringify(obj));
+    return subtle.encrypt({ name: 'AES-GCM', iv: iv }, clave, claro)
+      .then(function (cifrado) {
+        var c = new Uint8Array(cifrado);
+        var todo = new Uint8Array(iv.length + c.length);
+        todo.set(iv, 0);
+        todo.set(c, iv.length);
+        return aBase64(todo);
+      });
+  }
+
+  /* Devuelve null si no abre, en vez de reventar: no abrir es una respuesta
+     normal —contraseña cambiada, bloque de otra cuenta— y quien llama tiene que
+     poder distinguirla de un error de programa. */
+  function abre(clave, bloque) {
+    var todo;
+    try { todo = deBase64(bloque); } catch (e) { return Promise.resolve(null); }
+    /* Esta guarda no es la que protege: «decrypt» rechaza igual un bloque más
+       corto que la etiqueta, comprobado. Está para decir en voz alta qué es un
+       bloque válido, y para no dar el viaje si ya se sabe que no. */
+    if (todo.length <= IV_BYTES) return Promise.resolve(null);
+    var iv = todo.subarray(0, IV_BYTES);
+    var cifrado = todo.subarray(IV_BYTES);
+    return subtle.decrypt({ name: 'AES-GCM', iv: iv }, clave, cifrado)
+      .then(function (claro) {
+        try { return JSON.parse(UTF8.aTexto(new Uint8Array(claro))); }
+        catch (e) { return null; }
+      })
+      .catch(function () { return null; });
+  }
+
+  /* ---- lo que usa la aplicación ---------------------------------------- */
+
+  /* Estrenar cofre: sal nueva, maestra nueva y la maestra envuelta con la
+     contraseña. Lo que se sube al servidor es «sal» y «maestra»; la maestra
+     en claro se queda en este dispositivo. */
+  function estrena(contraseña) {
+    var sal = salNueva(), mk;
+    return maestraNueva()
+      .then(function (k) { mk = k; return claveDeContraseña(contraseña, sal); })
+      .then(function (kek) { return maestraATexto(mk).then(function (crudo) {
+        return cierra(kek, { mk: crudo });
+      }); })
+      .then(function (envuelta) {
+        return { sal: sal, maestra: envuelta, clave: mk };
+      });
+  }
+
+  /* Abrir el cofre con la contraseña. Devuelve null si no es la buena, que es
+     exactamente lo que pasa cuando alguien la ha cambiado en otro sitio. */
+  function abreConContraseña(contraseña, sal, maestraEnvuelta) {
+    return claveDeContraseña(contraseña, sal)
+      .then(function (kek) { return abre(kek, maestraEnvuelta); })
+      .then(function (dentro) {
+        if (!dentro || !dentro.mk) return null;
+        return maestraDeTexto(dentro.mk);
+      })
+      .catch(function () { return null; });
+  }
+
+  /* Volver a envolver la maestra con otra contraseña. Esto es lo que salva la
+     temporada cuando alguien ha reseteado la contraseña por correo y este
+     dispositivo todavía tiene la clave. Los datos no se tocan. */
+  function reenvuelve(clave, contraseñaNueva) {
+    var sal = salNueva();
+    return claveDeContraseña(contraseñaNueva, sal)
+      .then(function (kek) { return maestraATexto(clave).then(function (crudo) {
+        return cierra(kek, { mk: crudo });
+      }); })
+      .then(function (envuelta) { return { sal: sal, maestra: envuelta }; });
+  }
+
+  /* Su casa es «window», como la de los demás módulos. Pero este es el único
+     que se puede probar entero sin navegador —WebCrypto está en Node desde la
+     19— y las pruebas de criptografía tienen que poder correr en cada tanda,
+     no solo cuando alguien abra Chromium. Así que se cuelga de donde haya. */
+  var casa = typeof window !== 'undefined' ? window : globalThis;
+
+  casa.PTCofre = {
+    hay: hay,
+    estrena: estrena,
+    abreConContraseña: abreConContraseña,
+    reenvuelve: reenvuelve,
+    cierra: cierra,
+    abre: abre,
+    maestraATexto: maestraATexto,
+    maestraDeTexto: maestraDeTexto,
+    VUELTAS: VUELTAS
+  };
+})();
+
+</script>
+<script>
+/* =============================================================================
+   La fusión · juntar lo de un dispositivo con lo de otro
+
+   Esto es lo que hace que una cuenta sea la misma en el móvil y en el
+   ordenador. Y el problema de verdad no es mandar los datos: es qué pasa
+   cuando los dos lados han cambiado.
+
+   ---------------------------------------------------------------------------
+   POR QUÉ NO VALE «GANA EL ÚLTIMO QUE GUARDE»
+
+   Lo fácil sería subir el almacén entero y que el último pisara al otro. El
+   martes apuntas tres jugadores en el ordenador; el miércoles, sin haber
+   abierto el ordenador, pasas lista en el campo con el móvil. El móvil sube su
+   copia —que no tiene los tres jugadores— y se los lleva por delante.
+
+   Nadie ha hecho nada raro y ha desaparecido trabajo. Así que no se fusionan
+   almacenes: se fusionan REGISTROS. Cada jugador, cada día, cada partido va
+   por su cuenta, con la marca de cuándo se tocó, y gana el más reciente de
+   cada uno. El del martes y la del miércoles conviven porque no son lo mismo.
+
+   ---------------------------------------------------------------------------
+   LO QUE NO SE PUEDE ARREGLAR, Y CÓMO SE DICE
+
+   Si el MISMO día se edita en los dos sitios sin que se hayan visto —los dos
+   sin red, por ejemplo—, hay que elegir, y elegir es perder algo. Aquí gana el
+   más reciente y se ANOTA el choque, para que la aplicación pueda decirlo:
+   «el jueves cambió en dos sitios y se quedó lo del móvil». Callarse eso es
+   peor que perderlo, porque nadie sabe qué mirar.
+
+   ---------------------------------------------------------------------------
+   LOS BORRADOS, QUE SON LO QUE SE OLVIDA
+
+   Juntar dos listas resucita lo borrado: borras un jugador en el móvil, el
+   ordenador todavía lo tiene, se juntan y vuelve. Por eso borrar deja una
+   nota —qué y cuándo— y la nota gana a cualquier copia anterior. Las notas se
+   tiran a los seis meses: para entonces ya no queda ningún dispositivo con
+   la copia vieja, y si quedara, tendría cosas peores de las que preocuparse.
+
+   ---------------------------------------------------------------------------
+   DOS PROPIEDADES QUE HAY QUE CUMPLIR SÍ O SÍ
+
+     Da igual el orden. Fusionar A con B tiene que dar lo mismo que fusionar B
+     con A. Si no, dos dispositivos que se sincronizan a la vez se quedan cada
+     uno con una cosa distinta y no vuelven a juntarse nunca.
+
+     Fusionar dos veces no cambia nada. Si fusionar lo mismo otra vez moviera
+     algo, cada sincronización generaría un cambio, que generaría otra
+     sincronización, y eso no para.
+
+   Las dos están comprobadas en tests/fusion.mjs, con datos al azar.
+
+   ---------------------------------------------------------------------------
+   EL RELOJ
+
+   «Cuándo se tocó» sale del reloj del dispositivo, que puede ir mal. Un móvil
+   con el reloj tres días adelantado gana siempre. No hay forma de arreglarlo
+   del todo sin preguntarle la hora al servidor en cada cambio, y no la vale:
+   el caso normal es que los dos relojes estén bien. Lo que sí se hace es que
+   un empate no se resuelva al azar —se resuelve mirando el contenido, igual en
+   los dos lados—, que es lo que garantiza lo de «da igual el orden».
+
+   Un registro SIN marca es «de antes de que esto existiera» y vale cero:
+   cualquier cambio de verdad le gana. Eso quita la necesidad de migrar nada.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var DIAS_NOTA = 180;                 // lo que se guarda una nota de borrado
+  var TOPE_NOTAS = 600;
+  var DIA = 86400000;
+
+  /* ---- comparar dos cosas siempre igual --------------------------------
+
+     Para deshacer un empate hay que comparar contenidos, y hay que hacerlo
+     igual en los dos dispositivos. JSON.stringify no vale tal cual: respeta
+     el orden en que se escribieron las claves, y ese orden puede ser distinto
+     en cada lado aunque los datos sean idénticos. Así que se ordenan. */
+  function canon(v) {
+    if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+    if (v && typeof v === 'object') {
+      return '{' + Object.keys(v).sort().map(function (k) {
+        return JSON.stringify(k) + ':' + canon(v[k]);
+      }).join(',') + '}';
+    }
+    return JSON.stringify(v === undefined ? null : v);
+  }
+
+  function cuando(r) {
+    var t = r && r.tocado;
+    return typeof t === 'number' && isFinite(t) && t > 0 ? t : 0;
+  }
+
+  /* El contenido SIN la marca de tiempo, que es lo que hay que comparar para
+     saber si dos copias dicen lo mismo.
+
+     Esto no es un detalle. Guardar un día sin cambiar nada —abres la sesión,
+     la cierras— vuelve a poner la marca. Si la marca contara como contenido,
+     esas dos copias parecerían distintas y la aplicación avisaría de un
+     choque donde no se ha perdido absolutamente nada. Un aviso que salta sin
+     motivo se aprende a ignorar, y entonces no avisa del que importa. */
+  function sinMarca(r) {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return canon(r);
+    var copia = {};
+    Object.keys(r).forEach(function (k) { if (k !== 'tocado') copia[k] = r[k]; });
+    return canon(copia);
+  }
+
+  /* Cuál de los dos se queda, y si al elegir se ha perdido algo.
+
+     Choque = los dos lados dicen cosas DISTINTAS y los dos se tocaron de
+     verdad. Si el perdedor venía sin marca, es de antes de que esto
+     existiera y el ganador ya lo sustituyó: avisar de eso sería ruido en
+     cada primera fusión. */
+  function elige(a, b) {
+    if (a === undefined) return { r: b, choque: false };
+    if (b === undefined) return { r: a, choque: false };
+    var ta = cuando(a), tb = cuando(b);
+    var ca = sinMarca(a), cb = sinMarca(b);
+    // Lo mismo por los dos lados: se queda la marca más nueva y no hay choque.
+    if (ca === cb) return { r: ta >= tb ? a : b, choque: false };
+    if (ta !== tb) return { r: ta > tb ? a : b, choque: ta > 0 && tb > 0 };
+    // Empate de reloj y contenidos distintos: manda el contenido, para que los
+    // dos dispositivos elijan lo mismo. Y eso siempre es un choque.
+    return { r: ca < cb ? a : b, choque: true };
+  }
+
+  /* ---- juntar dos mapas de registros ------------------------------------ */
+
+  function mezclaMapa(a, b, qué, choques) {
+    var out = {}, llaves = {};
+    Object.keys(a || {}).forEach(function (k) { llaves[k] = true; });
+    Object.keys(b || {}).forEach(function (k) { llaves[k] = true; });
+    Object.keys(llaves).sort().forEach(function (k) {
+      var r = elige(a ? a[k] : undefined, b ? b[k] : undefined);
+      out[k] = r.r;
+      if (r.choque) choques.push({ qué: qué, clave: k });
+    });
+    return out;
+  }
+
+  function porId(lista) {
+    var m = {};
+    (Array.isArray(lista) ? lista : []).forEach(function (x) {
+      if (x && typeof x === 'object' && x.id) m[x.id] = x;
+    });
+    return m;
+  }
+  function aLista(mapa) {
+    return Object.keys(mapa).sort().map(function (k) { return mapa[k]; });
+  }
+
+  /* ---- las notas de los borrados ---------------------------------------- */
+
+  /* Las notas son { 'sesion:2026-09-14': cuándo }. Se juntan quedándose con
+     la más reciente de cada una: si un lado borró y el otro volvió a borrar,
+     la fecha buena es la última. */
+  function mezclaNotas(a, b) {
+    var out = {};
+    [a || {}, b || {}].forEach(function (m) {
+      Object.keys(m).forEach(function (k) {
+        var t = Number(m[k]) || 0;
+        if (t > (out[k] || 0)) out[k] = t;
+      });
+    });
+    return out;
+  }
+
+  function podaNotas(notas, ahora) {
+    var t = ahora == null ? Date.now() : ahora;
+    var vivas = {};
+    Object.keys(notas).forEach(function (k) {
+      if (t - notas[k] < DIAS_NOTA * DIA) vivas[k] = notas[k];
+    });
+    /* Y si aun así son demasiadas, se van las más viejas. Un tope que no
+       existe es un almacén que un día no admite nada más. */
+    var ks = Object.keys(vivas);
+    if (ks.length > TOPE_NOTAS) {
+      ks.sort(function (x, y) { return vivas[y] - vivas[x]; })
+        .slice(TOPE_NOTAS).forEach(function (k) { delete vivas[k]; });
+    }
+    return vivas;
+  }
+
+  /* Quitar lo borrado. Un registro sobrevive a su nota si se volvió a tocar
+     DESPUÉS de borrarlo: eso es «lo borré y luego lo volví a crear», y lo que
+     vale es lo último que hizo la persona. */
+  function aplicaNotas(mapa, notas, prefijo) {
+    var out = {};
+    Object.keys(mapa).forEach(function (k) {
+      var nota = notas[prefijo + k];
+      if (nota && cuando(mapa[k]) <= nota) return;
+      out[k] = mapa[k];
+    });
+    return out;
+  }
+
+  /* ---- la plantilla, que tiene una capa más ------------------------------
+
+     { actual, actualTocado, temporadas: { '2026/27': [jugador…] } }
+
+     La temporada en curso es un dato suelto, no un registro, así que lleva su
+     propia marca. En empate gana la más adelantada: las temporadas solo van
+     hacia delante, y así los dos lados eligen lo mismo. */
+  function mezclaPlantilla(a, b, notas, choques) {
+    a = a || {}; b = b || {};
+    var ta = Number(a.actualTocado) || 0, tb = Number(b.actualTocado) || 0;
+    var actual;
+    if (a.actual && !b.actual) actual = a.actual;
+    else if (b.actual && !a.actual) actual = b.actual;
+    else if (ta !== tb) actual = ta > tb ? a.actual : b.actual;
+    else actual = (a.actual || '') > (b.actual || '') ? a.actual : b.actual;
+
+    var temps = {};
+    Object.keys(a.temporadas || {}).forEach(function (t) { temps[t] = true; });
+    Object.keys(b.temporadas || {}).forEach(function (t) { temps[t] = true; });
+
+    var out = { actual: actual || '', actualTocado: Math.max(ta, tb), temporadas: {} };
+    Object.keys(temps).sort().forEach(function (t) {
+      var m = mezclaMapa(porId((a.temporadas || {})[t]), porId((b.temporadas || {})[t]),
+                         'jugador', choques);
+      out.temporadas[t] = aLista(aplicaNotas(m, notas, 'jugador:' + t + ':'));
+    });
+    return out;
+  }
+
+  /* ---- la fusión entera --------------------------------------------------
+
+     Entran dos almacenes con la misma forma y sale uno. No toca nada de
+     fuera: ni almacén local, ni red, ni pantalla. Por eso se puede probar
+     entero sin navegador, y por eso las pruebas pueden lanzarle mil casos al
+     azar buscando que se descoloque. */
+  function fusiona(local, remoto, ahora) {
+    local = local || {}; remoto = remoto || {};
+    var choques = [];
+    var notas = podaNotas(mezclaNotas(local.borrados, remoto.borrados), ahora);
+
+    var asistencia = aplicaNotas(
+      mezclaMapa(local.asistencia, remoto.asistencia, 'asistencia', choques),
+      notas, 'asistencia:');
+    var sesiones = aplicaNotas(
+      mezclaMapa(local.sesiones, remoto.sesiones, 'sesion', choques),
+      notas, 'sesion:');
+    var partidos = aplicaNotas(
+      mezclaMapa(porId(local.partidos), porId(remoto.partidos), 'partido', choques),
+      notas, 'partido:');
+
+    return {
+      datos: {
+        squad: mezclaPlantilla(local.squad, remoto.squad, notas, choques),
+        asistencia: asistencia,
+        sesiones: sesiones,
+        partidos: aLista(partidos),
+        borrados: notas
+      },
+      /* Ordenados para que dos dispositivos que fusionen lo mismo cuenten lo
+         mismo, y sin repetidos. */
+      choques: choques.sort(function (x, y) {
+        return (x.qué + x.clave).localeCompare(y.qué + y.clave);
+      })
+    };
+  }
+
+  /* Si la fusión no ha cambiado nada de lo que había aquí, no hay por qué
+     escribir ni volver a subir. Sin esto, cada sincronización dispararía la
+     siguiente. */
+  function igual(a, b) { return canon(a) === canon(b); }
+
+  var casa = typeof window !== 'undefined' ? window : globalThis;
+  casa.PTFusion = {
+    fusiona: fusiona,
+    igual: igual,
+    canon: canon,
+    DIAS_NOTA: DIAS_NOTA,
+    TOPE_NOTAS: TOPE_NOTAS
+  };
+})();
+
+</script>
+<script>
+/* =============================================================================
    Mi equipo · asistencia · estadísticas
 
    Cuatro cosas que van juntas:
@@ -3889,6 +4518,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   var LLAVE_ASISTENCIA = 'pt-asistencia';
   var LLAVE_SESIONES   = 'pt-sesiones';
   var LLAVE_PARTIDOS   = 'pt-partidos';
+  var LLAVE_BORRADOS   = 'pt-borrados';
   var TOPE_JUGADORES   = 40;          // en activo, que es lo que se convoca
   var TOPE_GUARDADOS   = 90;          // con las bajas, que se conservan por su historial
   var TOPE_EJERCICIOS  = 30;          // en una sesión; más que eso no es un entrenamiento
@@ -3909,9 +4539,89 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       return (v && typeof v === 'object') ? v : porDefecto;
     } catch (e) { return porDefecto; }
   }
+  /* Todas las escrituras de este archivo pasan por aquí, y eso es lo que
+     permite avisar de un cambio sin tener que acordarse de hacerlo en las
+     veinte funciones que cambian algo. Una llamada que se olvida es un cambio
+     que no se sube, y eso no se nota hasta que falta en el otro dispositivo. */
+  var oyentes = [];
+  var callado = false;
+
   function escribe(llave, valor) {
-    try { localStorage.setItem(llave, JSON.stringify(valor)); return true; }
+    try { localStorage.setItem(llave, JSON.stringify(valor)); }
     catch (e) { return false; }
+    if (!callado) oyentes.forEach(function (f) { try { f(llave); } catch (e) {} });
+    return true;
+  }
+
+  /* ---- la marca de cuándo se tocó, y la nota de lo que se borró ----------
+
+     Esto es lo único que la fusión necesita de aquí, y es poco: cada
+     registro lleva un «tocado» y cada borrado deja una nota. Con eso,
+     app/fusion.js puede juntar lo de dos dispositivos sin que uno se lleve
+     por delante al otro. Sin esto, la única regla posible sería «gana el
+     último que guarde», que es la que pierde trabajo.
+
+     Un registro SIN marca es de antes de que esto existiera y vale cero para
+     la fusión: cualquier cambio de verdad le gana. Por eso no hay que migrar
+     el almacén de nadie. */
+
+  function marcaAhora() { return Date.now(); }
+
+  /* ¿Ha cambiado algo de verdad, o es el mismo registro guardado otra vez?
+
+     Se compara sin la marca, porque abrir un día y cerrarlo sin tocar nada no
+     es un cambio. Vale JSON.stringify tal cual —sin ordenar claves como hace
+     la fusión— porque los dos lados salen del MISMO saneador de este archivo
+     y llevan las claves en el mismo orden. Comparar entre dispositivos es
+     otra cosa, y de eso se encarga fusion.js. */
+  function sinMarca(r) {
+    if (!r || typeof r !== 'object') return JSON.stringify(r);
+    var copia = {};
+    Object.keys(r).forEach(function (k) { if (k !== 'tocado') copia[k] = r[k]; });
+    return JSON.stringify(copia);
+  }
+  function mismoContenido(a, b) { return !!a && !!b && sinMarca(a) === sinMarca(b); }
+
+  /* Hereda la marca si nada cambió; pone una nueva si sí. Devuelve el mismo
+     objeto que le pasan, ya marcado. */
+  function marca(nuevo, viejo, t) {
+    nuevo.tocado = mismoContenido(nuevo, viejo) && viejo.tocado
+                 ? viejo.tocado : (t || marcaAhora());
+    return nuevo;
+  }
+
+  /* La marca tal y como venga del almacén: un número, positivo, o nada. Cada
+     saneador la deja pasar con esto, que si no la primera lectura la borraría
+     y el registro volvería a parecer «de antes». */
+  function laMarca(v) {
+    var t = Number(v);
+    return isFinite(t) && t > 0 ? t : null;
+  }
+
+  function borrados() {
+    var b = lee(LLAVE_BORRADOS, {});
+    var out = {};
+    Object.keys(b).forEach(function (k) {
+      var t = Number(b[k]);
+      if (isFinite(t) && t > 0) out[k] = t;
+    });
+    return out;
+  }
+
+  /* Anotar un borrado. Sin esto, juntar dos dispositivos resucita lo borrado:
+     lo quitas en el móvil, el ordenador todavía lo tiene, se juntan y vuelve.
+
+     También anotan las podas —los días viejos que se tiran para que el
+     almacén no crezca sin fin—, y eso puede chirriar: es limpieza de casa, no
+     una decisión de nadie. Pero si no dejaran nota, un dispositivo podaría, el
+     otro se lo devolvería al fusionar, el primero volvería a podar, y así para
+     siempre. Como todos los dispositivos podan con la misma regla, lo que uno
+     tira lo iba a tirar el otro igual. */
+  function anota(claves, t) {
+    var b = borrados();
+    var cuando = t || marcaAhora();
+    (Array.isArray(claves) ? claves : [claves]).forEach(function (k) { b[k] = cuando; });
+    return escribe(LLAVE_BORRADOS, b);
   }
 
   /* ---- temporadas -------------------------------------------------------
@@ -3962,6 +4672,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       dorsal: dorsal, nombre: nombre, posicion: pos
     };
     if (j.baja) s.baja = true;
+    var t = laMarca(j.tocado);
+    if (t) s.tocado = t;
     return s;
   }
   function nuevoId() {
@@ -3973,6 +4685,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var out = { actual: temporadaDe(), temporadas: {} };
     if (!p) return out;
     if (temporadaValida(p.actual)) out.actual = p.actual;
+    // La temporada en curso es un dato suelto, no un registro: lleva su marca
+    // aparte para que la fusión también sepa cuál de las dos es la reciente.
+    var ta = laMarca(p.actualTocado);
+    if (ta) out.actualTocado = ta;
     var t = p.temporadas;
     if (t && typeof t === 'object') {
       Object.keys(t).forEach(function (k) {
@@ -4030,12 +4746,27 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function guardaPlantilla(temp, lista) {
     var p = plantillaEntera();
     if (!temp) temp = p.actual;
-    var vistos = {};
-    p.temporadas[temp] = lista.map(saneaJugador).filter(function (j) {
+    var antes = {};
+    (p.temporadas[temp] || []).forEach(function (j) { antes[j.id] = j; });
+
+    var vistos = {}, t = marcaAhora();
+    var nueva = lista.map(saneaJugador).filter(function (j) {
       if (!j || vistos[j.id]) return false;
       vistos[j.id] = true;
       return true;
     }).slice(0, TOPE_GUARDADOS);
+    nueva.forEach(function (j) { marca(j, antes[j.id], t); });
+
+    /* El que estaba y ya no está, se ha borrado. Solo llega aquí el que no
+       tenía historial: al que sí lo tiene se le da de baja, y una baja es un
+       cambio del registro, no un borrado. */
+    var quedan = {};
+    nueva.forEach(function (j) { quedan[j.id] = true; });
+    var idos = Object.keys(antes).filter(function (id) { return !quedan[id]; })
+      .map(function (id) { return 'jugador:' + temp + ':' + id; });
+    if (idos.length) anota(idos, t);
+
+    p.temporadas[temp] = nueva;
     return escribe(LLAVE_PLANTILLA, p);
   }
 
@@ -4050,7 +4781,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var choca = j.dorsal && lista.some(function (o) { return !o.baja && o.dorsal === j.dorsal; });
     lista.push(j);
     if (!guardaPlantilla(temp, lista)) return { ok: false, porque: 'no-cabe' };
-    return { ok: true, jugador: j, dorsalRepetido: !!choca };
+    /* El que ha quedado guardado, no el que iba a guardarse. Son distintos:
+       quien guarda le pone la marca de cuándo se tocó. Devolver el de antes
+       significaba entregar un jugador sin marca que parecía el bueno, y quien
+       se fiara de él estaría mirando algo que no está en ningún sitio. */
+    return { ok: true, jugador: buscaJugador(j.id) || j, dorsalRepetido: !!choca };
   }
 
   /* Quitar a uno que ya ha entrenado no lo borra: lo da de baja. Si se borrara,
@@ -4084,6 +4819,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function cambiaTemporada(temp) {
     if (!temporadaValida(temp)) return false;
     var p = plantillaEntera();
+    if (p.actual !== temp) p.actualTocado = marcaAhora();
     p.actual = temp;
     if (!p.temporadas[temp]) p.temporadas[temp] = [];
     return escribe(LLAVE_PLANTILLA, p);
@@ -4113,6 +4849,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         temporada: temporadaValida(d.temporada) ? d.temporada : temporadaDe(new Date(f + 'T12:00:00')),
         presentes: d.presentes.filter(function (x) { return typeof x === 'string'; })
       };
+      var t = laMarca(d.tocado);
+      if (t) out[f].tocado = t;
     });
     return out;
   }
@@ -4131,14 +4869,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var i = dentro.indexOf(id);
     if (viene && i < 0) dentro.push(id);
     if (!viene && i >= 0) dentro.splice(i, 1);
-    a[f] = { temporada: temporadaActual(), presentes: dentro };
+    a[f] = marca({ temporada: temporadaActual(), presentes: dentro }, a[f]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
 
   function ponAsistencia(ids, fecha) {
-    var a = asistenciaEntera();
-    a[hoyISO(fecha)] = { temporada: temporadaActual(), presentes: ids.slice() };
+    var a = asistenciaEntera(), f = hoyISO(fecha);
+    a[f] = marca({ temporada: temporadaActual(), presentes: ids.slice() }, a[f]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
@@ -4151,11 +4889,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fechaISO))) return false;
     var a = asistenciaEntera();
     var s = sesionesEnteras()[fechaISO];
-    a[fechaISO] = {
+    a[fechaISO] = marca({
       temporada: (s && s.temporada) || (a[fechaISO] && a[fechaISO].temporada) ||
                  temporadaDe(new Date(fechaISO + 'T12:00:00')),
       presentes: ids.slice()
-    };
+    }, a[fechaISO]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
@@ -4168,10 +4906,14 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return jugadores().map(function (j) { return j.id; });
   }
 
-  // El historial no crece para siempre: más de un año atrás no le sirve a nadie.
+  /* El historial no crece para siempre: más de un año atrás no le sirve a
+     nadie. Lo que se tira deja nota, igual que un borrado a mano: si no, el
+     dispositivo que ha podado se lo volvería a encontrar al fusionar con el
+     que todavía no ha podado, lo podaría otra vez, y así sin parar. */
   function podaAsistencia(a) {
-    var fs = Object.keys(a).sort();
-    while (fs.length > TOPE_DIAS) delete a[fs.shift()];
+    var fs = Object.keys(a).sort(), idos = [];
+    while (fs.length > TOPE_DIAS) { var f = fs.shift(); delete a[f]; idos.push('asistencia:' + f); }
+    if (idos.length) anota(idos);
   }
 
   /* ---- las sesiones ------------------------------------------------------
@@ -4242,13 +4984,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         ejercicios: (Array.isArray(d.ejercicios) ? d.ejercicios : [])
           .map(saneaEjercicio).filter(Boolean).slice(0, TOPE_EJERCICIOS)
       };
+      var t = laMarca(d.tocado);
+      if (t) out[f].tocado = t;
     });
     return out;
   }
 
   function escribeSesiones(s) {
-    var fs = Object.keys(s).sort();
-    while (fs.length > TOPE_DIAS) delete s[fs.shift()];
+    var fs = Object.keys(s).sort(), idos = [];
+    while (fs.length > TOPE_DIAS) { var f = fs.shift(); delete s[f]; idos.push('sesion:' + f); }
+    if (idos.length) anota(idos);           // ver podaAsistencia: lo mismo
     return escribe(LLAVE_SESIONES, s);
   }
 
@@ -4297,15 +5042,28 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function guardaSesion(fecha, cambios) {
     var f = /^\d{4}-\d{2}-\d{2}$/.test(String(fecha)) ? fecha : hoyISO();
     var s = sesionesEnteras();
-    var d = s[f] || { temporada: temporadaDe(new Date(f + 'T12:00:00')),
-                      nombre: '', ejercicios: [] };
+    var viejo = s[f] || null;
+    /* Copia, no el mismo objeto: si «d» fuera «s[f]», compararlo luego contra
+       «s[f]» para saber si algo ha cambiado daría siempre que no, y el día
+       nunca volvería a marcarse. Un fallo que no se ve: guardas, parece que
+       se guarda, y al sincronizar gana la copia del otro dispositivo. */
+    var d = viejo
+      ? { temporada: viejo.temporada, nombre: viejo.nombre,
+          ejercicios: viejo.ejercicios.slice(), tocado: viejo.tocado }
+      : { temporada: temporadaDe(new Date(f + 'T12:00:00')), nombre: '', ejercicios: [] };
     if (cambios.nombre !== undefined) d.nombre = String(cambios.nombre).trim().slice(0, 80);
     if (cambios.ejercicios !== undefined) {
       d.ejercicios = cambios.ejercicios.map(saneaEjercicio).filter(Boolean).slice(0, TOPE_EJERCICIOS);
     }
     // Una sesión sin nombre y sin ejercicios no es nada: se borra en vez de
-    // dejar una ficha vacía ocupando sitio en el diario.
-    if (!d.nombre && !d.ejercicios.length) delete s[f]; else s[f] = d;
+    // dejar una ficha vacía ocupando sitio en el diario. Y se anota, que si
+    // no el otro dispositivo la devolvería al fusionar.
+    if (!d.nombre && !d.ejercicios.length) {
+      if (viejo) anota('sesion:' + f);
+      delete s[f];
+    } else {
+      s[f] = marca(d, viejo);
+    }
     return escribeSesiones(s);
   }
 
@@ -4330,7 +5088,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     if (!r.ok) return r;
     var a = asistenciaEntera();
     if (!a[f] && datos.quienes && datos.quienes.length) {
-      a[f] = { temporada: temporadaActual(), presentes: datos.quienes.slice() };
+      a[f] = marca({ temporada: temporadaActual(), presentes: datos.quienes.slice() }, null);
       podaAsistencia(a);
       escribe(LLAVE_ASISTENCIA, a);
     }
@@ -4440,7 +5198,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var f = /^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha)) ? p.fecha : null;
     if (!f) return null;                         // sin fecha no se puede ordenar
     var vistos = {};
-    return {
+    var out = {
       id: /^[a-z0-9]{4,16}$/.test(String(p.id || '')) ? p.id : nuevoId(),
       fecha: f,
       temporada: temporadaValida(p.temporada) ? p.temporada
@@ -4459,6 +5217,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           return true;
         }).slice(0, TOPE_GUARDADOS)
     };
+    var t = laMarca(p.tocado);
+    if (t) out.tocado = t;
+    return out;
   }
 
   function partidosEnteros() {
@@ -4470,6 +5231,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function escribePartidos(l) {
     // Del más reciente al más antiguo, y si se pasa del tope se van los viejos.
     var orden = l.slice().sort(porFecha);
+    var idos = orden.slice(TOPE_PARTIDOS).map(function (p) { return 'partido:' + p.id; });
+    if (idos.length) anota(idos);           // ver podaAsistencia: lo mismo
     return escribe(LLAVE_PARTIDOS, orden.slice(0, TOPE_PARTIDOS));
   }
 
@@ -4516,6 +5279,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     var p = saneaPartido(mezcla);
     if (!p) return { ok: false, porque: 'sin-fecha' };
+    marca(p, viejo);
     var otros = l.filter(function (x) { return x.id !== p.id; });
     if (!escribePartidos(otros.concat([p]))) return { ok: false, porque: 'no-cabe' };
     return { ok: true, partido: p };
@@ -4525,6 +5289,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var l = partidosEnteros();
     var quedan = l.filter(function (p) { return p.id !== id; });
     if (quedan.length === l.length) return false;
+    anota('partido:' + id);
     return escribePartidos(quedan);
   }
 
@@ -5315,6 +6080,54 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     return { season: temporadaActual() };
   }
 
+  /* ---- lo que ve la sincronización ---------------------------------------
+
+     Todo lo del equipo en un objeto, con la forma que espera app/fusion.js, y
+     la puerta para volver a meterlo ya fusionado. Son las dos únicas funciones
+     que la sincronización necesita de aquí: lo demás —qué marca cada cosa,
+     qué deja nota— es asunto de este archivo. */
+
+  function todo() {
+    var p = plantillaEntera();
+    return {
+      squad: { actual: p.actual, actualTocado: p.actualTocado || 0,
+               temporadas: p.temporadas },
+      asistencia: asistenciaEntera(),
+      sesiones: sesionesEnteras(),
+      partidos: partidosEnteros(),
+      borrados: borrados()
+    };
+  }
+
+  /* Meter lo fusionado. No poda: podar aquí volvería a dejar notas, que
+     cambiarían lo que hay que subir, que provocaría otra fusión. La poda ya
+     llegará con el siguiente cambio de la persona, que es cuando toca. */
+  function traga(datos) {
+    if (!datos || typeof datos !== 'object') return false;
+    /* Callado a propósito: meter lo que acaba de bajar no es un cambio de la
+       persona. Si avisara, el aviso dispararía otra subida, que bajaría otra
+       vez lo mismo, y eso no para. */
+    callado = true;
+    try { return metelo(datos); } finally { callado = false; }
+  }
+
+  function metelo(datos) {
+    var ok = true;
+    if (datos.squad) {
+      var s = datos.squad;
+      ok = escribe(LLAVE_PLANTILLA, {
+        actual: temporadaValida(s.actual) ? s.actual : temporadaDe(),
+        actualTocado: laMarca(s.actualTocado) || 0,
+        temporadas: (s.temporadas && typeof s.temporadas === 'object') ? s.temporadas : {}
+      }) && ok;
+    }
+    if (datos.asistencia) ok = escribe(LLAVE_ASISTENCIA, datos.asistencia) && ok;
+    if (datos.sesiones)   ok = escribe(LLAVE_SESIONES, datos.sesiones) && ok;
+    if (datos.partidos)   ok = escribe(LLAVE_PARTIDOS, datos.partidos) && ok;
+    if (datos.borrados)   ok = escribe(LLAVE_BORRADOS, datos.borrados) && ok;
+    return ok;
+  }
+
   window.PTEquipo = {
     POSICIONES: POSICIONES,
     TOPE_JUGADORES: TOPE_JUGADORES,
@@ -5369,7 +6182,400 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     estadisticas: estadisticas,
     FASES: FASES,
     equilibrio: equilibrio,
-    metaDeHoy: metaDeHoy
+    metaDeHoy: metaDeHoy,
+
+    todo: todo,
+    traga: traga,
+    borrados: borrados,
+    alCambiar: function (f) { if (typeof f === 'function') oyentes.push(f); }
+  };
+})();
+
+</script>
+<script>
+/* =============================================================================
+   La sincronización · que tu cuenta sea la misma en todas partes
+
+   Junta las tres piezas que ya existen y no hace nada por su cuenta:
+
+     app/cofre.js   cifra y descifra, y no sabe qué hay dentro
+     app/fusion.js  junta dos copias, y no sabe de dónde vienen
+     app/nube.js    habla con el servidor, y no entiende lo que sube
+
+   Aquí está el orden en que se llaman, que es lo único que faltaba.
+
+   ---------------------------------------------------------------------------
+   EL CICLO, ENTERO
+
+     1. Bajar la fila del cofre.
+     2. Descifrarla con la clave de esta cuenta. Sale lo que hay en el
+        servidor, o un vacío si es la primera vez.
+     3. Fusionarlo con lo de este dispositivo, registro a registro.
+     4. Si el resultado no es lo que había aquí, se guarda y se repinta.
+     5. Si el resultado no es lo que había allí, se cifra y se sube… pero solo
+        si nadie ha escrito mientras tanto. Si alguien lo hizo, se vuelve al
+        paso 1 con lo nuevo.
+
+   El paso 5 es el que parece de más y no lo es. Sin él: el móvil y el
+   ordenador se bajan la misma versión, los dos fusionan bien, los dos suben, y
+   el segundo borra lo que había traído el primero. La fusión no puede
+   arreglarlo porque ya no queda con qué fusionar.
+
+   ---------------------------------------------------------------------------
+   CUÁNDO SE LANZA
+
+   Al entrar, al volver a la aplicación después de dejarla, al recuperar la
+   conexión, y a los pocos segundos de cualquier cambio. Lo del cambio va con
+   retraso a propósito: escribir el nombre de una sesión son veinte cambios, y
+   no son veinte subidas.
+
+   Si se cierra la pestaña dentro de esos segundos, el cambio se queda aquí
+   hasta la próxima vez que se abra la aplicación, que sincroniza. No se pierde
+   nada; puede tardar.
+
+   ---------------------------------------------------------------------------
+   LA LLAVE SE QUEDA EN ESTE DISPOSITIVO, Y HAY QUE DECIRLO
+
+   Al entrar se guarda aquí la clave que abre el cofre. Eso tiene un precio y
+   una razón.
+
+   El precio: quien tenga este dispositivo desbloqueado y abra el navegador
+   puede leer la clave. No es peor que la sesión, que ya está ahí al lado y
+   abre la cuenta entera, pero es verdad y no se esconde.
+
+   La razón: sin esto, olvidar la contraseña sería perder la temporada. Con
+   cifrado de extremo a extremo no hay otra: el servidor no puede devolver
+   unos datos que no puede leer. Guardándola, quien olvida la contraseña la
+   cambia por correo, abre la aplicación en un dispositivo donde ya había
+   entrado, y esta vuelve a envolver la clave con la nueva. Solo se pierde
+   quien olvida la contraseña Y no tiene ningún dispositivo abierto.
+
+   Eso hay que decirlo en pantalla con estas palabras, no en la letra pequeña.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var LLAVE  = 'pt-llave';      // la clave de este dispositivo
+  var ESTADO = 'pt-sincro';     // qué se sabe de la última vez
+  var QUIERE = 'pt-sincro-si';  // si esta persona lo ha encendido
+
+  var ESPERA_CAMBIO = 2500;     // lo que se deja pasar tras un cambio
+  var REINTENTOS    = [30000, 120000, 600000];
+  var VUELTAS_CHOQUE = 3;       // veces que se reintenta si alguien se adelantó
+
+  var C = null, F = null, N = null, E = null;   // las piezas, al arrancar
+  var clave = null;             // la clave maestra, en memoria
+  var cuenta = null;            // de quién es
+  var enMarcha = false, pendiente = false, fallos = 0;
+  var reloj = null, relojReintento = null;
+  var oyentes = [];
+  var ultimo = { estado: 'apagado', cuando: 0, choques: [] };
+
+  /* Las piezas se enganchan aquí y no en «arranca», porque el interruptor de
+     Tu cuenta puede encender esto sin que se haya arrancado nunca —alguien que
+     dijo que no la primera vez y cambia de idea— y entonces «alEntrar» se
+     encontraba sin nube a la que llamar. */
+  function hay() {
+    if (!(window.PTCofre && window.PTCofre.hay() && window.PTFusion &&
+          window.PTEquipo && window.PTNube && window.PTNube.hay())) return false;
+    C = window.PTCofre; F = window.PTFusion; N = window.PTNube; E = window.PTEquipo;
+    return true;
+  }
+
+  function avisa(estado, extra) {
+    ultimo = {
+      estado: estado,
+      cuando: extra && extra.cuando !== undefined ? extra.cuando : ultimo.cuando,
+      choques: extra && extra.choques ? extra.choques : ultimo.choques,
+      datosNuevos: !!(extra && extra.datosNuevos)
+    };
+    oyentes.forEach(function (f) { try { f(ultimo); } catch (e) {} });
+  }
+
+  /* ---- encendido o apagado, y lo decide la persona -----------------------
+
+     Esto viene apagado. No por prudencia de manual: hasta ahora la aplicación
+     prometía, por escrito, que los nombres de los críos no salían del
+     dispositivo. Encender esto en una actualización, sin preguntar, sería
+     romper esa promesa a espaldas de quien se fio de ella —y da igual que
+     ahora vayan cifrados: lo que cambió es dónde están.
+
+     Así que se pregunta una vez, con las palabras claras, y quien dice que no
+     sigue exactamente como estaba. */
+
+  function quiere() {
+    try {
+      var v = localStorage.getItem(QUIERE);
+      return v === 'si' || v === 'no' ? v : null;   // null = todavía no se ha preguntado
+    } catch (e) { return null; }
+  }
+
+  function enciende(contraseña) {
+    try { localStorage.setItem(QUIERE, 'si'); } catch (e) {}
+    return alEntrar(contraseña);
+  }
+
+  /* Apagarlo borra la fila del servidor. Quien apaga esto está diciendo «quita
+     mis datos de ahí», no «deja de mirarlos»: dejar el bloque guardado por si
+     vuelve sería no haberle hecho caso. Lo de este dispositivo no se toca. */
+  function apaga() {
+    try { localStorage.setItem(QUIERE, 'no'); } catch (e) {}
+    var fin = (hay() && N.dentro()) ? N.borraCofre().catch(function () { return false; })
+                                    : Promise.resolve(false);
+    return fin.then(function (r) {
+      olvidaLlave();
+      avisa('apagado');
+      return r;
+    });
+  }
+
+  /* ---- la llave de este dispositivo ------------------------------------- */
+
+  function leeGuardada() {
+    try { return JSON.parse(localStorage.getItem(LLAVE) || 'null'); }
+    catch (e) { return null; }
+  }
+  function guardaLlave(k, quien) {
+    clave = k; cuenta = quien;
+    return C.maestraATexto(k).then(function (txt) {
+      try { localStorage.setItem(LLAVE, JSON.stringify({ cuenta: quien, mk: txt })); }
+      catch (e) {}
+      return k;
+    });
+  }
+  function olvidaLlave() {
+    clave = null; cuenta = null;
+    try { localStorage.removeItem(LLAVE); localStorage.removeItem(ESTADO); } catch (e) {}
+  }
+
+  /* La clave guardada aquí, solo si es de esta cuenta. Lo de la cuenta importa:
+     si alguien entra con otro correo en el mismo navegador, la clave que hay
+     guardada no es la suya, y usarla envolvería el cofre de uno con la llave
+     del otro. */
+  function recupera(quien) {
+    var g = leeGuardada();
+    if (!g || !g.mk || g.cuenta !== quien) return Promise.resolve(null);
+    return C.maestraDeTexto(g.mk).then(function (k) { return k; },
+                                       function () { return null; });
+  }
+
+  /* ---- entrar ------------------------------------------------------------
+
+     Se llama justo después de entrar o de registrarse, que es el único
+     momento en el que la contraseña está a mano. De la contraseña sale la
+     clave, y de ahí en adelante ya no hace falta. */
+  function alEntrar(contraseña) {
+    if (!hay()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    return N.quienSoy().then(function (p) {
+      if (!p) return { ok: false, porque: 'sin-cuenta' };
+      return N.cofre().then(function (fila) {
+        if (!fila) return estrena(contraseña, p.id);
+        return C.abreConContraseña(contraseña, fila.sal, fila.maestra)
+          .then(function (k) {
+            if (k) return guardaLlave(k, p.id).then(function () { return { ok: true }; });
+            return reenvuelveConLaNueva(contraseña, fila, p.id);
+          });
+      });
+    }).then(function (r) {
+      if (r.ok) { avisa('listo'); sincroniza(); }
+      else avisa(r.porque === 'cerrado' ? 'cerrado' : 'apagado');
+      return r;
+    }, function () {
+      avisa('sin-red');
+      return { ok: false, porque: 'sin-red' };
+    });
+  }
+
+  function estrena(contraseña, quien) {
+    return C.estrena(contraseña).then(function (nuevo) {
+      return N.estrenaCofre({ sal: nuevo.sal, maestra: nuevo.maestra, bloque: '' })
+        .then(function () { return guardaLlave(nuevo.clave, quien); })
+        .then(function () { return { ok: true, nuevo: true }; });
+    });
+  }
+
+  /* La contraseña no abre el cofre. Eso pasa cuando se ha cambiado en otro
+     sitio —o se ha recuperado por correo—, y es justo el caso que esto viene a
+     salvar: si este dispositivo tiene la clave, se vuelve a envolver con la
+     contraseña nueva y no se pierde nada. */
+  function reenvuelveConLaNueva(contraseña, fila, quien) {
+    return recupera(quien).then(function (k) {
+      if (!k) return { ok: false, porque: 'cerrado' };
+      /* Antes de tocar nada, comprobar que esta clave abre de verdad ESTE
+         cofre. Un cofre recién estrenado no tiene bloque que abrir, y
+         entonces vale con que la clave guardada sea de esta cuenta. */
+      var comprueba = fila.bloque
+        ? C.abre(k, fila.bloque).then(function (v) { return v !== null; })
+        : Promise.resolve(true);
+      return comprueba.then(function (vale) {
+        if (!vale) return { ok: false, porque: 'cerrado' };
+        return C.reenvuelve(k, contraseña).then(function (n) {
+          return N.guardaCofre({ sal: n.sal, maestra: n.maestra }, fila.version)
+            .then(function (guardada) {
+              if (!guardada) return { ok: false, porque: 'a-la-vez' };
+              return guardaLlave(k, quien).then(function () {
+                return { ok: true, reenvuelto: true };
+              });
+            });
+        });
+      });
+    });
+  }
+
+  /* Cambiar la contraseña desde dentro de la aplicación, con la sesión
+     abierta. Hay que volver a envolver la clave o el cofre se queda cerrado
+     con la contraseña vieja y el próximo dispositivo que entre no lo abre. */
+  function alCambiarContraseña(nueva) {
+    if (!clave) return Promise.resolve({ ok: false, porque: 'cerrado' });
+    return N.cofre().then(function (fila) {
+      if (!fila) return { ok: false, porque: 'sin-cofre' };
+      return C.reenvuelve(clave, nueva).then(function (n) {
+        return N.guardaCofre({ sal: n.sal, maestra: n.maestra }, fila.version)
+          .then(function (g) { return g ? { ok: true } : { ok: false, porque: 'a-la-vez' }; });
+      });
+    });
+  }
+
+  /* ---- el ciclo ---------------------------------------------------------- */
+
+  function sincroniza(vuelta) {
+    if (!hay() || !clave || !N.dentro()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    if (enMarcha) { pendiente = true; return Promise.resolve({ ok: false, porque: 'ocupado' }); }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      avisa('sin-red');
+      return Promise.resolve({ ok: false, porque: 'sin-red' });
+    }
+    enMarcha = true;
+    avisa('sincronizando');
+
+    return N.cofre().then(function (fila) {
+      if (!fila) return { ok: false, porque: 'sin-cofre' };
+      var abrir = fila.bloque ? C.abre(clave, fila.bloque) : Promise.resolve({});
+      return abrir.then(function (remoto) {
+        // null es «esta clave no abre esto». No es un error de red ni de
+        // programa: es otra contraseña, y hay que decirlo, no reintentar.
+        if (remoto === null) { cerrado(); return { ok: false, porque: 'cerrado' }; }
+
+        var local = E.todo();
+        var r = F.fusiona(local, remoto);
+        var traido = !F.igual(r.datos, local);
+        if (traido) E.traga(r.datos);
+
+        if (F.igual(r.datos, remoto)) {
+          return fin(r.choques, traido);
+        }
+        return C.cierra(clave, r.datos).then(function (bloque) {
+          return N.guardaCofre({ bloque: bloque }, fila.version).then(function (g) {
+            /* No ha escrito: alguien subió entre nuestra bajada y nuestra
+               subida. Se vuelve a empezar con lo suyo ya dentro. No es un
+               fallo y no se le cuenta a nadie. */
+            if (!g) {
+              if ((vuelta || 0) >= VUELTAS_CHOQUE) return { ok: false, porque: 'ocupado' };
+              enMarcha = false;
+              return sincroniza((vuelta || 0) + 1);
+            }
+            return fin(r.choques, traido);
+          });
+        });
+      });
+    }).then(function (r) {
+      enMarcha = false;
+      if (pendiente) { pendiente = false; setTimeout(sincroniza, 0); }
+      return r;
+    }, function (e) {
+      enMarcha = false;
+      /* Cualquier tropiezo de red se queda en «pendiente» y se reintenta solo,
+         cada vez más tarde. Lo que no se hace es avisar a nadie: el aviso de
+         «no he podido» en cada bache es ruido, y el trabajo no se ha perdido,
+         está aquí. */
+      fallos++;
+      avisa('pendiente');
+      programaReintento();
+      return { ok: false, porque: 'sin-red', error: e && e.message };
+    });
+  }
+
+  function fin(choques, traido) {
+    fallos = 0;
+    var t = Date.now();
+    try { localStorage.setItem(ESTADO, JSON.stringify({ cuando: t })); } catch (e) {}
+    avisa('listo', { cuando: t, choques: choques || [], datosNuevos: !!traido });
+    return { ok: true, choques: choques || [], datosNuevos: !!traido };
+  }
+
+  function cerrado() {
+    /* La clave de este dispositivo no abre el cofre del servidor. Pasa cuando
+       alguien cambió la contraseña en otro sitio. NO se borra nada de aquí:
+       lo de este dispositivo sigue entero y se seguirá guardando en local.
+       Lo único que se pierde es el viaje, hasta que la persona vuelva a
+       entrar con la contraseña buena. */
+    clave = null;
+    avisa('cerrado');
+  }
+
+  function programaReintento() {
+    clearTimeout(relojReintento);
+    var espera = REINTENTOS[Math.min(fallos - 1, REINTENTOS.length - 1)] || REINTENTOS[0];
+    relojReintento = setTimeout(function () { sincroniza(); }, espera);
+  }
+
+  /* ---- los disparos ------------------------------------------------------ */
+
+  function pronto() {
+    clearTimeout(reloj);
+    reloj = setTimeout(function () { sincroniza(); }, ESPERA_CAMBIO);
+  }
+
+  var arrancado = false;
+  function arranca() {
+    if (arrancado || !hay() || quiere() !== 'si') return false;
+    arrancado = true;
+
+    // Cualquier cambio del equipo, con unos segundos de respiro.
+    E.alCambiar(function () { if (clave) pronto(); });
+
+    // Salir de la cuenta se lleva la llave: en un ordenador compartido, lo
+    // contrario sería dejarla puesta.
+    N.alCambiar(function () { if (!N.dentro()) { olvidaLlave(); avisa('apagado'); } });
+
+    if (typeof window.addEventListener === 'function') {
+      window.addEventListener('online', function () { fallos = 0; sincroniza(); });
+      // Volver a la aplicación después de dejarla: es cuando más probable es
+      // que el otro dispositivo haya cambiado algo.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && clave) sincroniza();
+      });
+    }
+
+    /* Y al abrir, si ya se había entrado antes: la sesión sigue guardada y la
+       clave también, así que no hace falta la contraseña. */
+    if (N.dentro()) {
+      N.quienSoy().then(function (p) {
+        if (!p) return;
+        return recupera(p.id).then(function (k) {
+          if (!k) { avisa('cerrado'); return; }
+          clave = k; cuenta = p.id;
+          sincroniza();
+        });
+      }).catch(function () {});
+    }
+    return true;
+  }
+
+  window.PTSincro = {
+    hay: hay,
+    quiere: quiere,
+    enciende: enciende,
+    apaga: apaga,
+    arranca: arranca,
+    alEntrar: alEntrar,
+    alCambiarContraseña: alCambiarContraseña,
+    sincroniza: function () { return sincroniza(); },
+    ahora: function () { clearTimeout(reloj); return sincroniza(); },
+    olvidaLlave: olvidaLlave,
+    abierto: function () { return !!clave; },
+    estado: function () { return ultimo; },
+    alCambiar: function (f) { if (typeof f === 'function') oyentes.push(f); }
   };
 })();
 
@@ -12890,6 +14096,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
   var nube = window.PTNube || null;
   var hayNube = !!(nube && nube.hay());
+  /* La sincronización entre dispositivos. Va aparte de «nube» a propósito:
+     aquella habla con el servidor y esta decide cuándo y con qué. Si no está
+     —el archivo suelto, un navegador sin WebCrypto—, la aplicación funciona
+     igual que siempre, cada dispositivo con lo suyo. */
+  var sincro = (window.PTSincro && window.PTSincro.hay()) ? window.PTSincro : null;
   // Abrir el diálogo de la cuenta. Lo rellena el arranque; aquí solo se
   // declara para que lo alcancen los que están fuera de esa función.
   var abreCuenta = function () {};
@@ -12962,6 +14173,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       $('#cuenta-nombre').value = yo.nombre || '';
       $('#cuenta-club').value = yo.club || '';
     }
+    pintaSincro();
 
     /* El botón de la barra dice de un vistazo si estás dentro: con la sesión
        abierta enseña tus iniciales sobre el color de la casa; sin ella, una
@@ -13014,9 +14226,169 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           return pideClaveNueva(mensaje);                 // se vuelve a pedir
         }
         return nube.cambiaClave(clave)
+          .then(function () {
+            /* Y volver a envolver el cofre con la contraseña nueva. Si esto no
+               se hiciera, los datos del equipo se quedarían cerrados con la
+               vieja y el siguiente dispositivo que entrara no los abriría: la
+               contraseña serviría para la cuenta y no para lo de dentro. */
+            if (!sincro || !sincro.abierto()) return;
+            return sincro.alCambiarContraseña(clave).then(function (r) {
+              if (!r.ok) {
+                toast('Contraseña cambiada, pero los datos del equipo se han quedado ' +
+                      'con la anterior. Vuelve a entrar para arreglarlo.');
+              }
+            }, function () {});
+          })
           .then(function () { toast('Contraseña cambiada. Ya puedes entrar con ella'); return true; })
           .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); return false; });
       });
+  }
+
+  /* ---- lo que la sincronización tiene que contar -------------------------
+
+     Tres cosas, y ninguna es un tecnicismo:
+
+       Que el cofre no se ha podido abrir. Eso significa que los datos que hay
+       en el servidor están cerrados con otra contraseña, y hay que decir qué
+       hacer, no soltar un error.
+
+       Que ha llegado algo nuevo de otro dispositivo, para repintar. Sin esto,
+       los datos entran y la pantalla sigue enseñando lo de antes: parece que
+       no ha pasado nada y luego «se ha borrado solo» al recargar.
+
+       Que dos dispositivos cambiaron lo mismo y ha habido que elegir. Esto no
+       se puede callar: alguien perdió un cambio y tiene derecho a saber
+       cuál. */
+
+  function avisaDelCofre(r) {
+    if (!r || r.ok) {
+      if (r && r.reenvuelto) {
+        toast('Tus datos del equipo ya van con la contraseña nueva');
+      }
+      return;
+    }
+    if (r.porque === 'cerrado') {
+      toast('Tus datos del equipo están guardados con otra contraseña. Entra con la que ' +
+            'usaste la última vez, o en el dispositivo donde ya habías entrado.');
+    } else if (r.porque === 'a-la-vez') {
+      toast('Otro dispositivo estaba cambiando lo mismo. Vuelve a intentarlo.');
+    }
+    // Lo demás —sin red, sin nube— no se dice: no se ha perdido nada y lo de
+    // este dispositivo sigue entero.
+  }
+
+  /* La pregunta de la primera vez. Se hace justo después de entrar, que es
+     cuando la contraseña está a mano, y con las palabras de verdad: qué sale
+     de este dispositivo, cifrado con qué, y qué pasa si se olvida la
+     contraseña. Sin eufemismos y sin letra pequeña. */
+  var TEXTO_SINCRO =
+    'Ahora Klym puede guardar tu plantilla, tus sesiones, la asistencia y los partidos ' +
+    'en tu cuenta, para que los veas igual en el móvil y en el ordenador.\n\n' +
+    'Van cifrados en este dispositivo antes de salir, con una clave que sale de tu ' +
+    'contraseña. En el servidor queda un bloque que nadie puede leer, tampoco nosotros.\n\n' +
+    'Si no lo enciendes, todo sigue exactamente como hasta ahora: cada dispositivo con ' +
+    'lo suyo, sin salir de aquí. Puedes cambiarlo cuando quieras en Tu cuenta.';
+
+  function quizaPregunta(clave) {
+    if (!sincro) return Promise.resolve();
+    var q = sincro.quiere();
+    if (q === 'no') return Promise.resolve();
+    if (q === 'si') return sincro.enciende(clave).then(avisaDelCofre, function () {});
+    return ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO,
+                 ok: 'Encenderlo' }).then(function (si) {
+      if (!si) { sincro.apaga(); return; }
+      /* Y queda anotado que aceptó ESTE texto, no el de antes: lo que cambió
+         es dónde están sus datos, y un consentimiento a otra cosa no vale. */
+      return nube.acepta().catch(function () {})
+        .then(function () { return sincro.enciende(clave); })
+        .then(avisaDelCofre, function () {});
+    });
+  }
+
+  /* El interruptor de Tu cuenta, para cambiar de idea. Encenderlo desde aquí
+     pide la contraseña otra vez: no se guarda en ningún sitio, y sin ella no
+     hay clave con la que cifrar. */
+  /* Los avisos que hay junto a la plantilla y junto a los partidos. Decían
+     «los nombres se quedan en este dispositivo», y eso deja de ser verdad en
+     cuanto alguien enciende la sincronización. Un aviso de privacidad que
+     miente es peor que no tenerlo: la gente decide fiándose de él. */
+  function pintaPrivacidadDelEquipo() {
+    var enNube = !!(sincro && sincro.quiere() === 'si');
+    var a = $('#squad-aviso'), b = $('#par-aviso');
+    var texto = enNube
+      ? 'Los nombres se guardan en tu cuenta, cifrados en este dispositivo antes de salir: ' +
+        'en el servidor son un bloque que nadie puede leer. No se suben a la biblioteca ' +
+        'común, no viajan en los enlaces y no aparecen en la pizarra.'
+      : 'Los nombres se quedan en este dispositivo. No se suben a la biblioteca común, no ' +
+        'viajan en los enlaces y no aparecen en la pizarra.';
+    if (a) a.textContent = texto;
+    if (b) {
+      b.textContent = enNube
+        ? 'Los nombres y lo que hizo cada uno se guardan en tu cuenta, cifrados antes de ' +
+          'salir de aquí. No se suben a la biblioteca común ni viajan en los enlaces.'
+        : 'Los nombres y lo que hizo cada uno se quedan en este dispositivo. No se suben a ' +
+          'la biblioteca común ni viajan en los enlaces.';
+    }
+  }
+
+  /* «Todo se queda en este dispositivo» era una coletilla repetida en cuatro
+     pantallas. Ahora depende de un interruptor, así que se dice en un sitio y
+     las cuatro preguntan. Cuatro copias de una frase es una frase que algún
+     día dirá cosas distintas en cada pantalla. */
+  function dondeSeQueda() {
+    return (sincro && sincro.quiere() === 'si')
+      ? ' Se guarda en tu cuenta, cifrado antes de salir de aquí.'
+      : ' Todo se queda en este dispositivo.';
+  }
+
+  function pintaSincro() {
+    pintaPrivacidadDelEquipo();
+    var caja = $('#cuenta-sincro');
+    if (!caja) return;
+    caja.hidden = !(sincro && yo);
+    if (caja.hidden) return;
+    $('#cuenta-sincro-si').checked = sincro.quiere() === 'si';
+    var e = sincro.estado(), t = $('#cuenta-sincro-estado');
+    t.textContent =
+      sincro.quiere() !== 'si' ? 'Apagado. Tus datos solo están en este dispositivo.'
+      : e.estado === 'cerrado' ? 'Los datos de tu cuenta están cerrados con otra contraseña. ' +
+          'Cierra sesión y entra con la que usaste la última vez.'
+      : e.estado === 'pendiente' || e.estado === 'sin-red' ? 'Sin conexión. Se guardará en cuanto vuelva.'
+      : e.estado === 'sincronizando' ? 'Guardando…'
+      : e.cuando ? 'Al día.'
+      : 'Encendido.';
+  }
+
+  function cuentaLosChoques(ch) {
+    var QUE = { jugador: 'un jugador', sesion: 'una sesión',
+                asistencia: 'una lista de asistencia', partido: 'un partido' };
+    var uno = QUE[ch[0].qué] || 'algo';
+    toast(ch.length === 1
+      ? 'Habías cambiado ' + uno + ' (' + ch[0].clave + ') en dos dispositivos. Se ha ' +
+        'quedado lo último que guardaste.'
+      : ch.length + ' cosas habían cambiado en dos dispositivos. Se ha quedado lo último ' +
+        'que guardaste de cada una.');
+  }
+
+  /* Repintar cuando llega algo de otro dispositivo. Con una precaución: si hay
+     un campo con el foco, la persona está escribiendo, y repintar le quitaría
+     de las manos lo que está a medio escribir. Se espera a que suelte. */
+  var relojRepinte = null;
+  function repintaElEquipo() {
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) {
+      clearTimeout(relojRepinte);
+      relojRepinte = setTimeout(repintaElEquipo, 2000);
+      return;
+    }
+    if (!window.PTEquipo) return;
+    pintaApartadoPlantilla();
+    pintaSesiones();
+    pintaDiario();
+    pintaPartidos();
+    pintaStats();
+    pintaHoy();
+    pistasDelCajon();
   }
 
   // Quién eres, para saber qué puedes hacer.
@@ -13033,7 +14405,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     p.textContent = !hayNube
       ? 'Todo se guarda en tu dispositivo: nada viaja a ningún servidor.'
       : 'Tus pizarras se guardan en este dispositivo. Al servidor solo va lo que compartes ' +
-        'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.';
+        'a propósito y, si entras, tu correo para reconocerte. Tu correo no lo ve nadie más.' +
+        ((sincro && sincro.quiere() === 'si')
+          ? ' Y los datos de tu equipo, que has puesto en tu cuenta: van cifrados desde aquí, ' +
+            'y en el servidor son un bloque que nadie puede leer.'
+          : ' Los datos de tu equipo no salen de aquí mientras no lo enciendas en Tu cuenta.');
   }
 
   // Compartir la pizarra que tienes abierta.
@@ -14023,7 +15399,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
     $('#ses-nota').textContent = lista.length
       ? 'Cada sesión es un día. Puedes dejar preparadas las que vienen y ' +
-        'rellenar las de atrás que no apuntaste. Todo se queda en este dispositivo.'
+        'rellenar las de atrás que no apuntaste.' + dondeSeQueda()
       : 'Una sesión es un día de entrenamiento: quién vino y qué hicisteis. ' +
         'Empieza por la de hoy, elige otro día para dejarlo preparado, o guarda ' +
         'un ejercicio desde la pizarra y se apunta solo.';
@@ -14268,7 +15644,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     cuentaAsistenciaDeSesion(lista.length);
 
     $('#ses-asis-nota').textContent = lista.length
-      ? 'Se guarda solo, según vas marcando. Los nombres no salen de este dispositivo.'
+      ? 'Se guarda solo, según vas marcando.' + dondeSeQueda()
       : 'Todavía no tienes plantilla. Móntala en el apartado Plantilla y vuelve aquí.';
   }
 
@@ -15191,7 +16567,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           : 'Nadie baja de la mitad.');
 
     $('#stats-nota').textContent = d.ejercicios
-      ? 'Todo se calcula en este dispositivo, con lo que has guardado. No sale nada a internet.'
+      ? 'Las cuentas se hacen en este dispositivo, con lo que has guardado: ' +
+        'no hay ningún servidor echándolas.'
       : 'Guarda algún ejercicio con su duración y su momento del juego, y aquí saldrán las cuentas.';
   }
 
@@ -15393,9 +16770,23 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var cta = $('[data-pista="cuenta"]');
     if (cta) {
       var b = cta.closest('.cajon-ir').querySelector('span');
-      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = yo.email || 'Entrada'; }
+      if (yo) { b.textContent = 'Tu cuenta'; cta.textContent = comoVaLaCuenta(); }
       else { b.textContent = 'Entrar'; cta.textContent = 'Para compartir y tenerlo en otro sitio'; }
     }
+  }
+
+  /* Qué decir debajo de «Tu cuenta». Lo normal es que no haya nada que contar
+     y entonces pone el correo, que es lo útil. Se habla de los datos solo
+     cuando hay algo que saber. */
+  function comoVaLaCuenta() {
+    var correo = (yo && yo.email) || 'Entrada';
+    if (!sincro || sincro.quiere() !== 'si') return correo;
+    var e = sincro.estado();
+    if (e.estado === 'cerrado') return 'Tus datos no se están guardando · toca aquí';
+    if (e.estado === 'pendiente' || e.estado === 'sin-red') return correo + ' · sin guardar aún';
+    if (e.estado === 'sincronizando') return correo + ' · guardando…';
+    if (e.estado === 'listo' && e.cuando) return correo + ' · al día';
+    return correo;
   }
 
   var APARTADOS = { hoy: 1, plantilla: 1, sesiones: 1, partidos: 1, datos: 1 };
@@ -15608,8 +16999,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     // «tras-boton» deja pasar el resplandor del botón rojo de arriba. El
     // número vive en la hoja de estilos, con el resto de la escala, y no aquí.
     pie.className = 'block-note tras-boton';
-    pie.textContent = 'Todo esto sale de lo que tú has apuntado, en este dispositivo. ' +
-                      'Nada se inventa y nada sale a internet.';
+    pie.textContent = 'Todo esto sale de lo que tú has apuntado, y se calcula aquí. ' +
+                      'Nada se inventa.';
     caja.appendChild(pie);
   }
 
@@ -16973,6 +18364,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         var tarea = modo === 'crear' ? nube.registra(correo, clave, nombre, true)
                                      : nube.entra(correo, clave);
         tarea.then(function () {
+          /* Este es el único momento en el que la contraseña está a mano, y de
+             ella sale la clave que abre los datos del equipo. Después ya no se
+             puede: no se guarda en ningún sitio, y menos mal. */
+          return quizaPregunta(clave);
+        }).then(function () {
           return refrescaCuenta().then(function () {
             if (modo === 'crear' && (nombre || club)) {
               return nube.perfil({ nombre: nombre || 'Entrenador', club: club })
@@ -17067,6 +18463,54 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 
       refrescaCuenta();
       nube.alCambiar(function () { refrescaCuenta(); });
+
+      /* La sincronización entre dispositivos. Se arranca aquí, con la cuenta
+         ya montada: si se hiciera antes, no sabría de quién es el cofre. Y
+         solo si está encendida, que viene apagada a propósito. */
+      if (sincro) {
+        sincro.alCambiar(function (e) {
+          pistasDelCajon();
+          pintaSincro();
+          if (e.datosNuevos) repintaElEquipo();
+          if (e.choques && e.choques.length) cuentaLosChoques(e.choques);
+        });
+        if (sincro.quiere() === 'si') sincro.arranca();
+
+        $('#cuenta-sincro-si').addEventListener('change', function () {
+          var caja = this;
+          if (!caja.checked) {
+            ask({ title: 'Apagar la sincronización',
+                  message: 'Se borrarán del servidor los datos de tu equipo. Lo que hay en ' +
+                           'este dispositivo se queda entero, pero dejará de verse en los ' +
+                           'demás.', ok: 'Apagar', danger: true })
+              .then(function (si) {
+                if (!si) { caja.checked = true; return; }
+                return sincro.apaga().then(function () {
+                  toast('Apagado. Tus datos se han borrado del servidor');
+                  pintaSincro(); pistasDelCajon();
+                });
+              });
+            return;
+          }
+          ask({ title: 'Tu equipo en todos tus dispositivos', message: TEXTO_SINCRO +
+                  '\n\nEscribe tu contraseña: de ella sale la clave con la que se cifra, y ' +
+                  'no está guardada en ningún sitio.',
+                input: '', tipo: 'password', placeholder: 'Tu contraseña', ok: 'Encenderlo' })
+            .then(function (clave) {
+              if (clave === null || !String(clave)) { caja.checked = false; return; }
+              return nube.acepta().catch(function () {})
+                .then(function () { return sincro.enciende(clave); })
+                .then(function (r) {
+                  avisaDelCofre(r);
+                  if (!r || !r.ok) { caja.checked = false; sincro.apaga(); return; }
+                  sincro.arranca();
+                  toast('Listo. Tu equipo se verá igual en todos tus dispositivos');
+                })
+                .then(refrescaCuenta)
+                .then(function () { pintaSincro(); pistasDelCajon(); });
+            });
+        });
+      }
 
       /* Cuando se vuelve del enlace de un correo, la sesión llega en la
          dirección. La nube la recogía y guardaba, pero nadie miraba el

@@ -65,24 +65,25 @@ strong{color:#fff}
 <a class="volver" href="./">‹ Klym</a>
 
 <h1>Privacidad y condiciones</h1>
-<p class="version">Versión <code>2026-09-a</code> · 15 de septiembre de 2026. Es la que
+<p class="version">Versión <code>2026-09-b</code> · 17 de septiembre de 2026. Es la que
   se te enseña al crear una cuenta, y la que queda anotada como la que aceptaste.</p>
 
 <div class="clave">
   <h2>Lo corto</h2>
-  <p>Los nombres de tus jugadores <strong>no salen de tu dispositivo</strong>. Nunca se
-    suben, ni siquiera teniendo cuenta. Si creas una cuenta, en el servidor quedan tu
-    correo, tu nombre y los ejercicios que <em>tú</em> decidas compartir, y nada más. No
-    hay cookies, no hay rastreo y no hay publicidad. Y lo que subes es tuyo y respondes
-    de ello.</p>
+  <p>Los nombres de tus jugadores <strong>se quedan en tu dispositivo</strong>, salvo que
+    tú enciendas la sincronización; y si la enciendes, salen <strong>cifrados con tu
+    contraseña</strong> y en el servidor quedan como un bloque que nadie puede leer,
+    tampoco nosotros. Si creas una cuenta, en el servidor quedan además tu correo, tu
+    nombre y los ejercicios que <em>tú</em> decidas compartir. No hay cookies, no hay
+    rastreo y no hay publicidad. Y lo que subes es tuyo y respondes de ello.</p>
 </div>
 
 <h2>Lo de tus jugadores se queda en tu dispositivo</h2>
-<p>La plantilla, la asistencia y las sesiones —o sea, los nombres y apellidos de tu
-  equipo— se guardan <strong>solo en el navegador con el que estás</strong>, en su
-  almacén local. No viajan a ningún servidor, no van dentro de los ejercicios que
-  compartes, no salen en los enlaces que mandas y no aparecen dibujados en el campo: en
-  la pizarra una ficha es un dorsal y ya.</p>
+<p>La plantilla, la asistencia, las sesiones y los partidos —o sea, los nombres y
+  apellidos de tu equipo— se guardan <strong>en el navegador con el que estás</strong>,
+  en su almacén local. No van dentro de los ejercicios que compartes, no salen en los
+  enlaces que mandas y no aparecen dibujados en el campo: en la pizarra una ficha es un
+  dorsal y ya.</p>
 <p>Esto no es una promesa suelta. Hay pruebas automáticas que montan un equipo con
   nombres inventados, usan la aplicación entera y comprueban que esos nombres no
   aparecen en ninguna petición de red, en ningún enlace ni en ningún archivo exportado.
@@ -90,8 +91,40 @@ strong{color:#fff}
 <div class="ojo">
   <p>La otra cara de lo mismo: <strong>si borras los datos del navegador, cambias de
     móvil o desinstalas, esa información se pierde</strong> y no hay copia en ninguna
-    parte desde la que recuperarla. Es el precio de que no salga de ahí.</p>
+    parte desde la que recuperarla. Salvo que enciendas lo que viene a continuación.</p>
 </div>
+
+<h2>Verlo en todos tus dispositivos, si tú lo enciendes</h2>
+<p>Hay un interruptor en <em>Tu cuenta</em>, <strong>apagado de fábrica</strong>, que
+  guarda esos mismos datos en tu cuenta para que los veas igual en el móvil y en el
+  ordenador. Mientras no lo enciendas, no cambia nada de lo de arriba.</p>
+<p>Si lo enciendes, esto es exactamente lo que pasa:</p>
+<ul>
+  <li>Los datos se <strong>cifran en tu dispositivo antes de salir</strong>, con una
+    clave que sale de tu contraseña y que no se sube nunca. Cifrado AES-GCM de 256 bits;
+    la clave se deriva con PBKDF2-SHA256 y 310 000 vueltas.</li>
+  <li>En el servidor queda <strong>un bloque de bytes sin significado</strong>. No lo
+    podemos leer nosotros, ni Supabase, ni nadie con acceso a la base de datos. No es
+    una política interna: es que no existe la clave fuera de tus dispositivos.</li>
+  <li>Esa fila <strong>solo la puede leer tu cuenta</strong>. Ni siquiera el
+    administrador, que sí puede moderar la biblioteca común. Hay pruebas automáticas
+    contra una base de datos de verdad que lo comprueban.</li>
+  <li>Al apagar el interruptor, <strong>esa fila se borra</strong> del servidor. Lo que
+    tienes en el dispositivo se queda.</li>
+</ul>
+<div class="ojo">
+  <p><strong>Si olvidas la contraseña, nadie puede recuperar esos datos por ti.</strong>
+    Cambiarla por correo te devuelve la cuenta, no el contenido: la clave salía de la
+    contraseña vieja. Lo que sí funciona es abrir Klym en un dispositivo donde ya
+    habías entrado —ahí la clave está guardada— y la aplicación vuelve a cerrar el cofre
+    con la nueva. Solo se pierde si olvidas la contraseña <em>y</em> no te queda ningún
+    dispositivo abierto. Cualquiera que te prometa otra cosa te está diciendo que su
+    servidor puede leer tus datos.</p>
+</div>
+<p>Y la contrapartida del guardado en el dispositivo: la clave se queda en el almacén
+  local de cada navegador donde entras. Quien tenga tu ordenador desbloqueado podría
+  leerla, igual que ya podría usar tu sesión. En un ordenador compartido, cierra sesión:
+  al hacerlo, la clave se borra de ahí.</p>
 
 <h2>Qué se guarda en el servidor, y solo si creas cuenta</h2>
 <p>La pizarra funciona entera sin cuenta. La cuenta sirve para una cosa: compartir
@@ -106,6 +139,8 @@ strong{color:#fff}
     que marques como compartidos; los demás los ves únicamente tú.</li>
   <li><strong>Qué versión de esta página aceptaste y cuándo</strong>, para que quede
     constancia.</li>
+  <li><strong>Y solo si enciendes la sincronización</strong>, el bloque cifrado con los
+    datos de tu equipo, que ya no se puede leer desde el servidor.</li>
 </ul>
 <p>Nada más. No hay analítica, ni píxeles, ni servicios de terceros metidos en la
   página. El servidor es <a href="https://supabase.com/privacy" rel="noopener">Supabase</a>,

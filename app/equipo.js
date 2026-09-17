@@ -55,6 +55,7 @@
   var LLAVE_ASISTENCIA = 'pt-asistencia';
   var LLAVE_SESIONES   = 'pt-sesiones';
   var LLAVE_PARTIDOS   = 'pt-partidos';
+  var LLAVE_BORRADOS   = 'pt-borrados';
   var TOPE_JUGADORES   = 40;          // en activo, que es lo que se convoca
   var TOPE_GUARDADOS   = 90;          // con las bajas, que se conservan por su historial
   var TOPE_EJERCICIOS  = 30;          // en una sesión; más que eso no es un entrenamiento
@@ -75,9 +76,89 @@
       return (v && typeof v === 'object') ? v : porDefecto;
     } catch (e) { return porDefecto; }
   }
+  /* Todas las escrituras de este archivo pasan por aquí, y eso es lo que
+     permite avisar de un cambio sin tener que acordarse de hacerlo en las
+     veinte funciones que cambian algo. Una llamada que se olvida es un cambio
+     que no se sube, y eso no se nota hasta que falta en el otro dispositivo. */
+  var oyentes = [];
+  var callado = false;
+
   function escribe(llave, valor) {
-    try { localStorage.setItem(llave, JSON.stringify(valor)); return true; }
+    try { localStorage.setItem(llave, JSON.stringify(valor)); }
     catch (e) { return false; }
+    if (!callado) oyentes.forEach(function (f) { try { f(llave); } catch (e) {} });
+    return true;
+  }
+
+  /* ---- la marca de cuándo se tocó, y la nota de lo que se borró ----------
+
+     Esto es lo único que la fusión necesita de aquí, y es poco: cada
+     registro lleva un «tocado» y cada borrado deja una nota. Con eso,
+     app/fusion.js puede juntar lo de dos dispositivos sin que uno se lleve
+     por delante al otro. Sin esto, la única regla posible sería «gana el
+     último que guarde», que es la que pierde trabajo.
+
+     Un registro SIN marca es de antes de que esto existiera y vale cero para
+     la fusión: cualquier cambio de verdad le gana. Por eso no hay que migrar
+     el almacén de nadie. */
+
+  function marcaAhora() { return Date.now(); }
+
+  /* ¿Ha cambiado algo de verdad, o es el mismo registro guardado otra vez?
+
+     Se compara sin la marca, porque abrir un día y cerrarlo sin tocar nada no
+     es un cambio. Vale JSON.stringify tal cual —sin ordenar claves como hace
+     la fusión— porque los dos lados salen del MISMO saneador de este archivo
+     y llevan las claves en el mismo orden. Comparar entre dispositivos es
+     otra cosa, y de eso se encarga fusion.js. */
+  function sinMarca(r) {
+    if (!r || typeof r !== 'object') return JSON.stringify(r);
+    var copia = {};
+    Object.keys(r).forEach(function (k) { if (k !== 'tocado') copia[k] = r[k]; });
+    return JSON.stringify(copia);
+  }
+  function mismoContenido(a, b) { return !!a && !!b && sinMarca(a) === sinMarca(b); }
+
+  /* Hereda la marca si nada cambió; pone una nueva si sí. Devuelve el mismo
+     objeto que le pasan, ya marcado. */
+  function marca(nuevo, viejo, t) {
+    nuevo.tocado = mismoContenido(nuevo, viejo) && viejo.tocado
+                 ? viejo.tocado : (t || marcaAhora());
+    return nuevo;
+  }
+
+  /* La marca tal y como venga del almacén: un número, positivo, o nada. Cada
+     saneador la deja pasar con esto, que si no la primera lectura la borraría
+     y el registro volvería a parecer «de antes». */
+  function laMarca(v) {
+    var t = Number(v);
+    return isFinite(t) && t > 0 ? t : null;
+  }
+
+  function borrados() {
+    var b = lee(LLAVE_BORRADOS, {});
+    var out = {};
+    Object.keys(b).forEach(function (k) {
+      var t = Number(b[k]);
+      if (isFinite(t) && t > 0) out[k] = t;
+    });
+    return out;
+  }
+
+  /* Anotar un borrado. Sin esto, juntar dos dispositivos resucita lo borrado:
+     lo quitas en el móvil, el ordenador todavía lo tiene, se juntan y vuelve.
+
+     También anotan las podas —los días viejos que se tiran para que el
+     almacén no crezca sin fin—, y eso puede chirriar: es limpieza de casa, no
+     una decisión de nadie. Pero si no dejaran nota, un dispositivo podaría, el
+     otro se lo devolvería al fusionar, el primero volvería a podar, y así para
+     siempre. Como todos los dispositivos podan con la misma regla, lo que uno
+     tira lo iba a tirar el otro igual. */
+  function anota(claves, t) {
+    var b = borrados();
+    var cuando = t || marcaAhora();
+    (Array.isArray(claves) ? claves : [claves]).forEach(function (k) { b[k] = cuando; });
+    return escribe(LLAVE_BORRADOS, b);
   }
 
   /* ---- temporadas -------------------------------------------------------
@@ -128,6 +209,8 @@
       dorsal: dorsal, nombre: nombre, posicion: pos
     };
     if (j.baja) s.baja = true;
+    var t = laMarca(j.tocado);
+    if (t) s.tocado = t;
     return s;
   }
   function nuevoId() {
@@ -139,6 +222,10 @@
     var out = { actual: temporadaDe(), temporadas: {} };
     if (!p) return out;
     if (temporadaValida(p.actual)) out.actual = p.actual;
+    // La temporada en curso es un dato suelto, no un registro: lleva su marca
+    // aparte para que la fusión también sepa cuál de las dos es la reciente.
+    var ta = laMarca(p.actualTocado);
+    if (ta) out.actualTocado = ta;
     var t = p.temporadas;
     if (t && typeof t === 'object') {
       Object.keys(t).forEach(function (k) {
@@ -196,12 +283,27 @@
   function guardaPlantilla(temp, lista) {
     var p = plantillaEntera();
     if (!temp) temp = p.actual;
-    var vistos = {};
-    p.temporadas[temp] = lista.map(saneaJugador).filter(function (j) {
+    var antes = {};
+    (p.temporadas[temp] || []).forEach(function (j) { antes[j.id] = j; });
+
+    var vistos = {}, t = marcaAhora();
+    var nueva = lista.map(saneaJugador).filter(function (j) {
       if (!j || vistos[j.id]) return false;
       vistos[j.id] = true;
       return true;
     }).slice(0, TOPE_GUARDADOS);
+    nueva.forEach(function (j) { marca(j, antes[j.id], t); });
+
+    /* El que estaba y ya no está, se ha borrado. Solo llega aquí el que no
+       tenía historial: al que sí lo tiene se le da de baja, y una baja es un
+       cambio del registro, no un borrado. */
+    var quedan = {};
+    nueva.forEach(function (j) { quedan[j.id] = true; });
+    var idos = Object.keys(antes).filter(function (id) { return !quedan[id]; })
+      .map(function (id) { return 'jugador:' + temp + ':' + id; });
+    if (idos.length) anota(idos, t);
+
+    p.temporadas[temp] = nueva;
     return escribe(LLAVE_PLANTILLA, p);
   }
 
@@ -216,7 +318,11 @@
     var choca = j.dorsal && lista.some(function (o) { return !o.baja && o.dorsal === j.dorsal; });
     lista.push(j);
     if (!guardaPlantilla(temp, lista)) return { ok: false, porque: 'no-cabe' };
-    return { ok: true, jugador: j, dorsalRepetido: !!choca };
+    /* El que ha quedado guardado, no el que iba a guardarse. Son distintos:
+       quien guarda le pone la marca de cuándo se tocó. Devolver el de antes
+       significaba entregar un jugador sin marca que parecía el bueno, y quien
+       se fiara de él estaría mirando algo que no está en ningún sitio. */
+    return { ok: true, jugador: buscaJugador(j.id) || j, dorsalRepetido: !!choca };
   }
 
   /* Quitar a uno que ya ha entrenado no lo borra: lo da de baja. Si se borrara,
@@ -250,6 +356,7 @@
   function cambiaTemporada(temp) {
     if (!temporadaValida(temp)) return false;
     var p = plantillaEntera();
+    if (p.actual !== temp) p.actualTocado = marcaAhora();
     p.actual = temp;
     if (!p.temporadas[temp]) p.temporadas[temp] = [];
     return escribe(LLAVE_PLANTILLA, p);
@@ -279,6 +386,8 @@
         temporada: temporadaValida(d.temporada) ? d.temporada : temporadaDe(new Date(f + 'T12:00:00')),
         presentes: d.presentes.filter(function (x) { return typeof x === 'string'; })
       };
+      var t = laMarca(d.tocado);
+      if (t) out[f].tocado = t;
     });
     return out;
   }
@@ -297,14 +406,14 @@
     var i = dentro.indexOf(id);
     if (viene && i < 0) dentro.push(id);
     if (!viene && i >= 0) dentro.splice(i, 1);
-    a[f] = { temporada: temporadaActual(), presentes: dentro };
+    a[f] = marca({ temporada: temporadaActual(), presentes: dentro }, a[f]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
 
   function ponAsistencia(ids, fecha) {
-    var a = asistenciaEntera();
-    a[hoyISO(fecha)] = { temporada: temporadaActual(), presentes: ids.slice() };
+    var a = asistenciaEntera(), f = hoyISO(fecha);
+    a[f] = marca({ temporada: temporadaActual(), presentes: ids.slice() }, a[f]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
@@ -317,11 +426,11 @@
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fechaISO))) return false;
     var a = asistenciaEntera();
     var s = sesionesEnteras()[fechaISO];
-    a[fechaISO] = {
+    a[fechaISO] = marca({
       temporada: (s && s.temporada) || (a[fechaISO] && a[fechaISO].temporada) ||
                  temporadaDe(new Date(fechaISO + 'T12:00:00')),
       presentes: ids.slice()
-    };
+    }, a[fechaISO]);
     podaAsistencia(a);
     return escribe(LLAVE_ASISTENCIA, a);
   }
@@ -334,10 +443,14 @@
     return jugadores().map(function (j) { return j.id; });
   }
 
-  // El historial no crece para siempre: más de un año atrás no le sirve a nadie.
+  /* El historial no crece para siempre: más de un año atrás no le sirve a
+     nadie. Lo que se tira deja nota, igual que un borrado a mano: si no, el
+     dispositivo que ha podado se lo volvería a encontrar al fusionar con el
+     que todavía no ha podado, lo podaría otra vez, y así sin parar. */
   function podaAsistencia(a) {
-    var fs = Object.keys(a).sort();
-    while (fs.length > TOPE_DIAS) delete a[fs.shift()];
+    var fs = Object.keys(a).sort(), idos = [];
+    while (fs.length > TOPE_DIAS) { var f = fs.shift(); delete a[f]; idos.push('asistencia:' + f); }
+    if (idos.length) anota(idos);
   }
 
   /* ---- las sesiones ------------------------------------------------------
@@ -408,13 +521,16 @@
         ejercicios: (Array.isArray(d.ejercicios) ? d.ejercicios : [])
           .map(saneaEjercicio).filter(Boolean).slice(0, TOPE_EJERCICIOS)
       };
+      var t = laMarca(d.tocado);
+      if (t) out[f].tocado = t;
     });
     return out;
   }
 
   function escribeSesiones(s) {
-    var fs = Object.keys(s).sort();
-    while (fs.length > TOPE_DIAS) delete s[fs.shift()];
+    var fs = Object.keys(s).sort(), idos = [];
+    while (fs.length > TOPE_DIAS) { var f = fs.shift(); delete s[f]; idos.push('sesion:' + f); }
+    if (idos.length) anota(idos);           // ver podaAsistencia: lo mismo
     return escribe(LLAVE_SESIONES, s);
   }
 
@@ -463,15 +579,28 @@
   function guardaSesion(fecha, cambios) {
     var f = /^\d{4}-\d{2}-\d{2}$/.test(String(fecha)) ? fecha : hoyISO();
     var s = sesionesEnteras();
-    var d = s[f] || { temporada: temporadaDe(new Date(f + 'T12:00:00')),
-                      nombre: '', ejercicios: [] };
+    var viejo = s[f] || null;
+    /* Copia, no el mismo objeto: si «d» fuera «s[f]», compararlo luego contra
+       «s[f]» para saber si algo ha cambiado daría siempre que no, y el día
+       nunca volvería a marcarse. Un fallo que no se ve: guardas, parece que
+       se guarda, y al sincronizar gana la copia del otro dispositivo. */
+    var d = viejo
+      ? { temporada: viejo.temporada, nombre: viejo.nombre,
+          ejercicios: viejo.ejercicios.slice(), tocado: viejo.tocado }
+      : { temporada: temporadaDe(new Date(f + 'T12:00:00')), nombre: '', ejercicios: [] };
     if (cambios.nombre !== undefined) d.nombre = String(cambios.nombre).trim().slice(0, 80);
     if (cambios.ejercicios !== undefined) {
       d.ejercicios = cambios.ejercicios.map(saneaEjercicio).filter(Boolean).slice(0, TOPE_EJERCICIOS);
     }
     // Una sesión sin nombre y sin ejercicios no es nada: se borra en vez de
-    // dejar una ficha vacía ocupando sitio en el diario.
-    if (!d.nombre && !d.ejercicios.length) delete s[f]; else s[f] = d;
+    // dejar una ficha vacía ocupando sitio en el diario. Y se anota, que si
+    // no el otro dispositivo la devolvería al fusionar.
+    if (!d.nombre && !d.ejercicios.length) {
+      if (viejo) anota('sesion:' + f);
+      delete s[f];
+    } else {
+      s[f] = marca(d, viejo);
+    }
     return escribeSesiones(s);
   }
 
@@ -496,7 +625,7 @@
     if (!r.ok) return r;
     var a = asistenciaEntera();
     if (!a[f] && datos.quienes && datos.quienes.length) {
-      a[f] = { temporada: temporadaActual(), presentes: datos.quienes.slice() };
+      a[f] = marca({ temporada: temporadaActual(), presentes: datos.quienes.slice() }, null);
       podaAsistencia(a);
       escribe(LLAVE_ASISTENCIA, a);
     }
@@ -606,7 +735,7 @@
     var f = /^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha)) ? p.fecha : null;
     if (!f) return null;                         // sin fecha no se puede ordenar
     var vistos = {};
-    return {
+    var out = {
       id: /^[a-z0-9]{4,16}$/.test(String(p.id || '')) ? p.id : nuevoId(),
       fecha: f,
       temporada: temporadaValida(p.temporada) ? p.temporada
@@ -625,6 +754,9 @@
           return true;
         }).slice(0, TOPE_GUARDADOS)
     };
+    var t = laMarca(p.tocado);
+    if (t) out.tocado = t;
+    return out;
   }
 
   function partidosEnteros() {
@@ -636,6 +768,8 @@
   function escribePartidos(l) {
     // Del más reciente al más antiguo, y si se pasa del tope se van los viejos.
     var orden = l.slice().sort(porFecha);
+    var idos = orden.slice(TOPE_PARTIDOS).map(function (p) { return 'partido:' + p.id; });
+    if (idos.length) anota(idos);           // ver podaAsistencia: lo mismo
     return escribe(LLAVE_PARTIDOS, orden.slice(0, TOPE_PARTIDOS));
   }
 
@@ -682,6 +816,7 @@
 
     var p = saneaPartido(mezcla);
     if (!p) return { ok: false, porque: 'sin-fecha' };
+    marca(p, viejo);
     var otros = l.filter(function (x) { return x.id !== p.id; });
     if (!escribePartidos(otros.concat([p]))) return { ok: false, porque: 'no-cabe' };
     return { ok: true, partido: p };
@@ -691,6 +826,7 @@
     var l = partidosEnteros();
     var quedan = l.filter(function (p) { return p.id !== id; });
     if (quedan.length === l.length) return false;
+    anota('partido:' + id);
     return escribePartidos(quedan);
   }
 
@@ -1481,6 +1617,54 @@
     return { season: temporadaActual() };
   }
 
+  /* ---- lo que ve la sincronización ---------------------------------------
+
+     Todo lo del equipo en un objeto, con la forma que espera app/fusion.js, y
+     la puerta para volver a meterlo ya fusionado. Son las dos únicas funciones
+     que la sincronización necesita de aquí: lo demás —qué marca cada cosa,
+     qué deja nota— es asunto de este archivo. */
+
+  function todo() {
+    var p = plantillaEntera();
+    return {
+      squad: { actual: p.actual, actualTocado: p.actualTocado || 0,
+               temporadas: p.temporadas },
+      asistencia: asistenciaEntera(),
+      sesiones: sesionesEnteras(),
+      partidos: partidosEnteros(),
+      borrados: borrados()
+    };
+  }
+
+  /* Meter lo fusionado. No poda: podar aquí volvería a dejar notas, que
+     cambiarían lo que hay que subir, que provocaría otra fusión. La poda ya
+     llegará con el siguiente cambio de la persona, que es cuando toca. */
+  function traga(datos) {
+    if (!datos || typeof datos !== 'object') return false;
+    /* Callado a propósito: meter lo que acaba de bajar no es un cambio de la
+       persona. Si avisara, el aviso dispararía otra subida, que bajaría otra
+       vez lo mismo, y eso no para. */
+    callado = true;
+    try { return metelo(datos); } finally { callado = false; }
+  }
+
+  function metelo(datos) {
+    var ok = true;
+    if (datos.squad) {
+      var s = datos.squad;
+      ok = escribe(LLAVE_PLANTILLA, {
+        actual: temporadaValida(s.actual) ? s.actual : temporadaDe(),
+        actualTocado: laMarca(s.actualTocado) || 0,
+        temporadas: (s.temporadas && typeof s.temporadas === 'object') ? s.temporadas : {}
+      }) && ok;
+    }
+    if (datos.asistencia) ok = escribe(LLAVE_ASISTENCIA, datos.asistencia) && ok;
+    if (datos.sesiones)   ok = escribe(LLAVE_SESIONES, datos.sesiones) && ok;
+    if (datos.partidos)   ok = escribe(LLAVE_PARTIDOS, datos.partidos) && ok;
+    if (datos.borrados)   ok = escribe(LLAVE_BORRADOS, datos.borrados) && ok;
+    return ok;
+  }
+
   window.PTEquipo = {
     POSICIONES: POSICIONES,
     TOPE_JUGADORES: TOPE_JUGADORES,
@@ -1535,6 +1719,11 @@
     estadisticas: estadisticas,
     FASES: FASES,
     equilibrio: equilibrio,
-    metaDeHoy: metaDeHoy
+    metaDeHoy: metaDeHoy,
+
+    todo: todo,
+    traga: traga,
+    borrados: borrados,
+    alCambiar: function (f) { if (typeof f === 'function') oyentes.push(f); }
   };
 })();

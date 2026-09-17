@@ -73,12 +73,12 @@ else bien('todos los ids que busca el JS existen',
           mirados + ' comprobados, ' + saltados + ' armados con variables');
 
 // ---------- 3 · los archivos nuevos están enganchados ----------
-for (const f of ['config.js', 'nube.js', 'enlace.js', 'equipo.js', 'codecs.js', 'graficos.js', 'board.js']) {
+for (const f of ['config.js', 'nube.js', 'enlace.js', 'cofre.js', 'fusion.js', 'equipo.js', 'sincro.js', 'codecs.js', 'graficos.js', 'board.js']) {
   if (html.includes('src="' + f + '"')) bien('index.html carga ' + f);
   else falla('index.html carga ' + f);
 }
 const sw = readFileSync(join(raiz, 'app/sw.js'), 'utf8');
-for (const f of ['equipo.js', 'codecs.js', 'graficos.js']) {
+for (const f of ['cofre.js', 'fusion.js', 'equipo.js', 'sincro.js', 'codecs.js', 'graficos.js']) {
   if (sw.includes("'./" + f + "'")) bien('el service worker guarda ' + f);
   else falla('el service worker guarda ' + f);
 }

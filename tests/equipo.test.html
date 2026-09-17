@@ -41,8 +41,12 @@ var w, d, E;
 var AHORA = new Date('2026-09-15T12:00:00').getTime();
 
 function limpia(){
+  /* «pt-borrados» tiene que estar aquí. Son las notas de lo que se ha
+     borrado, y si se quedaran de un bloque para otro, un jugador creado en el
+     bloque siguiente con el mismo identificador saldría borrado de nacimiento
+     y el fallo no se parecería en nada a su causa. */
   ['pt-squad','pt-asistencia','pt-sesiones','pt-partidos','pt-boards','pt-autosave',
-   'pt-prefs','pt-catalogo','pt-nube']
+   'pt-prefs','pt-catalogo','pt-nube','pt-borrados','pt-llave','pt-sincro']
     .forEach(function(k){ try{ w.localStorage.removeItem(k); }catch(e){} });
 }
 
@@ -2331,6 +2335,222 @@ function siembra(lista){
 
   await irA(d,'pizarra'); await wait(300);
 
+  /* ═══ Las marcas y las notas de borrado ═══════════════════════════════════
+
+     Lo que la sincronización necesita de este archivo es poco: que cada
+     registro lleve cuándo se tocó y que cada borrado deje nota. Con eso,
+     fusion.js sabe juntar dos dispositivos sin que uno pise al otro.
+
+     Las reglas de la fusión ya se prueban aparte y con datos al azar
+     (tests/fusion.mjs, sin navegador). Lo que se prueba AQUÍ es la costura:
+     que equipo.js marque lo que tiene que marcar, que anote lo que borra, y
+     —lo último de este bloque— que la forma que saca equipo.js sea la que
+     espera fusion.js. Esa costura es justo lo que dos baterías por separado
+     no ven: cada una pasa con su idea de cómo son los datos. */
+  limpia();
+  E.cambiaTemporada('2026/27');
+
+  var A1 = E.añade(null, { nombre:'Ana Ferrer', dorsal:'7' }).jugador;
+  ok('un jugador nuevo se marca con la hora',
+     typeof A1.tocado === 'number' && A1.tocado > 0 &&
+     Math.abs(Date.now() - A1.tocado) < 5000, A1.tocado);
+
+  await wait(20);
+  var A2 = E.añade(null, { nombre:'Bruno Gil', dorsal:'2' }).jugador;
+  ok('añadir a otro no le mueve la marca al primero',
+     E.buscaJugador(A1.id).tocado === A1.tocado);
+  ok('y el segundo trae la suya, distinta', A2.tocado > A1.tocado);
+
+  /* Borrar a uno SIN historial lo borra de verdad, y eso tiene que dejar
+     nota: sin la nota, el otro dispositivo se lo devolvería al fusionar. */
+  E.quita('2026/27', A2.id);
+  ok('borrar a un jugador deja nota, con su temporada dentro',
+     !!E.borrados()['jugador:2026/27:' + A2.id],
+     Object.keys(E.borrados()).join(' · ') || 'ninguna');
+  ok('y solo esa nota', Object.keys(E.borrados()).length === 1);
+
+  /* Al que SÍ tiene historial no se le borra, se le da de baja. Una baja es
+     un cambio del registro, no un borrado: nota no, marca nueva sí. */
+  E.ponAsistenciaEn(E.hoyISO(), [A1.id]);
+  var marcaVieja = E.buscaJugador(A1.id).tocado;
+  await wait(20);
+  ok('quitar a uno con historial lo da de baja, no lo borra',
+     E.quita('2026/27', A1.id) === 'baja');
+  ok('una baja no deja nota de borrado: el jugador sigue ahí',
+     !E.borrados()['jugador:2026/27:' + A1.id]);
+  ok('pero sí mueve su marca, que ha cambiado',
+     E.buscaJugador(A1.id).tocado > marcaVieja);
+
+  // --- las sesiones ---
+  limpia();
+  var HOY = E.hoyISO();
+  E.guardaSesion(HOY, { nombre:'Salida de balón' });
+  var mS = E.todo().sesiones[HOY].tocado;
+  ok('una sesión guardada se marca', typeof mS === 'number' && mS > 0, mS);
+
+  await wait(20);
+  E.guardaSesion(HOY, { nombre:'Salida de balón' });
+  ok('volver a guardar lo mismo NO mueve la marca',
+     E.todo().sesiones[HOY].tocado === mS, E.todo().sesiones[HOY].tocado + ' vs ' + mS);
+  /* Esto no es una optimización. Si abrir un día y cerrarlo moviera la marca,
+     ese día ganaría al del otro dispositivo sin haber cambiado nada, y de paso
+     la aplicación avisaría de un choque donde no se ha perdido nada. */
+
+  await wait(20);
+  E.guardaSesion(HOY, { nombre:'Otra cosa' });
+  ok('cambiar el nombre sí la mueve', E.todo().sesiones[HOY].tocado > mS);
+
+  E.guardaSesion(HOY, { nombre:'' });                 // se queda sin nada: se borra
+  ok('vaciar una sesión la borra y deja nota',
+     !E.todo().sesiones[HOY] && !!E.borrados()['sesion:' + HOY],
+     Object.keys(E.borrados()).join(' · ') || 'ninguna');
+
+  // --- la asistencia ---
+  limpia();
+  var B1 = E.añade(null, { nombre:'Ana', dorsal:'1' }).jugador;
+  E.ponAsistenciaEn('2026-09-10', [B1.id]);
+  var mA = E.todo().asistencia['2026-09-10'].tocado;
+  ok('pasar lista se marca', typeof mA === 'number' && mA > 0);
+  await wait(20);
+  E.ponAsistenciaEn('2026-09-10', [B1.id]);
+  ok('pasar la misma lista otra vez no mueve la marca',
+     E.todo().asistencia['2026-09-10'].tocado === mA);
+  await wait(20);
+  E.ponAsistenciaEn('2026-09-10', []);
+  ok('pasar una lista distinta sí', E.todo().asistencia['2026-09-10'].tocado > mA);
+
+  // --- los partidos ---
+  limpia();
+  var P1 = E.guardaPartido(null, { fecha:'2026-09-12', rival:'CD Ejemplo' }).partido;
+  ok('un partido nuevo se marca', typeof P1.tocado === 'number' && P1.tocado > 0);
+  await wait(20);
+  ok('guardarlo igual no mueve la marca',
+     E.guardaPartido(P1.id, { rival:'CD Ejemplo' }).partido.tocado === P1.tocado);
+  await wait(20);
+  ok('cambiarle el rival sí',
+     E.guardaPartido(P1.id, { rival:'CD Otro' }).partido.tocado > P1.tocado);
+  E.quitaPartido(P1.id);
+  ok('borrar un partido deja nota', !!E.borrados()['partido:' + P1.id]);
+
+  // --- la temporada en curso, que es un dato suelto ---
+  limpia();
+  var sinMarcaAun = E.todo().squad.actualTocado;
+  E.cambiaTemporada('2027/28');
+  ok('cambiar de temporada se marca aparte',
+     E.todo().squad.actualTocado > sinMarcaAun, E.todo().squad.actualTocado);
+  var mT = E.todo().squad.actualTocado;
+  E.cambiaTemporada('2027/28');
+  ok('y ponerla a la misma no mueve nada', E.todo().squad.actualTocado === mT);
+  E.cambiaTemporada('2026/27');
+
+  /* ═══ La costura: lo que saca equipo.js es lo que come fusion.js ═══════ */
+  limpia();
+  ok('fusion.js está cargado en la aplicación', !!(w.PTFusion && w.PTFusion.fusiona));
+  ok('el cofre también', !!(w.PTCofre && w.PTCofre.hay && w.PTCofre.hay()));
+
+  var enTodo = E.todo();
+  ok('«todo» saca los cinco almacenes',
+     ['squad','asistencia','sesiones','partidos','borrados']
+       .every(function(k){ return enTodo[k] !== undefined; }),
+     Object.keys(enTodo).join(', '));
+
+  /* El caso de la cabecera de fusion.js, montado de verdad: el martes apuntas
+     tres jugadores en el ordenador; el miércoles, sin abrir el ordenador,
+     pasas lista y apuntas un partido con el móvil. Tienen que quedar las dos
+     cosas. Aquí este navegador hace de móvil y se fabrica lo del ordenador. */
+  var M1 = E.añade(null, { nombre:'Ana Ferrer', dorsal:'7' }).jugador;
+  E.ponAsistenciaEn('2026-09-16', [M1.id]);
+  E.guardaPartido(null, { fecha:'2026-09-16', rival:'CD Móvil' });
+  var movil = E.todo();
+
+  var ordenador = JSON.parse(JSON.stringify(movil));
+  ordenador.asistencia = {}; ordenador.partidos = [];   // el ordenador no vio eso
+  ordenador.squad.temporadas['2026/27'] = [
+    { id:'pc000001', nombre:'Del ordenador', dorsal:'9', posicion:'', tocado: Date.now() }
+  ];
+
+  var r = w.PTFusion.fusiona(movil, ordenador);
+  E.traga(r.datos);
+
+  var nombres = E.jugadores().map(function(j){ return j.nombre; }).sort().join(' · ');
+  ok('quedan los jugadores de los dos lados', nombres === 'Ana Ferrer · Del ordenador', nombres);
+  ok('y no se ha perdido la lista del móvil',
+     E.presentesDe('2026-09-16').join(',') === M1.id);
+  ok('ni el partido del móvil', E.partidos().length === 1 &&
+     E.partidos()[0].rival === 'CD Móvil');
+  ok('y sin choques, porque no son lo mismo', r.choques.length === 0,
+     r.choques.map(function(c){return c.qué+' '+c.clave;}).join(' · '));
+
+  /* Y que lo tragado se pueda volver a sacar igual: si «traga» y «todo» no
+     cuadraran, cada sincronización dejaría el almacén un poco distinto y la
+     siguiente creería que hay cambios que subir. Para siempre. */
+  ok('lo que entra por «traga» vuelve a salir igual por «todo»',
+     w.PTFusion.canon(E.todo()) === w.PTFusion.canon(r.datos),
+     w.PTFusion.canon(E.todo()).slice(0, 90));
+
+  /* Y fusionar otra vez con lo mismo no puede mover nada, que es lo que
+     impide que una sincronización dispare la siguiente sin parar. */
+  ok('volver a fusionar con el ordenador no mueve nada',
+     w.PTFusion.igual(w.PTFusion.fusiona(E.todo(), ordenador).datos, r.datos));
+
+  /* Un borrado hecho en el móvil no puede volver por el ordenador. */
+  E.quitaPartido(E.partidos()[0].id);
+  var r2 = w.PTFusion.fusiona(E.todo(), movil);
+  E.traga(r2.datos);
+  ok('un partido borrado aquí no vuelve al fusionar con quien aún lo tiene',
+     E.partidos().length === 0, E.partidos().length + ' partidos');
+
+  /* ═══ La promesa de privacidad tiene que decir la verdad ═════════════════
+
+     Cuatro pantallas decían «los nombres se quedan en este dispositivo». Con
+     la sincronización encendida eso deja de ser cierto, y un aviso de
+     privacidad que miente es peor que no tener ninguno: la gente decide
+     fiándose de él.
+
+     Así que se recorre la aplicación entera con el interruptor encendido y se
+     busca esa frase, en todas sus formas. Si algún día alguien añade una
+     pantalla nueva con la coletilla copiada, esto falla. */
+  limpia();
+  try { w.localStorage.setItem('pt-sincro-si', 'si'); } catch(e) {}
+  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html?sincro'; });
+  w = fr.contentWindow; d = fr.contentDocument; E = w.PTEquipo;
+  await wait(1400);
+
+  ok('el módulo de sincronización está cargado', !!(w.PTSincro && w.PTSincro.quiere));
+  ok('y se ha quedado encendido', w.PTSincro.quiere() === 'si');
+
+  E.añade(null, { nombre:'Ana Ferrer', dorsal:'7' });
+  var MIENTE = /(no salen|no sale|se quedan|se queda|no viaja[n]?) (de|en) (este|tu) dispositivo|nada (sale|viaja) a (internet|ningún servidor)/i;
+  var sucias = [];
+  for (var dst of ['hoy','plantilla','sesiones','partidos','datos']) {
+    await irA(d, dst); await wait(400);
+    var caja = d.getElementById('eq-' + dst);
+    if (caja && MIENTE.test(caja.textContent)) {
+      sucias.push(dst + ': «' + (caja.textContent.match(MIENTE)||[''])[0] + '»');
+    }
+  }
+  ok('con la sincronización encendida ninguna pantalla dice que no sale de aquí',
+     !sucias.length, sucias.join(' · '));
+
+  /* Y al revés: apagada, tiene que seguir diciéndolo, que es lo cierto
+     entonces. Una regla que solo mira en un sentido se cumple borrando la
+     frase de todas partes, y así nadie se entera de nada. */
+  await irA(d,'plantilla'); await wait(300);
+  var conNube = d.getElementById('squad-aviso').textContent;
+  ok('y sí dice que va cifrado', /cifrad/i.test(conNube), conNube.slice(0, 70));
+
+  try { w.localStorage.setItem('pt-sincro-si', 'no'); } catch(e) {}
+  await new Promise(function(r){ fr.onload = r; fr.src = '../app/index.html?sinsincro'; });
+  w = fr.contentWindow; d = fr.contentDocument; E = w.PTEquipo;
+  await wait(1400);
+  await irA(d,'plantilla'); await wait(300);
+  ok('apagada, vuelve a decir que se queda en este dispositivo',
+     /se quedan en este dispositivo/i.test(d.getElementById('squad-aviso').textContent),
+     d.getElementById('squad-aviso').textContent.slice(0, 70));
+  ok('y no habla de cifrado, que entonces no hay',
+     !/cifrad/i.test(d.getElementById('squad-aviso').textContent));
+
+  try { w.localStorage.removeItem('pt-sincro-si'); } catch(e) {}
   limpia();
   pinta();
 })().catch(function(e){

@@ -255,14 +255,78 @@
     if (perfilCache) return Promise.resolve(perfilCache);
     return pide('/auth/v1/user').then(function (u) {
       if (!u || !u.id) return null;
-      return pide('/rest/v1/entrenadores?select=id,nombre,club,admin&id=eq.' + u.id)
+      return pide('/rest/v1/entrenadores?select=id,nombre,club,admin,acepto&id=eq.' + u.id)
         .then(function (filas) {
-          var p = (filas && filas[0]) || { id: u.id, nombre: '', club: '', admin: false };
+          var p = (filas && filas[0]) ||
+                  { id: u.id, nombre: '', club: '', admin: false, acepto: '' };
           p.email = u.email;
           perfilCache = p;
           return p;
         });
     }).catch(function () { return null; });
+  }
+
+  /* ---- el cofre: los datos del equipo, cifrados ---------------------------
+
+     Aquí no se cifra ni se descifra nada: eso es de app/cofre.js y de
+     app/sincro.js. Esto solo son las tres llamadas al servidor, que es lo que
+     sabe hacer este archivo.
+
+     Lo que sube es un bloque que este archivo no entiende, y así tiene que
+     seguir siendo: si algún día alguien mete aquí una clave para «facilitar»
+     algo, la promesa de que el servidor no puede leer los nombres se acaba. */
+
+  var COFRE = 'select=sal,maestra,bloque,version,actualizado';
+
+  function cofre() {
+    if (!ses) return Promise.resolve(null);
+    return quienSoy().then(function (p) {
+      if (!p) return null;
+      return pide('/rest/v1/cofres?' + COFRE + '&id=eq.' + p.id)
+        .then(function (filas) { return (filas && filas[0]) || null; });
+    });
+  }
+
+  function estrenaCofre(campos) {
+    return quienSoy().then(function (p) {
+      if (!p) throw new Error('Entra con tu correo primero');
+      return pide('/rest/v1/cofres?' + COFRE, {
+        method: 'POST', headers: { Prefer: 'return=representation' },
+        body: { id: p.id, sal: campos.sal, maestra: campos.maestra,
+                bloque: campos.bloque || '' }
+      }).then(function (filas) { return (filas && filas[0]) || null; });
+    });
+  }
+
+  /* Guardar, pero solo si nadie ha escrito desde que nos bajamos esto.
+
+     El «version=eq.» no es una precaución de manual: sin él, el móvil y el
+     ordenador se bajan la versión 5, los dos fusionan con lo suyo y los dos
+     suben; el segundo pisa al primero y lo que el primero había añadido
+     desaparece, con la fusión impecable. Con él, el segundo no escribe nada,
+     se entera y vuelve a intentarlo con lo nuevo.
+
+     Devuelve la fila nueva, o null si no ha escrito porque ya no era esa
+     versión. Un null aquí NO es un error: es la respuesta correcta. */
+  /* Dejar de sincronizar se lleva la fila entera, no la deja vacía. Quien
+     apaga esto está diciendo «quita mis datos de ahí», y dejar un bloque
+     cifrado guardado «por si vuelve» sería no haberle hecho caso. */
+  function borraCofre() {
+    return quienSoy().then(function (p) {
+      if (!p) return false;
+      return pide('/rest/v1/cofres?id=eq.' + p.id, { method: 'DELETE' })
+        .then(function () { return true; });
+    });
+  }
+
+  function guardaCofre(campos, version) {
+    return quienSoy().then(function (p) {
+      if (!p) throw new Error('Entra con tu correo primero');
+      return pide('/rest/v1/cofres?' + COFRE + '&id=eq.' + p.id +
+                  '&version=eq.' + Number(version), {
+        method: 'PATCH', headers: { Prefer: 'return=representation' }, body: campos
+      }).then(function (filas) { return (filas && filas[0]) || null; });
+    });
   }
 
   /* ---- ejercicios ------------------------------------------------------ */
@@ -322,7 +386,7 @@
      texto de privacidad.html cambie, cambia esta etiqueta con él: lo que queda
      anotado en la cuenta es CUÁL se aceptó, porque «aceptó las condiciones»,
      sin decir cuáles, no es constancia de nada dentro de dos años. */
-  var CONDICIONES = '2026-09-a';
+  var CONDICIONES = '2026-09-b';
 
   function registra(email, clave, nombre, acepto) {
     if (!HAY) return Promise.reject(new Error('La nube no está configurada'));
@@ -414,6 +478,14 @@
     if (!ses) return Promise.reject(new Error('Entra con tu correo primero'));
     return pide('/auth/v1/user', { method: 'PUT', body: { password: String(nueva || '') } })
       .then(function () { return true; });
+  }
+
+  /* Volver a aceptar unas condiciones nuevas. No se manda QUÉ se acepta: la
+     versión la pone el servidor, igual que en el registro y por lo mismo. */
+  function acepta() {
+    if (!ses) return Promise.reject(new Error('Hay que haber entrado'));
+    return pide('/rest/v1/rpc/acepto_las_condiciones', { method: 'POST', body: {} })
+      .then(function (v) { perfilCache = null; return v; });
   }
 
   function sale() {
@@ -519,6 +591,8 @@
     recupera: recupera, cambiaClave: cambiaClave,
     lista: lista, mios: mios,
     publica: publica, cambiaPublicado: cambiaPublicado,
-    borra: borra, reporta: reporta, apertura: apertura
+    borra: borra, reporta: reporta, apertura: apertura,
+    cofre: cofre, estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
+    borraCofre: borraCofre, acepta: acepta
   };
 })();

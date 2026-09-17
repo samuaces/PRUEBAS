@@ -15,7 +15,7 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 
 - [Inicio](https://klym.xyz/): qué hace, cómo funciona y el enlace a la aplicación.
 - [La aplicación](https://klym.xyz/app/): pizarra, sesiones, plantilla y datos.
-- [Privacidad](https://klym.xyz/privacidad.html): qué se guarda, dónde y qué no sale nunca del dispositivo.
+- [Privacidad](https://klym.xyz/privacidad.html): qué se guarda, dónde, y qué se cifra antes de salir.
 
 ## El día a día
 
@@ -133,14 +133,19 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 ## Qué NO hace todavía
 
 - No permite que dos personas trabajen a la vez sobre la misma pizarra.
-- La plantilla, la asistencia, las sesiones y los partidos no se sincronizan entre
-  dispositivos: viven en el navegador donde se escribieron, a propósito.
+- La plantilla, la asistencia, las sesiones y los partidos viven en el navegador donde se
+  escribieron. Se pueden sincronizar entre dispositivos, pero hay que encenderlo a mano en
+  Tu cuenta: viene apagado.
 
 ## Privacidad
 
 Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras, la plantilla, la
 asistencia, las sesiones y los partidos viven en el almacenamiento local del navegador. Los nombres de los
-jugadores —a menudo menores— no salen nunca del dispositivo: no se suben ni se comparten.
+jugadores —a menudo menores— no se suben ni se comparten, y no salen del dispositivo salvo
+que el usuario encienda la sincronización entre sus dispositivos, que viene apagada. Si la
+enciende, esos datos se cifran EN EL DISPOSITIVO (AES-GCM de 256, clave derivada de su
+contraseña con PBKDF2-SHA256 y 310.000 vueltas) y al servidor llega un bloque que nadie
+puede descifrar, tampoco quien opera el servidor.
 Al servidor solo va lo que el usuario comparte a propósito y, si entra, su correo, que no ve
 nadie más. Sin cuenta no se manda nada. Una jugada mandada por enlace tampoco pasa por ningún
 servidor: va dentro del propio enlace, detrás del #, y esa parte de la dirección el navegador

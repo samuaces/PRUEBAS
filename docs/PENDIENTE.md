@@ -169,16 +169,20 @@ queda no es relleno: son tres sitios donde hoy la cosa no se cierra del todo.
   de publicar; un comentario no impide publicar nada, así que ahora lo impide
   una comprobación de `tests/ids.mjs`.
 
-- **Volver a preguntar cuando cambien las condiciones.** La versión vigente la
-  decide el servidor (`condiciones_vigentes()`) y queda anotada en
-  `entrenadores.acepto`. Lo que no hay es nadie que compare lo anotado con lo
-  vigente y vuelva a preguntar. Hoy se cambia el texto y nadie se entera. Hace
-  falta mirarlo al entrar y enseñar la casilla otra vez si no coincide.
+- **Volver a preguntar cuando cambien las condiciones · A MEDIAS.** Ya existe
+  la puerta: `acepto_las_condiciones()` en el servidor, sin parámetros y con la
+  versión puesta por `condiciones_vigentes()`, y `PTNube.acepta()` para
+  llamarla. Se usa al encender la sincronización, que es donde de verdad hacía
+  falta: quien la enciende acepta el texto nuevo, no el que aceptó en su día.
 
-  Un caso concreto de eso: la aplicación se guarda entera en el dispositivo
-  (service worker), así que alguien puede estar viendo el texto de hace dos
-  versiones mientras el servidor anota la de ahora. Con la comparación de
-  arriba hecha, se arregla solo.
+  Lo que sigue faltando es lo general: nadie compara al entrar `yo.acepto` con
+  `PTNube.condiciones` y vuelve a enseñar la casilla si no coinciden. Con la
+  función ya hecha, es mirar eso al arrancar y poco más.
+
+  Un caso concreto de lo mismo: la aplicación se guarda entera en el
+  dispositivo (service worker), así que alguien puede estar viendo el texto de
+  hace dos versiones mientras el servidor anota la de ahora. Con la comparación
+  de arriba hecha, se arregla solo.
 
 - **Poder pedir revisión de un ejercicio escondido.** Al quitarle al autor el
   permiso de escribir en `oculto` —que era un agujero de verdad: tres

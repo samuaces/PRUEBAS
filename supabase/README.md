@@ -30,9 +30,21 @@ Tarda un par de minutos en levantarse.
 Panel del proyecto → **SQL Editor** → **New query**. Pega entero el contenido de
 [`schema.sql`](schema.sql) y dale a **Run**.
 
-Debe terminar sin errores. Crea las tablas `entrenadores`, `ejercicios` y
-`reportes`, sus permisos por fila y los disparadores. Se puede volver a ejecutar
-las veces que haga falta sin romper nada.
+Debe terminar sin errores. Crea las tablas `entrenadores`, `ejercicios`,
+`reportes` y `cofres`, sus permisos por fila y los disparadores. Se puede volver
+a ejecutar las veces que haga falta sin romper nada.
+
+> **Si ya tenías el proyecto montado de antes, vuelve a ejecutarlo.** La tabla
+> `cofres` —la que guarda los datos del equipo cifrados, para verlos en varios
+> dispositivos— es nueva, y hasta que no esté, encender la sincronización en la
+> aplicación falla. Ejecutar `schema.sql` otra vez no toca nada de lo que ya
+> hay.
+
+De `cofres` conviene saber una cosa: **su contenido no se puede leer desde
+aquí**. Lo que hay en `bloque` sale del navegador ya cifrado con una clave que
+se deriva de la contraseña de cada persona y que no se sube nunca. Ni con la
+clave secreta del proyecto, ni entrando en la base de datos, ni siendo
+administrador. Es a propósito: ahí dentro van nombres de menores.
 
 ### 3. Configurar el correo de entrada
 

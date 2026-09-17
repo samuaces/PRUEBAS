@@ -215,7 +215,7 @@ end $$;
 reset role;
 select pg_temp.comprueba('se guarda QUÉ condiciones aceptó, no solo que aceptó',
   (select acepto from public.entrenadores
-    where id = '11111111-1111-1111-1111-111111111111') = '2026-09-a');
+    where id = '11111111-1111-1111-1111-111111111111') = public.condiciones_vigentes());
 select pg_temp.comprueba('con la hora puesta por el servidor',
   (select acepto_en is not null and acepto_en <= now()
      from public.entrenadores where id = '11111111-1111-1111-1111-111111111111'));
@@ -228,8 +228,12 @@ select pg_temp.comprueba('y quien no aceptó nada no tiene fecha inventada',
 select pg_temp.comprueba('la versión aceptada la decide el servidor, no el navegador',
   (select acepto from public.entrenadores
     where id = '55555555-5555-5555-5555-555555555555') = public.condiciones_vigentes());
-select pg_temp.comprueba('y coincide con la que enseña la aplicación',
-  public.condiciones_vigentes() = '2026-09-a');
+/* Que la etiqueta sea la misma en schema.sql, en nube.js y en privacidad.html
+   lo comprueba tests/ids.mjs, que es quien puede leer los tres archivos. Aquí
+   basta con que no esté vacía: una versión vacía haría pasar sin mirar todas
+   las comparaciones de arriba. */
+select pg_temp.comprueba('y la etiqueta de las condiciones no está vacía',
+  length(public.condiciones_vigentes()) > 4);
 
 -- ---- borrar la cuenta borra de verdad ----
 /* Quien le da a «borrar mi cuenta» espera que no quede nada: ni el perfil, ni
@@ -293,4 +297,164 @@ exception when check_violation then
   raise notice 'PASA  solo se admiten las tres modalidades';
 end $$;
 
+-- ============================================================================
+-- Los cofres
+--
+-- Aquí dentro van nombres de críos, cifrados. Que estén cifrados es lo que
+-- hace que un fallo de permisos no sea una lista de menores; que los permisos
+-- estén bien es lo que hace que nadie pueda borrarle la temporada a otro. Las
+-- dos cosas, no una.
+-- ============================================================================
+
+reset role; set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.cofres (id, sal, maestra, bloque) values
+  ('11111111-1111-1111-1111-111111111111', 'c2FsZGVhbmFwYXJhbGE=',
+   'bWFlc3RyYWVudnVlbHRhZGVhbmE=', 'Ym9scXVlY2lmcmFkb2RlYW5h');
+
+select pg_temp.comprueba('Ana crea su cofre',
+  (select count(*) from public.cofres) = 1);
+select pg_temp.comprueba('y el servidor le pone la versión 1, no el navegador',
+  (select version from public.cofres where id = '11111111-1111-1111-1111-111111111111') = 1);
+select pg_temp.comprueba('con la hora puesta por el servidor',
+  (select actualizado is not null from public.cofres
+    where id = '11111111-1111-1111-1111-111111111111'));
+
+update public.cofres set bloque = 'b3RyYWNvc2E='
+ where id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.comprueba('cada escritura sube la versión: es lo que evita que dos se pisen',
+  (select version from public.cofres where id = '11111111-1111-1111-1111-111111111111') = 2);
+
+/* Y el navegador no puede escribirla. Si pudiera, el que llega tarde diría
+   que iba primero y la comprobación no serviría de nada. */
+do $$ begin
+  update public.cofres set version = 99
+   where id = '11111111-1111-1111-1111-111111111111';
+  if (select version from public.cofres
+       where id = '11111111-1111-1111-1111-111111111111') = 99 then
+    raise exception 'FALLA el navegador puede escribir la versión del cofre';
+  end if;
+  raise notice 'PASA  el navegador no escribe la versión (el disparador la pisa)';
+exception when insufficient_privilege then
+  raise notice 'PASA  el navegador no tiene permiso para escribir la versión';
+end $$;
+
+-- ---- el de Ana es de Ana ----
+reset role; set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select pg_temp.comprueba('otro entrenador NO ve tu cofre',
+  (select count(*) from public.cofres) = 0);
+
+update public.cofres set bloque = 'c2VjdWVzdHJhZG8='
+ where id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.comprueba('otro entrenador no puede escribir en tu cofre',
+  (select count(*) from public.cofres
+    where id = '11111111-1111-1111-1111-111111111111'
+      and bloque = 'c2VjdWVzdHJhZG8=') = 0);
+
+delete from public.cofres where id = '11111111-1111-1111-1111-111111111111';
+reset role;
+select pg_temp.comprueba('ni borrártelo',
+  (select count(*) from public.cofres) = 1);
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+do $$ begin
+  insert into public.cofres (id, sal, maestra)
+  values ('11111111-1111-1111-1111-111111111111', 'c2FsZmFsc2FwYXJhYW5h', 'ZmFsc2E=');
+  raise exception 'FALLA se puede crear un cofre a nombre de otro';
+exception when insufficient_privilege or check_violation or unique_violation then
+  raise notice 'PASA  no se puede crear un cofre a nombre de otro';
+end $$;
+
+/* ---- ni quien no tiene cuenta ----
+
+   Con las otras tablas, «anon» entra y los permisos por fila deciden qué ve.
+   Aquí ni entra: no tiene permiso sobre la tabla. Es una puerta menos, y la
+   diferencia importa —un fallo en una política se cuela, un permiso que no
+   existe no—, así que lo que se comprueba es el error, no un cero. */
+reset role; set role anon;
+do $$ declare n int; begin
+  select count(*) into n from public.cofres;
+  raise exception 'FALLA sin cuenta se pueden leer los cofres';
+exception when insufficient_privilege then
+  raise notice 'PASA  sin cuenta no se puede ni mirar la tabla de los cofres';
+end $$;
+do $$ begin
+  insert into public.cofres (id, sal, maestra)
+  values ('11111111-1111-1111-1111-111111111111', 'c2FsZGVhbm9u', 'YW5vbg==');
+  raise exception 'FALLA anon puede escribir en los cofres';
+exception when insufficient_privilege or check_violation or unique_violation then
+  raise notice 'PASA  sin cuenta no se puede ni escribir';
+end $$;
+
+/* ---- y el administrador tampoco ----
+
+   Este es el único sitio de todo el esquema donde «es_admin()» no aparece. En
+   las otras tablas tiene sentido: hay que poder esconder un ejercicio
+   denunciado. Aquí no hay nada que moderar —son bytes cifrados— y una puerta
+   abierta «por si acaso» convierte una promesa en una intención. Aunque
+   entrara no podría leer nada, pero sí podría borrar la temporada de alguien. */
+reset role;
+update public.entrenadores set admin = true
+ where id = '33333333-3333-3333-3333-333333333333';
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.comprueba('el administrador tampoco ve los cofres',
+  (select count(*) from public.cofres) = 0);
+delete from public.cofres;
+reset role;
+select pg_temp.comprueba('ni puede borrarlos',
+  (select count(*) from public.cofres) = 1);
+
+-- ---- un bloque descomunal no entra ----
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+do $$ begin
+  insert into public.cofres (id, sal, maestra, bloque)
+  values ('44444444-4444-4444-4444-444444444444', 'c2FsZGVkYW4=', 'ZGFu',
+          repeat('A', 5000000));
+  raise exception 'FALLA cabe un cofre de cinco megas';
+exception when check_violation then
+  raise notice 'PASA  un cofre desmesurado no entra';
+end $$;
+
+-- ---- y al borrar la cuenta se va el cofre con ella ----
+reset role;
+delete from auth.users where id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.comprueba('borrar la cuenta se lleva el cofre',
+  (select count(*) from public.cofres
+    where id = '11111111-1111-1111-1111-111111111111') = 0);
+
+reset role;
+
+-- ---- volver a aceptar unas condiciones nuevas ----
+/* Sin esto, cambiar el texto dejaba a todo el mundo con una versión aceptada
+   que ya no era la publicada. Con la sincronización eso pasó de detalle a
+   problema: lo que cambió fue qué se guarda en el servidor y de quién. */
+reset role; set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select set_config('prueba.antes',
+  (select coalesce(acepto,'') from public.entrenadores
+    where id = '22222222-2222-2222-2222-222222222222'), false);
+select pg_temp.comprueba('Bruno no había aceptado nada',
+  current_setting('prueba.antes') = '');
+select public.acepto_las_condiciones();
+select pg_temp.comprueba('aceptar anota la versión publicada',
+  (select acepto from public.entrenadores
+    where id = '22222222-2222-2222-2222-222222222222') = public.condiciones_vigentes());
+select pg_temp.comprueba('y la hora la pone el servidor',
+  (select acepto_en is not null from public.entrenadores
+    where id = '22222222-2222-2222-2222-222222222222'));
+
+-- Y sin cuenta no se puede aceptar por nadie.
+reset role; set role anon;
+do $$ begin
+  perform public.acepto_las_condiciones();
+  raise exception 'FALLA anon puede aceptar las condiciones';
+exception when insufficient_privilege then
+  raise notice 'PASA  sin cuenta no se puede aceptar nada';
+end $$;
 reset role;
