@@ -136,19 +136,19 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 
 - No permite que dos personas trabajen a la vez sobre la misma pizarra.
 - La plantilla, la asistencia, las sesiones y los partidos viven en el navegador donde se
-  escribieron. Se pueden sincronizar entre dispositivos, pero hay que encenderlo a mano en
-  Tu cuenta: viene apagado.
+  escribieron. Con cuenta van además con la cuenta, cifrados, y se ven igual en cualquier
+  dispositivo donde se entre. No hay nada que activar.
 
 ## Privacidad
 
 Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras, la plantilla, la
 asistencia, las sesiones y los partidos viven en el almacenamiento local del navegador. Los nombres de los
-jugadores no se suben ni se comparten, y no salen del dispositivo salvo
-que el usuario encienda la sincronización entre sus dispositivos, que viene apagada. Si la
-enciende, esos datos se cifran EN EL DISPOSITIVO (AES-GCM de 256, clave derivada de su
-contraseña con PBKDF2-SHA256 y 310.000 vueltas) y al servidor llega un bloque que nadie
-puede descifrar, tampoco quien opera el servidor. Esos datos son del entrenador, que es
-quien responde de lo que escribe; Klym no los trata ni los mira.
+jugadores no se suben a la biblioteca común ni se comparten. Sin cuenta no salen del
+dispositivo; con cuenta van con ella, cifrados EN EL DISPOSITIVO (AES-GCM de 256, clave
+derivada de la contraseña con PBKDF2-SHA256 y 310.000 vueltas), y al servidor llega un
+bloque que nadie puede descifrar, tampoco quien opera el servidor. Perder la contraseña es
+perder esos datos, y se dice así en la aplicación. Son del entrenador, que es quien
+responde de lo que escribe; Klym no los trata ni los mira.
 Al servidor solo va lo que el usuario comparte a propósito y, si entra, su correo, que no ve
 nadie más. Sin cuenta no se manda nada. Una jugada mandada por enlace tampoco pasa por ningún
 servidor: va dentro del propio enlace, detrás del #, y esa parte de la dirección el navegador

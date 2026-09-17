@@ -39,6 +39,19 @@
    nada; puede tardar.
 
    ---------------------------------------------------------------------------
+   VA CON LA CUENTA, NO ES UNA OPCIÓN
+
+   Esto llegó a tener un interruptor y una pregunta la primera vez. Se quitó
+   a propósito: la plantilla es de la cuenta, igual que los ejercicios que
+   subes. Entras y está; entras en otro sitio y está. Un interruptor para algo
+   que va de suyo solo añade un sitio donde equivocarse y una pregunta que
+   nadie sabe contestar la primera vez que la ve.
+
+   La contraprestación se dice clara y no se esconde: todo va con la
+   contraseña. Si se pierden el correo y la contraseña, se pierden los datos,
+   porque nadie más puede abrirlos.
+
+   ---------------------------------------------------------------------------
    LA LLAVE SE QUEDA EN ESTE DISPOSITIVO, Y HAY QUE DECIRLO
 
    Al entrar se guarda aquí la clave que abre el cofre. Eso tiene un precio y
@@ -62,7 +75,6 @@
 
   var LLAVE  = 'pt-llave';      // la clave de este dispositivo
   var ESTADO = 'pt-sincro';     // qué se sabe de la última vez
-  var QUIERE = 'pt-sincro-si';  // si esta persona lo ha encendido
 
   var ESPERA_CAMBIO = 2500;     // lo que se deja pasar tras un cambio
   var REINTENTOS    = [30000, 120000, 600000];
@@ -74,7 +86,7 @@
   var enMarcha = false, pendiente = false, fallos = 0;
   var reloj = null, relojReintento = null;
   var oyentes = [];
-  var ultimo = { estado: 'apagado', cuando: 0, choques: [] };
+  var ultimo = { estado: 'fuera', cuando: 0, choques: [] };
 
   /* Las piezas se enganchan aquí y no en «arranca», porque el interruptor de
      Tu cuenta puede encender esto sin que se haya arrancado nunca —alguien que
@@ -97,49 +109,15 @@
     oyentes.forEach(function (f) { try { f(ultimo); } catch (e) {} });
   }
 
-  /* ---- encendido o apagado, y lo decide la persona -----------------------
+  /* ---- entrar y salir ----------------------------------------------------
 
-     Esto viene apagado. Hasta ahora la aplicación decía, por escrito, que los
-     nombres de la plantilla no salían del dispositivo; encenderlo en una
-     actualización y sin preguntar cambiaría eso a espaldas de quien lo leyó.
-     Van cifrados, sí, pero lo que cambia es dónde están.
+     No hay nada que encender: mientras haya sesión, esto funciona. Al cerrar
+     sesión se olvida la llave de este dispositivo, que en un ordenador
+     compartido es lo mínimo. */
 
-     Así que se pregunta una vez, con las palabras claras, y quien dice que no
-     sigue exactamente como estaba. */
-
-  function quiere() {
-    try {
-      var v = localStorage.getItem(QUIERE);
-      return v === 'si' || v === 'no' ? v : null;   // null = todavía no se ha preguntado
-    } catch (e) { return null; }
-  }
-
-  /* Encender es distinto de entrar con esto ya encendido, y por eso se marca.
-
-     Si falla al ENTRAR, la persona no estaba pidiendo nada: la sincronización
-     reintenta sola y avisar de cada bache sería ruido. Si falla al ENCENDER,
-     acaba de pedirlo expresamente y se ha quedado sin hacer: hay que decirle
-     por qué. La marca es lo que deja distinguir los dos casos en un sitio. */
-  function enciende(contraseña) {
-    try { localStorage.setItem(QUIERE, 'si'); } catch (e) {}
-    return alEntrar(contraseña).then(function (r) {
-      r.encendiendo = true;
-      return r;
-    });
-  }
-
-  /* Apagarlo borra la fila del servidor. Quien apaga esto está diciendo «quita
-     mis datos de ahí», no «deja de mirarlos»: dejar el bloque guardado por si
-     vuelve sería no haberle hecho caso. Lo de este dispositivo no se toca. */
-  function apaga() {
-    try { localStorage.setItem(QUIERE, 'no'); } catch (e) {}
-    var fin = (hay() && N.dentro()) ? N.borraCofre().catch(function () { return false; })
-                                    : Promise.resolve(false);
-    return fin.then(function (r) {
-      olvidaLlave();
-      avisa('apagado');
-      return r;
-    });
+  function olvidaTodo() {
+    olvidaLlave();
+    avisa('fuera');
   }
 
   /* ---- la llave de este dispositivo ------------------------------------- */
@@ -178,7 +156,7 @@
      momento en el que la contraseña está a mano. De la contraseña sale la
      clave, y de ahí en adelante ya no hace falta. */
   function alEntrar(contraseña) {
-    if (!hay()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    if (!hay()) return Promise.resolve({ ok: false, porque: 'sin-nube' });
     return N.quienSoy().then(function (p) {
       if (!p) return { ok: false, porque: 'sin-cuenta' };
       return N.cofre().then(function (fila) {
@@ -191,7 +169,7 @@
       });
     }).then(function (r) {
       if (r.ok) { avisa('listo'); sincroniza(); }
-      else avisa(r.porque === 'cerrado' ? 'cerrado' : 'apagado');
+      else avisa(r.porque === 'cerrado' ? 'cerrado' : 'fuera');
       return r;
     }, function (e) {
       /* El motivo se devuelve, no se traga. Antes salía un «sin-red» pelado y
@@ -256,7 +234,7 @@
   /* ---- el ciclo ---------------------------------------------------------- */
 
   function sincroniza(vuelta) {
-    if (!hay() || !clave || !N.dentro()) return Promise.resolve({ ok: false, porque: 'apagado' });
+    if (!hay() || !clave || !N.dentro()) return Promise.resolve({ ok: false, porque: 'fuera' });
     if (enMarcha) { pendiente = true; return Promise.resolve({ ok: false, porque: 'ocupado' }); }
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       avisa('sin-red');
@@ -345,7 +323,7 @@
 
   var arrancado = false;
   function arranca() {
-    if (arrancado || !hay() || quiere() !== 'si') return false;
+    if (arrancado || !hay()) return false;
     arrancado = true;
 
     // Cualquier cambio del equipo, con unos segundos de respiro.
@@ -353,7 +331,7 @@
 
     // Salir de la cuenta se lleva la llave: en un ordenador compartido, lo
     // contrario sería dejarla puesta.
-    N.alCambiar(function () { if (!N.dentro()) { olvidaLlave(); avisa('apagado'); } });
+    N.alCambiar(function () { if (!N.dentro()) olvidaTodo(); });
 
     if (typeof window.addEventListener === 'function') {
       window.addEventListener('online', function () { fallos = 0; sincroniza(); });
@@ -381,15 +359,12 @@
 
   window.PTSincro = {
     hay: hay,
-    quiere: quiere,
-    enciende: enciende,
-    apaga: apaga,
+    olvida: olvidaTodo,
     arranca: arranca,
     alEntrar: alEntrar,
     alCambiarContraseña: alCambiarContraseña,
     sincroniza: function () { return sincroniza(); },
     ahora: function () { clearTimeout(reloj); return sincroniza(); },
-    olvidaLlave: olvidaLlave,
     abierto: function () { return !!clave; },
     estado: function () { return ultimo; },
     alCambiar: function (f) { if (typeof f === 'function') oyentes.push(f); }

@@ -316,17 +316,6 @@
 
      Devuelve la fila nueva, o null si no ha escrito porque ya no era esa
      versión. Un null aquí NO es un error: es la respuesta correcta. */
-  /* Dejar de sincronizar se lleva la fila entera, no la deja vacía. Quien
-     apaga esto está diciendo «quita mis datos de ahí», y dejar un bloque
-     cifrado guardado «por si vuelve» sería no haberle hecho caso. */
-  function borraCofre() {
-    return quienSoy().then(function (p) {
-      if (!p) return false;
-      return pide('/rest/v1/cofres?id=eq.' + p.id, { method: 'DELETE' })
-        .then(function () { return true; });
-    });
-  }
-
   function guardaCofre(campos, version) {
     return quienSoy().then(function (p) {
       if (!p) throw new Error('Entra con tu correo primero');
@@ -601,6 +590,6 @@
     publica: publica, cambiaPublicado: cambiaPublicado,
     borra: borra, reporta: reporta, apertura: apertura,
     cofre: cofre, estrenaCofre: estrenaCofre, guardaCofre: guardaCofre,
-    borraCofre: borraCofre, acepta: acepta
+    acepta: acepta
   };
 })();
