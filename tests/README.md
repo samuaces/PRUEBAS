@@ -41,3 +41,17 @@ node tests/catalogo.mjs
 ```
 
 No necesita navegador ni servidor.
+
+## El cofre
+
+`cofre.mjs` prueba el cifrado de extremo a extremo (`app/cofre.js`): que un bloque no
+lleve los nombres dentro, que dos cifrados del mismo dato salgan distintos, que un bloque
+tocado no se abra, que una contraseña mala devuelva `null` en vez de reventar, que cambiar
+la contraseña siga abriendo los datos viejos, y que el base64 escrito a mano sea el mismo
+que el de todo el mundo.
+
+```bash
+node tests/cofre.mjs
+```
+
+No necesita navegador ni servidor: WebCrypto está en Node desde la 19, y es la misma API.
