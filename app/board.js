@@ -2738,9 +2738,15 @@
             'usaste la última vez, o en el dispositivo donde ya habías entrado.');
     } else if (r.porque === 'a-la-vez') {
       toast('Otro dispositivo estaba cambiando lo mismo. Vuelve a intentarlo.');
+    } else if (r.encendiendo) {
+      /* Solo cuando se acaba de PEDIR encenderlo. Si falla al entrar con esto
+         ya encendido, no se dice nada: se reintenta solo y avisar de cada
+         bache de red es ruido. Pero quien acaba de darle al interruptor y no
+         ve nada creería que el botón no funciona. */
+      toast(r.error || 'No se ha podido encender. Inténtalo dentro de un momento.');
     }
-    // Lo demás —sin red, sin nube— no se dice: no se ha perdido nada y lo de
-    // este dispositivo sigue entero.
+    // Lo demás no se dice: no se ha perdido nada y lo de este dispositivo
+    // sigue entero.
   }
 
   /* La pregunta de la primera vez. Se hace justo después de entrar, que es

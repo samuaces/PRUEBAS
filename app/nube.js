@@ -102,7 +102,15 @@
     [/doc_razonable|too large|payload/i,
      'Este ejercicio pesa demasiado para subirlo. Prueba a quitarle fotogramas.'],
     [/violates check constraint|check constraint/i,
-     'Algún dato de la ficha no le cuadra al servidor. Revisa la duración y el título.']
+     'Algún dato de la ficha no le cuadra al servidor. Revisa la duración y el título.'],
+    /* El proyecto de Supabase está montado con un esquema anterior al que
+       trae esta versión. Pasa al estrenar la sincronización: la tabla de los
+       cofres es nueva. Sin esta traducción salía «relation "public.cofres"
+       does not exist», que no le dice nada a nadie y encima parece un fallo
+       de la aplicación. */
+    [/relation .* does not exist|42P01|Could not find the table/i,
+     'El servidor todavía no tiene preparada esta parte. Hay que volver a ejecutar ' +
+     'supabase/schema.sql en el proyecto: añade lo que falta sin tocar lo que ya hay.']
   ];
   function enCristiano(m) {
     for (var i = 0; i < TRADUCE.length; i++) if (TRADUCE[i][0].test(m)) return TRADUCE[i][1];
