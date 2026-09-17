@@ -32,11 +32,17 @@
    ---------------------------------------------------------------------------
    PRIVACIDAD · esto es lo importante de este archivo
 
-   Son datos de menores: nombres y apellidos de críos. No salen del dispositivo.
+   Aquí viven los nombres de la plantilla, que son del entrenador y de nadie
+   más. Este módulo NO HABLA CON LA RED: no importa nada de nube.js ni de
+   enlace.js, y no sube nada por su cuenta. Lo que se sube a la biblioteca
+   común es el DOCUMENTO de la pizarra (doc), y los jugadores no viven ahí.
 
-   Este módulo no habla con la red. No importa nada de nube.js ni de enlace.js,
-   y nadie le pide sus datos para subirlos. Lo que se sube a la biblioteca común
-   es el DOCUMENTO de la pizarra (doc), y los jugadores no viven ahí.
+   Desde que existe la sincronización hay una sola puerta por la que estos
+   datos pueden salir: «todo()», que se la da a app/sincro.js, y que solo se
+   usa si el entrenador ha encendido eso a mano. Lo que sale por ahí va
+   cifrado antes de salir (app/cofre.js). Ninguna otra función de este archivo
+   entrega los datos a nadie, y esa puerta única es lo que hace que la frase
+   anterior se pueda comprobar leyendo un sitio y no veinte.
 
    Y a partir de ahora los nombres viven en UN SOLO SITIO, 'pt-squad'. Las
    sesiones guardan identificadores, no nombres; el nombre se busca al pintar.
@@ -698,8 +704,8 @@
      Lo que sí comparten: los jugadores son los MISMOS, y aquí también se
      guardan identificadores y no nombres. Un partido de hace dos años enseña el
      nombre de quien lo jugó porque se busca en la plantilla al pintar, no
-     porque esté escrito dentro. Son datos de menores igual que el resto: no
-     salen de este dispositivo. */
+     porque esté escrito dentro. Y como el resto: salen de aquí solo por la
+     puerta de «todo()», y cifrados. */
 
   var TOPE_PARTIDOS = 200;            // dos temporadas largas de sobra
   var DURACIONES = { f11: 90, f7: 60, futsal: 40 };

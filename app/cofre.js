@@ -2,9 +2,14 @@
    El cofre · cifrado de extremo a extremo
 
    Lo que hay aquí es lo que permite que tu plantilla esté en el móvil y en el
-   ordenador sin que ni este proyecto ni Supabase puedan leer el nombre de un
-   crío. Se cifra EN EL DISPOSITIVO, antes de salir; el servidor guarda un
-   bloque que no significa nada sin tu contraseña.
+   ordenador sin que ni este proyecto ni Supabase puedan leerla. Se cifra EN EL
+   DISPOSITIVO, antes de salir; el servidor guarda un bloque que no significa
+   nada sin tu contraseña.
+
+   No es una precaución exagerada ni un alarde: es que la lista de tu equipo es
+   tuya y no hay ninguna razón para que la pueda leer nadie más, ni siquiera
+   quien opera el servidor. Cifrarla cuesta unas líneas y quita el problema de
+   encima para siempre.
 
    ---------------------------------------------------------------------------
    POR QUÉ DOS CLAVES Y NO UNA

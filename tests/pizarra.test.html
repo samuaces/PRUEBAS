@@ -688,16 +688,56 @@ async function run(w,d){
      conDos+' de '+cuantasSala+' de sala');
   ok('y combinar filtra más que uno solo',conDos<cuantasSala,conDos+' < '+cuantasSala);
 
-  selM.value='Físico-técnico';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
-  /* Los dos mensajes valen: si la biblioteca común todavía está viniendo, lo
+  /* Y que cuando no hay nada, lo diga.
+
+     Esto buscaba una combinación de modalidad y momento que no diera
+     resultados —sala y físico-técnico— y se cayó en cuanto el catálogo creció
+     y ese hueco se llenó. Es el mismo error del que avisa el comentario de
+     aquí arriba, cometido tres líneas más abajo. Ahora se usa una palabra que
+     no puede estar en ninguna ficha, que es lo único que sigue sin dar
+     resultados por muchos ejercicios que se añadan.
+
+     Los dos mensajes valen: si la biblioteca común todavía está viniendo, lo
      honrado es decir «trayendo» y no «no hay nada», porque puede que sí haya.
      Exigir uno de los dos hacía que la prueba fallara o no según lo que tardara
      el servidor en contestar. */
-  ok('una combinación sin resultados se queda vacía y lo dice',
+  selM.value='';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(200);
+  var busca=d.getElementById('lib-q');
+  busca.value='zxqwkj';busca.dispatchEvent(new Event('input',{bubbles:true}));await wait(400);
+  ok('una búsqueda sin resultados se queda vacía y lo dice',
      d.querySelectorAll('.lib-card').length===0&&
      /Ningún ejercicio|Trayendo/i.test(d.getElementById('lib-grid').textContent),
      d.getElementById('lib-grid').textContent.slice(0,50));
-  selM.value='';selM.dispatchEvent(new Event('change',{bubbles:true}));await wait(200);
+  busca.value='';busca.dispatchEvent(new Event('input',{bubbles:true}));await wait(300);
+
+  /* ---- el filtro de espacio MIDE, no mira el encuadre ---------------------
+
+     Esto salía del «view» de cada ejercicio, y era un fallo con consecuencias:
+     el fútbol sala solo tiene el encuadre «Completo», así que un rondo de ocho
+     metros por ocho en una esquina de la pista figuraba como «necesita la
+     pista entera» y desaparecía en cuanto alguien filtraba por medio campo.
+     En fútbol base, que es compartir campo, eso escondía media biblioteca.
+
+     Se comprueba con el caso que lo destapó: «fs-rondo» se dibuja sobre la
+     pista completa y tiene que salir al pedir «un área». */
+  var selE=d.getElementById('lib-espacio');
+  selP.value='futsal';selP.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
+  var salaTodos=d.querySelectorAll('.lib-card').length;
+  selE.value='area';selE.dispatchEvent(new Event('change',{bubbles:true}));await wait(300);
+  var enUnArea=titulos();
+  ok('un rondo de sala dibujado sobre la pista entera cabe en un área',
+     enUnArea.some(function(x){return /rondo/i.test(x);}),
+     enUnArea.length+' de '+salaTodos+' de sala caben en un área');
+  ok('y filtrar por espacio deja fuera a los que no caben',
+     enUnArea.length>0&&enUnArea.length<salaTodos,
+     enUnArea.length+' < '+salaTodos);
+
+  /* Y al revés: lo que de verdad ocupa la pista entera no puede aparecer
+     cuando se pide un área. Si esto no se comprobara, el filtro podría
+     «arreglarse» dejando pasar todo. */
+  ok('lo que sí necesita la pista entera no sale al pedir un área',
+     !enUnArea.some(function(x){return /3-1/i.test(x);}), enUnArea.join(' · ').slice(0,90));
+  selE.value='';selE.dispatchEvent(new Event('change',{bubbles:true}));await wait(250);
 
   d.getElementById('lib-limpiar').click();await wait(300);
   ok('quitar filtros vuelve a tu modalidad, no a todo',

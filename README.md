@@ -52,13 +52,20 @@ suavizado, dibuja la estela de cada jugador y permite ajustar velocidad y bucle.
 selecciona todas las piezas de dentro; a partir de ahí se mueven, duplican o borran en
 bloque. Es lo que permite recolocar una línea entera de un arrastre.
 
-**Biblioteca.** Veinticuatro ejercicios vienen dentro de la aplicación: trece de fútbol 11,
-seis de fútbol 7 y cinco de fútbol sala, repartidos por momento del juego —calentamiento,
-técnica individual, ataque y defensa organizados, las dos transiciones, finalización, balón
-parado, porteros, físico-técnico y partido condicionado—, cada uno con su pizarra montada y su
-ficha rellena. La biblioteca los lista junto a las pizarras que hayas guardado tú, con su
-miniatura. `tests/catalogo.mjs` comprueba que todos se puedan dibujar de verdad: piezas dentro
-del campo y del encuadre, sin fichas superpuestas y con la ficha completa.
+**Biblioteca.** Sesenta y cuatro ejercicios vienen dentro de la aplicación: treinta y uno de
+fútbol 11, dieciséis de fútbol 7 y diecisiete de fútbol sala, con los once momentos del juego
+—calentamiento, técnica individual, ataque y defensa organizados, las dos transiciones,
+finalización, balón parado, porteros, físico-técnico y partido condicionado— cubiertos en las
+tres modalidades. Cada uno con su pizarra montada y su ficha rellena. La biblioteca los lista
+junto a las pizarras que hayas guardado tú, con su miniatura.
+
+El espacio que pide cada ejercicio se **mide** en las piezas, no se saca del encuadre del
+dibujo: treinta y siete caben en un área, veintiséis en medio campo y solo uno necesita el
+terreno entero. Eso importa porque en fútbol base lo normal es compartir campo.
+
+`tests/catalogo.mjs` comprueba que todos se puedan dibujar de verdad: piezas dentro del campo
+y del encuadre, sin fichas superpuestas, con la ficha completa y con un espacio declarado que
+cuadre con lo que de verdad ocupan.
 
 **No mezcla disciplinas**: abre siempre en una sola modalidad, la que tengas puesta como
 predeterminada —fútbol 11 mientras no cambies nada—, y para ver fútbol 7 o sala hay que

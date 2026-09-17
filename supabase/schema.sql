@@ -107,9 +107,11 @@ create table if not exists public.reportes (
 -- clave que sale de la contraseña de la persona y que nunca se sube (ver
 -- app/cofre.js). Lo que hay guardado aquí son bytes sin significado.
 --
--- Eso no es un adorno: dentro van nombres de críos y quién faltó a entrenar.
--- Con la tabla en claro, cualquier fallo de permisos —o cualquiera con acceso
--- al servidor— sería una lista de menores. Cifrado, es ruido.
+-- Eso no es un adorno. Dentro van los nombres de la plantilla de cada
+-- entrenador y quién vino a entrenar: cosa suya, no nuestra. Con la tabla en
+-- claro, cualquier fallo de permisos la enseñaría; cifrada, no hay nada que
+-- enseñar. El entrenador responde de lo que escribe ahí; nosotros, de no
+-- poder leerlo.
 --
 -- Una fila por cuenta. Una temporada cargada mide unos 150 KB cifrada, así que
 -- una fila sobra: no hace falta trocear nada.

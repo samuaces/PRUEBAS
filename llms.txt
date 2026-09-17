@@ -89,13 +89,15 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 
 ## La biblioteca
 
-- Veinticuatro ejercicios vienen dentro de la aplicación —trece de fútbol 11, seis de
-  fútbol 7 y cinco de fútbol sala—, repartidos por momento del juego. Cada uno trae su
-  pizarra montada y su ficha rellena, más las pizarras que haya guardado el usuario.
+- Sesenta y cuatro ejercicios vienen dentro de la aplicación —treinta y uno de fútbol 11,
+  dieciséis de fútbol 7 y diecisiete de fútbol sala—, con los once momentos del juego
+  cubiertos en las tres modalidades. Cada uno trae su pizarra montada y su ficha rellena,
+  más las pizarras que haya guardado el usuario.
 - Abre siempre en una sola modalidad —la predeterminada del usuario, fútbol 11 si no ha
   elegido otra— y no mezcla disciplinas. Se filtra por momento del juego, duración,
   cuánta gente hace falta, cuánto sitio se necesita (un área, medio campo o el campo
-  entero) y texto libre.
+  entero) y texto libre. El sitio se MIDE en las piezas del dibujo, no se deduce del
+  encuadre: 37 de los 64 caben en un área y solo uno pide el campo entero.
 - Dos pestañas: la general —los que trae la aplicación en assets/biblioteca.json más todo
   lo que van compartiendo los demás entrenadores, firmado con su nombre y su club— y las
   del propio usuario: lo guardado en ese navegador y, si ha entrado con su correo, lo que
@@ -141,11 +143,12 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
 
 Sin cookies, sin analítica y sin llamadas a terceros. Las pizarras, la plantilla, la
 asistencia, las sesiones y los partidos viven en el almacenamiento local del navegador. Los nombres de los
-jugadores —a menudo menores— no se suben ni se comparten, y no salen del dispositivo salvo
+jugadores no se suben ni se comparten, y no salen del dispositivo salvo
 que el usuario encienda la sincronización entre sus dispositivos, que viene apagada. Si la
 enciende, esos datos se cifran EN EL DISPOSITIVO (AES-GCM de 256, clave derivada de su
 contraseña con PBKDF2-SHA256 y 310.000 vueltas) y al servidor llega un bloque que nadie
-puede descifrar, tampoco quien opera el servidor.
+puede descifrar, tampoco quien opera el servidor. Esos datos son del entrenador, que es
+quien responde de lo que escribe; Klym no los trata ni los mira.
 Al servidor solo va lo que el usuario comparte a propósito y, si entra, su correo, que no ve
 nadie más. Sin cuenta no se manda nada. Una jugada mandada por enlace tampoco pasa por ningún
 servidor: va dentro del propio enlace, detrás del #, y esa parte de la dirección el navegador

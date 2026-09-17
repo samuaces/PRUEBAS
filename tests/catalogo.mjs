@@ -96,10 +96,51 @@ for (const e of cat.ejercicios) {
     }
   }
 
+  /* --- el espacio que declara la ficha, contra el que de verdad ocupa ---
+
+     Esta regla existe por un fallo que escondía media biblioteca. La ficha se
+     rellenaba sola al guardar y, si la pizarra estaba en el encuadre
+     «Completo», escribía las medidas del campo entero SIN MIRAR: un rondo
+     dibujado en el círculo central salía pidiendo 105 × 68 m. Y el filtro de
+     «espacio disponible» hacía lo mismo por su cuenta, así que quien tiene
+     medio campo —en fútbol base, casi todo el mundo— no veía esos ejercicios.
+
+     Lo que se comprueba: que la ficha diga una medida en metros, que no sea
+     menor que lo que ocupan las piezas, y que no sea mucho mayor. Un margen
+     de dos metros por abajo, porque las fichas se ponen sobre la línea del
+     cuadrado y sobresalen; y de catorce por arriba, que es el hueco que hace
+     falta alrededor para correr sin salirse. Más que eso ya es reservar campo
+     que no se usa. */
+  const medida = String(e.card.espacio || '').match(/(\d+)\s*[×x]\s*(\d+)\s*m/i);
+  if (!medida) {
+    mal(e, `el espacio no dice una medida en metros: «${e.card.espacio}»`);
+  } else {
+    const puntos = e.objects.concat((e.strokes || []).flatMap((s) => s.pts || []));
+    const xs = puntos.map((p) => p.x), ys = puntos.map((p) => p.y);
+    const usa = [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]
+      .sort((a, b) => b - a);
+    const dice = [Number(medida[1]), Number(medida[2])].sort((a, b) => b - a);
+    if (dice[0] < usa[0] - 2 || dice[1] < usa[1] - 2) {
+      mal(e, `dice ${dice[0]} × ${dice[1]} m pero ocupa ` +
+             `${usa[0].toFixed(0)} × ${usa[1].toFixed(0)} m`);
+    } else if (dice[0] > usa[0] + 14 || dice[1] > usa[1] + 14) {
+      mal(e, `pide ${dice[0]} × ${dice[1]} m para algo de ` +
+             `${usa[0].toFixed(0)} × ${usa[1].toFixed(0)} m: sobra campo`);
+    }
+  }
+
   // --- que todo quepa en el encuadre con el que se abre ---
+  /* La zona de trabajo son 32 × 22 m en el centro, y se calcula igual que en
+     board.js («ZONA» y «viewRect»), no a mano: antes estaba escrita a pelo
+     para fútbol 11 y en fútbol 7 y sala no se comprobaba nada. Un ejercicio
+     de sala con el encuadre «Zona» podía tener medio dibujo fuera de lo que
+     se ve y esto lo daba por bueno. */
   let caja = null;
   if (e.view === 'half') caja = [0, LARGO / 2, 0, ANCHO];
-  if (e.view === 'area' && e.pitch === 'f11') caja = [36.5, 68.5, 23, 45];
+  if (e.view === 'area') {
+    const zl = Math.min(32, LARGO), zw = Math.min(22, ANCHO);
+    caja = [(LARGO - zl) / 2, (LARGO + zl) / 2, (ANCHO - zw) / 2, (ANCHO + zw) / 2];
+  }
   if (caja) {
     const todo = e.objects.concat((e.strokes || []).flatMap((s) => s.pts || []));
     for (const p of todo) {

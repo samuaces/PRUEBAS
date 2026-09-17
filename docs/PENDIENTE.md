@@ -74,8 +74,13 @@ el texto), y **mandar la sesión entera por enlace**.
 Y falta **el generador**: proponer una sesión a partir de lo que está sin
 trabajar (radar y aviso de 21 días), cuántos han venido, cuántos porteros hay y
 dos desplegables de espacio y tiempo. El lector de jugadores del catálogo ya está
-medido: 21 de 24 ejercicios dicen cuánta gente necesitan, 3 son «los que haya»,
-0 ilegibles; el espacio sale del `view` de cada uno (area ⊂ half ⊂ full).
+medido: 56 de 64 ejercicios dicen cuánta gente necesitan, 8 son «grupo entero»
+(circuitos y técnica, donde de verdad da igual), 0 ilegibles.
+
+El espacio ya NO sale del `view`: se mide la huella de las piezas
+(`cuantoSitio` en board.js). Salía del encuadre y eso escondía la mitad de la
+biblioteca a quien solo tiene medio campo, que en fútbol base es casi todo el
+mundo.
 
 **Lo que era, tal cual se habló:**
 

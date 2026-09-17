@@ -70,20 +70,22 @@ strong{color:#fff}
 
 <div class="clave">
   <h2>Lo corto</h2>
-  <p>Los nombres de tus jugadores <strong>se quedan en tu dispositivo</strong>, salvo que
-    tú enciendas la sincronización; y si la enciendes, salen <strong>cifrados con tu
-    contraseña</strong> y en el servidor quedan como un bloque que nadie puede leer,
-    tampoco nosotros. Si creas una cuenta, en el servidor quedan además tu correo, tu
-    nombre y los ejercicios que <em>tú</em> decidas compartir. No hay cookies, no hay
-    rastreo y no hay publicidad. Y lo que subes es tuyo y respondes de ello.</p>
+  <p>La lista de tu equipo es tuya: se guarda en tu dispositivo para que la uses en la
+    aplicación, y no se comparte con nadie. Si enciendes la sincronización —viene apagada—
+    también se guarda en tu cuenta, <strong>cifrada con tu contraseña</strong>: en el
+    servidor es un bloque que nadie puede leer, tampoco nosotros. Si creas una cuenta, en
+    el servidor quedan además tu correo, tu nombre y los ejercicios que <em>tú</em> decidas
+    compartir. No hay cookies, no hay rastreo y no hay publicidad. Y lo que escribes o
+    subes es tuyo y respondes de ello.</p>
 </div>
 
-<h2>Lo de tus jugadores se queda en tu dispositivo</h2>
-<p>La plantilla, la asistencia, las sesiones y los partidos —o sea, los nombres y
-  apellidos de tu equipo— se guardan <strong>en el navegador con el que estás</strong>,
-  en su almacén local. No van dentro de los ejercicios que compartes, no salen en los
-  enlaces que mandas y no aparecen dibujados en el campo: en la pizarra una ficha es un
-  dorsal y ya.</p>
+<h2>La lista de tu equipo es tuya</h2>
+<p>La plantilla, la asistencia, las sesiones y los partidos se guardan <strong>en el
+  navegador con el que estás</strong>, en su almacén local, y están ahí para que los uses
+  tú. No van dentro de los ejercicios que compartes, no salen en los enlaces que mandas y
+  no aparecen dibujados en el campo: en la pizarra una ficha es un dorsal y ya. Nosotros
+  no los tratamos ni los miramos; lo que escribas ahí es cosa tuya y tú respondes de
+  ello.</p>
 <p>Esto no es una promesa suelta. Hay pruebas automáticas que montan un equipo con
   nombres inventados, usan la aplicación entera y comprueban que esos nombres no
   aparecen en ninguna petición de red, en ningún enlace ni en ningún archivo exportado.
@@ -98,7 +100,9 @@ strong{color:#fff}
 <p>Hay un interruptor en <em>Tu cuenta</em>, <strong>apagado de fábrica</strong>, que
   guarda esos mismos datos en tu cuenta para que los veas igual en el móvil y en el
   ordenador. Mientras no lo enciendas, no cambia nada de lo de arriba.</p>
-<p>Si lo enciendes, esto es exactamente lo que pasa:</p>
+<p>No cambia de quién son los datos: siguen siendo tuyos y sigues respondiendo tú de
+  ellos. Lo que cambia es dónde hay una copia. Si lo enciendes, esto es exactamente lo que
+  pasa:</p>
 <ul>
   <li>Los datos se <strong>cifran en tu dispositivo antes de salir</strong>, con una
     clave que sale de tu contraseña y que no se sube nunca. Cifrado AES-GCM de 256 bits;
@@ -106,7 +110,7 @@ strong{color:#fff}
   <li>En el servidor queda <strong>un bloque de bytes sin significado</strong>. No lo
     podemos leer nosotros, ni Supabase, ni nadie con acceso a la base de datos. No es
     una política interna: es que no existe la clave fuera de tus dispositivos.</li>
-  <li>Esa fila <strong>solo la puede leer tu cuenta</strong>. Ni siquiera el
+  <li>Esa fila <strong>solo la puede abrir tu cuenta</strong>. Ni siquiera el
     administrador, que sí puede moderar la biblioteca común. Hay pruebas automáticas
     contra una base de datos de verdad que lo comprueban.</li>
   <li>Al apagar el interruptor, <strong>esa fila se borra</strong> del servidor. Lo que
@@ -140,7 +144,7 @@ strong{color:#fff}
   <li><strong>Qué versión de esta página aceptaste y cuándo</strong>, para que quede
     constancia.</li>
   <li><strong>Y solo si enciendes la sincronización</strong>, el bloque cifrado con los
-    datos de tu equipo, que ya no se puede leer desde el servidor.</li>
+    datos de tu equipo, que desde el servidor no se puede abrir.</li>
 </ul>
 <p>Nada más. No hay analítica, ni píxeles, ni servicios de terceros metidos en la
   página. El servidor es <a href="https://supabase.com/privacy" rel="noopener">Supabase</a>,

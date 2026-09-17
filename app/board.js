@@ -2108,7 +2108,7 @@
      antes de guardar. */
 
   function autofillCard() {
-    var st = boardStats(), P = PITCH(), puesto = 0;
+    var st = boardStats(), puesto = 0;
     function set(k, v) {
       var el = fieldEl(k);
       if (!el || !v) return;
@@ -2118,7 +2118,15 @@
     set('jugadores', statsPlayers(st));
     set('porteros', st.gk ? String(st.gk) : '');
     set('material', statsMaterial(st));
-    set('espacio', doc.view === 'full' ? P.L + ' × ' + P.W + ' m' : statsSpace(st));
+    /* El espacio se MIDE, siempre, esté la pizarra en el encuadre que esté.
+
+       Antes, con la vista en «Completo», se escribía «105 × 68 m» sin mirar:
+       un rondo dibujado en el círculo central salía en su ficha pidiendo un
+       campo de fútbol entero. Y eso no es un adorno de la ficha: quien mira la
+       biblioteca con medio campo disponible lo descarta, y el ejercicio no lo
+       hace nadie. El encuadre es cómo se mira el dibujo; lo que ocupa lo dicen
+       las piezas. */
+    set('espacio', statsSpace(st));
     set('categoria', prefs().categoria);
     set('fecha', new Date().toLocaleDateString('es-ES'));
     toast(puesto ? 'Rellenados ' + puesto + ' campos desde la pizarra' : 'No había nada nuevo que rellenar');
@@ -3216,8 +3224,64 @@
 
      Si no se sabe, se devuelve vacío y el filtro lo deja pasar: esconder un
      ejercicio por no saber dónde cabe es peor que enseñarlo de más. */
-  function vistaDe(it) {
-    return (it.ej && it.ej.view) || it.view || (it.doc && it.doc.view) || '';
+  /* ---- cuánto sitio pide un ejercicio -------------------------------------
+
+     Esto se sacaba del encuadre del dibujo, y era un error con consecuencias.
+     El encuadre es cómo se MIRA la pizarra; el sitio que hace falta lo dicen
+     las piezas. Un rondo de fútbol sala dibujado sobre la pista entera —que
+     es el único encuadre que tiene esa modalidad— salía como «necesita la
+     pista completa» cuando ocupa ocho metros por ocho.
+
+     Y quien filtra por «medio campo» no ve lo que el filtro cree que no cabe.
+     Así que cinco ejercicios perfectamente hacibles en un rincón estaban
+     escondidos para casi todo el mundo: en fútbol base lo normal es compartir
+     campo, no tenerlo entero.
+
+     Ahora se mide la huella real, y se mide GIRADA también: lo que ocupa 30 ×
+     20 cabe en un hueco de 20 × 30, porque un ejercicio se puede orientar como
+     haga falta. «Un área» son 32 × 22 m, que es un área grande de verdad, y
+     vale igual para las tres modalidades: es una cantidad de terreno, no una
+     fracción del campo. */
+
+  var AREA = [32, 22];
+
+  function huellaDe(it) {
+    if (it.huella !== undefined) return it.huella;
+    var piezas = [], trazos = [];
+    if (it.ej) { piezas = it.ej.objects || []; trazos = it.ej.strokes || []; }
+    else {
+      // Todos los fotogramas, no solo el primero: la jugada usa lo que recorre.
+      ((it.doc && it.doc.frames) || []).forEach(function (f) {
+        piezas = piezas.concat(f.objects || []);
+        trazos = trazos.concat(f.strokes || []);
+      });
+    }
+    var pts = piezas.slice();
+    trazos.forEach(function (s) { pts = pts.concat(s.pts || []); });
+    pts = pts.filter(function (p) { return p && isFinite(p.x) && isFinite(p.y); });
+    if (!pts.length) { it.huella = null; return null; }
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (p) {
+      if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+      if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+    });
+    it.huella = { largo: x1 - x0, ancho: y1 - y0 };
+    return it.huella;
+  }
+
+  function cabeEn(h, L, W) {
+    // Un metro de margen: las fichas tienen radio y el dibujo no es un plano.
+    return (h.largo <= L + 1 && h.ancho <= W + 1) ||
+           (h.ancho <= L + 1 && h.largo <= W + 1);
+  }
+
+  function cuantoSitio(it) {
+    var h = huellaDe(it);
+    if (!h) return '';                       // sin piezas, cabe donde sea
+    if (cabeEn(h, AREA[0], AREA[1])) return 'area';
+    var P = PITCHES[it.pitch] || PITCHES.f11;
+    if (cabeEn(h, P.L / 2, P.W)) return 'half';
+    return 'full';
   }
 
   function filtraBiblioteca(items, f) {
@@ -3244,13 +3308,13 @@
         var pide = PTEquipo.jugadoresDe(it.card.jugadores);
         if (pide != null && pide > Number(f.cuantos)) return false;
       }
-      /* Y cuánto sitio. La vista del ejercicio ya lo dice: un área cabe en
-         medio campo y medio campo cabe en el entero, así que se filtra por
-         «me cabe», no por «es exactamente esto». Los que no pintan campo
-         —una pizarra en blanco— caben en cualquier sitio. */
+      /* Y cuánto sitio, medido en las piezas (ver «cuantoSitio»). Se filtra
+         por «me cabe», no por «es exactamente esto»: un área cabe en medio
+         campo y medio campo cabe en el entero. Lo que no ocupa nada —una
+         pizarra en blanco— cabe en cualquier sitio. */
       if (f.espacio) {
         var cabe = { area: 1, half: 2, full: 3 };
-        var suya = cabe[vistaDe(it)] || 0;
+        var suya = cabe[cuantoSitio(it)] || 0;
         if (suya && suya > (cabe[f.espacio] || 3)) return false;
       }
       if (q && sinAcentos(textoItem(it)).indexOf(q) < 0) return false;

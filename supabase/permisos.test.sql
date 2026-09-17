@@ -300,8 +300,8 @@ end $$;
 -- ============================================================================
 -- Los cofres
 --
--- Aquí dentro van nombres de críos, cifrados. Que estén cifrados es lo que
--- hace que un fallo de permisos no sea una lista de menores; que los permisos
+-- Aquí dentro va la plantilla de cada entrenador, cifrada. Que esté cifrada
+-- es lo que hace que un fallo de permisos no enseñe nada; que los permisos
 -- estén bien es lo que hace que nadie pueda borrarle la temporada a otro. Las
 -- dos cosas, no una.
 -- ============================================================================

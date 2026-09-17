@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v18';   // v18: el cofre y la fusión
+var CACHE = 'pizarra-tactica-v19';   // v19: 64 ejercicios y el espacio que de verdad piden
 
 var SHELL = [
   './',

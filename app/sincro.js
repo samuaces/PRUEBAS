@@ -99,11 +99,10 @@
 
   /* ---- encendido o apagado, y lo decide la persona -----------------------
 
-     Esto viene apagado. No por prudencia de manual: hasta ahora la aplicación
-     prometía, por escrito, que los nombres de los críos no salían del
-     dispositivo. Encender esto en una actualización, sin preguntar, sería
-     romper esa promesa a espaldas de quien se fio de ella —y da igual que
-     ahora vayan cifrados: lo que cambió es dónde están.
+     Esto viene apagado. Hasta ahora la aplicación decía, por escrito, que los
+     nombres de la plantilla no salían del dispositivo; encenderlo en una
+     actualización y sin preguntar cambiaría eso a espaldas de quien lo leyó.
+     Van cifrados, sí, pero lo que cambia es dónde están.
 
      Así que se pregunta una vez, con las palabras claras, y quien dice que no
      sigue exactamente como estaba. */
