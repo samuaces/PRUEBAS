@@ -2832,9 +2832,18 @@
   }
 
   // Quién eres, para saber qué puedes hacer.
+  var pizarrasAlDia = false;
   function refrescaCuenta() {
     if (!hayNube) return Promise.resolve(null);
-    return nube.quienSoy().then(function (p) { yo = p; pintaCuenta(); return p; });
+    return nube.quienSoy().then(function (p) {
+      yo = p; pintaCuenta();
+      /* Y una sola vez por sesión, subir las pizarras que tuvieras guardadas
+         aquí de antes. Va detrás y sin esperarla: entrar no puede quedarse
+         colgado porque alguien tenga cuarenta. */
+      if (p && !pizarrasAlDia) { pizarrasAlDia = true; ponAlDiaLasPizarras(); }
+      if (!p) pizarrasAlDia = false;      // al salir, para la próxima cuenta
+      return p;
+    });
   }
 
   // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
@@ -3310,7 +3319,8 @@
       if (!hayNube) return 'Lo que guardas se queda en este dispositivo';
       if (!yo) return 'Lo guardado se queda en este dispositivo · para tenerlo en ' +
                       'cualquier sitio hace falta una cuenta';
-      return 'Lo guardado se queda en este dispositivo · lo compartido te sigue allá donde entres';
+      return 'Lo que guardas va con tu cuenta y lo tienes en cualquier dispositivo · ' +
+             'compartirlo con los demás es aparte';
     }
     var partes = ['Los que trae la aplicación'];
     if (catalogoInfo.fecha) partes.push('al día del ' + fechaCorta(catalogoInfo.fecha));
@@ -3390,7 +3400,7 @@
       }
       grid.innerHTML = libFiltros.origen === 'mia' && !hayFiltros
         ? '<div class="lib-vacio"><b>Todavía no has guardado ninguna</b>' +
-          'Monta un ejercicio, dale a Guardar y aparecerá aquí, solo en este dispositivo.</div>'
+          'Monta un ejercicio, dale a Guardar y aparecerá aquí.</div>'
         : '<p class="empty">Ningún ejercicio encaja con esos filtros.</p>';
       return;
     }
@@ -3531,7 +3541,7 @@
         return 'Tuya · a partir de «' + it.sale.nombre + '»' +
                (it.sale.autor ? ', de ' + it.sale.autor : '');
       }
-      return 'Tuya, en este dispositivo';
+      return (hayNube && yo) ? 'Tuya, en tu cuenta' : 'Tuya, en este dispositivo';
     }
     if (!it.publicado) return 'Tuyo, sin compartir';
     if (it.mio) return 'Tuyo, compartido';
@@ -3555,12 +3565,9 @@
                          'Puedes retirarlo cuando quieras.', ok: 'Compartir' })
             .then(function (si) {
               if (!si) return;
-              var d = clone(itemDoc(it));
-              if (!d.card) d.card = emptyCard();
-              if (!d.card.titulo) d.card.titulo = it.nombre;
-              nube.publica(d, { publicado: true })
-                .then(function () { toast('Compartido'); nubeMios = []; cargaNube(); })
-                .catch(function (e) { toast('No se ha podido: ' + (e.message || 'error')); });
+              comparteLaPizarra(it.guardada, true).then(function (ok) {
+                toast(ok ? 'Compartido' : 'No se ha podido compartir');
+              });
             });
         });
       }
@@ -3568,7 +3575,15 @@
         ask({ title: 'Borrar «' + it.guardada + '»', message: 'Se quita de tu biblioteca. Esto no se puede deshacer.', ok: 'Borrar', danger: true })
           .then(function (si) {
             if (!si) return;
-            var a = savedBoards(); delete a[it.guardada]; writeBoards(a);
+            var a = savedBoards(), fuera = a[it.guardada];
+            delete a[it.guardada]; writeBoards(a);
+            /* Y de la cuenta. Si no, al entrar en el otro dispositivo vuelve a
+               aparecer y parece que borrar no funciona. */
+            if (fuera && fuera.nubeId && hayNube && yo) {
+              nube.borra(fuera.nubeId)
+                .then(function () { nubeMios = []; cargaNube(); })
+                .catch(function () {});
+            }
             olvidaMini(it.id);
             pintaBiblioteca();
           });
@@ -3682,6 +3697,7 @@
     }
     olvidaMini('mia:' + nombre);
     toast('Copiado a lo tuyo como «' + nombre + '»');
+    subeLaPizarra(nombre, false);
     pintaBiblioteca();
   }
 
@@ -6174,6 +6190,96 @@
       .then(function (name) { if (name !== null) guardaConNombre(name, null); });
   }
 
+  /* ---- las pizarras también van con la cuenta -----------------------------
+
+     Guardar escribe en este dispositivo y, si hay cuenta, sube una copia
+     PRIVADA. Compartirla con los demás sigue siendo un acto aparte: una cosa
+     es tenerla y otra enseñarla.
+
+     El identificador de la fila se guarda junto a la pizarra («nubeId») para
+     que la siguiente vez se actualice en vez de duplicarse. Si esa fila ya no
+     existe —la borraste desde otro dispositivo—, nube.publica la vuelve a
+     crear sola.
+
+     Sube en segundo plano y no bloquea nada: guardar tiene que ser instantáneo
+     aunque no haya cobertura. Si la subida falla, la pizarra ya está a salvo
+     aquí y se reintenta la próxima vez que se guarde o que se entre. */
+
+  function subeLaPizarra(nombre, avisar) {
+    if (!hayNube || !yo) return Promise.resolve(false);
+    var todas = savedBoards(), entrada = todas[nombre];
+    if (!entrada || !entrada.doc) return Promise.resolve(false);
+    var d = clone(entrada.doc);
+    if (!d.card) d.card = emptyCard();
+    if (!d.card.titulo) d.card.titulo = nombre;
+    return nube.publica(d, { publicado: !!entrada.publicada, id: entrada.nubeId,
+                             titulo: nombre })
+      .then(function (fila) {
+        if (!fila || !fila.id) return false;
+        // Se vuelve a leer: entre medias ha podido cambiar otra cosa.
+        var ahora = savedBoards();
+        if (ahora[nombre]) { ahora[nombre].nubeId = fila.id; writeBoards(ahora); }
+        nubeMios = [];
+        return true;
+      }, function (e) {
+        if (avisar) toast('Guardada aquí, pero no ha subido a tu cuenta: ' + (e.message || 'error'));
+        return false;
+      });
+  }
+
+  /* Compartir o retirar una pizarra guardada. Es la MISMA fila de tu cuenta:
+     lo único que cambia es si la ve todo el mundo. Antes esto subía una copia
+     nueva sin identificador, así que desde que guardar sube sola habría
+     acabado duplicando el ejercicio en la biblioteca común. */
+  function comparteLaPizarra(nombre, si) {
+    var todas = savedBoards();
+    if (!todas[nombre]) return Promise.resolve(false);
+    todas[nombre].publicada = !!si;
+    writeBoards(todas);
+    return subeLaPizarra(nombre, false).then(function (ok) {
+      if (ok) { nubeMios = []; nubeLista = []; cargaNube(); }
+      return ok;
+    });
+  }
+
+  /* Al entrar, poner al día lo que ya tenías guardado en este dispositivo.
+
+     Si la misma pizarra ya está en tu cuenta —subida desde el otro
+     dispositivo— no se duplica: se adopta su identificador y se deja estar.
+     Solo sube lo que no está. */
+  function ponAlDiaLasPizarras() {
+    if (!hayNube || !yo) return Promise.resolve();
+    return nube.mios().then(function (filas) {
+      var enLaNube = {};
+      (filas || []).forEach(function (f) { enLaNube[sinAcentos(f.titulo || '')] = f.id; });
+      var todas = savedBoards(), nombres = Object.keys(todas);
+      var pendientes = [], adoptadas = 0;
+      nombres.forEach(function (n) {
+        var e = todas[n];
+        if (e.nubeId) return;
+        var ya = enLaNube[sinAcentos(n)];
+        if (ya) { e.nubeId = ya; adoptadas++; return; }
+        pendientes.push(n);
+      });
+      if (adoptadas) writeBoards(todas);
+      if (!pendientes.length) return;
+      /* De una en una, no todas a la vez: quien tenga cuarenta pizarras no
+         debe abrir cuarenta peticiones al entrar. */
+      var subidas = 0;
+      return pendientes.reduce(function (cadena, n) {
+        return cadena.then(function () {
+          return subeLaPizarra(n, false).then(function (ok) { if (ok) subidas++; });
+        });
+      }, Promise.resolve()).then(function () {
+        if (subidas) {
+          toast(subidas === 1 ? 'Tu pizarra guardada ya está en tu cuenta'
+                              : 'Tus ' + subidas + ' pizarras guardadas ya están en tu cuenta');
+          cargaNube();
+        }
+      });
+    }).catch(function () {});
+  }
+
   function guardaConNombre(name, meta) {
     if (!name) { toast('Hace falta un nombre para poder encontrarla luego'); return false; }
     var all = savedBoards();
@@ -6190,6 +6296,8 @@
     }
     olvidaMini('mia:' + name);
     toast(nueva ? 'Guardada como «' + name + '»' : '«' + name + '» actualizada');
+    // Y a la cuenta, por detrás. Guardar no espera a la red.
+    subeLaPizarra(name, true);
     return true;
   }
 
@@ -6583,12 +6691,10 @@
          falla, lo guardado se queda guardado. */
       var pub = $('#save-publicar');
       if (pub && pub.checked && hayNube && yo) {
-        var copia = clone(doc);
-        if (!copia.card) copia.card = emptyCard();
-        if (!copia.card.titulo) copia.card.titulo = nombre;
-        nube.publica(copia, { publicado: true })
-          .then(function () { toast('Guardado y publicado en la biblioteca común'); nubeMios = []; cargaNube(); })
-          .catch(function (e) { toast('Guardado, pero no ha podido publicarse: ' + (e.message || 'error')); });
+        comparteLaPizarra(nombre, true).then(function (ok) {
+          toast(ok ? 'Guardado y publicado en la biblioteca común'
+                   : 'Guardado, pero no ha podido publicarse');
+        });
       }
 
       $('#dlg-save').close();
