@@ -1299,8 +1299,8 @@ function siembra(lista){
   /* Un catálogo de mentira, corto y con las cuentas a la vista. Se prueba el
      motor, no el catálogo: si mañana entran ejercicios nuevos, estas cuentas
      tienen que seguir dando lo mismo. */
-  function ej(id, pitch, view, momento, duracion, jugadores, porteros){
-    return { id:id, nombre:id, pitch:pitch, view:view,
+  function ej(id, pitch, sitio, momento, duracion, jugadores, porteros){
+    return { id:id, nombre:id, pitch:pitch, sitio:sitio,
              card:{ titulo:id, momento:momento, duracion:duracion,
                     jugadores:jugadores, porteros:porteros },
              ref:{ de:'catalogo', id:id } };
@@ -1440,7 +1440,7 @@ function siembra(lista){
      dibujado sobre campo de once o de siete: ni la modalidad ni el espacio dan.
      (Un ejercicio de cuadrado SÍ le valdría, y por eso aquí se quitan: lo que
      se prueba es que cuando de verdad no hay nada, no se inventa nada.) */
-  var soloCampo = CAT.filter(function(e){ return e.view !== 'area'; });
+  var soloCampo = CAT.filter(function(e){ return e.sitio !== 'area'; });
   var nada = E.generaSesion(soloCampo, { pitch:'futsal', jugadores:4, porteros:0,
                                          espacio:'area', minutos:60, contexto:'carga' });
   ok('si no encaja nada, no se inventa una sesión: se avisa',
@@ -1452,6 +1452,13 @@ function siembra(lista){
   ok('pero un ejercicio de cuadrado sí le vale a cualquiera',
      algo.ejercicios.length > 0,
      algo.ejercicios.map(function(e){return e.titulo;}).join(','));
+  /* Y una pizarra guardada sin nada dibujado no se puede medir: no ocupa
+     sitio, así que no se esconde ni por el tamaño ni por la modalidad. */
+  var enBlanco = [ej('vacio','f11','','Calentamiento','10 min','Grupo entero','Sin portero')];
+  var conVacio = E.generaSesion(enBlanco, { pitch:'futsal', jugadores:4, porteros:0,
+                                            espacio:'area', minutos:60, contexto:'carga' });
+  ok('un dibujo vacío cabe en cualquier sitio, que es lo que ocupa: nada',
+     conVacio.ejercicios.length === 1, conVacio.ejercicios.length);
 
   // =====================================================================
   console.log('16 · pasar lista del día, sin salir de Sesiones');
@@ -1840,6 +1847,36 @@ function siembra(lista){
   ok('una segunda propuesta se añade a lo que ya había, no lo borra',
      E.sesionDe(E.hoyISO()).ejercicios.length === cuantos + añade,
      E.sesionDe(E.hoyISO()).ejercicios.length);
+
+  /* ---- el sitio que hace falta se MIDE, no se deduce del encuadre ----
+     Un rondo de fútbol sala dibujado sobre la pista entera sigue siendo un
+     rondo: cabe en un área. Antes el generador miraba el encuadre con que se
+     guardó el dibujo, y pedir «un área» en sala escondía el calentamiento, el
+     contragolpe, el córner y los porteros por una etiqueta. Es la misma regla
+     que ya filtraba la biblioteca, medida en un solo sitio.
+
+     El contragolpe de sala («2 vs 1», 25 × 10 m) está guardado sobre la pista
+     entera y es el ÚNICO de transición ofensiva que hay en sala: si no entra,
+     ese hueco del plan se queda vacío. */
+  d.getElementById('ses-proponer').click();
+  await wait(350);
+  d.getElementById('gen-pitch').value = 'futsal';
+  d.getElementById('gen-espacio').value = 'area';
+  d.getElementById('gen-jugadores').value = '10';
+  d.getElementById('gen-porteros').value = '2';
+  d.getElementById('gen-minutos').value = '95';
+  d.getElementById('gen-contexto').value = 'carga';
+  d.getElementById('gen-proponer').click();
+  await wait(450);
+  var enArea = [].map.call(d.querySelectorAll('#gen-lista .ses-ej small'),
+                           function(s){ return s.textContent; }).join(' | ');
+  ok('pidiendo «un área» en sala entra el contragolpe, que está dibujado sobre la pista entera',
+     /transici[oó]n ofensiva/i.test(enArea), enArea || '(nada)');
+  ok('y sale una sesión de verdad, no dos ejercicios sueltos',
+     d.querySelectorAll('#gen-lista .ses-ej').length >= 4,
+     d.querySelectorAll('#gen-lista .ses-ej').length + ' ejercicios');
+  d.getElementById('ses-gen-volver').click();
+  await wait(250);
 
   // =====================================================================
   console.log('18 · los casos raros, que es donde se rompen las cosas');

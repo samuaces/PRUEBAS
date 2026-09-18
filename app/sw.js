@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v23';   // v23: las pizarras guardadas también van con la cuenta
+var CACHE = 'pizarra-tactica-v24';   // v24: el generador mide el sitio, no mira el encuadre
 
 var SHELL = [
   './',
