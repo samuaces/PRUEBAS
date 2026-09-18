@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v25';   // v25: la sesión se imprime con sus dibujos
+var CACHE = 'pizarra-tactica-v26';   // v26: local y visitante, y el panel del móvil
 
 var SHELL = [
   './',

@@ -897,8 +897,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Un bloque del panel puede tener más de un apartado: «Pizarra», «Compartir»…
    Así el cajón de sastre deja de serlo sin repartirlo en más pestañas. */
 .block h2.sub{margin-top:18px}
-.solo-estrecho{display:none}
-.solo-ancho{display:flex}
+/* Enseñar y esconder según el ancho. Estas dos clases SOLO esconden: no dicen
+   nunca cómo se maqueta aquello a lo que se les pone.
+
+   Antes sí lo decían —«display:block» al enseñar, «display:flex» al esconder—,
+   y le pisaban el suyo a lo que envolvían. La lista de «Aplicación» del panel
+   es un «.stack», o sea una rejilla con su separación: al volverse un bloque
+   perdía la separación y, de paso, los dos botones se encogían hasta el largo
+   de su texto, porque un <button> suelto se ajusta a lo que lleva dentro. En
+   el teléfono, «Tu cuenta» y «Ajustes» salían pegados el uno al otro y a media
+   anchura. Lo mismo le pasaba a dos filas más, que se quedaban sin su «flex».
+
+   Un ayudante de visibilidad no tiene por qué saber de maquetación. */
+@media (min-width:901px){ .solo-estrecho{display:none} }
 
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
@@ -931,7 +942,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      más apretado aquí arriba. */
   /* En el móvil la barra de arriba va al límite. Ajustes se baja al panel:
      se usa de higos a brevas, y el interruptor de modo se usa cada día. */
-  .solo-estrecho{display:block}
   .solo-ancho{display:none}
   /* Dos iconos sueltos no dicen nada. Se enseña el nombre del modo en el que
      estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
@@ -1433,6 +1443,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
 .ses-cabeza{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 var(--e2)}
 .ses-cabeza .stats-resumen{flex:1 1 100%;min-width:180px;margin:0}
+/* Casa y fuera va pegado al resumen de la temporada, que es de lo que habla, y
+   no debajo del botón, donde parecía otra cosa. */
+.par-reparto{flex:1 1 100%;margin:calc(var(--e1) * -1) 0 0}
 /* El botón de hoy y el selector de día, uno al lado del otro: hoy es lo de
    siempre y va primero; el resto de días es lo de vez en cuando y va al lado,
    no escondido. */
@@ -1585,23 +1598,40 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .par-campos > *{min-width:0}
 .par-campos input,.par-campos select{min-height:var(--touch)}
 @media (min-width:560px){ .par-campos{grid-template-columns:repeat(3,1fr)} }
-/* El marcador se escribe como se lee: dos huecos y una raya en medio. */
-.par-marcador{display:flex;align-items:center;gap:8px}
-.par-marcador input{flex:1;min-width:0;text-align:center;min-height:var(--touch);
+/* El marcador se escribe como se lee en el campo: dos huecos con el nombre de
+   cada equipo encima y una raya en medio. Los nombres son lo que quita la duda
+   de qué número va dónde; sin ellos, jugando fuera, se apunta al revés. */
+.par-marcador{display:flex;align-items:flex-end;gap:8px}
+.par-lado{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--e1)}
+/* El nombre del rival se parte en dos renglones antes que cortarse: «ATLÉTICO
+   P…» encima de un número no dice de quién es ese número. Los huecos siguen
+   alineados por abajo, así que el marcador no se tuerce. */
+.par-lado > span{font-size:var(--t-cap);letter-spacing:var(--ls-cap);
+  text-transform:uppercase;color:var(--muted);overflow-wrap:anywhere}
+/* El nuestro, marcado: de un vistazo se sabe cuál es cada cual. */
+#par-lado-nosotros > span{color:var(--text)}
+.par-marcador input{width:100%;min-width:0;text-align:center;min-height:var(--touch);
   font-family:var(--ff-display);font-size:16px;font-variant-numeric:tabular-nums}
-.par-marcador span{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg)}
+.par-guion{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg);
+  line-height:var(--touch)}
 #par-marcador-nota{margin:var(--e1) 0 0}
 /* El día al que se apunta lo que estás guardando. Debajo de la casilla y
    sangrado como ella, para que se lea como parte de la misma frase. */
 .save-dia{margin:var(--e3) 0 0;max-width:240px}
 
-/* El resultado en la lista: la cifra a la derecha, teñida según cómo acabó. Se
-   distingue además por el propio número, no solo por el color. */
+/* El resultado en la lista: el marcador del campo y, al lado, cómo acabó en una
+   letra. El color solo acompaña: escrito en el orden del campo, «3–1» no dice
+   quién ganó, y quien no distinga el verde del rojo se quedaría sin saberlo. */
 .par-marca{flex:0 0 auto;font-family:var(--ff-display);font-size:var(--t-base);
   font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--text);
   padding:4px 8px;border-radius:var(--rp);border:1px solid var(--line);
   background:var(--glass-2)}
 .par-marca.flojo{color:var(--muted)}
+.par-res{flex:0 0 auto;margin-left:6px;font-family:var(--ff-display);
+  font-size:var(--t-cap);font-weight:700;letter-spacing:var(--ls-cap);
+  color:var(--muted)}
+.par-dia.es-victoria .par-res{color:#7BD88F}
+.par-dia.es-derrota .par-res{color:#FF8A7A}
 .par-dia.es-victoria .par-marca{color:#7BD88F;border-color:rgba(53,132,74,.5);
   background:rgba(53,132,74,.16)}
 .par-dia.es-derrota .par-marca{color:#FF8A7A;border-color:rgba(138,50,39,.5);

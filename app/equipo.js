@@ -846,6 +846,51 @@
          : p.golesFavor < p.golesContra ? 'derrota' : 'empate';
   }
 
+  /* CÓMO SE ESCRIBE UN RESULTADO, Y DÓNDE SE DECIDE
+
+     Un marcador se escribe como lo escribe el marcador del campo y como lo
+     escribe el periódico: el de casa primero. Jugando fuera, «3-1» quiere decir
+     tres de ellos y uno tuyo, y no hay coach que lo lea de otra manera.
+
+     Por dentro, «golesFavor» son SIEMPRE los tuyos, juegues donde juegues: es
+     lo único con lo que se pueden sumar veinte partidos sin equivocarse. Esta
+     función es el único sitio donde una cosa se convierte en la otra. Que esté
+     sola es lo que impide que una pantalla lo escriba al revés que otra.
+
+     Ojo: en el orden del campo, el número de la izquierda ya no dice quién
+     ganó. Quien lo pinte tiene que enseñar además el resultado —y no solo con
+     un color—, y por eso va aquí dentro y no por libre. */
+  var LETRA = { victoria: 'G', empate: 'E', derrota: 'P' };
+
+  function marcador(p) {
+    var r = resultadoDe(p);
+    if (!r) return null;
+    var mios = p.golesFavor, suyos = p.golesContra;
+    return {
+      resultado: r,
+      letra: LETRA[r],
+      mios: mios,
+      suyos: suyos,
+      // Lo que se lee en el campo: el de casa a la izquierda.
+      izquierda: p.casa ? mios : suyos,
+      derecha: p.casa ? suyos : mios,
+      texto: (p.casa ? mios : suyos) + '–' + (p.casa ? suyos : mios)
+    };
+  }
+
+  /* El resultado dicho entero, para quien no ve la pantalla y para cuando dos
+     números sueltos no bastan. */
+  function marcadorHablado(p, rival) {
+    var m = marcador(p);
+    var quien = String(rival || '').trim() || 'el rival';
+    if (!m) return p.casa ? 'En casa contra ' + quien + ', sin resultado apuntado'
+                          : 'Fuera contra ' + quien + ', sin resultado apuntado';
+    var cabeza = m.resultado === 'victoria' ? 'Victoria'
+               : m.resultado === 'derrota' ? 'Derrota' : 'Empate';
+    return cabeza + ' ' + (p.casa ? 'en casa' : 'fuera') + ' contra ' + quien +
+           ': nosotros ' + m.mios + ', ellos ' + m.suyos + '.';
+  }
+
   /* Las estadísticas de partido, por jugador y del equipo. Solo cuentan los
      partidos que tienen convocatoria: uno apuntado a medias no debe hundir la
      media de minutos de nadie.
@@ -855,17 +900,27 @@
   function estadisticasPartidos(temp) {
     var lista = partidos(temp);
     var porJugador = {};
-    var equipo = { partidos: 0, jugados: 0, victorias: 0, empates: 0, derrotas: 0,
-                   golesFavor: 0, golesContra: 0, sinResultado: 0 };
+    function cuenta() {
+      return { partidos: 0, jugados: 0, victorias: 0, empates: 0, derrotas: 0,
+               golesFavor: 0, golesContra: 0, sinResultado: 0 };
+    }
+    /* Y lo mismo separando casa de fuera. No es un adorno: un equipo que gana
+       todo en casa y no puntúa fuera tiene un problema que la suma esconde, y
+       es de las primeras cosas que mira cualquiera que entrene. */
+    var equipo = cuenta(), casa = cuenta(), fuera = cuenta();
 
     lista.forEach(function (p) {
-      equipo.partidos++;
+      var donde = p.casa ? casa : fuera;
+      equipo.partidos++; donde.partidos++;
       var r = resultadoDe(p);
-      if (!r) equipo.sinResultado++;
+      if (!r) { equipo.sinResultado++; donde.sinResultado++; }
       else {
-        equipo[r === 'victoria' ? 'victorias' : r === 'derrota' ? 'derrotas' : 'empates']++;
+        var campo = r === 'victoria' ? 'victorias' : r === 'derrota' ? 'derrotas' : 'empates';
+        equipo[campo]++; donde[campo]++;
         equipo.golesFavor += p.golesFavor;
         equipo.golesContra += p.golesContra;
+        donde.golesFavor += p.golesFavor;
+        donde.golesContra += p.golesContra;
       }
       p.convocados.forEach(function (c) {
         var a = porJugador[c.id] || (porJugador[c.id] = {
@@ -880,7 +935,9 @@
         if (c.roja) a.rojas++;
       });
     });
-    equipo.jugados = equipo.victorias + equipo.empates + equipo.derrotas;
+    [equipo, casa, fuera].forEach(function (c) {
+      c.jugados = c.victorias + c.empates + c.derrotas;
+    });
 
     /* Se devuelven con nombre y dorsal puestos, y en el mismo orden que la
        plantilla: una tabla que se ordena sola por goles invita a mirar quién va
@@ -903,7 +960,7 @@
       fila.push(a);
     });
 
-    return { equipo: equipo, jugadores: fila, lista: lista };
+    return { equipo: equipo, casa: casa, fuera: fuera, jugadores: fila, lista: lista };
   }
 
   /* ---- de la manera vieja a la nueva, una sola vez -----------------------
@@ -1722,6 +1779,8 @@
     guardaPartido: guardaPartido,
     quitaPartido: quitaPartido,
     resultadoDe: resultadoDe,
+    marcador: marcador,
+    marcadorHablado: marcadorHablado,
     estadisticasPartidos: estadisticasPartidos,
     duracionSugerida: duracionSugerida,
 

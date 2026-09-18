@@ -115,7 +115,7 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
   puede cambiar desde Ajustes.
 - El correo no se enseña a nadie: lo público es el nombre y el club. Con tres reportes de
   tres personas distintas un ejercicio deja de verse.
-- El servidor es Supabase (tres tablas y permisos por fila); el montaje está en supabase/.
+- El servidor es Supabase (cuatro tablas y permisos por fila); el montaje está en supabase/.
 - Ajustes: modalidad predeterminada (con la que abren la biblioteca y cada pizarra nueva) y
   categoría o equipo, que se rellena sola en cada ficha.
 
@@ -128,16 +128,20 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
   1.400 caracteres; una animación de 24 fotogramas con su ficha, unos 2.000. Se manda desde el
   menú de la pizarra y desde la biblioteca: cada ejercicio lleva su botón de compartir y se
   pasa sin abrirlo, por la hoja del teléfono —WhatsApp, correo, lo que haya—.
-- Hoja de sesión imprimible con todos los ejercicios o con todos los fotogramas, título,
-  modalidad y fecha.
+- Dos hojas imprimibles distintas: la de la SESIÓN —cada ejercicio con su dibujo, para qué
+  es, sus consignas, y arriba el material de toda la sesión junto, sin repetir— y la de la
+  JUGADA, con todos sus fotogramas en una página. Más la ficha A4 de un ejercicio suelto.
+  Ninguna abre una pestaña nueva: se componen en un marco de tamaño folio dentro de la
+  propia página, que es lo único que funciona en el iPhone y dentro de otras aplicaciones.
 - Instalable en el móvil (incluido iPhone, desde Safari) y funciona sin conexión.
 
 ## Qué NO hace todavía
 
 - No permite que dos personas trabajen a la vez sobre la misma pizarra.
-- La plantilla, la asistencia, las sesiones y los partidos viven en el navegador donde se
-  escribieron. Con cuenta van además con la cuenta, cifrados, y se ven igual en cualquier
-  dispositivo donde se entre. No hay nada que activar.
+- No se comparte una sesión entera por enlace: por enlace viaja una jugada. La sesión se
+  lleva impresa.
+- No hay equipos con varios entrenadores: cada cuenta lleva el suyo y no se comparte con
+  el segundo entrenador.
 
 ## Privacidad
 
