@@ -1668,6 +1668,34 @@ async function run(w,d){
        ? Math.round(filasApp[1].getBoundingClientRect().top-filasApp[0].getBoundingClientRect().bottom)+
          ' px de aire · '+Math.round(filasApp[0].getBoundingClientRect().width)+' px de ancho'
        : '-'));
+  /* --- todo lo que se toca llega al dedo, también en los diálogos ---
+     Se mira el área de verdad, no la caja: la pastilla de color mide 30 px
+     porque es lo que tiene que PARECER, y lleva por fuera un «::after» de 44
+     que es lo que se toca. Verse pequeño y ser pequeño son cosas distintas. */
+  var chicosDlg=[];
+  for (var iD=0; iD<4; iD++){
+    var quien=[['dlg-lib','open'],['dlg-save','save'],
+               ['dlg-export','export'],['dlg-cuenta','cuenta-row']][iD];
+    d.getElementById(quien[1]).click();await wait(700);
+    var caja=d.getElementById(quien[0]);
+    if(!caja||!caja.open) continue;
+    [].forEach.call(caja.querySelectorAll('button, input, select, a'),function(b){
+      var r=b.getBoundingClientRect();
+      if(!r.height) return;
+      /* Lo que solo existe para quien no ve la pantalla no se toca: el
+         «input» de abrir un archivo mide 1 px y lo que se pulsa es la
+         etiqueta entera que lo envuelve. */
+      if(b.classList.contains('sr')) return;
+      var extra=parseFloat(w.getComputedStyle(b,'::after').height)||0;
+      if(Math.max(r.height,extra) < 44-0.5) chicosDlg.push(quien[0]+' · '+
+        (b.id||b.title||b.className||b.type)+' '+Math.round(r.height));
+    });
+    if(caja.open) caja.close();
+    await wait(300);
+  }
+  ok('nada de lo que se toca en los diálogos baja de 44 px de alto',
+     chicosDlg.length===0, chicosDlg.slice(0,6).join(' · ') || 'todo llega al dedo');
+
   d.getElementById('scrim').click();await wait(300);
   marco2.style.width='1200px';await wait(550);
 

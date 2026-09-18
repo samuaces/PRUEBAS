@@ -84,8 +84,8 @@ juego, cada jugador) → RECOMENDAR (qué falta por trabajar y una sesión monta
   variantes, que se imprime en una página A4 con el dibujo de la pizarra. Un botón
   rellena solos los jugadores, el material y el espacio contando lo que hay en el campo.
   La ficha se guarda dentro de la pizarra.
-- Va en tres apartados que se abren de uno en uno, y cada campo trae sugerencias
-  rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
+- Va en tres apartados que se abren de uno en uno —«Qué es», «Montaje» y «Contenido»—, y
+  cada campo trae sugerencias rápidas de las que partir. En el móvil, cada pestaña del panel abre solo su sección.
 
 ## La biblioteca
 

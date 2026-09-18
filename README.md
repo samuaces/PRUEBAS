@@ -117,7 +117,7 @@ enseñando todas, que ahí es lo cómodo.
 **Ficha del ejercicio.** Un formulario dentro de la pizarra —título, categoría, momento del
 juego, sesión, duración, series, descanso, jugadores, porteros, espacio, material, objetivo,
 descripción, consignas, normas y variantes—, repartido en tres apartados que se abren de uno
-en uno, con **sugerencias en cada campo** (duraciones, series, descansos, número de jugadores,
+en uno —«Qué es», «Montaje» y «Contenido»—, con **sugerencias en cada campo** (duraciones, series, descansos, número de jugadores,
 espacios, material, y consignas, normas y variantes habituales, que se suman como una línea
 más). Se imprime en una página A4 maquetada por
 bloques: cabecera con etiquetas, el esquema del ejercicio en su marco, los datos en celdas,

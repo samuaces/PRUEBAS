@@ -639,7 +639,10 @@ a:hover{color:var(--text)}
 .frame.add:hover{color:#fff;background:color-mix(in srgb,var(--brand) 22%,transparent);
   border-color:color-mix(in srgb,var(--brand) 45%,transparent)}
 
-.chip{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;min-width:40px;
+/* Del mismo alto que los fotogramas de al lado —y del alto de un dedo—: iban
+   cuatro píxeles por debajo, y en la misma barra se notaba el escalón. */
+.chip{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:var(--touch);min-width:var(--touch);
   padding:0 12px;border-radius:var(--r2);border:1px solid var(--line);background:var(--glass);
   color:var(--muted);font-size:var(--t-md);box-shadow:inset 0 1px 0 var(--sheen);
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease),box-shadow .16s}
@@ -701,7 +704,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   background:var(--glass);font-family:var(--ff-body);font-size:var(--t-xs);line-height:1.3;
   letter-spacing:0;text-transform:none;
   transition:background .16s,border-color .16s,color .16s,transform .12s var(--ease)}
-.mini-btn{color:var(--brand-2);font-weight:600}
+/* Los tres «mini» que hay —«Quitar filtros», «Rellenar desde la pizarra» y
+   «He olvidado la contraseña»— son acciones de verdad, aunque se vean
+   pequeñas: se tocan con el dedo como todo lo demás. Pequeño es de ancho y de
+   letra, no de alto. Los que sí pueden ser bajos son las sugerencias («.sug»),
+   que van a docenas dentro de la ficha y no son acciones, son atajos. */
+.mini-btn{color:var(--brand-2);font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;min-height:var(--touch)}
 .sug{color:var(--muted)}
 .mini-btn:hover,.sug:hover{border-color:var(--brand-2);background:var(--glass-2);color:var(--text)}
 .mini-btn:active,.sug:active{transform:scale(.95);background:var(--glass-3)}
@@ -734,6 +743,11 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .field > span small{font-weight:400;opacity:.75}
 /* La ficha, por apartados: uno cada vez, no un rollo de treinta campos. */
 .seg.pasos{margin-bottom:16px}
+/* Se cortan con puntos suspensivos si algún día no caben. Hoy caben: los tres
+   rótulos son cortos a propósito. «Identificación» y «Organización» no cabían
+   en un teléfono de 320 px y se quedaban en «Identifica…», que no dice lo que
+   hay detrás; y de paso eran dos palabras de oficina en una aplicación que
+   habla como se habla en un campo. */
 .seg.pasos button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .paso > .form-group:first-child{margin-top:0}
 /* El nombre del apartado ya está en la pestaña: aquí solo queda su acción. */
@@ -784,7 +798,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* ---------------- Biblioteca ---------------- */
 .lib-filtros{display:grid;gap:8px;margin-bottom:14px}
 .lib-selects{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.lib-selects select{min-height:40px;padding:8px 12px;font-size:var(--t-base)}
+.lib-selects select{min-height:var(--touch);padding:8px 12px;font-size:var(--t-base)}
 .lib-mas{min-width:0}
 .lib-mas > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
   min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r3);
@@ -882,14 +896,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .lib-grid{grid-template-columns:1fr}
   .lib-selects{grid-template-columns:1fr}   /* a 16 px, dos por fila se cortan */
   /* En el escritorio el pie de la tarjeta va apretado porque se pulsa con el
-     ratón y se acierta. Con el dedo, 34 px es poco: se sube a 40 los dos
-     botones del pie, el de texto y el del icono. */
-  .lib-pie .tbtn{min-height:40px}
-  .lib-pie .tbtn.icono{width:40px;height:40px}
+     ratón y se acierta. Con el dedo hace falta lo que mide un dedo, y eso en
+     esta aplicación son 44 px en todas partes: los dos botones del pie, el de
+     texto y el del icono. (Estuvieron en 40, de una pasada anterior a que el
+     alto táctil fuera uno solo para todo.) */
+  .lib-pie .tbtn{min-height:var(--touch)}
+  .lib-pie .tbtn.icono{width:var(--touch);height:var(--touch)}
   /* La ✕ de cerrar un diálogo se quedaba en 34 px, y es el mando del que se
      tira cuando uno se ha metido donde no quería: tiene que acertarse a la
      primera. Vale para todos los diálogos, no solo para la biblioteca. */
-  dialog .dhead .tbtn{min-width:40px;min-height:40px}
+  dialog .dhead .tbtn{min-width:var(--touch);min-height:var(--touch)}
   .lib-pie{flex-wrap:wrap}
   .lib-origen{flex:1 0 100%}
 }
@@ -948,9 +964,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   .modo span{display:none}
   .modo[aria-selected="true"] span{display:inline}
   /* El interruptor de modo es de los mandos que más se usan y se quedaba en
-     34 px de alto: por debajo de lo que un pulgar acierta sin mirar. Seis
+     34 px de alto: por debajo de lo que un pulgar acierta sin mirar. Diez
      píxeles más en la barra, que se los puede permitir. */
-  .modo{padding:8px 10px;min-height:40px}
+  .modo{padding:8px 10px;min-height:var(--touch)}
   .equipo{padding:14px 14px 24px}
   /* En el móvil los apartados se eligen abajo, con el pulgar. Enseñar además
      el selector de arriba sería el mismo mando dos veces. */
