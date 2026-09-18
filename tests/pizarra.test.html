@@ -104,6 +104,45 @@ async function run(w,d){
   d.querySelector('[data-view="blank"]').click();await wait(150);
   ok('la superficie libre se redibuja',px(cv,cv.clientWidth/2,cv.clientHeight/2)[1]>40);
   d.querySelector('[data-view="full"]').click();await wait(150);
+
+  /* --- los once caen dentro de lo que se está viendo ---
+     Las formaciones están escritas sobre el campo entero. En medio campo, el
+     visitante se colocaba en la mitad de enfrente: pulsabas «Colocar equipo
+     visitante» y no aparecía nadie, porque los once estaban fuera del
+     encuadre. Se comprueba con las piezas, no con píxeles: el dibujo recorta,
+     y lo que hay que saber es dónde han quedado. */
+  /* Los límites de lo que se ve, escritos aquí a mano para no preguntárselos a
+     quien se está probando: el campo lleva un margen de fuera de banda del
+     3,5 % del largo (3,675 m en fútbol 11) y la zona de trabajo son los 32 m
+     centrales con 2 m de respiro. */
+  var encuadres=[['full',-3.7,108.7],['half',-3.7,56.2],['area',34.5,70.5]];
+  var seEscapan=[];
+  for (var iE=0;iE<encuadres.length;iE++){
+    var e=encuadres[iE];
+    d.querySelector('[data-view="'+e[0]+'"]').click();await wait(200);
+    ['form-home','form-away'].forEach(function(id){
+      var s2=d.getElementById(id);
+      s2.value='4-4-2';
+      s2.dispatchEvent(new w.Event('change',{bubbles:true}));
+    });
+    await wait(1300);                      // el autoguardado va con retardo
+    var guardado=JSON.parse(w.localStorage.getItem('pt-autosave')||'{}');
+    /* El fotograma que está delante, que a estas alturas de la batería no
+       tiene por qué ser el primero: la formación se coloca en ese. */
+    var cual=Math.max(0,[].map.call(d.querySelectorAll('#frames .frame'),function(b){
+      return b.getAttribute('aria-pressed')==='true';}).indexOf(true));
+    (function(enc){
+      ((guardado.frames||[])[cual]||{objects:[]}).objects
+        .filter(function(o){return o.kind==='player';})
+        .forEach(function(o){
+          if(o.x<enc[1]-1||o.x>enc[2]+1) seEscapan.push(enc[0]+' '+o.team+' x='+Math.round(o.x));
+        });
+    })(e);
+  }
+  d.querySelector('[data-view="full"]').click();await wait(150);
+  ok('una formación cae dentro del encuadre que haya, sea cual sea',
+     seEscapan.length===0, seEscapan.slice(0,6).join(' · ') || 'los 22 dentro en los tres encuadres');
+
   var threw=null,got=false,old=w.HTMLCanvasElement.prototype.toBlob;
   w.HTMLCanvasElement.prototype.toBlob=function(cb){got=true;try{cb(new w.Blob(['x']));}catch(e){}};
   try{d.getElementById('ex-png').click();}catch(e){threw=e.message;}
@@ -121,6 +160,21 @@ async function run(w,d){
   d.querySelector('#dlg-file [data-close]').click(); await raf();
   d.getElementById('help').click();await raf();
   ok('el diálogo de ayuda se abre',d.getElementById('dlg-help').open);
+  /* La ayuda decía «diez ejercicios» con sesenta y cuatro dentro. Un número
+     escrito a mano en una ayuda envejece solo, así que lo cuenta la propia
+     biblioteca y aquí se comprueba contra ella. */
+  /* Se cuentan aparte, desde el mismo archivo del que tira la aplicación. Que
+     «tests/catalogo.mjs» ya comprueba que todos son buenos es lo que permite
+     contarlos aquí a secas. */
+  var cuantosHay=(await fetch('../assets/biblioteca.json').then(function(r){return r.json();}))
+                 .ejercicios.length;
+  ok('la ayuda dice cuántos ejercicios trae la biblioteca, contándolos',
+     new RegExp('los '+cuantosHay+' ejercicios')
+       .test(d.getElementById('help-cuantos').textContent),
+     d.getElementById('help-cuantos').textContent+' · hay '+cuantosHay);
+  ok('y cuenta también el otro lado de la aplicación',
+     /plantilla/i.test(d.getElementById('dlg-help').textContent) &&
+     /partidos/i.test(d.getElementById('dlg-help').textContent));
   d.querySelector('#dlg-help [data-close]').click();await raf();
   ok('el diálogo se cierra',!d.getElementById('dlg-help').open);
   d.querySelector('[data-place="text"]').click();await raf();
@@ -1588,6 +1642,32 @@ async function run(w,d){
   var selVis=d.getElementById('form-away').getBoundingClientRect();
   ok('el último control de la sección se ve entero',selVis.bottom<=caja.bottom+0.5,
      Math.round(selVis.bottom-caja.bottom)+' px fuera');
+  /* --- los ayudantes de «solo en móvil» no pisan la maquetación ---
+     «.solo-estrecho» ponía «display:block» al enseñar, y con eso le pisaba el
+     suyo a lo que envolvía. El grupo «Aplicación» de la hoja «Más» es un
+     «.stack» —una rejilla con su separación—: al volverse un bloque perdía la
+     separación y sus dos botones se encogían hasta el largo de su texto,
+     porque un <button> suelto se ajusta a lo que lleva dentro. En el teléfono,
+     «Tu cuenta» y «Ajustes» salían pegados y a media anchura. */
+  d.querySelector('.tab[data-section="b-actions"]').click();await wait(500);
+  var pisados=[].filter.call(d.querySelectorAll('.aside .stack, .aside .row-btn'),function(e){
+    if(!e.getBoundingClientRect().height) return false;
+    var esperado=e.classList.contains('stack')?'grid':'flex';
+    return w.getComputedStyle(e).display!==esperado;
+  }).map(function(e){return (e.id||e.className)+': '+w.getComputedStyle(e).display;});
+  ok('enseñar algo solo en el móvil no le cambia cómo se maqueta',
+     pisados.length===0, pisados.join(' · ') || 'ninguno pisado');
+  var filasApp=[].filter.call(d.querySelectorAll('.stack.solo-estrecho .row-btn'),
+                              function(e){return e.getBoundingClientRect().height;});
+  ok('y los botones de «Aplicación» van enteros y separados, como los demás',
+     filasApp.length===2 &&
+     filasApp[1].getBoundingClientRect().top - filasApp[0].getBoundingClientRect().bottom >= 4 &&
+     filasApp[0].getBoundingClientRect().width > 300,
+     filasApp.length+' filas · '+
+     (filasApp.length===2
+       ? Math.round(filasApp[1].getBoundingClientRect().top-filasApp[0].getBoundingClientRect().bottom)+
+         ' px de aire · '+Math.round(filasApp[0].getBoundingClientRect().width)+' px de ancho'
+       : '-'));
   d.getElementById('scrim').click();await wait(300);
   marco2.style.width='1200px';await wait(550);
 
@@ -1866,8 +1946,23 @@ async function run(w,d){
      pista('hoy')==='Empieza por aquí',pista('hoy'));
   ok('y la plantilla lo dice sin rodeos',
      pista('plantilla')==='Sin montar todavía',pista('plantilla'));
-  ok('y Análisis no finge que hay datos',
+  ok('y Datos no finge que hay nada apuntado',
      /Cuando apuntes algo/.test(pista('datos')),pista('datos'));
+
+  /* La misma pantalla, el mismo nombre en todos los sitios. El cajón la
+     llamaba «Análisis» y las dos barras de pestañas, «Datos»; y a la
+     biblioteca, «Ejercicios» en el cajón y «Biblioteca» en la barra de arriba.
+     Con eso uno se queda pensando si son dos sitios distintos. */
+  var desiguales=[].filter.call(d.querySelectorAll('.cajon-ir[data-ir]'),function(b){
+    var tab=d.querySelector('.tabbar-eq [data-eq="'+b.dataset.ir+'"]');
+    if(!tab) return false;
+    return b.querySelector('span').textContent.trim().toLowerCase()!==
+           tab.textContent.trim().toLowerCase();
+  }).map(function(b){
+    return b.dataset.ir+': «'+b.querySelector('span').textContent.trim()+'» vs «'+
+           d.querySelector('.tabbar-eq [data-eq="'+b.dataset.ir+'"]').textContent.trim()+'»';});
+  ok('cada pantalla se llama igual en el cajón que en las pestañas',
+     desiguales.length===0, desiguales.join(' · ') || 'todas coinciden');
 
   // Escape lo cierra, que es lo que espera cualquiera.
   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));

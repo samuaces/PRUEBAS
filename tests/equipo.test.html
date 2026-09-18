@@ -2385,9 +2385,15 @@ function siembra(lista){
   d.getElementById('par-guardar').click(); await wait(600);
   ok('al guardar se vuelve a la lista',
      !d.getElementById('par-diario').hidden && d.getElementById('par-detalle').hidden);
+  /* El resumen dice los goles con palabras. Escribirlos «3-1», como un
+     marcador, invita a leer una suma de veinte partidos como si fuera un
+     resultado. */
   ok('y el resumen lleva ya el resultado',
      /1 partido/.test(d.getElementById('par-resumen').textContent) &&
-     /3-1/.test(d.getElementById('par-resumen').textContent),
+     /3 goles a favor y 1 en contra/.test(d.getElementById('par-resumen').textContent),
+     d.getElementById('par-resumen').textContent);
+  ok('y no lo escribe como si fuera un marcador',
+     !/\b3\s*[-–]\s*1\b/.test(d.getElementById('par-resumen').textContent),
      d.getElementById('par-resumen').textContent);
   ok('la fila de la lista se tiñe según cómo acabó',
      !!d.querySelector('#par-meses .par-dia.es-victoria'),
@@ -2412,6 +2418,92 @@ function siembra(lista){
      d.getElementById('par-gf').value === '3' &&
      d.querySelectorAll('#par-jugadores .squad-marca input:checked').length === 2,
      d.getElementById('par-rival').value);
+
+  /* ═══ Local y visitante ═══════════════════════════════════════════════════
+
+     Por dentro, «golesFavor» son siempre los tuyos. Por fuera, un marcador se
+     escribe como lo escribe el campo: el de casa primero. Lo que se prueba
+     aquí es que esa traducción pase en un solo sitio y salga igual en las dos
+     pantallas, porque el día que no coincidan se apuntan los resultados al
+     revés y no se nota hasta que la temporada está entera mal. */
+  d.querySelector('[data-eq="partidos"]').click(); await wait(450);
+  d.getElementById('par-nuevo').click(); await wait(400);
+
+  function escribeEn(id, v){
+    var el = d.getElementById(id);
+    el.value = v;
+    el.dispatchEvent(new w.Event('input',{bubbles:true}));
+  }
+  function ladosDelMarcador(){
+    return [].map.call(d.querySelectorAll('#par-marcador .par-lado'),
+                       function(l){ return l.id; });
+  }
+
+  escribeEn('par-rival','Atlético Prueba');
+  escribeEn('par-competicion','Copa');
+  escribeEn('par-gf','1');
+  escribeEn('par-gc','3');
+  ok('en casa, los nuestros van a la izquierda, como en el campo',
+     ladosDelMarcador().join('>') === 'par-lado-nosotros>par-lado-rival',
+     ladosDelMarcador().join(' > '));
+  ok('y el rival se llama por su nombre encima de su hueco',
+     d.getElementById('par-eq-rival').textContent === 'Atlético Prueba',
+     d.getElementById('par-eq-rival').textContent);
+
+  /* EL FALLO: tocar «Fuera» repintaba la pantalla desde el borrador, y en el
+     borrador no había nada de lo tecleado. Se perdía el rival, la competición
+     y el resultado de golpe. */
+  d.querySelector('#par-donde [data-casa="0"]').click(); await wait(300);
+  ok('caer en que jugabais fuera no borra lo que llevas escrito',
+     d.getElementById('par-rival').value === 'Atlético Prueba' &&
+     d.getElementById('par-competicion').value === 'Copa' &&
+     d.getElementById('par-gf').value === '1' &&
+     d.getElementById('par-gc').value === '3',
+     [d.getElementById('par-rival').value, d.getElementById('par-competicion').value,
+      d.getElementById('par-gf').value, d.getElementById('par-gc').value].join(' · '));
+  ok('jugando fuera, los huecos se cambian de sitio: ellos primero',
+     ladosDelMarcador().join('>') === 'par-lado-rival>par-lado-nosotros',
+     ladosDelMarcador().join(' > '));
+  /* Se mueven los nodos, no solo el aspecto: si se hiciera con CSS, quien
+     tabula iría al hueco de la derecha creyendo que va al de la izquierda. */
+  ok('y se mueven de verdad, no solo de aspecto',
+     d.querySelector('#par-marcador .par-lado').querySelector('input').id === 'par-gc',
+     d.querySelector('#par-marcador .par-lado input').id);
+
+  // Los goles de los jugadores contra el resultado, dicho sin impedir guardar.
+  ok('avisa de que falta apuntar quién marcó',
+     !d.getElementById('par-cuadre').hidden &&
+     /quién marcó/.test(d.getElementById('par-cuadre').textContent),
+     d.getElementById('par-cuadre').textContent);
+
+  d.getElementById('par-guardar').click(); await wait(600);
+  var fuera = d.querySelectorAll('#par-meses .par-dia')[0];
+  ok('en la lista, un partido fuera se escribe como el marcador del campo',
+     fuera.querySelector('.par-marca').textContent === '3–1',
+     fuera.querySelector('.par-marca').textContent);
+  ok('y la letra dice quién ganó, que el orden ya no lo dice',
+     fuera.querySelector('.par-res').textContent === 'P' &&
+     /es-derrota/.test(fuera.className),
+     fuera.querySelector('.par-res').textContent + ' · ' + fuera.className);
+  ok('y el botón lo dice entero para quien no ve la pantalla',
+     /Derrota fuera contra Atlético Prueba: nosotros 1, ellos 3/
+       .test(fuera.querySelector('button').getAttribute('aria-label')),
+     fuera.querySelector('button').getAttribute('aria-label'));
+  ok('con casa y fuera, el resumen los separa',
+     !d.getElementById('par-reparto').hidden &&
+     /En casa .*Fuera/.test(d.getElementById('par-reparto').textContent),
+     d.getElementById('par-reparto').textContent);
+
+  // Y reabrirlo tiene que traerlo con los huecos puestos como estaban.
+  d.querySelectorAll('#par-meses .ses-dia-btn')[0].click(); await wait(450);
+  ok('al reabrir uno de fuera, el marcador sigue en el orden del campo',
+     ladosDelMarcador().join('>') === 'par-lado-rival>par-lado-nosotros' &&
+     d.getElementById('par-gc').value === '3',
+     ladosDelMarcador().join(' > ') + ' · ' + d.getElementById('par-gc').value);
+  ok('y el título dice de qué partido se trata, no «El partido»',
+     d.getElementById('par-titulo').textContent === 'en Atlético Prueba',
+     d.getElementById('par-titulo').textContent);
+  d.getElementById('par-volver').click(); await wait(350);
 
   // Y Hoy lo cuenta, que es lo que hace que no se quede escondido.
   d.querySelector('[data-eq="hoy"]').click(); await wait(500);

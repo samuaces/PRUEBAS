@@ -1725,16 +1725,31 @@
   }
 
   /* --- formaciones --- */
+  /* Las formaciones están escritas sobre el campo entero. Si el encuadre es
+     otro, hay que llevarlas a él: en medio campo, el visitante se colocaba en
+     la mitad de enfrente —o sea, fuera de la pantalla—, y pulsar «Colocar
+     equipo visitante» no ponía a nadie a la vista. En el campo entero esto no
+     cambia ni un metro: el hueco es el campo entero. */
+  function huecoDeFormacion() {
+    var P = PITCH(), v = viewRect();
+    return {
+      x0: Math.max(0, v.x0), x1: Math.min(P.L, v.x1),
+      y0: Math.max(0, v.y0), y1: Math.min(P.W, v.y1)
+    };
+  }
+
   function applyFormation(name, team) {
     var set = formationSet(), pos = set.pos[name], nums = set.num[name] || [];
     if (!pos) return;
-    var P = PITCH(), f = frame();
+    var P = PITCH(), f = frame(), h = huecoDeFormacion();
+    var largo = h.x1 - h.x0, ancho = h.y1 - h.y0;
     f.objects = f.objects.filter(function (o) { return !(o.kind === 'player' && o.team === team); });
     pos.forEach(function (p, i) {
+      var cx = p[0] / P.L, cy = p[1] / P.W;           // de 0 a 1 sobre el campo
       f.objects.push({
         id: uid(), kind: 'player', team: team,
-        x: team === 'home' ? p[0] : P.L - p[0],
-        y: team === 'home' ? p[1] : P.W - p[1],
+        x: team === 'home' ? h.x0 + cx * largo : h.x1 - cx * largo,
+        y: team === 'home' ? h.y0 + cy * ancho : h.y1 - cy * ancho,
         num: nums[i] != null ? nums[i] : i + 1, rot: 0
       });
     });
@@ -2513,6 +2528,8 @@
       return e && e.id && PITCHES[e.pitch] && e.card && e.objects;
     });
     catalogoInfo = { fecha: datos.actualizado || '', ejercicios: CATALOGO.length, deCache: !!deCache };
+    // Aquí y no en quien llame: este es el único sitio donde cambia el catálogo.
+    pintaCuantosTraeLaBiblioteca();
     return true;
   }
 
@@ -2855,6 +2872,19 @@
       if (!p) pizarrasAlDia = false;      // al salir, para la próxima cuenta
       return p;
     });
+  }
+
+  /* Cuántos ejercicios trae la biblioteca lo cuenta la biblioteca. Estaba
+     escrito a mano —«diez ejercicios»— y llevaba tiempo diciendo diez con
+     sesenta y cuatro dentro. Un número escrito a mano en una ayuda envejece
+     solo; contado, no puede. */
+  function pintaCuantosTraeLaBiblioteca() {
+    var e = $('#help-cuantos');
+    if (!e) return;
+    var n = CATALOGO.length;
+    e.textContent = !n ? 'los ejercicios'
+                  : n === 1 ? 'un ejercicio'
+                  : 'los ' + n + ' ejercicios';
   }
 
   // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
@@ -4767,10 +4797,21 @@
     } else {
       var t = [e.partidos + (e.partidos === 1 ? ' partido' : ' partidos')];
       if (e.jugados) {
+        t.push(golesEnCristiano(e));
         t.push(e.victorias + 'G · ' + e.empates + 'E · ' + e.derrotas + 'P');
-        t.push(e.golesFavor + '-' + e.golesContra);
       }
       $('#par-resumen').textContent = 'Temporada ' + temp + ': ' + t.join(' · ');
+    }
+    /* Casa y fuera por separado. Un equipo que gana todo en casa y no puntúa
+       fuera tiene un problema que la suma esconde, y es de lo primero que mira
+       cualquiera que entrene. Solo cuando hay de los dos: con tres partidos
+       jugados, todos en casa, esto no dice nada que no diga la línea de arriba. */
+    var reparto = $('#par-reparto');
+    var hayDeLosDos = st.casa.jugados > 0 && st.fuera.jugados > 0;
+    reparto.hidden = !hayDeLosDos;
+    if (hayDeLosDos) {
+      reparto.textContent = 'En casa ' + rachaCorta(st.casa) +
+                            ' · Fuera ' + rachaCorta(st.fuera) + '.';
     }
 
     var caja = $('#par-meses');
@@ -4793,6 +4834,17 @@
         'entrenamiento ni cuentan como asistencia.'
       : 'Apunta un partido y lleva la cuenta de minutos, goles, asistencias y ' +
         'tarjetas de cada uno. Se puede apuntar a mano, sin haberlo preparado aquí.';
+  }
+
+  /* Una suma de goles NO es un marcador, y escribirla igual —«24-15»— invita a
+     leerla como uno. Se dice con palabras, que además es como se cuenta. */
+  function golesEnCristiano(c) {
+    return c.golesFavor + (c.golesFavor === 1 ? ' gol a favor' : ' goles a favor') +
+           ' y ' + c.golesContra + ' en contra';
+  }
+
+  function rachaCorta(c) {
+    return c.victorias + 'G · ' + c.empates + 'E · ' + c.derrotas + 'P';
   }
 
   function filaPartido(p) {
@@ -4830,13 +4882,24 @@
     med.appendChild(sub);
     b.appendChild(med);
 
+    /* El marcador, en el orden del campo (ver «marcador» en equipo.js), y la
+       letra al lado: así en el orden del campo se sigue sabiendo quién ganó. */
+    var m = PTEquipo.marcador(p);
     var marc = document.createElement('span');
     marc.className = 'par-marca';
-    marc.textContent = res ? p.golesFavor + '–' + p.golesContra : '–';
-    if (!res) marc.classList.add('flojo');
+    marc.textContent = m ? m.texto : '–';
+    if (!m) marc.classList.add('flojo');
     b.appendChild(marc);
+    if (m) {
+      var letra = document.createElement('span');
+      letra.className = 'par-res';
+      letra.textContent = m.letra;
+      letra.setAttribute('aria-hidden', 'true');   // lo dice entero el botón
+      b.appendChild(letra);
+    }
 
-    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true));
+    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true) +
+                   '. ' + PTEquipo.marcadorHablado(p, p.rival));
     b.addEventListener('click', function () { abrePartido(p.id); });
     li.appendChild(b);
     return li;
@@ -4894,7 +4957,10 @@
     $('#par-detalle').hidden = false;
 
     var p = parBorrador;
-    $('#par-titulo').textContent = parId ? 'El partido' : 'Un partido nuevo';
+    // Al abrir uno guardado, el título dice cuál es. «El partido» no lo decía.
+    $('#par-titulo').textContent = !parId ? 'Un partido nuevo'
+      : p.rival ? (p.casa ? 'vs ' : 'en ') + p.rival
+      : (p.casa ? 'Partido en casa' : 'Partido fuera');
     $('#par-borrar').hidden = !parId;
 
     $('#par-fecha').value = p.fecha;
@@ -4907,13 +4973,36 @@
       b.setAttribute('aria-pressed', String((b.dataset.casa === '1') === !!p.casa));
     });
 
-    /* Que el marcador sea SIEMPRE el tuyo primero, juegues donde juegues, es la
-       clase de cosa que hay que decir una vez y no volver a dudar. */
-    $('#par-marcador-nota').textContent = p.casa
-      ? 'Los tuyos primero. Déjalo vacío si no quieres apuntar el resultado.'
-      : 'Los tuyos primero, aunque juguéis fuera. Déjalo vacío si no lo apuntas.';
-
+    ponElMarcadorEnOrden();
     pintaJugadoresDelPartido();
+  }
+
+  /* Los dos huecos del resultado, puestos como el marcador del campo: el de
+     casa a la izquierda. Se mueven los nodos de verdad, no con CSS, porque el
+     orden en que se tabula tiene que ser el que se ve.
+
+     Esto sustituye a una nota que decía «los tuyos primero, aunque juguéis
+     fuera». Estaba bien escrita y no servía: al llegar del campo con un 3-1 en
+     la cabeza, lo que se hace es teclear 3 y 1. */
+  function ponElMarcadorEnOrden() {
+    var p = parBorrador;
+    if (!p) return;
+    var caja = $('#par-marcador');
+    var nuestro = $('#par-lado-nosotros'), suyo = $('#par-lado-rival');
+    var guion = caja.querySelector('.par-guion');
+    // Los dos, siempre: moviendo solo uno, el otro se queda donde estaba y el
+    // guion acaba en una punta en vez de en medio.
+    caja.insertBefore(p.casa ? nuestro : suyo, guion);
+    caja.appendChild(p.casa ? suyo : nuestro);
+
+    var comoSeLlaman = String(p.rival || '').trim() || 'El rival';
+    $('#par-eq-rival').textContent = comoSeLlaman;
+    $('#par-gf').setAttribute('aria-label', 'Goles nuestros');
+    $('#par-gc').setAttribute('aria-label', 'Goles de ' + comoSeLlaman);
+
+    $('#par-marcador-nota').textContent = p.casa
+      ? 'Como en el marcador del campo. Déjalo vacío si no apuntas el resultado.'
+      : 'Como en el marcador del campo: jugando fuera van ellos primero.';
   }
 
   function pintaJugadoresDelPartido() {
@@ -4982,7 +5071,9 @@
         if (!cc) return;
         var n = parseInt(i.value.replace(/\D/g, ''), 10);
         cc[campo[0]] = isFinite(n) ? n : 0;
-        if (campo[0] === 'minutos') cuentaDelPartido();
+        // Los minutos cambian la cuenta de arriba; los goles, el cuadre. Las
+        // dos cosas las dice «cuentaDelPartido», y cuestan lo que un renglón.
+        cuentaDelPartido();
       });
       w.appendChild(t); w.appendChild(i);
       cifras.appendChild(w);
@@ -5046,6 +5137,31 @@
     var txt = jug + ' de ' + total + (jug === 1 ? ' jugó' : ' jugaron');
     if (banco) txt += ' · ' + banco + ' sin minutos';
     $('#par-cuenta').textContent = txt;
+    cuadraLosGoles();
+  }
+
+  /* Los goles de los jugadores contra el resultado. No es un error —hay goles
+     en propia puerta, y muchas veces se apunta el resultado y se deja para
+     luego quién marcó—, así que no impide guardar: solo lo dice, que es lo que
+     hace falta para no descubrirlo en junio con la temporada entera mal. */
+  function cuadraLosGoles() {
+    var aviso = $('#par-cuadre');
+    if (!aviso || !parBorrador) return;
+    var p = parBorrador;
+    var suma = p.convocados.reduce(function (n, c) { return n + (c.goles || 0); }, 0);
+    // Sin resultado apuntado, o sin un solo gol anotado a nadie, no hay nada
+    // que cuadrar: lo normal es rellenarlo en dos veces.
+    if (p.golesFavor == null || (!suma && !p.golesFavor)) { aviso.hidden = true; return; }
+    if (suma === p.golesFavor) { aviso.hidden = true; return; }
+    aviso.hidden = false;
+    aviso.textContent = suma > p.golesFavor
+      ? 'Ojo: los jugadores suman ' + suma + ' goles y el resultado dice ' +
+        p.golesFavor + '.'
+      : suma === 0
+        ? (p.golesFavor === 1 ? 'Falta apuntar quién marcó el gol.'
+                              : 'Falta apuntar quién marcó los ' + p.golesFavor + ' goles.')
+        : 'El resultado dice ' + p.golesFavor + ' y los jugadores suman ' + suma +
+          '. Si alguno fue en propia puerta, está bien así.';
   }
 
   function leeCamposDelPartido() {
@@ -5387,9 +5503,9 @@
     sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
     plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
     partidos:   { modo: 'equipo', apartado: 'partidos',  nombre: 'Partidos' },
-    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
+    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Datos' },
     pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
-    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
+    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Biblioteca' },
     cuenta:     { abre: function () { abreCuenta(false); } },
     ajustes:    { abre: function () { abreLosAjustes(); } },
     ayuda:      { abre: function () { $('#dlg-help').showModal(); } }
@@ -5638,8 +5754,7 @@
         var e2 = par.equipo;
         dice(e2.partidos + (e2.partidos === 1 ? ' partido' : ' partidos') +
              ' esta temporada' +
-             (e2.jugados ? ' · ' + e2.victorias + 'G · ' + e2.empates + 'E · ' +
-                           e2.derrotas + 'P · ' + e2.golesFavor + '-' + e2.golesContra : '') + '.');
+             (e2.jugados ? ': ' + rachaCorta(e2) + ' · ' + golesEnCristiano(e2) : '') + '.');
         if (aMedias.length) {
           dice(aMedias.length === 1
             ? 'Uno se quedó a medias: le falta el resultado o quién jugó.'
@@ -6984,12 +7099,36 @@
     $('#par-volver').addEventListener('click', vaAPartidos);
     $('#par-guardar').addEventListener('click', guardaElPartido);
     $('#par-borrar').addEventListener('click', borraElPartido);
+    /* Cambiar «Dónde» se llevaba por delante todo lo escrito: repintaba la
+       pantalla entera desde el borrador, y en el borrador aún no estaba nada de
+       lo tecleado. Escribías el rival y el resultado, caías en que jugabais
+       fuera, tocabas «Fuera» y se quedaba todo en blanco. Ahora se recoge lo
+       escrito antes de tocar nada, y solo se mueve el marcador: repintar la
+       convocatoria entera por esto es tirar el foco de quien está dentro. */
     $$('#par-donde [data-casa]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (!parBorrador) return;
+        leeCamposDelPartido();
         parBorrador.casa = b.dataset.casa === '1';
-        pintaDetallePartido();
+        $$('#par-donde [data-casa]').forEach(function (o) {
+          o.setAttribute('aria-pressed', String((o.dataset.casa === '1') === !!parBorrador.casa));
+        });
+        ponElMarcadorEnOrden();
       });
+    });
+    /* Todo lo de arriba se recoge SEGÚN SE ESCRIBE. Antes solo se recogía al
+       guardar, y por eso cualquier repintado se llevaba por delante lo
+       tecleado. Con esto el borrador está siempre al día y ya no hay botón que
+       pueda borrar nada, ni los que se añadan mañana.
+
+       De paso, el nombre del rival aparece encima de su hueco del marcador
+       mientras se escribe, y el cuadre de los goles se dice al momento. */
+    $('.par-campos').addEventListener('input', function (ev) {
+      if (!parBorrador) return;
+      leeCamposDelPartido();
+      var id = ev.target && ev.target.id;
+      if (id === 'par-rival') ponElMarcadorEnOrden();
+      if (id === 'par-gf' || id === 'par-gc') cuadraLosGoles();
     });
     /* Cambiar la duración con gente ya marcada tiene que arrastrar a los que
        jugaron el partido entero: si no, pones «80» después de marcar a once y

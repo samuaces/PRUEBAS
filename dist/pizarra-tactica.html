@@ -907,8 +907,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 /* Un bloque del panel puede tener más de un apartado: «Pizarra», «Compartir»…
    Así el cajón de sastre deja de serlo sin repartirlo en más pestañas. */
 .block h2.sub{margin-top:18px}
-.solo-estrecho{display:none}
-.solo-ancho{display:flex}
+/* Enseñar y esconder según el ancho. Estas dos clases SOLO esconden: no dicen
+   nunca cómo se maqueta aquello a lo que se les pone.
+
+   Antes sí lo decían —«display:block» al enseñar, «display:flex» al esconder—,
+   y le pisaban el suyo a lo que envolvían. La lista de «Aplicación» del panel
+   es un «.stack», o sea una rejilla con su separación: al volverse un bloque
+   perdía la separación y, de paso, los dos botones se encogían hasta el largo
+   de su texto, porque un <button> suelto se ajusta a lo que lleva dentro. En
+   el teléfono, «Tu cuenta» y «Ajustes» salían pegados el uno al otro y a media
+   anchura. Lo mismo le pasaba a dos filas más, que se quedaban sin su «flex».
+
+   Un ayudante de visibilidad no tiene por qué saber de maquetación. */
+@media (min-width:901px){ .solo-estrecho{display:none} }
 
 /* ---------------- Aviso ---------------- */
 .toast{position:fixed;left:50%;bottom:calc(96px + var(--tabbar) + var(--safe-b));transform:translate(-50%,14px);
@@ -941,7 +952,6 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      más apretado aquí arriba. */
   /* En el móvil la barra de arriba va al límite. Ajustes se baja al panel:
      se usa de higos a brevas, y el interruptor de modo se usa cada día. */
-  .solo-estrecho{display:block}
   .solo-ancho{display:none}
   /* Dos iconos sueltos no dicen nada. Se enseña el nombre del modo en el que
      estás: siempre sabes dónde te encuentras, y el otro es un icono a un toque. */
@@ -1443,6 +1453,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
    Nada de esto es un diálogo: se entra y se sale como de una carpeta. */
 .ses-cabeza{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 var(--e2)}
 .ses-cabeza .stats-resumen{flex:1 1 100%;min-width:180px;margin:0}
+/* Casa y fuera va pegado al resumen de la temporada, que es de lo que habla, y
+   no debajo del botón, donde parecía otra cosa. */
+.par-reparto{flex:1 1 100%;margin:calc(var(--e1) * -1) 0 0}
 /* El botón de hoy y el selector de día, uno al lado del otro: hoy es lo de
    siempre y va primero; el resto de días es lo de vez en cuando y va al lado,
    no escondido. */
@@ -1595,23 +1608,40 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
 .par-campos > *{min-width:0}
 .par-campos input,.par-campos select{min-height:var(--touch)}
 @media (min-width:560px){ .par-campos{grid-template-columns:repeat(3,1fr)} }
-/* El marcador se escribe como se lee: dos huecos y una raya en medio. */
-.par-marcador{display:flex;align-items:center;gap:8px}
-.par-marcador input{flex:1;min-width:0;text-align:center;min-height:var(--touch);
+/* El marcador se escribe como se lee en el campo: dos huecos con el nombre de
+   cada equipo encima y una raya en medio. Los nombres son lo que quita la duda
+   de qué número va dónde; sin ellos, jugando fuera, se apunta al revés. */
+.par-marcador{display:flex;align-items:flex-end;gap:8px}
+.par-lado{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--e1)}
+/* El nombre del rival se parte en dos renglones antes que cortarse: «ATLÉTICO
+   P…» encima de un número no dice de quién es ese número. Los huecos siguen
+   alineados por abajo, así que el marcador no se tuerce. */
+.par-lado > span{font-size:var(--t-cap);letter-spacing:var(--ls-cap);
+  text-transform:uppercase;color:var(--muted);overflow-wrap:anywhere}
+/* El nuestro, marcado: de un vistazo se sabe cuál es cada cual. */
+#par-lado-nosotros > span{color:var(--text)}
+.par-marcador input{width:100%;min-width:0;text-align:center;min-height:var(--touch);
   font-family:var(--ff-display);font-size:16px;font-variant-numeric:tabular-nums}
-.par-marcador span{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg)}
+.par-guion{flex:0 0 auto;color:var(--muted);font-size:var(--t-lg);
+  line-height:var(--touch)}
 #par-marcador-nota{margin:var(--e1) 0 0}
 /* El día al que se apunta lo que estás guardando. Debajo de la casilla y
    sangrado como ella, para que se lea como parte de la misma frase. */
 .save-dia{margin:var(--e3) 0 0;max-width:240px}
 
-/* El resultado en la lista: la cifra a la derecha, teñida según cómo acabó. Se
-   distingue además por el propio número, no solo por el color. */
+/* El resultado en la lista: el marcador del campo y, al lado, cómo acabó en una
+   letra. El color solo acompaña: escrito en el orden del campo, «3–1» no dice
+   quién ganó, y quien no distinga el verde del rojo se quedaría sin saberlo. */
 .par-marca{flex:0 0 auto;font-family:var(--ff-display);font-size:var(--t-base);
   font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--text);
   padding:4px 8px;border-radius:var(--rp);border:1px solid var(--line);
   background:var(--glass-2)}
 .par-marca.flojo{color:var(--muted)}
+.par-res{flex:0 0 auto;margin-left:6px;font-family:var(--ff-display);
+  font-size:var(--t-cap);font-weight:700;letter-spacing:var(--ls-cap);
+  color:var(--muted)}
+.par-dia.es-victoria .par-res{color:#7BD88F}
+.par-dia.es-derrota .par-res{color:#FF8A7A}
 .par-dia.es-victoria .par-marca{color:#7BD88F;border-color:rgba(53,132,74,.5);
   background:rgba(53,132,74,.16)}
 .par-dia.es-derrota .par-marca{color:#FF8A7A;border-color:rgba(138,50,39,.5);
@@ -2301,6 +2331,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   <div id="par-diario">
     <div class="ses-cabeza">
       <p class="stats-resumen" id="par-resumen"></p>
+      <p class="block-note par-reparto" id="par-reparto" hidden></p>
       <button type="button" class="tbtn primary" id="par-nuevo">Apuntar un partido</button>
     </div>
     <div id="par-meses"></div>
@@ -2346,17 +2377,25 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       <label class="field"><span>Duración <small>minutos</small></span>
         <input type="text" id="par-duracion" inputmode="numeric" maxlength="3"
                autocomplete="off"></label>
+      <!-- Los dos huecos se colocan como el marcador del campo: el de casa a la
+           izquierda. Al cambiar «Dónde», se cambian de sitio de verdad —no solo
+           de aspecto—, para que el orden en que se tabula sea el que se ve. -->
       <div class="field"><span>Resultado</span>
-        <div class="par-marcador">
-          <input type="text" id="par-gf" inputmode="numeric" maxlength="2"
-                 aria-label="Goles a favor" autocomplete="off">
-          <span aria-hidden="true">–</span>
-          <input type="text" id="par-gc" inputmode="numeric" maxlength="2"
-                 aria-label="Goles en contra" autocomplete="off">
+        <div class="par-marcador" id="par-marcador">
+          <label class="par-lado" id="par-lado-nosotros">
+            <span id="par-eq-nosotros">Nosotros</span>
+            <input type="text" id="par-gf" inputmode="numeric" maxlength="2"
+                   autocomplete="off"></label>
+          <span class="par-guion" aria-hidden="true">–</span>
+          <label class="par-lado" id="par-lado-rival">
+            <span id="par-eq-rival">El rival</span>
+            <input type="text" id="par-gc" inputmode="numeric" maxlength="2"
+                   autocomplete="off"></label>
         </div>
       </div>
     </div>
     <p class="block-note" id="par-marcador-nota"></p>
+    <p class="block-note" id="par-cuadre" hidden></p>
 
     <p class="form-group">Quién jugó</p>
     <div class="squad-hoy">
@@ -2499,8 +2538,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     </button>
     <button type="button" class="cajon-ir" data-ir="ejercicios">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h7"/></svg>
-      <span>Ejercicios</span>
-      <small data-pista="ejercicios">La biblioteca y los tuyos</small>
+      <span>Biblioteca</span>
+      <small data-pista="ejercicios">La común y los que guardes tú</small>
     </button>
     <button type="button" class="cajon-ir" data-ir="pizarra">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 12h18M8.5 4.5v2.6h7V4.5M8.5 19.5v-2.6h7v2.6"/></svg>
@@ -2521,7 +2560,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     </button>
     <button type="button" class="cajon-ir" data-ir="datos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.6" height="6" rx="1"/><rect x="10.2" y="6" width="3.6" height="11" rx="1"/><rect x="14.9" y="13.5" width="3.6" height="3.5" rx="1"/></svg>
-      <span>Análisis</span>
+      <span>Datos</span>
       <small data-pista="datos">Minutos y qué falta por trabajar</small>
     </button>
 
@@ -3043,10 +3082,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       encima, o usa los botones de giro de la barra que sale al seleccionarla.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
-      <b style="color:var(--text)">Biblioteca:</b> el botón de la barra abre diez ejercicios ya montados
-      —con su pizarra y su ficha— más los que hayas guardado tú. Abre siempre en tu modalidad: para ver
-      fútbol 7 o sala, cámbiala en el desplegable. Se filtra además por momento del juego, duración o
-      buscando texto.
+      <b style="color:var(--text)">Biblioteca:</b> el botón de la barra abre <span id="help-cuantos">los
+      ejercicios</span> ya montados —con su pizarra y su ficha— más los que hayas guardado tú. Abre
+      siempre en tu modalidad: para ver fútbol 7 o sala, cámbiala en el desplegable. Se filtra además
+      por momento del juego, duración, sitio del que dispones o buscando texto.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Compartir:</b> desde el panel de Pizarra, «Compartir en la
@@ -3054,6 +3093,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       firmado con tu nombre. Hace falta una cuenta, que se crea en Ajustes con tu correo y una
       contraseña: no hay que confirmar nada ni esperar ningún correo. Lo que compartas lo puedes
       retirar o borrar cuando quieras, y sin cuenta la pizarra funciona igual.</p>
+    <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">Tu equipo:</b> el menú de arriba lleva a la otra mitad de la
+      aplicación. Ahí está tu plantilla, quién vino a cada entrenamiento, las sesiones —con un
+      generador que te propone una entera según lo que llevas trabajado—, los partidos con sus
+      minutos, goles y tarjetas, y los datos de todo ello. La sesión del día se imprime con el
+      dibujo de cada ejercicio, para llevártela al campo en papel.
+    </p>
     <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Ajustes:</b> ahí eliges tu modalidad predeterminada —con la que abren
       la biblioteca y cada pizarra nueva— y tu categoría o equipo, que se pone sola en cada ficha. Ahí está también tu cuenta.
@@ -5344,6 +5390,51 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
          : p.golesFavor < p.golesContra ? 'derrota' : 'empate';
   }
 
+  /* CÓMO SE ESCRIBE UN RESULTADO, Y DÓNDE SE DECIDE
+
+     Un marcador se escribe como lo escribe el marcador del campo y como lo
+     escribe el periódico: el de casa primero. Jugando fuera, «3-1» quiere decir
+     tres de ellos y uno tuyo, y no hay coach que lo lea de otra manera.
+
+     Por dentro, «golesFavor» son SIEMPRE los tuyos, juegues donde juegues: es
+     lo único con lo que se pueden sumar veinte partidos sin equivocarse. Esta
+     función es el único sitio donde una cosa se convierte en la otra. Que esté
+     sola es lo que impide que una pantalla lo escriba al revés que otra.
+
+     Ojo: en el orden del campo, el número de la izquierda ya no dice quién
+     ganó. Quien lo pinte tiene que enseñar además el resultado —y no solo con
+     un color—, y por eso va aquí dentro y no por libre. */
+  var LETRA = { victoria: 'G', empate: 'E', derrota: 'P' };
+
+  function marcador(p) {
+    var r = resultadoDe(p);
+    if (!r) return null;
+    var mios = p.golesFavor, suyos = p.golesContra;
+    return {
+      resultado: r,
+      letra: LETRA[r],
+      mios: mios,
+      suyos: suyos,
+      // Lo que se lee en el campo: el de casa a la izquierda.
+      izquierda: p.casa ? mios : suyos,
+      derecha: p.casa ? suyos : mios,
+      texto: (p.casa ? mios : suyos) + '–' + (p.casa ? suyos : mios)
+    };
+  }
+
+  /* El resultado dicho entero, para quien no ve la pantalla y para cuando dos
+     números sueltos no bastan. */
+  function marcadorHablado(p, rival) {
+    var m = marcador(p);
+    var quien = String(rival || '').trim() || 'el rival';
+    if (!m) return p.casa ? 'En casa contra ' + quien + ', sin resultado apuntado'
+                          : 'Fuera contra ' + quien + ', sin resultado apuntado';
+    var cabeza = m.resultado === 'victoria' ? 'Victoria'
+               : m.resultado === 'derrota' ? 'Derrota' : 'Empate';
+    return cabeza + ' ' + (p.casa ? 'en casa' : 'fuera') + ' contra ' + quien +
+           ': nosotros ' + m.mios + ', ellos ' + m.suyos + '.';
+  }
+
   /* Las estadísticas de partido, por jugador y del equipo. Solo cuentan los
      partidos que tienen convocatoria: uno apuntado a medias no debe hundir la
      media de minutos de nadie.
@@ -5353,17 +5444,27 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   function estadisticasPartidos(temp) {
     var lista = partidos(temp);
     var porJugador = {};
-    var equipo = { partidos: 0, jugados: 0, victorias: 0, empates: 0, derrotas: 0,
-                   golesFavor: 0, golesContra: 0, sinResultado: 0 };
+    function cuenta() {
+      return { partidos: 0, jugados: 0, victorias: 0, empates: 0, derrotas: 0,
+               golesFavor: 0, golesContra: 0, sinResultado: 0 };
+    }
+    /* Y lo mismo separando casa de fuera. No es un adorno: un equipo que gana
+       todo en casa y no puntúa fuera tiene un problema que la suma esconde, y
+       es de las primeras cosas que mira cualquiera que entrene. */
+    var equipo = cuenta(), casa = cuenta(), fuera = cuenta();
 
     lista.forEach(function (p) {
-      equipo.partidos++;
+      var donde = p.casa ? casa : fuera;
+      equipo.partidos++; donde.partidos++;
       var r = resultadoDe(p);
-      if (!r) equipo.sinResultado++;
+      if (!r) { equipo.sinResultado++; donde.sinResultado++; }
       else {
-        equipo[r === 'victoria' ? 'victorias' : r === 'derrota' ? 'derrotas' : 'empates']++;
+        var campo = r === 'victoria' ? 'victorias' : r === 'derrota' ? 'derrotas' : 'empates';
+        equipo[campo]++; donde[campo]++;
         equipo.golesFavor += p.golesFavor;
         equipo.golesContra += p.golesContra;
+        donde.golesFavor += p.golesFavor;
+        donde.golesContra += p.golesContra;
       }
       p.convocados.forEach(function (c) {
         var a = porJugador[c.id] || (porJugador[c.id] = {
@@ -5378,7 +5479,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         if (c.roja) a.rojas++;
       });
     });
-    equipo.jugados = equipo.victorias + equipo.empates + equipo.derrotas;
+    [equipo, casa, fuera].forEach(function (c) {
+      c.jugados = c.victorias + c.empates + c.derrotas;
+    });
 
     /* Se devuelven con nombre y dorsal puestos, y en el mismo orden que la
        plantilla: una tabla que se ordena sola por goles invita a mirar quién va
@@ -5401,7 +5504,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       fila.push(a);
     });
 
-    return { equipo: equipo, jugadores: fila, lista: lista };
+    return { equipo: equipo, casa: casa, fuera: fuera, jugadores: fila, lista: lista };
   }
 
   /* ---- de la manera vieja a la nueva, una sola vez -----------------------
@@ -6220,6 +6323,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     guardaPartido: guardaPartido,
     quitaPartido: quitaPartido,
     resultadoDe: resultadoDe,
+    marcador: marcador,
+    marcadorHablado: marcadorHablado,
     estadisticasPartidos: estadisticasPartidos,
     duracionSugerida: duracionSugerida,
 
@@ -20957,16 +21062,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   }
 
   /* --- formaciones --- */
+  /* Las formaciones están escritas sobre el campo entero. Si el encuadre es
+     otro, hay que llevarlas a él: en medio campo, el visitante se colocaba en
+     la mitad de enfrente —o sea, fuera de la pantalla—, y pulsar «Colocar
+     equipo visitante» no ponía a nadie a la vista. En el campo entero esto no
+     cambia ni un metro: el hueco es el campo entero. */
+  function huecoDeFormacion() {
+    var P = PITCH(), v = viewRect();
+    return {
+      x0: Math.max(0, v.x0), x1: Math.min(P.L, v.x1),
+      y0: Math.max(0, v.y0), y1: Math.min(P.W, v.y1)
+    };
+  }
+
   function applyFormation(name, team) {
     var set = formationSet(), pos = set.pos[name], nums = set.num[name] || [];
     if (!pos) return;
-    var P = PITCH(), f = frame();
+    var P = PITCH(), f = frame(), h = huecoDeFormacion();
+    var largo = h.x1 - h.x0, ancho = h.y1 - h.y0;
     f.objects = f.objects.filter(function (o) { return !(o.kind === 'player' && o.team === team); });
     pos.forEach(function (p, i) {
+      var cx = p[0] / P.L, cy = p[1] / P.W;           // de 0 a 1 sobre el campo
       f.objects.push({
         id: uid(), kind: 'player', team: team,
-        x: team === 'home' ? p[0] : P.L - p[0],
-        y: team === 'home' ? p[1] : P.W - p[1],
+        x: team === 'home' ? h.x0 + cx * largo : h.x1 - cx * largo,
+        y: team === 'home' ? h.y0 + cy * ancho : h.y1 - cy * ancho,
         num: nums[i] != null ? nums[i] : i + 1, rot: 0
       });
     });
@@ -21745,6 +21865,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       return e && e.id && PITCHES[e.pitch] && e.card && e.objects;
     });
     catalogoInfo = { fecha: datos.actualizado || '', ejercicios: CATALOGO.length, deCache: !!deCache };
+    // Aquí y no en quien llame: este es el único sitio donde cambia el catálogo.
+    pintaCuantosTraeLaBiblioteca();
     return true;
   }
 
@@ -22087,6 +22209,19 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       if (!p) pizarrasAlDia = false;      // al salir, para la próxima cuenta
       return p;
     });
+  }
+
+  /* Cuántos ejercicios trae la biblioteca lo cuenta la biblioteca. Estaba
+     escrito a mano —«diez ejercicios»— y llevaba tiempo diciendo diez con
+     sesenta y cuatro dentro. Un número escrito a mano en una ayuda envejece
+     solo; contado, no puede. */
+  function pintaCuantosTraeLaBiblioteca() {
+    var e = $('#help-cuantos');
+    if (!e) return;
+    var n = CATALOGO.length;
+    e.textContent = !n ? 'los ejercicios'
+                  : n === 1 ? 'un ejercicio'
+                  : 'los ' + n + ' ejercicios';
   }
 
   // Lo que dice la ayuda sobre la privacidad tiene que ser verdad en los dos
@@ -23999,10 +24134,21 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     } else {
       var t = [e.partidos + (e.partidos === 1 ? ' partido' : ' partidos')];
       if (e.jugados) {
+        t.push(golesEnCristiano(e));
         t.push(e.victorias + 'G · ' + e.empates + 'E · ' + e.derrotas + 'P');
-        t.push(e.golesFavor + '-' + e.golesContra);
       }
       $('#par-resumen').textContent = 'Temporada ' + temp + ': ' + t.join(' · ');
+    }
+    /* Casa y fuera por separado. Un equipo que gana todo en casa y no puntúa
+       fuera tiene un problema que la suma esconde, y es de lo primero que mira
+       cualquiera que entrene. Solo cuando hay de los dos: con tres partidos
+       jugados, todos en casa, esto no dice nada que no diga la línea de arriba. */
+    var reparto = $('#par-reparto');
+    var hayDeLosDos = st.casa.jugados > 0 && st.fuera.jugados > 0;
+    reparto.hidden = !hayDeLosDos;
+    if (hayDeLosDos) {
+      reparto.textContent = 'En casa ' + rachaCorta(st.casa) +
+                            ' · Fuera ' + rachaCorta(st.fuera) + '.';
     }
 
     var caja = $('#par-meses');
@@ -24025,6 +24171,17 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         'entrenamiento ni cuentan como asistencia.'
       : 'Apunta un partido y lleva la cuenta de minutos, goles, asistencias y ' +
         'tarjetas de cada uno. Se puede apuntar a mano, sin haberlo preparado aquí.';
+  }
+
+  /* Una suma de goles NO es un marcador, y escribirla igual —«24-15»— invita a
+     leerla como uno. Se dice con palabras, que además es como se cuenta. */
+  function golesEnCristiano(c) {
+    return c.golesFavor + (c.golesFavor === 1 ? ' gol a favor' : ' goles a favor') +
+           ' y ' + c.golesContra + ' en contra';
+  }
+
+  function rachaCorta(c) {
+    return c.victorias + 'G · ' + c.empates + 'E · ' + c.derrotas + 'P';
   }
 
   function filaPartido(p) {
@@ -24062,13 +24219,24 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     med.appendChild(sub);
     b.appendChild(med);
 
+    /* El marcador, en el orden del campo (ver «marcador» en equipo.js), y la
+       letra al lado: así en el orden del campo se sigue sabiendo quién ganó. */
+    var m = PTEquipo.marcador(p);
     var marc = document.createElement('span');
     marc.className = 'par-marca';
-    marc.textContent = res ? p.golesFavor + '–' + p.golesContra : '–';
-    if (!res) marc.classList.add('flojo');
+    marc.textContent = m ? m.texto : '–';
+    if (!m) marc.classList.add('flojo');
     b.appendChild(marc);
+    if (m) {
+      var letra = document.createElement('span');
+      letra.className = 'par-res';
+      letra.textContent = m.letra;
+      letra.setAttribute('aria-hidden', 'true');   // lo dice entero el botón
+      b.appendChild(letra);
+    }
 
-    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true));
+    b.setAttribute('aria-label', 'Abrir el partido del ' + diaLargo(p.fecha, true) +
+                   '. ' + PTEquipo.marcadorHablado(p, p.rival));
     b.addEventListener('click', function () { abrePartido(p.id); });
     li.appendChild(b);
     return li;
@@ -24126,7 +24294,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#par-detalle').hidden = false;
 
     var p = parBorrador;
-    $('#par-titulo').textContent = parId ? 'El partido' : 'Un partido nuevo';
+    // Al abrir uno guardado, el título dice cuál es. «El partido» no lo decía.
+    $('#par-titulo').textContent = !parId ? 'Un partido nuevo'
+      : p.rival ? (p.casa ? 'vs ' : 'en ') + p.rival
+      : (p.casa ? 'Partido en casa' : 'Partido fuera');
     $('#par-borrar').hidden = !parId;
 
     $('#par-fecha').value = p.fecha;
@@ -24139,13 +24310,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       b.setAttribute('aria-pressed', String((b.dataset.casa === '1') === !!p.casa));
     });
 
-    /* Que el marcador sea SIEMPRE el tuyo primero, juegues donde juegues, es la
-       clase de cosa que hay que decir una vez y no volver a dudar. */
-    $('#par-marcador-nota').textContent = p.casa
-      ? 'Los tuyos primero. Déjalo vacío si no quieres apuntar el resultado.'
-      : 'Los tuyos primero, aunque juguéis fuera. Déjalo vacío si no lo apuntas.';
-
+    ponElMarcadorEnOrden();
     pintaJugadoresDelPartido();
+  }
+
+  /* Los dos huecos del resultado, puestos como el marcador del campo: el de
+     casa a la izquierda. Se mueven los nodos de verdad, no con CSS, porque el
+     orden en que se tabula tiene que ser el que se ve.
+
+     Esto sustituye a una nota que decía «los tuyos primero, aunque juguéis
+     fuera». Estaba bien escrita y no servía: al llegar del campo con un 3-1 en
+     la cabeza, lo que se hace es teclear 3 y 1. */
+  function ponElMarcadorEnOrden() {
+    var p = parBorrador;
+    if (!p) return;
+    var caja = $('#par-marcador');
+    var nuestro = $('#par-lado-nosotros'), suyo = $('#par-lado-rival');
+    var guion = caja.querySelector('.par-guion');
+    // Los dos, siempre: moviendo solo uno, el otro se queda donde estaba y el
+    // guion acaba en una punta en vez de en medio.
+    caja.insertBefore(p.casa ? nuestro : suyo, guion);
+    caja.appendChild(p.casa ? suyo : nuestro);
+
+    var comoSeLlaman = String(p.rival || '').trim() || 'El rival';
+    $('#par-eq-rival').textContent = comoSeLlaman;
+    $('#par-gf').setAttribute('aria-label', 'Goles nuestros');
+    $('#par-gc').setAttribute('aria-label', 'Goles de ' + comoSeLlaman);
+
+    $('#par-marcador-nota').textContent = p.casa
+      ? 'Como en el marcador del campo. Déjalo vacío si no apuntas el resultado.'
+      : 'Como en el marcador del campo: jugando fuera van ellos primero.';
   }
 
   function pintaJugadoresDelPartido() {
@@ -24214,7 +24408,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         if (!cc) return;
         var n = parseInt(i.value.replace(/\D/g, ''), 10);
         cc[campo[0]] = isFinite(n) ? n : 0;
-        if (campo[0] === 'minutos') cuentaDelPartido();
+        // Los minutos cambian la cuenta de arriba; los goles, el cuadre. Las
+        // dos cosas las dice «cuentaDelPartido», y cuestan lo que un renglón.
+        cuentaDelPartido();
       });
       w.appendChild(t); w.appendChild(i);
       cifras.appendChild(w);
@@ -24278,6 +24474,31 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     var txt = jug + ' de ' + total + (jug === 1 ? ' jugó' : ' jugaron');
     if (banco) txt += ' · ' + banco + ' sin minutos';
     $('#par-cuenta').textContent = txt;
+    cuadraLosGoles();
+  }
+
+  /* Los goles de los jugadores contra el resultado. No es un error —hay goles
+     en propia puerta, y muchas veces se apunta el resultado y se deja para
+     luego quién marcó—, así que no impide guardar: solo lo dice, que es lo que
+     hace falta para no descubrirlo en junio con la temporada entera mal. */
+  function cuadraLosGoles() {
+    var aviso = $('#par-cuadre');
+    if (!aviso || !parBorrador) return;
+    var p = parBorrador;
+    var suma = p.convocados.reduce(function (n, c) { return n + (c.goles || 0); }, 0);
+    // Sin resultado apuntado, o sin un solo gol anotado a nadie, no hay nada
+    // que cuadrar: lo normal es rellenarlo en dos veces.
+    if (p.golesFavor == null || (!suma && !p.golesFavor)) { aviso.hidden = true; return; }
+    if (suma === p.golesFavor) { aviso.hidden = true; return; }
+    aviso.hidden = false;
+    aviso.textContent = suma > p.golesFavor
+      ? 'Ojo: los jugadores suman ' + suma + ' goles y el resultado dice ' +
+        p.golesFavor + '.'
+      : suma === 0
+        ? (p.golesFavor === 1 ? 'Falta apuntar quién marcó el gol.'
+                              : 'Falta apuntar quién marcó los ' + p.golesFavor + ' goles.')
+        : 'El resultado dice ' + p.golesFavor + ' y los jugadores suman ' + suma +
+          '. Si alguno fue en propia puerta, está bien así.';
   }
 
   function leeCamposDelPartido() {
@@ -24619,9 +24840,9 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     sesiones:   { modo: 'equipo', apartado: 'sesiones',  nombre: 'Sesiones' },
     plantilla:  { modo: 'equipo', apartado: 'plantilla', nombre: 'Plantilla' },
     partidos:   { modo: 'equipo', apartado: 'partidos',  nombre: 'Partidos' },
-    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Análisis' },
+    datos:      { modo: 'equipo', apartado: 'datos',     nombre: 'Datos' },
     pizarra:    { modo: 'pizarra',                       nombre: 'Pizarra' },
-    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Ejercicios' },
+    ejercicios: { abre: function () { openLibrary(null); },  nombre: 'Biblioteca' },
     cuenta:     { abre: function () { abreCuenta(false); } },
     ajustes:    { abre: function () { abreLosAjustes(); } },
     ayuda:      { abre: function () { $('#dlg-help').showModal(); } }
@@ -24870,8 +25091,7 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
         var e2 = par.equipo;
         dice(e2.partidos + (e2.partidos === 1 ? ' partido' : ' partidos') +
              ' esta temporada' +
-             (e2.jugados ? ' · ' + e2.victorias + 'G · ' + e2.empates + 'E · ' +
-                           e2.derrotas + 'P · ' + e2.golesFavor + '-' + e2.golesContra : '') + '.');
+             (e2.jugados ? ': ' + rachaCorta(e2) + ' · ' + golesEnCristiano(e2) : '') + '.');
         if (aMedias.length) {
           dice(aMedias.length === 1
             ? 'Uno se quedó a medias: le falta el resultado o quién jugó.'
@@ -26216,12 +26436,36 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     $('#par-volver').addEventListener('click', vaAPartidos);
     $('#par-guardar').addEventListener('click', guardaElPartido);
     $('#par-borrar').addEventListener('click', borraElPartido);
+    /* Cambiar «Dónde» se llevaba por delante todo lo escrito: repintaba la
+       pantalla entera desde el borrador, y en el borrador aún no estaba nada de
+       lo tecleado. Escribías el rival y el resultado, caías en que jugabais
+       fuera, tocabas «Fuera» y se quedaba todo en blanco. Ahora se recoge lo
+       escrito antes de tocar nada, y solo se mueve el marcador: repintar la
+       convocatoria entera por esto es tirar el foco de quien está dentro. */
     $$('#par-donde [data-casa]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (!parBorrador) return;
+        leeCamposDelPartido();
         parBorrador.casa = b.dataset.casa === '1';
-        pintaDetallePartido();
+        $$('#par-donde [data-casa]').forEach(function (o) {
+          o.setAttribute('aria-pressed', String((o.dataset.casa === '1') === !!parBorrador.casa));
+        });
+        ponElMarcadorEnOrden();
       });
+    });
+    /* Todo lo de arriba se recoge SEGÚN SE ESCRIBE. Antes solo se recogía al
+       guardar, y por eso cualquier repintado se llevaba por delante lo
+       tecleado. Con esto el borrador está siempre al día y ya no hay botón que
+       pueda borrar nada, ni los que se añadan mañana.
+
+       De paso, el nombre del rival aparece encima de su hueco del marcador
+       mientras se escribe, y el cuadre de los goles se dice al momento. */
+    $('.par-campos').addEventListener('input', function (ev) {
+      if (!parBorrador) return;
+      leeCamposDelPartido();
+      var id = ev.target && ev.target.id;
+      if (id === 'par-rival') ponElMarcadorEnOrden();
+      if (id === 'par-gf' || id === 'par-gc') cuadraLosGoles();
     });
     /* Cambiar la duración con gente ya marcada tiene que arrastrar a los que
        jugaron el partido entero: si no, pones «80» después de marcar a once y
