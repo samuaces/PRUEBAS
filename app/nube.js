@@ -553,14 +553,26 @@
         doc: doc,
         publicado: opciones.publicado !== false
       };
+      function crea() {
+        return pide('/rest/v1/ejercicios', {
+          method: 'POST', headers: { Prefer: 'return=representation' }, body: fila
+        }).then(function (f) { return f && f[0]; });
+      }
       if (opciones.id) {
         return pide('/rest/v1/ejercicios?id=eq.' + opciones.id, {
           method: 'PATCH', headers: { Prefer: 'return=representation' }, body: fila
-        }).then(function (f) { return f && f[0]; });
+        }).then(function (f) {
+          /* Sin filas no es un error: es que esa fila ya no está —la borraste
+             desde otro dispositivo— y lo que quiere quien guarda es que su
+             pizarra esté, no que se le diga que no. Se crea de nuevo.
+
+             Antes esto devolvía «undefined» tan tranquilo y la pizarra se
+             quedaba sin subir para siempre, porque el identificador viejo
+             seguía apuntando a una fila que ya no existía. */
+          return (f && f[0]) ? f[0] : crea();
+        });
       }
-      return pide('/rest/v1/ejercicios', {
-        method: 'POST', headers: { Prefer: 'return=representation' }, body: fila
-      }).then(function (f) { return f && f[0]; });
+      return crea();
     });
   }
 

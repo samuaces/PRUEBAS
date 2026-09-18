@@ -90,8 +90,11 @@ La biblioteca tiene **dos pestañas**: la general y las tuyas.
   las versiones de un solo archivo (`dist/` y el artifact) la llevan incrustada al construirse.
   El service worker la pide siempre a la red primero —es lo único que crece— y cae a la copia
   guardada si no hay.
-- **Mías.** Las pizarras que hayas guardado en este navegador, y —si has entrado con tu
-  correo— las que hayas subido, compartidas o no.
+- **Mías.** Las pizarras que hayas guardado. Sin cuenta se quedan en este navegador; con
+  cuenta **suben solas al guardarlas**, en privado, y las tienes en cualquier dispositivo
+  donde entres. Compartirlas con los demás sigue siendo un acto aparte: una cosa es
+  tenerla y otra enseñarla. Las que tuvieras guardadas de antes suben la primera vez que
+  entras, sin duplicar las que ya estuvieran allí.
 
 Con la biblioteca común configurada (ver abajo), la pestaña general enseña además **todo lo que
 van compartiendo los demás entrenadores**, firmado con su nombre y su club. Sin configurar, la

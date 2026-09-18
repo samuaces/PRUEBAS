@@ -35,6 +35,7 @@ var servidor = {
   exigeConfirmacion: false,
   reportes: [],
   borradas: [],
+  ultimoId: 1,              // solo sube, como un uuid: nunca se reutiliza
   cofre: { sal: 'c2FsZGVwcnVlYmE=', maestra: 'bWFlc3RyYQ==', bloque: 'Ym9scXVl',
            version: 7, actualizado: '2026-09-17T10:00:00Z' }
 };
@@ -130,15 +131,28 @@ window.fetch = function (url, opts) {
   if (ruta.indexOf('/rest/v1/ejercicios') === 0) {
     if (opts.method === 'POST') {
       var nuevo = JSON.parse(JSON.stringify(cuerpo));
-      nuevo.id = 'e-' + (servidor.ejercicios.length + 1);
+      /* Un contador que solo sube, como haría un uuid. Antes era
+         «e-» + (cuántos hay), y al borrar una fila la siguiente volvía a
+         nacer con el mismo identificador. Ninguna base de datos hace eso, y
+         aquí escondía un fallo de verdad: la prueba de «si la fila ya no
+         está, se vuelve a crear» no podía distinguir la nueva de la muerta. */
+      nuevo.id = 'e-' + (++servidor.ultimoId);
       nuevo.entrenadores = { nombre: servidor.perfil.nombre, club: servidor.perfil.club };
       servidor.ejercicios.push(nuevo);
       return da(201, [nuevo]);
     }
     if (opts.method === 'PATCH') {
       var id = /id=eq\.([^&]+)/.exec(ruta)[1];
-      servidor.ejercicios.forEach(function (e) { if (e.id === id) e.publicado = cuerpo.publicado; });
-      return da(200, servidor.ejercicios.filter(function (e) { return e.id === id; }));
+      /* Se aplica el cuerpo ENTERO, no solo «publicado». Guardar una pizarra
+         que ya está en tu cuenta manda el título, el dibujo y la ficha, y con
+         el servidor de antes esos cambios se perdían sin que nada fallara.
+         Y si no encaja ninguna fila vuelve una lista vacía, que es lo que
+         hace PostgREST y de lo que depende volver a crearla. */
+      var tocadas = servidor.ejercicios.filter(function (e) { return e.id === id; });
+      tocadas.forEach(function (e) {
+        Object.keys(cuerpo).forEach(function (k) { e[k] = cuerpo[k]; });
+      });
+      return da(200, tocadas);
     }
     if (opts.method === 'DELETE') {
       var q = /id=eq\.([^&]+)/.exec(ruta)[1];
@@ -251,6 +265,43 @@ function ultima(fragmento) {
   servidor.cofre = { sal: 'c2FsZGVwcnVlYmE=', maestra: 'bWFlc3RyYQ==', bloque: 'Ym9scXVl',
                      version: 7, actualizado: '2026-09-17T10:00:00Z' };
 
+  /* ---- subir la misma pizarra dos veces no la duplica ----------------------
+
+     Desde que guardar sube sola, cada vez que guardas se llama a «publica» con
+     el identificador de la fila que ya hay. Si eso creara una fila nueva, en
+     un mes tendrías la misma pizarra treinta veces en tu cuenta, y al
+     compartirla, treinta en la biblioteca común.
+
+     Y el caso que estaba mal y no se veía: si esa fila YA NO ESTÁ —la borraste
+     desde el otro dispositivo— el PATCH no encuentra nada y antes devolvía
+     «undefined» tan tranquilo, dejando la pizarra sin subir para siempre,
+     porque el identificador viejo seguía apuntando a una fila muerta. Ahora se
+     vuelve a crear. */
+  var antesDeSubir = servidor.ejercicios.length;
+  var f1 = await N.publica({ pitch: 'f11', view: 'full', card: { titulo: 'Mi rondo' } },
+                           { publicado: false });
+  ok('guardar sube una fila privada', !!f1 && f1.publicado === false, JSON.stringify(f1 && f1.publicado));
+  ok('y solo una', servidor.ejercicios.length === antesDeSubir + 1);
+
+  var f2 = await N.publica({ pitch: 'f11', view: 'full', card: { titulo: 'Mi rondo' } },
+                           { publicado: false, id: f1.id });
+  ok('volver a guardarla actualiza la misma fila, no crea otra',
+     servidor.ejercicios.length === antesDeSubir + 1 && f2.id === f1.id);
+
+  var f3 = await N.publica({ pitch: 'f11', view: 'full', card: { titulo: 'Mi rondo' } },
+                           { publicado: true, id: f1.id });
+  ok('compartirla es esa misma fila, ahora pública',
+     servidor.ejercicios.length === antesDeSubir + 1 && f3.id === f1.id && f3.publicado === true);
+
+  // Y si la fila ya no está, se crea de nuevo en vez de perderse.
+  var perdida = f1.id;
+  servidor.ejercicios = servidor.ejercicios.filter(function (e) { return e.id !== perdida; });
+  var f4 = await N.publica({ pitch: 'f11', view: 'full', card: { titulo: 'Mi rondo' } },
+                           { publicado: false, id: perdida });
+  ok('y si esa fila ya no existe, se vuelve a crear en vez de perderse',
+     !!f4 && f4.id !== perdida && servidor.ejercicios.length === antesDeSubir + 1,
+     f4 ? 'nueva fila ' + f4.id : 'no ha devuelto nada');
+
   // ---- la biblioteca común ----
   var lista = await N.lista({ pitch: 'f11' }, 0, 60);
   ok('trae los ejercicios compartidos', lista.length === 1 && lista[0].titulo === 'Rondo 5v2');
@@ -296,7 +347,7 @@ function ultima(fragmento) {
      envio.momento === 'Ataque organizado' && envio.categoria === 'Infantil');
   ok('guarda la ficha entera aparte', envio.ficha.material === '4 chinos');
   ok('lo sube ya compartido cuando se lo pides', envio.publicado === true);
-  ok('el servidor devuelve la fila creada', subido && subido.id === 'e-2');
+  ok('el servidor devuelve la fila creada', !!(subido && subido.id), subido && subido.id);
   ok('compartir sí va con tu sesión',
      ultima('/rest/v1/ejercicios').cabeceras.Authorization === 'Bearer t-1');
 
@@ -321,15 +372,21 @@ function ultima(fragmento) {
   ok('sin duración escrita, minutos va vacío', ultima('/rest/v1/ejercicios').cuerpo.minutos === null);
 
   // ---- los tuyos ----
-  servidor.ejercicios[1].autor = 'u-1';
+  /* Se coge la fila por su identificador, no por su sitio en la lista ni por
+     un «e-2» escrito a mano. Eso se rompió en cuanto otra prueba de más
+     arriba creó una fila: un identificador literal en una prueba es una
+     atadura que no comprueba nada y que se cae sola. */
+  var miaTuya = servidor.ejercicios[1];
+  miaTuya.autor = 'u-1';
   var mios = await N.mios();
   ok('«mías» pide solo las tuyas', /autor=eq\.u-1/.test(ultima('/rest/v1/ejercicios?').url));
   ok('y no filtra por publicado: también salen las que no compartes',
      !/publicado=eq\.true/.test(ultima('/rest/v1/ejercicios?').url));
 
-  await N.cambiaPublicado('e-2', false);
+  await N.cambiaPublicado(miaTuya.id, false);
   ok('retirar deja de compartirlo',
-     servidor.ejercicios.filter(function (e) { return e.id === 'e-2'; })[0].publicado === false);
+     servidor.ejercicios.filter(function (e) { return e.id === miaTuya.id; })[0].publicado === false,
+     miaTuya.id);
 
   // ---- reportar ----
   await N.reporta('e-1', 'no es un ejercicio');

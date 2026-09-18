@@ -2554,9 +2554,10 @@ function siembra(lista){
 
      La primera versión de esta regla miraba la frase entera «se queda en este
      dispositivo» y cazó tres líneas que hablan de las pizarras guardadas, no
-     de la plantilla. Y esas son verdad: las pizarras no van a la cuenta, solo
-     el equipo. Una regla que grita por lo que está bien se acaba apagando, así
-     que mira lo que de verdad protege: los nombres. */
+     de la plantilla. Eran verdad entonces —las pizarras todavía no iban a la
+     cuenta— y hoy dependen de si hay cuenta, igual que los nombres. En
+     cualquier caso, lo que esta regla protege es la promesa sobre los
+     NOMBRES: una regla que grita por lo demás se acaba apagando. */
   var resto = fuente.replace(trozo, '');
   var sueltas = resto.split('\n').filter(function(l){
     // Solo lo que se le ENSEÑA a alguien: una cadena, no un comentario.
