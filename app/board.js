@@ -4293,7 +4293,10 @@
     }
     var candidatos = bibliotecaItems().map(function (it) {
       return {
-        id: it.id, nombre: it.nombre, pitch: it.pitch, view: it.view || 'full',
+        /* El sitio que pide va MEDIDO, no por el encuadre con que se dibujó
+           (ver «cuantoSitio»). Es la misma regla que filtra la biblioteca, y
+           se mide aquí para no tener dos maneras de contestar lo mismo. */
+        id: it.id, nombre: it.nombre, pitch: it.pitch, sitio: cuantoSitio(it),
         card: it.card,
         ref: it.origen === 'mia' && it.fuente === 'local'
           ? { de: 'guardado', nombre: it.nombre }

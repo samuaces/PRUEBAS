@@ -1387,16 +1387,15 @@
 
   /* El espacio, por tamaños que se contienen: lo que cabe en un área cabe en
      medio campo, y lo que cabe en medio campo cabe en el campo entero. Al revés
-     no. «blank» es la pizarra sin campo: vale en cualquier sitio. */
+     no. */
   var ESPACIOS = [
     { id: 'area', nombre: 'Un área o un cuadrado', nivel: 1 },
     { id: 'half', nombre: 'Medio campo',           nivel: 2 },
     { id: 'full', nombre: 'El campo entero',       nivel: 3 }
   ];
   function nivelEspacio(id) {
-    if (id === 'blank') return 0;
     for (var i = 0; i < ESPACIOS.length; i++) if (ESPACIOS[i].id === id) return ESPACIOS[i].nivel;
-    return 3;
+    return 3;   // lo que no sé de qué tamaño es, lo trato como el campo entero
   }
 
   /* Los contextos. Son plantillas de microciclo: el orden de los momentos que
@@ -1473,15 +1472,19 @@
 
   /* ¿Le vale este ejercicio a quien tengo delante? */
   function encaja(it, op) {
-    var vista = it.view || 'full';
+    /* «sitio» es el terreno que ocupa el dibujo, medido en las piezas, no el
+       encuadre con que se guardó: un rondo dibujado sobre el campo entero
+       sigue siendo un rondo. Vacío quiere decir que no hay nada dibujado, y
+       eso cabe en cualquier sitio. */
+    var sitio = it.sitio || '';
     /* La modalidad solo manda cuando el ejercicio usa el campo de verdad. Un
        rondo en un cuadrado de 19 × 18 no sabe de cuántos juegas, y dejar fuera
        todos los calentamientos de un equipo de fútbol 7 porque están dibujados
        sobre un campo de once es perder la mitad del catálogo por una etiqueta.
        Una salida en 1-3-2, en cambio, sí es de fútbol 7 y de nada más. */
-    var deCualquiera = (vista === 'area' || vista === 'blank');
+    var deCualquiera = (sitio === '' || sitio === 'area');
     if (op.pitch && it.pitch !== op.pitch && !deCualquiera) return null;
-    if (nivelEspacio(vista) > nivelEspacio(op.espacio)) return null;
+    if (sitio && nivelEspacio(sitio) > nivelEspacio(op.espacio)) return null;
     var card = it.card || {};
     var pide = jugadoresDe(card.jugadores);
     if (pide !== null && op.jugadores && pide > op.jugadores) return null;
