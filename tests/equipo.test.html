@@ -1878,6 +1878,60 @@ function siembra(lista){
   d.getElementById('ses-gen-volver').click();
   await wait(250);
 
+  /* ---- la hoja para llevar al campo ----
+     Era una lista de títulos con los minutos al lado, y se abría en una pestaña
+     nueva. Esa pestaña la bloquean el iPhone y los navegadores que van dentro
+     de otra aplicación: o sea que el botón no hacía nada justo en el teléfono
+     con el que se va a entrenar. Ahora se imprime por el marco de folio, como
+     la ficha, y lleva de cada ejercicio su dibujo y sus consignas. */
+  var cuantosHoy = E.sesionDe(E.hoyISO()).ejercicios.length;
+  /* El nombre de la sesión lo escribes tú y acaba en el título de la hoja y en
+     su cabecera, así que la hoja se prueba con un nombre con HTML dentro. */
+  var nombreRaro = 'Sesión <img src=x onerror="ups()">';
+  E.guardaSesion(E.hoyISO(), { nombre: nombreRaro });
+  var emergentes = 0, abrirReal = w.open;
+  w.open = function(){ emergentes++; return null; };
+  d.getElementById('ses-imprimir').click();
+  await wait(2600);
+  w.open = abrirReal;
+  var hoja = [].filter.call(d.querySelectorAll('iframe'), function(m){
+    return m.getAttribute('title') === 'Hoja para imprimir' && !m.id; })[0];
+  var hd = hoja && hoja.contentDocument;
+  ok('imprimir la sesión no abre ninguna ventana emergente',
+     emergentes === 0, emergentes + ' intentos');
+  ok('la hoja de la sesión se prepara en un marco de folio',
+     !!hoja && /210mm/.test(hoja.style.width), hoja ? hoja.style.width : 'no se preparó');
+  ok('con un bloque por ejercicio',
+     !!hd && hd.querySelectorAll('.ej').length === cuantosHoy,
+     hd ? hd.querySelectorAll('.ej').length + ' de ' + cuantosHoy : '-');
+  ok('y con el dibujo de cada uno, no solo el título',
+     !!hd && hd.querySelectorAll('.ej img').length > 0,
+     hd ? hd.querySelectorAll('.ej img').length + ' dibujos' : '-');
+  ok('con las consignas, que es lo que se dice en voz alta en el campo',
+     !!hd && hd.querySelectorAll('.claves li').length > 0,
+     hd ? hd.querySelectorAll('.claves li').length + ' consignas' : '-');
+  var carga = hd && hd.querySelector('.carga span')
+    ? hd.querySelector('.carga span').textContent.split(' · ') : [];
+  ok('y el material de toda la sesión junto, para cargar el coche',
+     carga.length >= 3, carga.join(' · ') || 'no hay');
+  /* Y sin repetir la misma cosa tres veces con tres cuentas distintas, que es
+     como sale de las fichas: «4 conos», «6 conos», «8 conos». La regla se
+     vuelve a escribir aquí a mano, que es lo que tiene que hacer una prueba. */
+  var cosas = carga.map(function(t){
+    return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+            .replace(/^\d+\s*/,'').trim().split(/\s+/)
+            .map(function(p){ return p.replace(/(es|s)$/,''); }).join(' ');
+  });
+  ok('sin la misma cosa dos veces: es una lista para cargar el coche',
+     cosas.length === new Set(cosas).size, carga.join(' · '));
+  ok('y el nombre que escribes va escapado, no entra como HTML',
+     !!hd && hd.querySelector('h1').textContent === nombreRaro &&
+     !hd.querySelector('.hoja img[src="x"]'),
+     hd ? hd.querySelector('h1').textContent : '-');
+  if (hoja && hoja.parentNode) hoja.parentNode.removeChild(hoja);
+  if (d.getElementById('dlg-hoja').open) d.getElementById('dlg-hoja').close();
+  await wait(200);
+
   // =====================================================================
   console.log('18 · los casos raros, que es donde se rompen las cosas');
 

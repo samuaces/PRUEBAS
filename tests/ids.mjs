@@ -128,14 +128,14 @@ boardJs.split('\n').forEach((linea, i) => {
   }
 });
 
-/* Y el título de la hoja de sesión, que es el caso que se escapó de verdad: se
+/* Y el título de la hoja de la jugada, que es el caso que se escapó de verdad: se
    rellena con «card().titulo» a través de un cuadro de texto, así que el rastro
    se pierde y la regla de arriba no lo ve. Aquí se mira su función entera. */
 const hoja = boardJs.slice(boardJs.indexOf('function printSheet'),
                            boardJs.indexOf('function printSheet') + 4000);
 const titulos = hoja.match(/\+\s*\(?\s*(?:esc\()?\s*title\b/g) || [];
 titulos.forEach((t) => { if (!/esc\(/.test(t)) sospechosas.push('printSheet: «' + t.trim() + '» sin esc()'); });
-if (!titulos.length) falla('la regla encuentra el título de la hoja de sesión');
+if (!titulos.length) falla('la regla encuentra el título de la hoja de la jugada');
 
 if (sospechosas.length) {
   falla('nada de la ficha entra en HTML sin escapar');

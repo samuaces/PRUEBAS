@@ -141,12 +141,22 @@ jugadores (`11 vs 11`), los porteros, el material (`4 conos, 2 porterías peque�
 espacio, sin pisar nada de lo que ya hayas escrito. La ficha viaja dentro del documento: se
 guarda, se exporta en JSON y entra en deshacer y rehacer.
 
-**Hoja de sesión.** Saca todos los fotogramas de la jugada en una página imprimible, con
-título, modalidad, fecha y un recuadro para anotaciones.
+**Hoja de la jugada.** Saca todos los fotogramas de la jugada en una página imprimible, con
+título, modalidad, fecha y un recuadro para anotaciones. Se llamaba «hoja de sesión» de
+cuando la aplicación era solo la pizarra; ahora Sesiones tiene la suya y dos cosas distintas
+no pueden llamarse igual.
+
+**La sesión, para llevarla al campo.** «Imprimir la sesión» saca la sesión del día en A4:
+cada ejercicio con su dibujo, para qué es y sus tres primeras consignas —que es lo que se
+dice en voz alta mientras el balón rueda—, y arriba, el material de toda la sesión junto,
+sin repetir y con la cantidad mayor de cada cosa, que no es la suma: los ejercicios van uno
+detrás de otro y los conos se recogen y se vuelven a poner. Se compone en el mismo marco de
+tamaño folio que la ficha, así que también sale en el iPhone; antes se abría en una pestaña
+nueva y allí el botón no hacía nada.
 
 **Exportar.** Un solo botón abre una hoja con todo lo que se puede sacar: imagen PNG del
-fotograma, ficha del ejercicio, hoja de sesión imprimible, vídeo de la jugada, GIF animado y
-el archivo de la pizarra. Nada sale del dispositivo.
+fotograma, ficha del ejercicio, hoja de la jugada imprimible, vídeo de la jugada, GIF animado
+y el archivo de la pizarra. Nada sale del dispositivo.
 
 **Vídeo.** Siempre sale **MP4**, sin marca de agua y sin pasar por ningún servidor. Hay dos
 caminos: si el navegador sabe grabar MP4 (Safari, Chrome reciente) se usa `MediaRecorder`;
@@ -178,7 +188,15 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 │   ├── index.html                 Interfaz de la pizarra
 │   ├── board.css                  Tema e interfaz
 │   ├── board.js                   Motor: campo, objetos, trazos, animación, E/S
-│   ├── nube.js                    Cliente de Supabase para la biblioteca común
+│   ├── equipo.js                  Plantilla, asistencia, sesiones, partidos y el generador
+│   ├── graficos.js                Las gráficas de Datos, dibujadas a mano y sin dependencias
+│   ├── nube.js                    Cliente de Supabase: cuenta, biblioteca común y cofre
+│   ├── cofre.js                   Cifrado de extremo a extremo con la contraseña de la cuenta
+│   ├── fusion.js                  Fusión por registro de lo que llega de otro dispositivo
+│   ├── sincro.js                  El ciclo de sincronización: cuándo mirar y cuándo guardar
+│   ├── enlace.js                  Compartir una jugada dentro del enlace, sin servidor
+│   ├── codecs.js                  MP4 (ISO BMFF) y GIF, escritos aquí
+│   ├── sw.js                      Service worker: la aplicación entera sin conexión
 │   └── config.js                  Las dos claves de Supabase (en blanco = sin nube)
 ├── 404.html                       Página de error
 ├── robots.txt · sitemap.xml · llms.txt · site.webmanifest · .nojekyll
@@ -189,10 +207,11 @@ pizarra completa en JSON. Ajuste opcional a una rejilla de 0,5 m.
 │   └── js/site.js                 JS de la portada (tema, menú, aparición progresiva)
 ├── dist/pizarra-tactica.html      La pizarra entera en un archivo (node tools/build-single.mjs)
 ├── supabase/                      schema.sql y cómo montar la biblioteca común
-├── tools/                         build-single.mjs (archivo único) y build-icons.mjs (marca e iconos)
+├── tools/                         build-single.mjs (archivo único), build-icons.mjs (marca e
+│                                  iconos) y publicar.mjs (el sitio en gh-pages)
 ├── docs/TRAFICO-Y-SEO.md          Qué está hecho y qué falta para tener visitas
 ├── docs/PENDIENTE.md              Lo decidido y aún no construido, con su porqué
-├── tests/                         Batería de pruebas de la pizarra en el navegador
+├── tests/                         Las baterías: tres en el navegador y cuatro en Node
 └── .github/workflows/deploy-pages.yml
 ```
 

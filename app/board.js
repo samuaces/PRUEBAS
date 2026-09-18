@@ -2138,7 +2138,12 @@
   // sus filetes y su cabecera; márgenes iguales por los cuatro lados; y el
   // cuadro de observaciones creciendo hasta el pie para que la página quede
   // llena en vez de dejar medio folio en blanco.
-  var CARD_CSS = [
+  /* Lo que comparten las dos hojas impresas —la ficha de un ejercicio y la de
+     la sesión entera—: el folio, los colores, la letra, la cabecera y el
+     cuadro rayado de observaciones. Vivía solo dentro de la ficha; el día que
+     la hoja de la sesión dejó de ser cuatro renglones de texto, copiarlo aquí
+     habría dejado dos paletas destinadas a separarse a la primera. */
+  var HOJA_CSS = [
     '@page{size:A4;margin:14mm}',
     '*{box-sizing:border-box}',
     ':root{--ink:#111821;--soft:#5C6879;--line:#D3DAE4;--hair:#E7ECF2;--wash:#F5F8FA;--acc:#B3082B}',
@@ -2148,8 +2153,6 @@
     /* en pantalla no hay @page: se simulan los mismos márgenes para ver la hoja tal cual */
     '@media screen{body{padding:14mm;background:#fff}}',
 
-    /* la página como columna: lo que sobra se lo queda el cuadro de notas */
-    '.page{min-height:266mm;display:flex;flex-direction:column;gap:10px}',
     '.spine{flex:none;height:4px;border-radius:3px;',
       'background:linear-gradient(90deg,var(--acc),#E11A41 55%,#F6AABA)}',
 
@@ -2164,6 +2167,19 @@
     '.chip small{display:block;margin-bottom:1px;font-size:7px;font-weight:700;',
       'letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}',
     '.chip b{display:block;font-size:11px;font-weight:600;line-height:1.3}',
+
+    /* observaciones: va rayado para escribir a mano en el campo */
+    '.ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 22px,',
+      'var(--hair) 22px,var(--hair) 23px)}',
+
+    'footer{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;',
+      'padding-top:9px;border-top:1px solid var(--hair);',
+      'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#96A2B2}'
+  ].join('');
+
+  var CARD_CSS = HOJA_CSS + [
+    /* la página como columna: lo que sobra se lo queda el cuadro de notas */
+    '.page{min-height:266mm;display:flex;flex-direction:column;gap:10px}',
 
     /* fila superior: esquema grande + datos y objetivo */
     '.top{flex:none;display:grid;grid-template-columns:1.5fr 1fr;gap:10px;align-items:stretch}',
@@ -2242,14 +2258,9 @@
     '.seq figcaption{padding:5px 9px;border-top:1px solid var(--hair);background:var(--wash);',
       'font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}',
 
-    /* observaciones: se estira hasta el pie y va rayado para escribir a mano */
-    '.grow{flex:1 1 auto;min-height:17mm}',
-    '.ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 22px,',
-      'var(--hair) 22px,var(--hair) 23px)}',
-
-    'footer{flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;',
-      'padding-top:9px;border-top:1px solid var(--hair);',
-      'font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#96A2B2}'
+    /* observaciones: aquí se estira hasta el pie, para no dejar medio folio en
+       blanco. El rayado es de los dos (ver «HOJA_CSS»). */
+    '.grow{flex:1 1 auto;min-height:17mm}'
   ].join('');
 
   function printCard() {
@@ -3168,15 +3179,24 @@
     if (i >= 0) libMiniOrden.splice(i, 1);
   }
 
-  function miniatura(it) {
-    if (it.id in libMini) return libMini[it.id];
-    var d = itemDoc(it);
+  /* Dibujar un documento que no es el que está en la pizarra. El motor dibuja
+     siempre «doc», el de delante, así que hay que prestárselo: se cambia, se
+     dibuja y se devuelve donde estaba. Lo usan las miniaturas de la biblioteca
+     y la hoja de la sesión, que también enseña dibujos que no están abiertos. */
+  function dibujaOtro(d, ancho) {
+    if (!d) return '';
     var guardaDoc = doc, guardaFrame = ui.frame, guardaAnim = anim;
     doc = d; ui.frame = 0; anim = null;
     var url = '';
-    try { url = renderFrame(0, 320).toDataURL('image/png'); }
+    try { url = renderFrame(0, ancho).toDataURL('image/png'); }
     catch (e) {}
     doc = guardaDoc; ui.frame = guardaFrame; anim = guardaAnim;
+    return url;
+  }
+
+  function miniatura(it) {
+    if (it.id in libMini) return libMini[it.id];
+    var url = dibujaOtro(itemDoc(it), 320);
     if (url) recuerdaMini(it.id, url);      // un dibujo fallido no se recuerda: se reintenta
     return url;
   }
@@ -4480,53 +4500,199 @@
     tit.focus();
   }
 
-  /* La hoja de la sesión para imprimir o guardar en PDF. No es una pantalla
-     nueva: es una ventana con el texto y un poco de CSS, que es lo que hace
-     falta para llevarla al campo en papel. Se abre sin nombres si no los hay. */
+  /* -------------------------------------------------------------------------
+     LA HOJA DE LA SESIÓN
+
+     Lo que se lleva al campo. Antes era una lista de títulos con los minutos al
+     lado, y con eso en la mano no se entrena: hay que acordarse de todo. Ahora
+     lleva de cada ejercicio su dibujo, para qué es y las consignas, que es lo
+     que se dice en voz alta mientras el balón rueda.
+
+     Y arriba, el material de toda la sesión junto: lo que hay que meter en el
+     coche antes de salir de casa. Está escrito ejercicio por ejercicio en las
+     fichas, y nadie lo va a ir juntando a mano.
+
+     Se imprime por el mismo camino que la ficha —un marco oculto de tamaño
+     folio— y no abriendo una pestaña, que es lo que hacía. Esa pestaña la
+     bloquean el iPhone y los navegadores que van dentro de otra aplicación, o
+     sea justo el teléfono con el que se va a entrenar: allí el botón no hacía
+     absolutamente nada.
+     ---------------------------------------------------------------------- */
+
+  var SESION_CSS = HOJA_CSS + [
+    /* Aquí la página SÍ se parte en varias: una sesión de seis ejercicios con
+       sus dibujos no cabe en un folio y no tiene por qué. Por eso esto va en
+       bloque y con márgenes, y no en columna flexible como la ficha: dentro de
+       un contenedor flexible los navegadores se saltan «break-inside», y los
+       ejercicios se partían por la mitad al cambiar de hoja. */
+    '.hoja{display:block}',
+    '.hoja > *{margin-bottom:11px}',
+    '.hoja > footer{margin-bottom:0}',
+
+    /* el material de toda la sesión, junto y arriba */
+    '.carga{flex:none;display:flex;gap:9px;align-items:baseline;padding:8px 13px;',
+      'border:1px solid var(--line);border-radius:9px;background:var(--wash)}',
+    '.carga b{flex:none;font-size:7.5px;font-weight:700;letter-spacing:.14em;',
+      'text-transform:uppercase;color:var(--soft)}',
+    '.carga span{font-size:11px;font-weight:600;line-height:1.4}',
+
+    /* los ejercicios, uno por bloque y sin partirse entre dos folios */
+    '.ejs{margin:0;padding:0;list-style:none}',
+    '.ej{display:grid;grid-template-columns:8mm 46mm minmax(0,1fr);gap:11px;align-items:start;',
+      'margin-bottom:9px;padding:10px 13px;border:1px solid var(--line);border-radius:9px;',
+      'break-inside:avoid;page-break-inside:avoid}',
+    /* un ejercicio apuntado a mano no tiene dibujo: el texto ocupa su sitio */
+    '.ej.sindibujo{grid-template-columns:8mm minmax(0,1fr)}',
+    '.num{font-size:17px;font-weight:700;line-height:1.1;color:var(--acc);font-variant-numeric:tabular-nums}',
+    '.ej figure{margin:0;overflow:hidden;border:1px solid var(--hair);border-radius:6px;background:#fff}',
+    '.ej figure img{display:block;width:100%}',
+    '.ej h2{margin:0 0 3px;font-size:13px;line-height:1.25;font-weight:700}',
+    '.meta{margin:0 0 6px;font-size:8px;font-weight:700;letter-spacing:.1em;',
+      'text-transform:uppercase;color:var(--soft)}',
+    '.obj{margin:0 0 6px;hyphens:auto}',
+    '.claves{margin:0;padding:0;list-style:none}',
+    '.claves li{position:relative;padding-left:11px;margin-bottom:2px;font-size:10.5px;line-height:1.4}',
+    '.claves li:last-child{margin-bottom:0}',
+    '.claves li::before{content:"";position:absolute;left:0;top:6px;width:4px;height:4px;',
+      'border-radius:50%;background:var(--acc)}',
+
+    '.notas{border:1px solid var(--line);border-radius:9px;overflow:hidden;',
+      'break-inside:avoid;page-break-inside:avoid}',
+    '.notas h2{margin:0;padding:7px 13px;background:var(--wash);border-bottom:1px solid var(--hair);',
+      'font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}',
+    '.notas div{height:30mm;margin:0 13px}'
+  ].join('');
+
+  /* El dibujo y la ficha de un ejercicio de la sesión, si todavía existen. Es
+     el mismo camino que abrirlo (ver «abreRefDeSesion»): lo guardado por su
+     nombre, lo de la biblioteca por su identificador. Puede no haber nada —lo
+     apuntaste a mano, o lo borraste— y eso no es un fallo: la hoja lo imprime
+     igual, con lo que tenga. */
+  function loDeLaSesion(ref) {
+    if (!ref) return null;
+    if (ref.de === 'guardado') {
+      var g = savedBoards()[ref.nombre];
+      return g && g.doc ? { doc: g.doc, card: g.doc.card || null } : null;
+    }
+    var it = bibliotecaItems().filter(function (x) { return x.id === ref.id; })[0];
+    return it ? { doc: itemDoc(it), card: it.card || null } : null;
+  }
+
+  /* Todo el material de la sesión en una lista sin repetir. Las fichas lo
+     escriben en cristiano y cada una a su manera —«8 conos, 2 miniporterías» o
+     «Balones junto a la esquina»—, así que se parte por comas y se juntan las
+     entradas que hablan de la misma cosa, sin mirar acentos, mayúsculas ni
+     singulares: «1 balón» y «6 balones» son balones.
+
+     De cada cosa se queda la cantidad MAYOR, y no la suma. Los ejercicios van
+     uno detrás de otro y los conos se recogen y se vuelven a poner: sumando,
+     la hoja pedía dieciocho conos para una sesión que se hace con ocho. */
+  var NUMEROS = { un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+                  seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
+  // Dónde deja de nombrarse la cosa y empieza dónde está o para qué es:
+  // «balones junto al córner» son balones, y «1 balón por grupo» es un balón.
+  var DEJA_DE_SER = /\s+(?:por|en|de|del|junto|para|al|a|o|con|entre)\b/;
+
+  function piezaDeMaterial(trozo) {
+    var t = String(trozo).trim();
+    if (!t) return null;
+    var n = 0, m = /^(\d+)\s+/.exec(t);
+    if (m) { n = Number(m[1]); t = t.slice(m[0].length); }
+    else {
+      var p = /^(\S+)\s+/.exec(t);
+      var letras = p && NUMEROS[sinAcentos(p[1])];
+      if (letras) { n = letras; t = t.slice(p[0].length); }
+    }
+    var corta = DEJA_DE_SER.exec(t);
+    if (corta) t = t.slice(0, corta.index);
+    t = t.trim().toLowerCase();
+    if (!t) return null;
+    var clave = sinAcentos(t).split(/\s+/)
+      .map(function (w) { return w.replace(/(es|s)$/, ''); }).join(' ');
+    /* Un plural sin número —«balones»— pesa más que un «1 balón»: quiere decir
+       varios, aunque no diga cuántos. Sin esto, una sesión con «1 balón por
+       grupo» y «balones» pedía un balón para todos. */
+    return { clave: clave, texto: t, n: n, peso: n || (/s$/.test(t) ? 2 : 0) };
+  }
+
+  function materialDeLaSesion(fichas) {
+    var porCosa = {}, orden = [];
+    fichas.forEach(function (c) {
+      String((c && c.material) || '').split(/[,\n]|\s+y\s+/).forEach(function (trozo) {
+        var p = piezaDeMaterial(trozo);
+        if (!p) return;
+        if (!(p.clave in porCosa)) { porCosa[p.clave] = p; orden.push(p.clave); return; }
+        if (p.peso > porCosa[p.clave].peso) porCosa[p.clave] = p;
+      });
+    });
+    return orden.map(function (k) {
+      var p = porCosa[k];
+      return p.n ? p.n + ' ' + p.texto : p.texto;
+    });
+  }
+
   function imprimeSesion() {
     var s = PTEquipo.sesionDe(sesFecha);
     if (!s.ejercicios.length) { toast('Esta sesión no tiene ejercicios'); return; }
-    var v = window.open('', '_blank');
-    if (!v) { toast('El navegador ha bloqueado la ventana de impresión'); return; }
 
-    var d = v.document;
-    d.title = 'Sesión · ' + diaLargo(s.fecha, true);
-    var est = d.createElement('style');
-    est.textContent =
-      'body{font:13px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;' +
-      'margin:28px;max-width:720px}' +
-      'h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:0 0 18px;font-weight:400;color:#555}' +
-      'ol{padding-left:20px;margin:0}li{margin:0 0 12px;break-inside:avoid}' +
-      'li b{display:block;font-size:14px}li small{color:#555;font-size:12px}' +
-      '.tot{margin:20px 0 0;padding-top:10px;border-top:1px solid #ccc;color:#555;font-size:12px}' +
-      '@media print{body{margin:0}}';
-    d.head.appendChild(est);
+    var fecha = diaLargo(s.fecha, true);
+    var fichas = [];
+    var bloques = s.ejercicios.map(function (e, i) {
+      var suyo = loDeLaSesion(e.ref);
+      var c = (suyo && suyo.card) || {};
+      if (suyo && suyo.card) fichas.push(suyo.card);
+      var img = suyo ? dibujaOtro(suyo.doc, 760) : '';
 
-    function mete(padre, etiqueta, texto, clase) {
-      var el = d.createElement(etiqueta);
-      el.textContent = texto;
-      if (clase) el.className = clase;
-      padre.appendChild(el);
-      return el;
-    }
-    mete(d.body, 'h1', s.nombre || 'Sesión de entrenamiento');
-    mete(d.body, 'h2', diaLargo(s.fecha, true) +
-         (s.hayAsistencia ? ' · ' + s.presentes.length +
-            (s.presentes.length === 1 ? ' jugador' : ' jugadores') : ''));
-    var ol = d.createElement('ol');
-    s.ejercicios.forEach(function (e) {
-      var li = d.createElement('li');
-      mete(li, 'b', e.titulo);
-      var t = [e.momento, e.duracion].filter(Boolean).join(' · ');
-      if (t) mete(li, 'small', t);
-      ol.appendChild(li);
-    });
-    d.body.appendChild(ol);
-    var tot = [s.ejercicios.length + (s.ejercicios.length === 1 ? ' ejercicio' : ' ejercicios')];
-    if (s.minutos) tot.push(s.minutos + ' min');
-    mete(d.body, 'p', tot.join(' · '), 'tot');
-    v.focus();
-    setTimeout(function () { v.print(); }, 120);
+      /* Lo de la cabecera de cada ejercicio sale de la sesión, que es lo que
+         de verdad se apuntó, y lo que no esté apuntado se completa con la
+         ficha: el momento y la duración se pueden haber cambiado al montar la
+         sesión, y manda lo que se cambió. */
+      /* Del espacio, solo la medida. La ficha lo explica a continuación —«25 ×
+         24 m · un cuadrado, cabe en cualquier rincón»— y eso está muy bien en
+         la ficha, pero en un renglón que se lee de un vistazo estorba. */
+      var sitio = String(c.espacio || '').split('·')[0].trim();
+      var meta = [e.momento || c.momento, e.duracion || c.duracion,
+                  c.jugadores, sitio].filter(Boolean).join(' · ');
+      /* Tres consignas, no las siete. Esto se lee de pie y con el pito en la
+         boca; la ficha entera está a un toque en la aplicación. */
+      var claves = lines(c.consignas).slice(0, 3);
+
+      return '<li class="ej' + (img ? '' : ' sindibujo') + '">' +
+        '<div class="num">' + (i + 1) + '</div>' +
+        (img ? '<figure><img src="' + img + '" alt="Esquema de ' + esc(e.titulo) + '"></figure>' : '') +
+        '<div><h2>' + esc(e.titulo) + '</h2>' +
+        (meta ? '<p class="meta">' + esc(meta) + '</p>' : '') +
+        (c.objetivo ? '<p class="obj">' + esc(c.objetivo) + '</p>' : '') +
+        (claves.length ? '<ul class="claves">' +
+          claves.map(function (k) { return '<li>' + esc(k) + '</li>'; }).join('') + '</ul>' : '') +
+        '</div></li>';
+    }).join('');
+
+    var chips = [
+      ['Duración', s.minutos ? s.minutos + ' min' : ''],
+      ['Ejercicios', String(s.ejercicios.length)],
+      ['Jugadores', s.hayAsistencia ? String(s.presentes.length) : '']
+    ].filter(function (r) { return r[1]; })
+     .map(function (r) {
+       return '<span class="chip"><small>' + esc(r[0]) + '</small><b>' + esc(r[1]) + '</b></span>';
+     }).join('');
+
+    var carga = materialDeLaSesion(fichas);
+
+    imprime(
+      '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
+      '<title>' + esc(s.nombre || 'Sesión de entrenamiento') + '</title>' +
+      '<style>' + SESION_CSS + '</style></head><body><div class="hoja">' +
+      '<div class="spine"></div>' +
+      '<header><div><span class="eyebrow">Sesión de entrenamiento · ' + esc(fecha) + '</span>' +
+      '<h1>' + esc(s.nombre || 'Sesión de entrenamiento') + '</h1></div>' +
+      (chips ? '<div class="chips">' + chips + '</div>' : '') + '</header>' +
+      (carga.length ? '<div class="carga"><b>Material</b><span>' +
+        esc(carga.join(' · ')) + '</span></div>' : '') +
+      '<ol class="ejs">' + bloques + '</ol>' +
+      '<section class="notas"><h2>Observaciones</h2><div class="ruled"></div></section>' +
+      '<footer><span>Klym</span><span>' + esc(fecha) + '</span></footer>' +
+      '</div></body></html>');
   }
 
   /* =========================================================================
@@ -5666,7 +5832,11 @@
       }).join('');
   }
 
-  /* ---- Hoja de sesión: todos los fotogramas en una página para llevar al campo ----
+  /* ---- Hoja de la jugada: todos sus fotogramas en una página ----
+     Se llamaba «hoja de sesión» de cuando la aplicación era solo la pizarra.
+     Ahora Sesiones tiene su propia hoja —la sesión entera, con un dibujo por
+     ejercicio— y dos cosas distintas no pueden llamarse igual en la misma
+     pantalla.
      El título se escapa como todo lo demás. Era el ÚNICO sitio de la aplicación
      donde se armaba HTML sin pasar por esc(), y no era inocente: el cuadro de
      texto viene relleno con el título de la ficha, y una ficha puede llegar de
@@ -5675,8 +5845,8 @@
      de la hoja impresa; en el archivo único, que no lleva CSP, era ejecución de
      código. Lo encontró una revisión de seguridad, no yo. */
   function printSheet() {
-    ask({ title: 'Hoja de sesión', input: card().titulo || 'Sesión del martes',
-          placeholder: 'Título de la sesión', ok: 'Preparar' })
+    ask({ title: 'Hoja de la jugada', input: card().titulo || 'La jugada del martes',
+          placeholder: 'Título de la hoja', ok: 'Preparar' })
       .then(function (title) {
         if (title === null) return;
         var P = PITCH();
@@ -5687,7 +5857,7 @@
 
         imprime(
           '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">' +
-          '<title>' + esc(title || 'Hoja de sesión') + '</title><style>' +
+          '<title>' + esc(title || 'Hoja de la jugada') + '</title><style>' +
           '@page{margin:14mm}' +
           'body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#111}' +
           'header{display:flex;justify-content:space-between;align-items:baseline;' +
