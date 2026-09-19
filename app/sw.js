@@ -15,7 +15,7 @@
    Casi se me pasa en la v14: el sitio ya estaba publicado con la v13 y el
    arreglo de la cabecera de la hoja no habría llegado a nadie que ya la
    hubiera abierto. */
-var CACHE = 'pizarra-tactica-v27';   // v27: todo lo que se toca mide lo que un dedo
+var CACHE = 'pizarra-tactica-v28';   // v28: a dónde mira el jugador, y la punta de flecha
 
 var SHELL = [
   './',

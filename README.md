@@ -24,7 +24,10 @@ Nada de la interfaz hace scroll, y la aplicación se instala en la pantalla de i
 (en iPhone, desde Compartir → Añadir a pantalla de inicio) y funciona sin conexión.
 
 **Fichas.** Jugador local, visitante y comodín, con dorsal y nombre editables, más el
-balón. Las fichas son símbolos, así que su tamaño se ajusta a la modalidad. Alineaciones
+balón. Las fichas son símbolos, así que su tamaño se ajusta a la modalidad. Un jugador
+puede decir **a dónde mira**: se le lleva el tirador de giro hacia donde esté el cuerpo y
+le queda una visera por ese lado, con el dorsal derecho. Sin tocar nada no lleva visera,
+que es lo que necesita la mayoría de las fichas de un dibujo. Alineaciones
 predefinidas para ambos equipos: 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 y 4-1-4-1 en fútbol
 11; 1-3-2-1, 1-2-3-1, 1-3-1-2 y 1-1-3-2 en fútbol 7; rombo, cuadrado, 1-3-0 y 3-1 en sala.
 

@@ -40,6 +40,12 @@ function px(cv,x,y){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.w
   return c.getImageData(Math.round(x*dpr),Math.round(y*dpr),1,1).data;}
 function pointerAt(w,el,x,y,t){var r=el.getBoundingClientRect();
   el.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x,clientY:r.top+y,bubbles:true,pointerId:1,isPrimary:true,buttons:1}));}
+/* Cuenta píxeles BLANCOS, que es de lo que están hechos los trazos. Sumar el
+   color de una ventana no sirve para medir tinta sobre césped: el verde del
+   fondo pesa tanto que unos cuantos píxeles blancos no mueven la suma. */
+function blanco(cv,x,y,w,h){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width);
+  var d=c.getImageData(Math.round(x*dpr),Math.round(y*dpr),Math.round(w*dpr),Math.round(h*dpr)).data;
+  var n=0;for(var i=0;i<d.length;i+=4)if(d[i]>180&&d[i+1]>180&&d[i+2]>180)n++;return n;}
 function region(cv,x,y,s){var c=cv.getContext('2d'),dpr=cv.width/parseFloat(cv.style.width);
   var d=c.getImageData(Math.round((x-s)*dpr),Math.round((y-s)*dpr),Math.round(2*s*dpr),Math.round(2*s*dpr)).data;
   var sum=0;for(var i=0;i<d.length;i+=4)sum+=d[i]+d[i+1]+d[i+2];return sum;}
@@ -64,6 +70,54 @@ async function run(w,d){
     if(region(cv,X,Y,24)===pre){okM=false;det+=mats[i]+' no pinta; ';}}
   ok('los 11 elementos colocables se dibujan',okM,det);
   d.querySelector('[data-tool="select"]').click();await raf();
+
+  /* ---- a dónde mira un jugador ----
+     Girar a un jugador no es tumbarlo: es decir hacia dónde está el cuerpo.
+     Antes «rot» en una ficha de jugador no hacía más que torcerle el dorsal.
+     Ahora le pone una visera por ese lado y el dorsal se queda derecho. */
+  (function(){
+    var jx=200+mats.indexOf('player')*66, jy=120;
+    pointerAt(w,cv,jx,jy,'pointerdown');pointerAt(w,cv,jx,jy,'pointerup');
+    return jx;
+  })();
+  await raf();
+  var JX=200+mats.indexOf('player')*66, JY=120;
+  ok('al seleccionar un jugador salen los mandos de giro, que antes no salían',
+     !!d.querySelector('#inspector [data-rot]'));
+  ok('y se llaman por lo que hacen en un jugador',
+     /mirar/i.test(d.querySelector('#inspector [data-rot="15"]').getAttribute('aria-label')) &&
+     /orientaci/i.test(d.querySelector('#inspector [data-rot="reset"]').getAttribute('aria-label')),
+     d.querySelector('#inspector [data-rot="15"]').getAttribute('aria-label'));
+  /* Sin orientación no hay visera: es como está dibujado todo lo que ya
+     había, y una ficha de cada tres no necesita decir a dónde mira. */
+  var MX=JX+15, MS=6;                     // justo por fuera del aro de la ficha
+  var derechaLimpia=region(cv,MX,JY,MS);
+  /* Dos ventanitas DENTRO del disco, una encima del centro y otra a su
+     derecha: si el dorsal girase con la ficha, la tinta del número se pasaría
+     de una a la otra. Sumar todo el disco no sirve —la suma de un cuadrado no
+     cambia porque el número gire dentro de él—, y esa prueba pasaba con el
+     fallo puesto. */
+  var arribaAntes=region(cv,JX,JY-5,3), ladoAntes=region(cv,JX+5,JY,3);
+  d.querySelector('#inspector [data-rot="90"]').click();await raf();
+  var derechaConVisera=region(cv,MX,JY,MS);
+  var arribaDespues=region(cv,JX,JY-5,3), ladoDespues=region(cv,JX+5,JY,3);
+  ok('mirar a la derecha le pone la visera a la derecha',
+     derechaConVisera>derechaLimpia*1.15,
+     Math.round(derechaLimpia)+' → '+Math.round(derechaConVisera));
+  /* Y el dorsal no se mueve: si se girara el lienzo entero, el número
+     giraría con él y en cuanto hay dos cifras deja de leerse. */
+  ok('el dorsal de la ficha no es simétrico, o la prueba de abajo no diría nada',
+     Math.abs(arribaAntes-ladoAntes) > arribaAntes*0.05,
+     Math.round(arribaAntes)+' arriba · '+Math.round(ladoAntes)+' al lado');
+  ok('y el dorsal se queda derecho, que es para lo que está',
+     arribaDespues===arribaAntes && ladoDespues===ladoAntes,
+     Math.round(arribaAntes)+'/'+Math.round(ladoAntes)+' → '+
+     Math.round(arribaDespues)+'/'+Math.round(ladoDespues));
+  d.querySelector('#inspector [data-rot="reset"]').click();await raf();
+  ok('y el 0° se la quita, no lo deja mirando hacia arriba',
+     Math.abs(region(cv,MX,JY,MS)-derechaLimpia) < derechaLimpia*0.02,
+     Math.round(derechaLimpia)+' → '+Math.round(region(cv,MX,JY,MS)));
+
   pointerAt(w,cv,300,620,'pointerdown');await raf();
   ok('el inspector aparece al seleccionar',d.getElementById('inspector').classList.contains('show'));
   pointerAt(w,cv,430,530,'pointermove');pointerAt(w,cv,430,530,'pointerup');await raf();
@@ -76,6 +130,56 @@ async function run(w,d){
     pointerAt(w,cv,810,y0-12,'pointerup');await raf();
     if(region(cv,700,y0,26)===pre){okT=false;dt+=tools[t]+' no pinta; ';}}
   ok('las 4 herramientas de trazo dibujan',okT,dt);
+
+  /* ---- la punta de flecha no se come el trazo ----
+     La conducción llegaba ondulando hasta el vértice y allí se hacía un nudo:
+     la última cresta cruzaba el triángulo. Ahora la onda se apaga y el trazo
+     se para donde empieza la punta.
+
+     Se mide comparando con un pase recto hecho en el mismo sitio: a dos dedos
+     del vértice, la conducción tiene que estar tan limpia por fuera del eje
+     como el pase. Comparar con el pase y no con un número evita inventarse
+     cuántos píxeles mide una cresta. */
+  var X0=Math.round(cv.clientWidth*0.46), X1=Math.round(cv.clientWidth*0.80);
+  var YP=Math.round(cv.clientHeight*0.78), YD=Math.round(cv.clientHeight*0.90);
+  function trazaRecto(tool,y){
+    d.querySelector('[data-tool="'+tool+'"]').click();
+    pointerAt(w,cv,X0,y,'pointerdown');
+    for(var i=1;i<=10;i++) pointerAt(w,cv,X0+(X1-X0)*i/10,y,'pointermove');
+    pointerAt(w,cv,X1,y,'pointerup');
+  }
+  trazaRecto('pass',YP); await raf();
+  trazaRecto('dribble',YD); await raf();
+  /* Dos franjas verticales estrechas junto al vértice: una encima de la punta
+     y otra justo por detrás. Si el trazo llega recto, lo que hay ahí es la
+     punta y poco más; si llega ondulando, la cresta la cruza en diagonal y
+     ocupa casi el doble de alto. Ese «casi el doble» era el nudo. */
+  function juntoAlVertice(y){
+    return blanco(cv,X1-4,y-11,2,22) + blanco(cv,X1-12,y-11,2,22);
+  }
+  var franjaPase = juntoAlVertice(YP), franjaCond = juntoAlVertice(YD);
+  ok('las dos franjas pillan trazo, o no dirían nada',
+     franjaPase>0 && franjaCond>0, franjaPase+' / '+franjaCond);
+  ok('la conducción llega recta a la punta, como el pase',
+     franjaCond <= franjaPase*1.9,
+     franjaPase+' px de alto el pase · '+franjaCond+' la conducción');
+
+  /* ---- el aviso y la pista no se escriben encima ----
+     Los dos salen centrados y abajo, a dos dedos uno del otro. Cambiar de
+     modalidad con la pista puesta dejaba «Fútbol sala · 40 × 20 m» escrito
+     sobre «Arrastra sobre el campo para dibujar». */
+  d.querySelector('[data-tool="pass"]').click();await raf();
+  ok('elegir una herramienta deja una pista puesta',
+     d.getElementById('hint').classList.contains('show'),
+     d.getElementById('hint').textContent);
+  d.querySelector('[data-pitch="futsal"]').click();await wait(250);
+  ok('y el aviso que llega después la quita, en vez de taparla',
+     d.getElementById('toast').classList.contains('show') &&
+     !d.getElementById('hint').classList.contains('show'),
+     'aviso '+d.getElementById('toast').classList.contains('show')+
+     ' · pista '+d.getElementById('hint').classList.contains('show'));
+  d.querySelector('[data-pitch="f11"]').click();await wait(250);
+  d.querySelector('[data-tool="select"]').click();await raf();
   d.querySelector('[data-tool="zone"]').click();await raf();
   var pz=region(cv,300,250,30);
   pointerAt(w,cv,240,200,'pointerdown');pointerAt(w,cv,380,310,'pointermove');pointerAt(w,cv,380,310,'pointerup');await raf();

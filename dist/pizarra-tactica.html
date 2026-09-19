@@ -3098,6 +3098,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
       encima, o usa los botones de giro de la barra que sale al seleccionarla.
     </p>
     <p style="margin:0 0 16px;color:var(--muted)">
+      <b style="color:var(--text)">A dónde mira un jugador:</b> el mismo tirador, en una ficha de jugador,
+      dice hacia dónde está el cuerpo: se lleva a donde mire y le queda una visera por ese lado. El dorsal
+      no se tuerce. Sin tocar nada no lleva visera —la mayoría de las fichas no necesitan decirlo—, y el
+      botón <b style="color:var(--text)">0°</b> se la quita.
+    </p>
+    <p style="margin:0 0 16px;color:var(--muted)">
       <b style="color:var(--text)">Biblioteca:</b> el botón de la barra abre <span id="help-cuantos">los
       ejercicios</span> ya montados —con su pizarra y su ficha— más los que hayas guardado tú. Abre
       siempre en tu modalidad: para ver fútbol 7 o sala, cámbiala en el desplegable. Se filtra además
@@ -19428,7 +19434,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
      son medidas de verdad (7,32 m es una portería reglamentaria) y agrandarlas
      sería mentir sobre el espacio que ocupan en el campo. */
   var KIND = {
-    player:   { r: 1.70,               rot: false, label: 'Jugador' },
+    /* El jugador gira, pero girar a un jugador no es tumbarlo: es decir hacia
+       dónde MIRA. Se dibuja con una punta fuera del aro y el dorsal se queda
+       derecho (ver «drawPlayer»). Sin girar —«rot» a 0— no lleva punta: es
+       como está todo lo que ya había dibujado, y no toda ficha necesita decir
+       a dónde mira. */
+    player:   { r: 1.70,               rot: true,  label: 'Jugador' },
     ball:     { r: 0.98,               rot: false, label: 'Balón' },
     cone:     { r: 1.18,               rot: true,  label: 'Cono' },
     disc:     { r: 1.20,               rot: true,  label: 'Chino' },
@@ -19841,8 +19852,12 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     function arc(cx, cy, r, a1, a2) {
       c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, a1, a2); c.stroke();
     }
+    /* Los puntos de penalti y el del centro. Con suelo en píxeles: a la medida
+       real —16 cm— desaparecían en un campo entero visto en un teléfono, que
+       es justo donde hacen falta para saber dónde está el punto. */
     function dot(cx, cy, r) {
-      c.beginPath(); c.arc(t.ox + cx * u, t.oy + cy * u, r * u, 0, 7);
+      c.beginPath();
+      c.arc(t.ox + cx * u, t.oy + cy * u, Math.max(1.4, r * u), 0, 7);
       c.fillStyle = 'rgba(255,255,255,.9)'; c.fill();
     }
 
@@ -19939,7 +19954,10 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.save();
     c.globalAlpha = alpha == null ? 1 : alpha;
     c.translate(X, Y);
-    if (rot) c.rotate(rot);
+    /* Al jugador no se le gira el lienzo entero: si se hiciera, el dorsal y el
+       nombre girarían con él y dejarían de leerse. Su giro lo pinta él, y solo
+       en la punta que dice a dónde mira. */
+    if (rot && o.kind !== 'player') c.rotate(rot);
     if (o.kind !== 'player' && o.kind !== 'text') {
       c.shadowColor = 'rgba(0,0,0,.5)';
       c.shadowBlur = Math.max(2, u * 0.3);
@@ -19971,9 +19989,44 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.restore();
   }
 
+  /* A DÓNDE MIRA
+
+     Un jugador no es una ficha simétrica. En una recepción orientada, en un
+     perfil o en una espalda al balón, lo primero que hay que ver en el dibujo
+     es hacia dónde está el cuerpo, y hasta ahora no había manera de decirlo:
+     girar a un jugador solo torcía su dorsal.
+
+     Se dibuja como una punta corta pegada al aro, no como una flecha: una
+     flecha larga se confunde con un pase. Va debajo del disco, así que solo
+     asoma lo de fuera y el aro blanco la remata.
+
+     El ángulo se mide como en todas las demás piezas —desde arriba y en el
+     sentido de las agujas—, que es también donde se pone el tirador de giro:
+     el tirador ES la punta, y se arrastra a donde uno quiera que mire. */
+  function dibujaLaMirada(c, r, grados) {
+    /* Una visera, no un pico. Con una punta larga y afilada la ficha dejaba de
+       parecer una ficha: se leía como el alfiler de un mapa o como el rabito de
+       un bocadillo. Corta, ancha y con el borde curvo, la ficha sigue siendo
+       redonda y se ve igual hacia dónde está puesta. */
+    var abre = 0.72;                       // medio arco que abarca, en radianes
+    /* En un campo entero y en un teléfono la ficha mide seis píxeles: esto
+       necesita un mínimo en píxeles o no se ve. */
+    var grueso = Math.max(2.4, r * 0.26);
+    var medio = -Math.PI / 2 + grados * Math.PI / 180;   // «rot» se mide desde arriba
+    c.save();
+    c.beginPath();
+    c.arc(0, 0, r + grueso * 0.40, medio - abre, medio + abre);
+    c.lineWidth = grueso;
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(255,255,255,.92)';   // el mismo blanco que el aro
+    c.stroke();
+    c.restore();
+  }
+
   function drawPlayer(c, t, o) {
     var u = t.s, r = dims(o).r * u, col = objColor(o);
     shadow(c, u, r / u * 0.95, 0.75, 0.35);
+    if (o.rot) dibujaLaMirada(c, r, o.rot);
     var g = c.createLinearGradient(0, -r, 0, r);
     g.addColorStop(0, col);
     g.addColorStop(1, shade(col, -0.28));
@@ -20249,10 +20302,16 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.lineTo(last.x * t.s + t.ox, last.y * t.s + t.oy);
   }
 
+  // Lo que mide la punta de flecha, en píxeles. Lo pregunta también el trazo,
+  // que se para justo donde ella empieza.
+  function largoPunta(t, w) {
+    return Math.max(8, w * t.s * 3.1);
+  }
+
   function arrowHead(c, t, pts, w) {
     var n = pts.length, b = pts[n - 1], a = pts[Math.max(0, n - 4)];
     var ang = Math.atan2(b.y - a.y, b.x - a.x);
-    var L = Math.max(8, w * t.s * 3.1);
+    var L = largoPunta(t, w);
     var X = b.x * t.s + t.ox, Y = b.y * t.s + t.oy;
     c.beginPath();
     c.moveTo(X, Y);
@@ -20262,16 +20321,50 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.fill();
   }
 
-  // Convierte la polilínea en una onda, para la conducción de balón.
+  function largoDe(pts) {
+    var largo = 0;
+    for (var i = 1; i < pts.length; i++) {
+      largo += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    }
+    return largo;
+  }
+
+  /* Recorta el final de la polilínea los metros que se le pidan.
+
+     Es para que la punta de flecha no se coma el trazo. La conducción llegaba
+     ondulando hasta la mismísima punta y allí se hacía un nudo: la última cresta
+     de la onda cruzaba el triángulo. En un trazo muy corto no se recorta tanto
+     que se quede sin línea. */
+  function recortaFinal(pts, metros) {
+    if (pts.length < 2 || !(metros > 0)) return pts;
+    var resta = Math.min(metros, largoDe(pts) * 0.45), out = pts.slice();
+    while (out.length > 1 && resta > 1e-9) {
+      var b = out[out.length - 1], a = out[out.length - 2];
+      var d = Math.hypot(b.x - a.x, b.y - a.y);
+      if (d <= resta) { out.pop(); resta -= d; continue; }
+      var f = (d - resta) / d;
+      out[out.length - 1] = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+      resta = 0;
+    }
+    return out.length > 1 ? out : pts;
+  }
+
+  /* Convierte la polilínea en una onda, para la conducción de balón.
+
+     La onda se apaga en el último tramo. Si no, terminaba en mitad de una
+     cresta y entraba torcida en la punta de flecha; apagándose, el trazo llega
+     recto a la punta, que es como lo dibuja cualquiera a mano. */
   function wavy(pts, amp, len) {
-    var out = [], acc = 0;
+    var out = [], acc = 0, total = largoDe(pts), apaga = Math.min(len, total * 0.5);
     for (var i = 1; i < pts.length; i++) {
       var a = pts[i - 1], b = pts[i];
       var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
       if (d < 1e-6) continue;
       var nx = -dy / d, ny = dx / d, steps = Math.max(1, Math.round(d / 0.16));
       for (var s = 0; s < steps; s++) {
-        var f = s / steps, o = Math.sin((acc + d * f) / len * Math.PI * 2) * amp;
+        var f = s / steps, hecho = acc + d * f;
+        var baja = apaga > 0 ? Math.min(1, (total - hecho) / apaga) : 1;
+        var o = Math.sin(hecho / len * Math.PI * 2) * amp * baja;
         out.push({ x: a.x + dx * f + nx * o, y: a.y + dy * f + ny * o });
       }
       acc += d;
@@ -20306,19 +20399,29 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     c.lineWidth = w;
     c.strokeStyle = st.color;
     c.fillStyle = st.color;
+
+    /* El cuerpo del trazo se para donde empieza la punta de flecha. Antes
+       llegaba hasta el vértice: la tapa redonda del trazo asomaba por los lados
+       del triángulo y, en la conducción, la onda le pasaba por encima. */
+    var conPunta = st.tool !== 'free';
+    var cuerpo = conPunta
+      ? recortaFinal(st.pts, largoPunta(t, st.width) / t.s * 0.86)
+      : st.pts;
+    var linea = st.tool === 'dribble' ? wavy(cuerpo, 0.42, 1.6) : cuerpo;
+
     // halo oscuro para que el trazo se lea sobre el césped
     c.save();
     c.strokeStyle = 'rgba(0,0,0,.35)';
     c.lineWidth = w + Math.max(2, w * 0.55);
-    strokePath(c, t, st.tool === 'dribble' ? wavy(st.pts, 0.42, 1.6) : st.pts);
+    strokePath(c, t, linea);
     c.stroke();
     c.restore();
 
     if (st.tool === 'run') c.setLineDash([w * 2.2, w * 1.7]);
-    strokePath(c, t, st.tool === 'dribble' ? wavy(st.pts, 0.42, 1.6) : st.pts);
+    strokePath(c, t, linea);
     c.stroke();
     c.setLineDash([]);
-    if (st.tool !== 'free') arrowHead(c, t, st.pts, st.width);
+    if (conPunta) arrowHead(c, t, st.pts, st.width);
     c.restore();
   }
 
@@ -20651,7 +20754,8 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
           var r = canvas.getBoundingClientRect();
           if (Math.hypot(e.clientX - r.left - h.x, e.clientY - r.top - h.y) < 26) {
             drag = { mode: 'rotate', o: sel };
-            hint('Gira la pieza · suelta para fijar');
+            hint(sel.kind === 'player' ? 'Llévalo a donde mire · suelta para fijar'
+                                       : 'Gira la pieza · suelta para fijar');
             return;
           }
         }
@@ -20917,11 +21021,26 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
     }
 
     if (k.rot) {
+      /* Los mismos cuatro botones para todo, pero dichos como toca: a un cono
+         se le endereza y a un jugador se le pone mirando. El «0°» de un
+         jugador es quitarle la orientación, que es un estado de verdad —la
+         mayoría de las fichas de un dibujo no necesitan decir a dónde miran—
+         y no «ponerlo mirando hacia arriba». */
+      var esJugador = o.kind === 'player';
+      var gira = esJugador
+        ? ['Mirar 15 grados a la izquierda', 'Mirar a la izquierda',
+           'Mirar 15 grados a la derecha', 'Mirar a la derecha',
+           'Mirar un cuarto de vuelta a la derecha', 'Un cuarto de vuelta',
+           'Quitarle la orientación', 'Sin orientación']
+        : ['Girar 15 grados a la izquierda', 'Girar a la izquierda',
+           'Girar 15 grados a la derecha', 'Girar a la derecha',
+           'Girar 90 grados', 'Girar 90°',
+           'Enderezar', 'Enderezar'];
       html += '<span class="div"></span>' +
-        '<button class="ibtn" data-rot="-15" aria-label="Girar 15 grados a la izquierda" title="Girar a la izquierda">' + icon('rotL') + '</button>' +
-        '<button class="ibtn" data-rot="15" aria-label="Girar 15 grados a la derecha" title="Girar a la derecha">' + icon('rotR') + '</button>' +
-        '<button class="ibtn" data-rot="90" aria-label="Girar 90 grados" title="Girar 90°">90°</button>' +
-        '<button class="ibtn" data-rot="reset" aria-label="Enderezar" title="Enderezar">0°</button>';
+        '<button class="ibtn" data-rot="-15" aria-label="' + gira[0] + '" title="' + gira[1] + '">' + icon('rotL') + '</button>' +
+        '<button class="ibtn" data-rot="15" aria-label="' + gira[2] + '" title="' + gira[3] + '">' + icon('rotR') + '</button>' +
+        '<button class="ibtn" data-rot="90" aria-label="' + gira[4] + '" title="' + gira[5] + '">90°</button>' +
+        '<button class="ibtn" data-rot="reset" aria-label="' + gira[6] + '" title="' + gira[7] + '">0°</button>';
     }
 
     html += '<span class="div"></span>' +
@@ -21071,6 +21190,13 @@ dialog.wide{max-width:min(660px,calc(100vw - 24px))}
   var toastTimer;
   function toast(msg) {
     var el = $('#toast');
+    /* El aviso manda sobre la pista de abajo: los dos salen en el mismo sitio
+       —centrados, abajo, a dos dedos uno del otro— y al coincidir se leían
+       encima el uno del otro. Cambiar de modalidad con la pista de bienvenida
+       puesta dejaba «Fútbol sala · 40 × 20 m» escrito sobre «Arrastra las
+       fichas…». Y no hay ningún caso en que hagan falta los dos a la vez: la
+       pista dice qué puedes hacer y el aviso dice qué acaba de pasar. */
+    hint('');
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(toastTimer);
