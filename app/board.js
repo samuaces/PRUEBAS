@@ -1907,6 +1907,10 @@
     $('#play').closest('.timeline').classList.toggle('solo-uno', solo);
     $('#play').disabled = solo;
     $('#delframe').disabled = solo;
+    /* El bocadillo del «+» va pegado al botón, y el botón se mueve según
+       cuántos fotogramas haya. Con el segundo, sobra: ya está descubierto. */
+    if (!solo) cierraLaPistaDelMas();
+    else situaLaPistaDelMas();
   }
 
   function gotoFrame(i) {
@@ -5576,6 +5580,61 @@
     if (!e || e.hidden) return;
     e.hidden = true;
     guardaQueYaLoHaVisto();
+    /* Y ahora sí le toca al del «+», que se había apartado para no salir a la
+       vez que este. Uno detrás de otro se leen; los dos juntos, ninguno. */
+    setTimeout(quizaEnseñaLaPistaDelMas, 500);
+  }
+
+  /* ---- el bocadillo del «+» ---------------------------------------------
+
+     El «+» de la línea de fotogramas es por donde se descubre que una jugada
+     se puede animar, y eso no lo dice un botón con un signo más. Antes lo
+     contaba un aviso en mitad del campo, que ni señalaba al botón ni se podía
+     quitar: salía siete segundos y tapaba la jugada. Ahora sale del propio
+     sitio del que habla, con el pico apuntando al botón.
+
+     Se va a los diez segundos, se cierra con la ✕ y se cierra al añadir el
+     primer fotograma, que es haberlo entendido. Y no vuelve: un cartel que
+     enseña algo se enseña una vez. ------------------------------------- */
+  var relojPistaMas = null;
+
+  function situaLaPistaDelMas() {
+    var caja = $('#pista-mas'), mas = $('#frames .frame.add');
+    if (!caja || caja.hidden || !mas || !caja.parentNode) return;
+    var padre = caja.parentNode.getBoundingClientRect();
+    var b = mas.getBoundingClientRect();
+    var ancho = caja.offsetWidth;
+    var centro = b.left + b.width / 2 - padre.left;
+    var x = clamp(centro - ancho / 2, 8, Math.max(8, padre.width - ancho - 8));
+    caja.style.setProperty('--x', x + 'px');
+    caja.style.setProperty('--punta', (centro - x) + 'px');
+  }
+
+  function cierraLaPistaDelMas() {
+    clearTimeout(relojPistaMas);
+    var caja = $('#pista-mas');
+    if (!caja || caja.hidden) return;
+    caja.hidden = true;
+    var p = prefs();
+    if (!p.vistoElMas) { p.vistoElMas = true; guardaPrefs(p); }
+  }
+
+  /* Solo con un fotograma —con dos ya se ha descubierto—, solo si no se ha
+     visto antes, y nunca a la vez que el cartel del cajón: dos bocadillos a la
+     vez en la primera pantalla son un examen, no una ayuda. */
+  function quizaEnseñaLaPistaDelMas() {
+    var caja = $('#pista-mas');
+    if (!caja || !caja.hidden) return;
+    try { if (prefs().vistoElMas) return; } catch (e) { return; }
+    if (doc.frames.length > 1) return;
+    var otra = $('#pista-cajon');
+    if (otra && !otra.hidden) return;
+    var cajon = $('#cajon');
+    if (cajon && !cajon.hidden) return;          // con el menú abierto, detrás no
+    caja.hidden = false;
+    situaLaPistaDelMas();
+    clearTimeout(relojPistaMas);
+    relojPistaMas = setTimeout(cierraLaPistaDelMas, 10000);
   }
 
   function quizaEnseñaLaPista() {
@@ -5610,6 +5669,7 @@
     $('#cajon-btn').setAttribute('aria-expanded', 'false');
     setTimeout(function () {
       if (!c.classList.contains('open')) c.hidden = true;
+      quizaEnseñaLaPistaDelMas();
     }, 240);
   }
 
@@ -7730,6 +7790,8 @@
     });
 
     window.addEventListener('resize', resize);
+    window.addEventListener('resize', situaLaPistaDelMas);
+    $('#pista-mas-x').addEventListener('click', cierraLaPistaDelMas);
     // Al pasar de escritorio a móvil (o al girar el teléfono) los bloques del
     // panel tienen que volver a su sitio: plegados allí, abiertos aquí.
     window.addEventListener('resize', ajustaBloquesDelPanel);
@@ -7888,12 +7950,10 @@
     refreshHistoryButtons();
     resize();
     setTool('select');
-    setTimeout(function () {
-      hint(window.innerWidth <= 900
-        ? 'Arrastra las fichas. Con <b>+</b> añades un fotograma y la jugada se anima.'
-        : 'Arrastra las fichas · pulsa <b>+</b> en la línea de tiempo y mueve la jugada para animarla');
-    }, 700);
-    setTimeout(function () { hint(''); }, 7000);
+    /* Lo del «+» lo cuenta ahora un bocadillo que sale de la línea de
+       fotogramas (ver «quizaEnseñaLaPistaDelMas»). Aquí había un aviso en
+       mitad del campo que decía además «arrastra las fichas»: eso se cae, que
+       es lo primero que hace cualquiera sin que nadie se lo diga. */
 
     // Lo último: si la dirección trae una jugada, se abre. Va al final para que
     // la pizarra ya esté montada y se pueda sustituir sin sobresaltos.
@@ -7973,6 +8033,8 @@
     /* Después de arrancar, no antes: el cartel señala al menú, y el menú tiene
        que existir. Con un respiro para que lo primero que se vea sea el campo. */
     setTimeout(quizaEnseñaLaPista, 700);
+    /* Y el del «+» detrás, que se salta solo si el otro ha salido. */
+    setTimeout(quizaEnseñaLaPistaDelMas, 900);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arranca);
