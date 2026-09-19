@@ -503,6 +503,34 @@ a:hover{color:var(--text)}
 @keyframes pista-entra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){ .pista-cajon{animation:none} }
 
+/* El bocadillo del «+», el mismo cartel que el del cajón pero saliendo de la
+   línea de fotogramas, con el pico abajo apuntando al botón. Un aviso suelto en
+   mitad del campo no dice de qué está hablando; este sí, porque sale de la cosa
+   que explica. «--x» y «--punta» los pone el motor midiendo dónde ha quedado el
+   «+», que se mueve según cuántos fotogramas haya. */
+.pista-mas{position:absolute;z-index:24;bottom:calc(100% + 9px);left:var(--x,12px);
+  width:max-content;max-width:min(290px,calc(100vw - 24px));
+  display:flex;align-items:flex-start;gap:6px;
+  padding:10px 8px 10px 13px;border-radius:var(--r2);
+  background:var(--bg-2);border:1px solid var(--line-strong);
+  box-shadow:0 22px 50px -24px rgba(0,0,0,.9);
+  animation:pista-sube .28s cubic-bezier(.2,.9,.3,1) both}
+.pista-mas[hidden]{display:none}
+.pista-mas p{margin:0;font-size:var(--t-md);line-height:1.45;color:var(--text)}
+.pista-mas b{color:var(--brand-2)}
+.pista-mas::after{content:"";position:absolute;bottom:-6px;left:var(--punta,20px);
+  margin-left:-5px;width:11px;height:11px;background:var(--bg-2);
+  border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);
+  transform:rotate(45deg)}
+/* La ✕ del bocadillo: se ve pequeña y se toca como todo lo demás. */
+.pista-x{flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:var(--touch);height:var(--touch);margin:-10px -8px -10px 0;
+  border-radius:var(--r2);color:var(--muted)}
+.pista-x svg{width:14px;height:14px}
+.pista-x:hover{color:var(--text);background:var(--glass-2)}
+@keyframes pista-sube{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .pista-mas{animation:none} }
+
 .cajon{position:fixed;z-index:60;top:0;left:0;bottom:0;width:min(290px,84vw);
   padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px);
   background:var(--bg-2);border-right:1px solid var(--line);

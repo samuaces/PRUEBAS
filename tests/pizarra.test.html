@@ -2252,6 +2252,12 @@ async function run(w,d){
   var w4=marcoR.contentWindow, d4=marcoR.contentDocument;
   var pista=d4.getElementById('pista-cajon');
   ok('en una instalación nueva sí sale, señalando al menú',!pista.hidden);
+  /* Y mientras este está puesto, el del «+» se aparta. Se espera a que le haya
+     tocado el turno —sale al segundo de arrancar— para que la comprobación
+     diga algo. */
+  await wait(1300);
+  ok('y el del «+» no sale a la vez que él',
+     d4.getElementById('pista-mas').hidden && !pista.hidden);
   /* Y no es un diálogo: si hubiera velo o fuera modal, estaría pidiendo algo
      antes de dejar dibujar, que es justo lo que no se hace aquí. */
   ok('y no bloquea: ni es modal ni tiene velo por debajo',
@@ -2267,9 +2273,38 @@ async function run(w,d){
     clientX:rl.left+rl.width/2,clientY:rl.top+rl.height/2}));
   await wait(300);
   ok('se va solo al primer trazo, sin tener que cerrarlo',pista.hidden);
+
+  /* --- y detrás, el bocadillo del «+» ---
+     El «+» de la línea de fotogramas es por donde se descubre que la jugada se
+     anima, y un botón con un signo más no lo dice. Antes lo contaba un aviso en
+     mitad del campo, que ni señalaba al botón ni se podía quitar. Sale detrás
+     del otro cartel, nunca a la vez: dos bocadillos en la primera pantalla son
+     un examen. */
+  await wait(800);
+  var mas=d4.getElementById('pista-mas');
+  ok('detrás del primero sale el del «+», no a la vez',!mas.hidden);
+  ok('y sale de la línea de fotogramas, con el pico en el botón',
+     (function(){
+       var r=mas.getBoundingClientRect();
+       var b=d4.querySelector('#frames .frame.add').getBoundingClientRect();
+       var pico=r.left+parseFloat(w4.getComputedStyle(mas).getPropertyValue('--punta'));
+       return Math.abs(pico-(b.left+b.width/2))<2 && r.bottom<=b.top+2;
+     })(),
+     (function(){
+       var r=mas.getBoundingClientRect();
+       var b=d4.querySelector('#frames .frame.add').getBoundingClientRect();
+       return 'pico '+Math.round(r.left+parseFloat(w4.getComputedStyle(mas).getPropertyValue('--punta')))+
+              ' · botón '+Math.round(b.left+b.width/2);
+     })());
+  ok('y se puede cerrar, que para eso tiene su ✕',
+     !!d4.getElementById('pista-mas-x'));
+  d4.getElementById('pista-mas-x').click();
+  await wait(250);
+  ok('la ✕ lo cierra',mas.hidden);
   await recarga();
   ok('y no vuelve nunca más',
-     marcoR.contentDocument.getElementById('pista-cajon').hidden);
+     marcoR.contentDocument.getElementById('pista-cajon').hidden &&
+     marcoR.contentDocument.getElementById('pista-mas').hidden);
 
   ok('sin errores de JavaScript',errors.length===0,errors.join(' | '));
 }

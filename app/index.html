@@ -671,6 +671,17 @@
     <button class="chip mono" id="speed" title="Velocidad de la animación">1.0×</button>
 
     <div class="progress" id="progress"><i></i></div>
+
+    <!-- El bocadillo que explica el «+». Sale de la propia línea de fotogramas,
+         con el pico apuntando al botón, porque un aviso en mitad del campo no
+         dice de qué está hablando. Se va solo a los diez segundos, se puede
+         cerrar, y no vuelve una vez visto. -->
+    <div class="pista-mas" id="pista-mas" hidden role="status">
+      <p>Pulsa <b>+</b> para añadir un fotograma: mueve la jugada y se anima sola.</p>
+      <button type="button" class="pista-x" id="pista-mas-x" aria-label="Cerrar el aviso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
   </footer>
 
   <!-- ============== NAVEGACIÓN INFERIOR (solo pantallas pequeñas) ============== -->
